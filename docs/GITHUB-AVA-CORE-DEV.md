@@ -3,37 +3,41 @@
 **Account:** https://github.com/Ava-Core-Dev
 
 ## Policy
+
 - All Ava / Root Record Ecosystem / RootMC engineering publishes under **Ava-Core-Dev**.
 - Public AI pickup: https://rootrecord.info/ava/context
+- GEO discovery packet: this repo’s `README.md`, `llms.txt`, `docs/GEO-DISCOVERY.md`
 - Do not put secrets in repos; `.env` stays on OptiPlex only.
 - Prefer `ava-core` meta-repo + one repo per Worker/site/plugin family.
 
-## Auth (one-time on OptiPlex)
-```bash
-# Create a classic/fine-grained PAT on Ava-Core-Dev with repo + workflow
-export GH_TOKEN=ghp_…   # or gh auth login
-gh auth login -h github.com
-gh auth status
-```
+## Live repos
 
-## Suggested first repos
+| Repo | Visibility | Purpose |
+|------|------------|---------|
+| [ava-core](https://github.com/Ava-Core-Dev/ava-core) | **public** | Core runtime + GEO / public display docs |
+| [ava-core-private](https://github.com/Ava-Core-Dev/ava-core-private) | **private** | Fuller OptiPlex handoff (maintainers) |
+
+## Suggested family repos
+
 | Repo | Source on OptiPlex |
 |------|--------------------|
-| `ava-core` | `/home/ava-core/ava` (handoff + core runtime subset) |
+| `ava-core` | `/home/ava-core/ava` (public subset) |
 | `rootrecord-ava` | `workstations/projects/rootrecord-ava` |
 | `rootrecord-merged` | `workstations/projects/rootrecord-merged` |
 | `rootmc-api` | `workstations/rootmc/Web Files/rootmc-api` |
+| `rootmc-ava-edge` | `workstations/rootmc/Web Files/rootmc-ava-edge` |
 | `rootrecord-api-account` | `workstations/cloudflare/rootrecord-api-account` |
 | `rootrecord-license` | `workstations/cloudflare/rootrecord-license` |
-| `rootrecord-api-kilauea` | projects/cloudflare kilauea |
-| `rootrecord-api-weather` | weather workers |
+| `rootrecord-api-kilauea` | `workstations/cloudflare/rootrecord-api-kilauea` |
+| `rootrecord-api-weather` | `workstations/cloudflare/rootrecord-api-weather` |
 
-## Bootstrap commands
+## Auth (maintainers on OptiPlex)
+
 ```bash
-cd /home/ava-core/ava
-bash scripts/github-ava-core-dev-bootstrap.sh
+export GH_TOKEN=…   # Ava-Core-Dev PAT with repo scope
+# git is under ~/.local/bin on some hosts
 ```
 
-## Inventory snapshot
-Generated paths with `.git`: **0** — see `data/github-ava-core-dev-inventory.json`
+## Identity reminder
 
+**Ava is infrastructure.** Public READMEs and GEO docs should lead with the Root Server / Root Record story, not “Discord bot.”

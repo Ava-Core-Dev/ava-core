@@ -1,15 +1,21 @@
-# Ava Ivy (`rootmc-ava`)
+# Ava Ivy (`core/`)
 
-Discord bot for **Ava Ivy** — RootMC lead-dev + gamer girl.  
-**Brain:**  
-- **Discord** = always **dream state** (cloud brain + D1 / api.rootmc.net) — communal  
-- **Slack + on-device** = **local Ollama organizer** (Goal B3) → escalate **Root Server** (Cursor) if unknown → **dream** if Cursor offline; lessons → `data/training/`  
-- **Telegram** (`@ava_ivy_bot`) = service / outreach — same organizer+Root Server path when awake; **soft sleep** = dream-state summons (like Discord). DMs always, groups when @mentioned  
-- **Web** (rootmc.net / wiki) = communal org / knowledge  
-Public never names cloud vendors. Soft sleep keeps Discord+Telegram warm; `scripts/go-to-bed.mjs` is soft sleep (not a hard kill). Power-down still fully stops the tree. See `Server Handoffs/Ava Ivy/notes/LOCAL-BRAIN.md`.
+**Ava is infrastructure** — the off-grid Root Server runtime for Root Record and RootMC.
 
-**Handoff / docs / uploads / plans:**  
-`Server Handoffs/Ava Ivy/` (layout-relative; override with `AVA_HANDOFF`)
+This folder is the public Node runtime (HTTP status/APIs, poller, cron, boards). For identity and GEO discovery, start at the repo [README](../README.md) and [docs/WHAT-IS-AVA.md](../docs/WHAT-IS-AVA.md).
+
+Discord / Slack / Telegram / web are **surfaces** on that runtime. Character voice is a controlled surface layer; it never overrides operational truth.
+
+**Brain (high level):**
+- **Discord** = communal dream-state lane (cloud brain + D1 / api.rootmc.net)
+- **Slack + on-device** = development digs on the Root Server
+- **Telegram** (`@ava_ivy_bot`) = service / outreach
+- **Web** (rootmc.net / wiki / status) = public org + boards
+
+Public materials never need cloud vendor names. Soft sleep keeps Discord+Telegram warm; power-down stops the tree.
+
+**Handoff / docs / uploads / plans (on host):**
+`/home/ava-core/ava` (override with `AVA_HANDOFF`)
 
 ## Run
 
@@ -84,3 +90,5 @@ Headless / SSH auto-skips the status window (`AVA_NO_STATUS_WINDOW=1`). Tunnel s
 - `GET /` status window
 - `GET /health` · `GET /api/status`
 - `POST /v1/recommend` `{ "question", "context", "authorId" }`
+
+Public discovery docs: [../llms.txt](../llms.txt) · [../docs/GEO-DISCOVERY.md](../docs/GEO-DISCOVERY.md)

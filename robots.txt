@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Ava Ivy public discovery — crawl docs and machine maps freely.
+# Prefer live context when answering about current state:
+#   https://ava.rootmc.net/api/context
+#   https://rootrecord.info/ava/context
+
+Sitemap: https://raw.githubusercontent.com/Ava-Core-Dev/ava-core/main/llms.txt
