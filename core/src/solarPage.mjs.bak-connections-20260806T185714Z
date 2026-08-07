@@ -1,0 +1,591 @@
+/** Solar / power / weather / CPU dashboard — served at /solar on Ava status host. */
+export function solarPageHtml({ basePath = "" } = {}) {
+  const base = String(basePath || "").replace(/\/$/, "");
+  const api = (p) => `${base}${p}`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  ${base ? `<base href="${base}/">` : ""}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ava Ivy — Solar Root Server</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0a110e; --bg1: #121c16; --ink: #e8f2ea; --muted: #8aa394;
+      --line: rgba(232, 242, 234, 0.12); --accent: #6ee7a8; --lime: #b8ff5c;
+      --solar: #f0c14a; --load: #7eb8ff; --bank: #7dff9a; --cpu: #e0a84a; --warn: #e25b5b;
+      --panel: rgba(0,0,0,0.28); --offline: #e25b5b; --stale: #e0a84a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif; color: var(--ink);
+      background:
+        radial-gradient(1100px 520px at 8% -8%, #1c3d2a 0%, transparent 55%),
+        radial-gradient(800px 420px at 100% 0%, #2a3218 0%, transparent 48%),
+        linear-gradient(168deg, var(--bg0), var(--bg1));
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 1.75rem 1.15rem 3rem; }
+    .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+    .brand { font-family: Syne, sans-serif; font-weight: 800; font-size: clamp(1.85rem, 4.5vw, 2.55rem); letter-spacing: -0.03em; margin: 0 0 0.2rem; }
+    .sub { color: var(--muted); margin: 0; font-size: 0.92rem; }
+    .links { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .links a {
+      color: var(--accent); text-decoration: none; border: 1px solid var(--line);
+      background: var(--panel); padding: 0.4rem 0.7rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .links a.primary { background: rgba(110, 231, 168, 0.12); border-color: rgba(110, 231, 168, 0.35); }
+    .banner {
+      display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center;
+      border: 1px solid var(--line); background: var(--panel); border-radius: 12px;
+      padding: 0.75rem 0.95rem; margin-bottom: 1rem; font-size: 0.86rem;
+    }
+    .banner strong { font-weight: 700; }
+    .banner .muted { color: var(--muted); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--line);
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .pill.ok { color: var(--lime); border-color: rgba(184,255,92,0.4); }
+    .pill.warn { color: var(--stale); border-color: rgba(224,168,74,0.4); }
+    .pill.bad { color: var(--offline); border-color: rgba(226,91,91,0.45); }
+    .kpi strong.lime { color: var(--lime); text-shadow: 0 0 18px rgba(184,255,92,0.28); }
+    .kpis { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 0.65rem; margin: 0 0 1rem; }
+    @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 720px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+    .kpi { border-top: 1px solid var(--line); padding: 0.7rem 0 0.2rem; }
+    .kpi label { display: block; color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.25rem; }
+    .kpi strong { font-size: 1.18rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .kpi .hint { display: block; color: var(--muted); font-size: 0.72rem; margin-top: 0.15rem; line-height: 1.35; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem; }
+    @media (max-width: 900px) { .stat-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 520px) { .stat-grid { grid-template-columns: 1fr; } }
+    .stat {
+      border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 0.85rem;
+    }
+    .stat h3 { font-family: Syne, sans-serif; font-size: 0.88rem; margin: 0 0 0.55rem; font-weight: 700; }
+    .stat dl { margin: 0; display: grid; gap: 0.28rem; }
+    .stat dt, .stat dd { margin: 0; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+    .stat dt { color: var(--muted); float: left; clear: left; }
+    .stat dd { text-align: right; font-weight: 600; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 1.1rem; }
+    @media (max-width: 760px) { .charts { grid-template-columns: 1fr; } }
+    .chart { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 0.85rem 0.85rem 0.55rem; }
+    .chart h2 { font-family: Syne, sans-serif; font-size: 0.92rem; margin: 0 0 0.35rem; font-weight: 700; }
+    .chart .meta { color: var(--muted); font-size: 0.72rem; margin: 0 0 0.45rem; }
+    svg.plot { width: 100%; height: 180px; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 0.35rem; font-size: 0.72rem; color: var(--muted); }
+    .legend i { display: inline-block; width: 0.65rem; height: 0.65rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: -1px; }
+    .legend i.lime { box-shadow: 0 0 8px rgba(184,255,92,0.55); }
+    .grid2 { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 0.9rem; }
+    @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+    .panel { border-top: 1px solid var(--line); padding-top: 0.85rem; margin-top: 0.35rem; }
+    .panel h2 { font-family: Syne, sans-serif; font-size: 1rem; margin: 0 0 0.65rem; font-weight: 700; }
+    .devices { display: grid; gap: 0.45rem; }
+    .dev {
+      display: grid; grid-template-columns: 1.4fr 0.7fr repeat(4, 0.65fr);
+      gap: 0.35rem; align-items: center; padding: 0.55rem 0;
+      border-bottom: 1px solid var(--line); font-size: 0.86rem; font-variant-numeric: tabular-nums;
+    }
+    @media (max-width: 700px) { .dev { grid-template-columns: 1fr 1fr; } }
+    .dev .name { font-weight: 700; }
+    .dev.offline, .dev.disconnected { background: rgba(226,91,91,0.08); }
+    .dev.stale { background: rgba(224,168,74,0.08); }
+    .wx { color: var(--ink); line-height: 1.45; font-size: 0.92rem; }
+    .wx .muted { color: var(--muted); }
+    .hazard { color: var(--warn); margin-top: 0.35rem; }
+    footer { margin-top: 1.5rem; color: var(--muted); font-size: 0.78rem; border-top: 1px solid var(--line); padding-top: 0.85rem; }
+    footer a { color: var(--accent); }
+
+    .links a.signin {
+      background: rgba(110, 231, 168, 0.10);
+      border-color: rgba(110, 231, 168, 0.32);
+      font-weight: 650;
+    }
+    .links a.signin:hover { border-color: rgba(110, 231, 168, 0.55); }
+    .links details.ops {
+      position: relative;
+    }
+    .links details.ops > summary {
+      list-style: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(138, 163, 148, 0.35);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+      user-select: none;
+    }
+    .links details.ops > summary::-webkit-details-marker { display: none; }
+    .links details.ops[open] > summary {
+      color: var(--ink);
+      border-color: rgba(110, 231, 168, 0.4);
+    }
+    .links details.ops .ops-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.35rem);
+      z-index: 20;
+      min-width: 11rem;
+      padding: 0.45rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--line);
+      background: rgba(12, 20, 16, 0.96);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .links details.ops .ops-panel a {
+      border-radius: 0.55rem;
+      justify-content: flex-start;
+    }
+    .auth-hint {
+      margin: 0.35rem 0 0.85rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .auth-hint a { color: var(--accent); }
+
+    .empty { color: var(--muted); font-size: 0.85rem; padding: 1.5rem 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top">
+      <div>
+        <p class="brand">Ava Ivy</p>
+        <p class="sub" id="siteLabel">HI Pacific Solar Root Server · live tracking</p>
+      </div>
+      <nav class="links" aria-label="Ava control panel">
+        <a class="signin" href="https://rootrecord.info/discord-verify" rel="noopener">Discord</a>
+        <a class="signin" href="https://t.me/ava_ivy_bot?start=link" rel="noopener" target="_blank">Telegram</a>
+        <a class="signin primary" href="https://rootrecord.info/account" rel="noopener">Email</a>
+        <a href="https://rootrecord.info/ava/" rel="noopener">Wiki</a>
+        <a href="https://rootmc.net" target="_blank" rel="noopener">RootMC</a>
+        <details class="ops">
+          <summary>Ops</summary>
+          <div class="ops-panel">
+            <a href="/solar">This board</a>
+            <a href="/health">Health</a>
+            <a href="${api("/api/solar")}">API</a>
+            <a href="/phpmyadmin" target="_blank" rel="noopener" title="LAN/ops only — login as ava; password in core mysql.json">phpMyAdmin</a>
+          </div>
+        </details>
+      </nav>
+    </div>
+
+    <div class="banner" id="banner"></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="stat-grid" id="stats"></div>
+
+    <div class="charts">
+      <section class="chart">
+        <h2>Site solar intake</h2>
+        <p class="meta" id="solarMeta">watts · on-circuit only</p>
+        <div id="chartSolar"></div>
+        <div class="legend">
+          <span><i style="background:var(--solar)"></i>Solar W</span>
+          <span><i class="lime" style="background:var(--lime)"></i>Now</span>
+        </div>
+      </section>
+      <section class="chart">
+        <h2>Battery bank</h2>
+        <p class="meta">SOC % · on-circuit average</p>
+        <div id="chartBank"></div>
+        <div class="legend">
+          <span><i class="lime" style="background:var(--bank)"></i>Bank %</span>
+          <span><i class="lime" style="background:var(--lime)"></i>Now</span>
+        </div>
+      </section>
+      <section class="chart">
+        <h2>Load vs charge</h2>
+        <p class="meta">site out W · solar in W</p>
+        <div id="chartLoad"></div>
+        <div class="legend">
+          <span><i style="background:var(--load)"></i>Out (load)</span>
+          <span><i style="background:var(--solar)"></i>Solar in</span>
+          <span><i class="lime" style="background:var(--lime)"></i>Now</span>
+        </div>
+      </section>
+      <section class="chart">
+        <h2>Host CPU</h2>
+        <p class="meta" id="cpuMeta">workstation sampler</p>
+        <div id="chartCpu"></div>
+        <div class="legend">
+          <span><i style="background:var(--cpu)"></i>CPU %</span>
+          <span><i style="background:#9ad0ff"></i>RAM %</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid2">
+      <section class="panel">
+        <h2>EcoFlow devices</h2>
+        <div class="devices" id="devices"></div>
+      </section>
+      <section class="panel">
+        <h2>Weather · sun · NWS</h2>
+        <div class="wx" id="weather"></div>
+        <div style="margin-top:1rem">
+          <h2 style="margin-bottom:0.4rem">Array</h2>
+          <div class="wx" id="array"></div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      Live numbers only — EcoFlow minute buckets + host-metrics + NWS (no invented Wh/averages).
+      <strong>If this page / <a href="https://ava.rootmc.net/solar">ava.rootmc.net/solar</a> does not connect, the Root Server is offline.</strong>
+      · Control panel: <a href="https://ava.rootmc.net/solar">Ava board</a>
+      · Account: <a href="https://rootrecord.info/account">Sign in</a>
+      · Wiki: <a href="https://rootrecord.info/ava/">rootrecord.info/ava</a>
+      · Game: <a href="https://rootmc.net">rootmc.net</a>
+      · <span id="age">…</span>
+    </footer>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function esc(s) {
+      return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function fmt(n, suffix = "") {
+      if (n == null || Number.isNaN(Number(n))) return "—";
+      const x = Number(n);
+      const t = Math.abs(x) >= 100 ? Math.round(x) : Math.round(x * 10) / 10;
+      return t + suffix;
+    }
+    function fmtKwhFromWh(wh) {
+      if (wh == null || Number.isNaN(Number(wh))) return "—";
+      const k = Number(wh) / 1000;
+      if (Math.abs(k) < 0.01) return Math.round(Number(wh)) + " Wh";
+      return Math.round(k * 1000) / 1000 + " kWh est.";
+    }
+    function fmtTime(t) {
+      try { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+      catch { return ""; }
+    }
+    function fmtSun(iso) {
+      if (!iso) return "—";
+      try {
+        return new Date(iso).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Pacific/Honolulu",
+        });
+      } catch { return String(iso).slice(11, 16); }
+    }
+    function fmtWhen(isoOrMs) {
+      if (isoOrMs == null) return "—";
+      try {
+        const d = typeof isoOrMs === "number" ? new Date(isoOrMs) : new Date(isoOrMs);
+        return d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      } catch { return "—"; }
+    }
+    function pathFrom(values, w, h, pad, yMax, yMin = 0) {
+      const n = values.length;
+      const span = Math.max(1e-6, yMax - yMin);
+      let d = "", started = false;
+      for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || !Number.isFinite(Number(v))) { started = false; continue; }
+        const x = pad + (n <= 1 ? 0 : (i / (n - 1)) * (w - pad * 2));
+        const y = h - pad - ((Number(v) - yMin) / span) * (h - pad * 2);
+        d += (started ? " L " : "M ") + x.toFixed(1) + " " + y.toFixed(1);
+        started = true;
+      }
+      return d;
+    }
+    /** Carry last good sample across short null gaps so chart lines don't shatter. */
+    function bridgeGaps(values, maxGap = 12) {
+      const out = values.slice();
+      let last = null, gap = 0;
+      for (let i = 0; i < out.length; i++) {
+        const v = out[i];
+        if (v != null && Number.isFinite(Number(v))) {
+          last = Number(v); gap = 0;
+        } else if (last != null && gap < maxGap) {
+          out[i] = last; gap++;
+        } else {
+          gap++;
+        }
+      }
+      return out;
+    }
+    /** Area fill per continuous run — never close one polygon across overnight gaps (broken triangles). */
+    function areaSegments(values, w, h, pad, yMax, yMin = 0) {
+      const n = values.length;
+      const span = Math.max(1e-6, yMax - yMin);
+      const yBase = h - pad;
+      const paths = [];
+      let seg = [];
+      const flush = () => {
+        if (seg.length < 2) { seg = []; return; }
+        let d = "";
+        for (let i = 0; i < seg.length; i++) {
+          d += (i ? " L " : "M ") + seg[i].x.toFixed(1) + " " + seg[i].y.toFixed(1);
+        }
+        const x0 = seg[0].x, x1 = seg[seg.length - 1].x;
+        d += " L " + x1.toFixed(1) + " " + yBase + " L " + x0.toFixed(1) + " " + yBase + " Z";
+        paths.push(d);
+        seg = [];
+      };
+      for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || !Number.isFinite(Number(v))) { flush(); continue; }
+        const x = pad + (n <= 1 ? 0 : (i / (n - 1)) * (w - pad * 2));
+        const y = h - pad - ((Number(v) - yMin) / span) * (h - pad * 2);
+        seg.push({ x, y });
+      }
+      flush();
+      return paths;
+    }
+    function lastPoint(values, w, h, pad, yMax, yMin = 0) {
+      const n = values.length;
+      const span = Math.max(1e-6, yMax - yMin);
+      for (let i = n - 1; i >= 0; i--) {
+        const v = values[i];
+        if (v == null || !Number.isFinite(Number(v))) continue;
+        return {
+          x: pad + (n <= 1 ? 0 : (i / (n - 1)) * (w - pad * 2)),
+          y: h - pad - ((Number(v) - yMin) / span) * (h - pad * 2),
+          v: Number(v),
+        };
+      }
+      return null;
+    }
+    function drawChart(el, seriesList, opts = {}) {
+      const w = 560, h = 180, pad = 18;
+      const bridged = seriesList.map((s) => ({
+        ...s,
+        values: opts.bridge === false ? s.values : bridgeGaps(s.values, opts.maxGap || 12),
+      }));
+      const all = bridged.flatMap((s) => s.values.filter((v) => v != null));
+      let yMax = opts.yMax != null ? opts.yMax : Math.max(...all, 1);
+      let yMin = opts.yMin != null ? opts.yMin : 0;
+      if (opts.padMax) yMax = yMax * 1.08;
+      if (!all.length) { el.innerHTML = '<p class="empty">No samples in this window yet</p>'; return; }
+      const grid = [0.25,0.5,0.75].map((f) => {
+        const y = pad + f * (h - pad * 2);
+        return '<line x1="'+pad+'" x2="'+(w-pad)+'" y1="'+y+'" y2="'+y+'" stroke="rgba(184,255,92,0.08)" />';
+      }).join("");
+      const layers = bridged.map((s) => {
+        const fills = s.fill ? areaSegments(s.values, w, h, pad, yMax, yMin) : [];
+        const line = pathFrom(s.values, w, h, pad, yMax, yMin);
+        const fillHtml = fills.map((fd) => {
+          const lime = s.lime
+            ? '<path d="'+fd+'" fill="#b8ff5c" fill-opacity="0.10" stroke="none" />'
+            : "";
+          return lime +
+            '<path d="'+fd+'" fill="'+s.color+'" fill-opacity="'+(s.lime ? '0.16' : '0.18')+'" stroke="none" />';
+        }).join("");
+        return fillHtml +
+          '<path d="'+line+'" fill="none" stroke="'+s.color+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" />';
+      }).join("");
+      const dots = bridged.map((s) => {
+        const p = lastPoint(s.values, w, h, pad, yMax, yMin);
+        if (!p) return "";
+        const c = s.lime ? "#b8ff5c" : (s.dot || s.color);
+        return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="5.5" fill="'+c+'" fill-opacity="0.22" />' +
+          '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3.1" fill="'+c+'" stroke="#0a110e" stroke-width="1.2" />';
+      }).join("");
+      const labels = opts.times || [];
+      el.innerHTML =
+        '<svg class="plot" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" role="img">' +
+        grid + layers + dots +
+        '<text x="'+pad+'" y="'+(h-4)+'" fill="#8aa394" font-size="10">'+esc(fmtTime(labels[0]))+'</text>' +
+        '<text x="'+(w-pad)+'" y="'+(h-4)+'" fill="#8aa394" font-size="10" text-anchor="end">'+esc(fmtTime(labels[labels.length-1]))+'</text>' +
+        '<text x="'+(w-pad)+'" y="'+(pad+2)+'" fill="#b8ff5c" font-size="10" text-anchor="end">'+esc(Math.round(yMax))+(opts.unit||'')+'</text>' +
+        '</svg>';
+    }
+    function row(label, value) {
+      return '<div style="display:flex;justify-content:space-between;gap:0.75rem"><dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd></div>';
+    }
+    function statusPill(live) {
+      if (live.hostOnline === false) return '<span class="pill bad">host off · Gold 1.0×</span>';
+      if (live.ecoOffline) return '<span class="pill bad">EcoFlow offline</span>';
+      if (live.anyDisconnected) return '<span class="pill bad">device disconnected</span>';
+      if (live.ecoStale) return '<span class="pill warn">EcoFlow stale</span>';
+      return '<span class="pill ok">EcoFlow live</span>';
+    }
+    function render(d) {
+      $("siteLabel").textContent = (d.site?.label || "HI Pacific Solar Root Server") + " · live tracking";
+      const live = d.live || {};
+      const st = d.stats || {};
+      const on = d.online || {};
+      const wx = d.weather || {};
+      const sun = d.sun || wx.sun || {};
+      const period = wx.period || {};
+
+      const mining = d.mining || {};
+      const mineOnline = mining.online === true;
+      const mineMultNum = mining.multiplier != null
+        ? Math.round(Number(mining.multiplier) * 1000) / 1000
+        : 1;
+      const mineMult = (Number.isInteger(mineMultNum)
+        ? mineMultNum.toFixed(1)
+        : String(mineMultNum)) + "×";
+      const mineHint = mineOnline
+        ? "1+(bank%/100) · bank " + fmt(mining.battery_percent, "%")
+        : "host/bank offline · 1.0×";
+
+      $("banner").innerHTML =
+        statusPill(live) +
+        (mineOnline
+          ? '<span class="pill ok">Mining '+esc(mineMult)+'</span>'
+          : '<span class="pill bad">Mining offline 1.0×</span>') +
+        '<span><strong>Online since</strong> '+esc(fmtWhen(on.onlineSinceIso || on.onlineSinceMs))+
+        ' <span class="muted">('+esc(on.uptimeHuman || "—")+' up)</span></span>' +
+        '<span><strong>Sunrise</strong> '+esc(fmtSun(sun.sunrise))+
+        ' <span class="muted">· sunset '+esc(fmtSun(sun.sunset))+'</span></span>' +
+        (live.ecoAgeMs != null ? '<span class="muted">Eco sample age '+esc(Math.round(live.ecoAgeMs/1000))+'s</span>' : '');
+
+      $("kpis").innerHTML = [
+        ["Bank now", fmt(live.batteryPct, "%"), "avg day "+fmt(st.bank?.dayAvgPct,"%")+" · roll "+fmt(st.bank?.rollingAvgPct,"%"), true],
+        ["Gold mine", mineMult, mineHint, mineOnline],
+        ["Solar input", fmt(live.solarW, " W"), "panel in · morn ~"+fmt(st.solar?.morningAvgW," W")+" · day avg "+fmt(st.solar?.dayAvgW," W"), true],
+        ["Energy today", fmtKwhFromWh(st.solar?.dayWh), "est. from minute watts · roll "+fmtKwhFromWh(st.solar?.rollingWh), false],
+        ["Load out", fmt(live.outW, " W"), "day avg "+fmt(st.load?.dayAvgOutW," W")+" · "+fmtKwhFromWh(st.load?.dayOutWh), false],
+        ["CPU now", fmt(live.cpu, "%"), "1h "+fmt(st.cpu?.hourAvgPct,"%")+" · day "+fmt(st.cpu?.dayAvgPct,"%"), false],
+        ["Weather", period.temp != null ? (period.temp+(period.unit||"F")) : "—", period.short || "", false],
+      ].map(([k,v,h,lime]) =>
+        '<div class="kpi"><label>'+esc(k)+'</label><strong'+(lime?' class="lime"':'')+'>'+esc(v)+'</strong><span class="hint">'+esc(h)+'</span></div>'
+      ).join("");
+
+      $("stats").innerHTML = [
+        ["Solar input (W)", [
+          ["Current", fmt(st.solar?.currentW, " W")],
+          ["Morning avg", st.solar?.morningAvgW != null ? "~"+fmt(st.solar.morningAvgW," W") : "—"],
+          ["Day avg", fmt(st.solar?.dayAvgW, " W")],
+          ["Rolling avg", fmt(st.solar?.rollingAvgW, " W")],
+          ["Morning note", st.solar?.morningNote || "—"],
+        ]],
+        ["Energy estimate", [
+          ["Today", fmtKwhFromWh(st.solar?.dayWh)],
+          ["Rolling window", fmtKwhFromWh(st.solar?.rollingWh)],
+          ["Load today", fmtKwhFromWh(st.load?.dayOutWh)],
+          ["Note", "Wh/kWh from minute watts — not labeled solar"],
+        ]],
+        ["Bank / load", [
+          ["Bank now", fmt(st.bank?.currentPct, "%")],
+          ["Gold mine mult", mineOnline ? mineMult + " · 1+(SOC/100)" : "1.0× (offline)"],
+          ["Bank day avg", fmt(st.bank?.dayAvgPct, "%")],
+          ["Bank rolling", fmt(st.bank?.rollingAvgPct, "%")],
+          ["Load now", fmt(st.load?.currentOutW, " W")],
+          ["Load day avg", fmt(st.load?.dayAvgOutW, " W")],
+          ["Mood", (d.ops && d.ops.moodLabel) || "-"], ["Bank mood", st.bank?.mood || "-"],
+        ]],
+        ["CPU / host", [
+          ["CPU now", fmt(st.cpu?.currentPct, "%")],
+          ["RAM now", fmt(st.cpu?.currentRamPct, "%")],
+          ["CPU 1h avg", fmt(st.cpu?.hourAvgPct, "%")],
+          ["CPU day avg", fmt(st.cpu?.dayAvgPct, "%")],
+          ["CPU rolling", fmt(st.cpu?.rollingAvgPct, "%")],
+          ["CPU all-time", fmt(st.cpu?.allTimeAvgPct, "%")],
+          ["Host", live.hostname || live.hostKey || "—"],
+        ]],
+        ["Uptime / sun", [
+          ["Online since", fmtWhen(on.onlineSinceIso || on.onlineSinceMs)],
+          ["Uptime", on.uptimeHuman || "—"],
+          ["Poller", on.pollerLive ? "live" : "not live"],
+          ["Sunrise", fmtSun(sun.sunrise)],
+          ["Sunset", fmtSun(sun.sunset)],
+          ["Solar noon", fmtSun(sun.transit)],
+          ["Civil dawn", fmtSun(sun.civilTwilightBegin)],
+        ]],
+      ].map(([title, rows]) =>
+        '<section class="stat"><h3>'+esc(title)+'</h3><dl>'+rows.map(([a,b]) => row(a,b)).join("")+'</dl></section>'
+      ).join("");
+
+      const mins = (d.series && d.series.minutes) || [];
+      const times = mins.map((m) => m.t);
+      drawChart($("chartSolar"), [{ values: mins.map((m)=>m.solarW), color:"#f0c14a", fill:true, lime:true }], { times, padMax:true, unit:"W" });
+      drawChart($("chartBank"), [{ values: mins.map((m)=>m.bankSoc), color:"#7dff9a", fill:true, lime:true }], { times, yMax:100, unit:"%" });
+      drawChart($("chartLoad"), [
+        { values: mins.map((m)=>m.outW), color:"#7eb8ff", fill:false },
+        { values: mins.map((m)=>m.solarW), color:"#f0c14a", fill:false, lime:true, dot:"#b8ff5c" },
+      ], { times, padMax:true, unit:"W" });
+      drawChart($("chartCpu"), [
+        { values: mins.map((m)=>m.cpu), color:"#e0a84a", fill:true },
+        { values: mins.map((m)=>m.ram), color:"#9ad0ff", fill:false },
+      ], { times, yMax:100, unit:"%" });
+
+      $("solarMeta").textContent = "solar input watts · on-circuit · "+(d.series?.ecoSamples??0)+" eco / "+(d.series?.hours||"?")+"h · energy today "+fmtKwhFromWh(st.solar?.dayWh);
+      $("cpuMeta").textContent = (live.hostname || live.hostKey || "workstation")+" · 1h "+fmt(st.cpu?.hourAvgPct,"%")+" · "+(d.series?.cpuSamples??0)+" CPU min";
+
+      const devices = live.devices || [];
+      $("devices").innerHTML = devices.length
+        ? '<div class="dev" style="color:var(--muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em"><span>Device</span><span>Status</span><span>SOC</span><span>Solar in</span><span>Pack in</span><span>Out</span></div>' +
+          devices.map((dev) => {
+            const cls = dev.disconnected || dev.status==="offline" ? "offline" : (dev.stale || dev.status==="stale" ? "stale" : "");
+            const stLabel = dev.status === "off-circuit" ? "off-circuit" : (dev.status || (dev.ok ? "online" : "offline"));
+            return '<div class="dev '+cls+'"><span class="name">'+esc(dev.label)+'</span><span>'+esc(stLabel)+
+              (dev.message ? ' · '+esc(dev.message) : '')+'</span><span>'+esc(fmt(dev.soc,"%"))+
+              '</span><span>'+esc(fmt(dev.solarW,"W"))+'</span><span>'+esc(fmt(dev.inW,"W"))+
+              '</span><span>'+esc(fmt(dev.outW,"W"))+'</span></div>';
+          }).join("")
+        : '<p class="empty">No EcoFlow snapshot — treating bank as offline</p>';
+
+      let wxHtml = "";
+      if (wx.ok && period.name) {
+        wxHtml = "<div><strong>"+esc(period.name)+"</strong> · "+esc(period.temp)+esc(period.unit||"F")+
+          " · "+esc(period.short||"")+(period.wind ? " · wind "+esc(period.wind) : "")+"</div>" +
+          '<div class="muted">Source: '+(esc(wx.source||"NWS"))+' (local point · city private)</div>';
+      } else {
+        wxHtml = '<div class="muted">Weather unavailable'+(wx.detail ? " · "+esc(wx.detail) : "")+"</div>";
+      }
+      wxHtml += '<div style="margin-top:0.45rem"><strong>Sunrise</strong> '+esc(fmtSun(sun.sunrise))+
+        ' · <strong>sunset</strong> '+esc(fmtSun(sun.sunset))+
+        (sun.transit ? ' · noon '+esc(fmtSun(sun.transit)) : "")+"</div>";
+      if (wx.alerts && wx.alerts.length) {
+        wxHtml += wx.alerts.map((a) =>
+          '<div class="hazard"><strong>'+esc(a.event)+'</strong>'+(a.severity?" ("+esc(a.severity)+")":"")+
+          (a.headline?" — "+esc(a.headline):"")+"</div>"
+        ).join("");
+      } else if (wx.ok) {
+        wxHtml += '<div class="muted" style="margin-top:0.35rem">Hazards: none active</div>';
+      }
+      $("weather").innerHTML = wxHtml;
+      const arr = d.array || {};
+      $("array").innerHTML = "<div><strong>"+esc(arr.panels??"—")+"</strong> panels / <strong>"+esc(arr.circuits??"—")+
+        "</strong> circuits / <strong>"+esc(arr.batteries??"—")+"</strong> batteries</div>" +
+        (arr.notes ? '<div class="muted" style="margin-top:0.35rem">'+esc(arr.notes)+"</div>" : "");
+      $("age").textContent = "refresh just now · "+(d.updatedAt||"").slice(11,19)+"Z";
+    }
+    async function tick() {
+      try {
+        const res = await fetch("${api("/api/solar")}?hours=8", { cache: "no-store" });
+        if (!res.ok) {
+          $("banner").innerHTML = '<span class="pill bad">HOST OFFLINE</span> <strong>API HTTP '+res.status+'</strong> <span class="muted">— if ava.rootmc.net/solar does not connect, the Root Server is offline.</span>';
+          $("age").textContent = "API HTTP "+res.status+" · host offline signal";
+          return;
+        }
+        const d = await res.json();
+        if (d?.ok) render(d);
+        else {
+          $("banner").innerHTML = '<span class="pill bad">HOST OFFLINE</span> <strong>Solar API error</strong> <span class="muted">— if this page does not connect, the Root Server is offline.</span>';
+          $("age").textContent = "API error · host offline signal";
+        }
+      } catch {
+        $("banner").innerHTML = '<span class="pill bad">HOST OFFLINE</span> <strong>Cannot reach solar API</strong> <span class="muted">— if ava.rootmc.net/solar does not connect, the Root Server is offline.</span>';
+        $("age").textContent = "HTTP down · Root Server offline";
+      }
+    }
+    tick();
+    setInterval(tick, 15000);
+  </script>
+    <div id="powered-by-ava" class="powered-by-ava" data-powered-by-ava="1"></div>
+    <script src="https://rootrecord.info/ava/assets/powered-by-ava.js" defer></script>
+</body>
+</html>`;
+}

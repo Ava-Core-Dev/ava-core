@@ -1,0 +1,276 @@
+/**
+ * /solar — power + weather board for HI Pacific Solar Root Server.
+ * Discord: text `/solar` in ANY RootMC guild channel (+ slash). Watch allowlist does not apply.
+ * In-game: Minecraft `/solar` (Root-Ava-Core) hits the same host-site telemetry.
+ */
+import { ROOTMC_GUILD_ID, DISCORD_API } from "./config.mjs";
+import { authHeaders } from "./discordApi.mjs";
+import {
+  buildHostSiteHourlyBlock,
+  formatSolarLines,
+  formatWeatherLines,
+  loadHostSite,
+} from "./hostSite.mjs";
+import {
+  loadEcoSnapshot,
+  refreshEcoFlow,
+  summarizeMorningSolar,
+  ECO_STALE_MS,
+  isEcoSampleLive,
+  isEcoRemoved,
+} from "./ecoflow.mjs";
+import { isAsleep } from "./sleepMode.mjs";
+import { isPoweredOff } from "./powerDown.mjs";
+import { solarLinksFooterLines } from "./solarLinks.mjs";
+import { isLockoutActive } from "./lockoutMode.mjs";
+
+export function isSolarCommand(text = "") {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  // Exact utility command — no @ needed
+  if (/^\/solar(?:\s|$)/i.test(t)) return true;
+  if (/^solar(?:\s+status)?$/i.test(t)) return true;
+  return false;
+}
+
+function fmtHstClock(ms = Date.now()) {
+  const d = new Date(Number(ms) - 10 * 3600_000);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm} HST`;
+}
+
+/**
+ * Compact live board — power + NWS weather. Numbers only from EcoFlow / NWS packs.
+ */
+export async function buildSolarCommandReply({ refreshPower = true } = {}) {
+  const site = loadHostSite();
+  let snap = loadEcoSnapshot();
+  if (refreshPower) {
+    try {
+      snap = await refreshEcoFlow();
+    } catch {
+      snap = loadEcoSnapshot();
+    }
+  }
+  const morning = summarizeMorningSolar({
+    tzOffsetHours: site.tz_offset_hours ?? -10,
+  });
+
+  let block;
+  try {
+    block = await buildHostSiteHourlyBlock({ refreshPower: false });
+  } catch (err) {
+    block = { content: null, payload: null, error: err.message };
+  }
+
+  // Prefer freshly refreshed snap over block's older load
+  const hostOnline = !isAsleep() && !isPoweredOff();
+  const ecoAgeMs =
+    snap?.updatedAt != null ? Date.now() - Number(snap.updatedAt) : null;
+  const ecoStale = ecoAgeMs != null ? ecoAgeMs > ECO_STALE_MS : !snap;
+  const liveCount = Object.entries(snap?.perSn || {}).filter(
+    ([sn, v]) => !isEcoRemoved(sn) && isEcoSampleLive(v),
+  ).length;
+
+  const ecoLabel = !hostOnline
+    ? "host off"
+    : ecoStale
+      ? "EcoFlow **stale** (>3m)"
+      : liveCount
+        ? "EcoFlow **live**"
+        : "EcoFlow **no live packs**";
+
+  const bank =
+    snap?.batteryPct != null && liveCount && !ecoStale
+      ? ` · bank blend **~${snap.batteryPct}%**`
+      : "";
+
+  const ageNote =
+    ecoAgeMs != null
+      ? ` *(pack ${ecoStale ? "stale" : "fresh"} ~${Math.max(0, Math.round(ecoAgeMs / 60000))}m ago)*`
+      : "";
+
+  const lines = [
+    `**${site.label || "HI Pacific Solar Root Server"}** — \`/solar\` @ ~${fmtHstClock()}${ageNote}`,
+    "",
+    `**Power:** host **${hostOnline ? "online" : "off"}** — ${ecoLabel}${bank}`,
+    ...formatSolarLines(snap, morning, { detail: false }),
+    "",
+    "**Weather + outlook (NWS)**",
+    ...formatWeatherLines(block?.payload?.weather || { ok: false }),
+    "",
+    ...solarLinksFooterLines(),
+    "",
+    "— Ava",
+  ];
+  return lines.join("\n");
+}
+
+/**
+ * Pipeline short-circuit for text `/solar`.
+ */
+export async function tryHandleSolarCommand({ text = "", isAlex = false } = {}) {
+  if (!isSolarCommand(text)) return null;
+  // Lockout Discord public stays quiet; Alex private (TG) still gets the board.
+  if (isLockoutActive() && !isAlex) {
+    return {
+      handled: true,
+      reply: null,
+      lockout: true,
+    };
+  }
+  const reply = await buildSolarCommandReply({ refreshPower: true });
+  return { handled: true, reply };
+}
+
+/**
+ * Register guild slash `/solar` (works in every channel with Use App Commands).
+ */
+export async function registerSolarSlashCommand(token, { appId, guildId } = {}) {
+  const applicationId = String(appId || "").trim();
+  const gid = String(guildId || ROOTMC_GUILD_ID || "").trim();
+  if (!token || !applicationId || !gid) {
+    return { ok: false, detail: "missing token/appId/guildId" };
+  }
+  const body = {
+    name: "solar",
+    description: "HI Pacific Solar Root Server — live power + weather",
+    type: 1,
+  };
+  const base = `${DISCORD_API}/applications/${applicationId}/guilds/${gid}/commands`;
+  const headers = {
+    ...authHeaders(token),
+    "Content-Type": "application/json",
+  };
+
+  let existingId = null;
+  try {
+    const listRes = await fetch(base, { headers: authHeaders(token) });
+    const list = await listRes.json().catch(() => []);
+    if (Array.isArray(list)) {
+      existingId = list.find((c) => String(c?.name || "") === "solar")?.id || null;
+    }
+  } catch {
+    /* create fresh */
+  }
+
+  const url = existingId ? `${base}/${existingId}` : base;
+  const method = existingId ? "PATCH" : "POST";
+  const res = await fetch(url, {
+    method,
+    headers,
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return {
+      ok: false,
+      status: res.status,
+      detail: json?.message || JSON.stringify(json).slice(0, 200),
+    };
+  }
+  return { ok: true, id: json.id, name: json.name, updated: Boolean(existingId) };
+}
+
+/**
+ * Handle Discord INTERACTION_CREATE for /solar.
+ * Must ACK within ~3s or Discord shows "The application did not respond".
+ */
+export async function handleSolarInteraction(interaction, { token } = {}) {
+  const name = interaction?.data?.name || interaction?.data?.custom_id;
+  if (String(name || "").toLowerCase() !== "solar") return false;
+  if (Number(interaction?.type) !== 2) return false; // APPLICATION_COMMAND
+
+  const id = interaction.id;
+  const itoken = interaction.token;
+  const appId = interaction.application_id;
+  if (!id || !itoken) return false;
+
+  // Lockout: ACK ephemeral only — no public /solar board.
+  if (isLockoutActive()) {
+    try {
+      await fetch(`${DISCORD_API}/interactions/${id}/${itoken}/callback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: 4,
+          data: {
+            content: "Lockout — I'm Telegram-only with Alex right now.",
+            flags: 64, // ephemeral
+          },
+        }),
+      });
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+
+  // ACK immediately (no auth header required for interaction callback)
+  let deferred = false;
+  try {
+    const ack = await fetch(
+      `${DISCORD_API}/interactions/${id}/${itoken}/callback`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: 5 }), // DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+      },
+    );
+    deferred = ack.ok;
+    if (!ack.ok) {
+      const body = await ack.text().catch(() => "");
+      console.warn("solar slash ACK failed", ack.status, body.slice(0, 160));
+    }
+  } catch (err) {
+    console.warn("solar slash ACK err:", err.message);
+  }
+
+  // If ACK failed, try a direct channel message as last resort
+  const finish = async () => {
+    let content;
+    try {
+      content = await buildSolarCommandReply({ refreshPower: true });
+    } catch (err) {
+      content = `**/solar** failed: ${err.message || "unknown"}`;
+    }
+    content = String(content).slice(0, 2000);
+
+    if (deferred && appId) {
+      const patch = await fetch(
+        `${DISCORD_API}/webhooks/${appId}/${itoken}/messages/@original`,
+        {
+          method: "PATCH",
+          headers: {
+            ...(token ? authHeaders(token) : {}),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content }),
+        },
+      );
+      if (!patch.ok) {
+        const body = await patch.text().catch(() => "");
+        console.warn("solar slash patch failed", patch.status, body.slice(0, 160));
+      }
+      return;
+    }
+
+    // Fallback: post into the channel if interaction ACK died
+    const channelId = interaction.channel_id;
+    if (channelId && token) {
+      await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+        method: "POST",
+        headers: {
+          ...authHeaders(token),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      }).catch((err) => console.warn("solar slash fallback post:", err.message));
+    }
+  };
+
+  // Don't block the gateway loop on EcoFlow/NWS
+  void finish().catch((err) => console.warn("solar slash finish:", err.message));
+  return true;
+}

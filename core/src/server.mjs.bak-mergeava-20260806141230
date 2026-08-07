@@ -1,0 +1,530 @@
+import http from "node:http";
+import net from "node:net";
+import {
+  loadEnv,
+  AVA_PORT,
+  cursorApiKey,
+  AVA_MODEL,
+  AVA_HANDOFF,
+} from "./config.mjs";
+import { workspaceRoot } from "./cursorBrain.mjs";
+import { recommend } from "./recommend.mjs";
+import {
+  storePaths,
+  loadHeartbeat,
+  loadStatusEvents,
+  isHushed,
+} from "./store.mjs";
+import { isLockoutActive } from "./lockoutMode.mjs";
+import { buildPublicOpsPayload } from "./opsStatus.mjs";
+import { solarPageHtml } from "./solarPage.mjs";
+import { buildSolarDashboardPayload } from "./powerTelemetry.mjs";
+import { loadHostSnapshot, itemizeHostMetricsTimeframes } from "./hostMetrics.mjs";
+import { scheduleSelfRestart, loadRestartRequest } from "./selfUpgrade.mjs";
+import { readLiveness, livenessDegraded } from "./liveness.mjs";
+import { tryServePublicFiles, ensurePublicFilesTree } from "./publicFiles.mjs";
+
+const env = await loadEnv();
+storePaths();
+const httpStartedAt = Date.now();
+// Lockout never gates HTTP. Bind all interfaces by default so LAN + tunnel can reach status/solar.
+// Override: AVA_BIND=127.0.0.1 for loopback-only.
+const AVA_BIND = String(
+  process.env.AVA_BIND || env.AVA_BIND || "0.0.0.0",
+).trim() || "0.0.0.0";
+
+
+const PMA_UPSTREAM = { host: "127.0.0.1", port: 8089 };
+
+function proxyPhpMyAdmin(req, res, url) {
+  const targetPath = url.pathname + (url.search || "");
+  const headers = { ...req.headers, host: "127.0.0.1:8089" };
+  delete headers["accept-encoding"];
+  const opts = {
+    hostname: PMA_UPSTREAM.host,
+    port: PMA_UPSTREAM.port,
+    path: targetPath,
+    method: req.method,
+    headers,
+  };
+  const preq = http.request(opts, (pres) => {
+    res.writeHead(pres.statusCode || 502, pres.headers);
+    pres.pipe(res);
+  });
+  preq.on("error", (err) => {
+    res.statusCode = 502;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end(`phpMyAdmin upstream error: ${err.message}`);
+  });
+  req.pipe(preq);
+}
+
+async function readJsonBody(req) {
+  let body = "";
+  for await (const chunk of req) body += chunk;
+  if (!body) return {};
+  try {
+    return JSON.parse(body);
+  } catch {
+    return null;
+  }
+}
+
+ensurePublicFilesTree();
+
+const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url || "/", `http://127.0.0.1:${AVA_PORT}`);
+  const method = String(req.method || "GET").toUpperCase();
+
+  if (tryServePublicFiles(req, res, url)) return;
+
+  // Canonical public status lives on rootrecord.info; legacy / still hits tunnel.
+  if ((method === "GET" || method === "HEAD") && url.pathname === "/") {
+    const accept = String(req.headers["accept"] || "text/html");
+    if (!accept.includes("application/json")) {
+      res.writeHead(302, {
+        Location: "https://rootrecord.info/ava/status",
+        "Cache-Control": "no-store",
+      });
+      res.end();
+      return;
+    }
+  }
+
+  // Health checks / CDNs often HEAD — treat like GET for page routes.
+  // Unified Ava-core home (status + solar). /solar kept as alias.
+  if (
+    (method === "GET" || method === "HEAD") &&
+    (url.pathname === "/services" ||
+      url.pathname === "/status/services" ||
+      url.pathname === "/status/services/")
+  ) {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    const { servicesPageHtml } = await import("./servicesPage.mjs");
+    const fwd = String(req.headers["x-forwarded-prefix"] || "").replace(/\/$/, "");
+    const basePath =
+      fwd ||
+      (url.pathname.startsWith("/status/services") ? "/status" : "");
+    res.end(servicesPageHtml({ basePath }));
+    return;
+  }
+
+  if (
+    (method === "GET" || method === "HEAD") &&
+    (url.pathname === "/connections" ||
+      url.pathname === "/status/connections" ||
+      url.pathname === "/status/connections/")
+  ) {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    const { connectionsPageHtml } = await import("./connectionsPage.mjs");
+    const fwd = String(req.headers["x-forwarded-prefix"] || "").replace(/\/$/, "");
+    // When proxied under /ava/status, keep API/base under that prefix.
+    const basePath =
+      fwd ||
+      (url.pathname.startsWith("/status/connections") ? "/status" : "");
+    res.end(connectionsPageHtml({ basePath }));
+    return;
+  }
+
+  if (
+    (method === "GET" || method === "HEAD") &&
+    (url.pathname === "/" ||
+      url.pathname === "/status" ||
+      url.pathname === "/solar" ||
+      url.pathname === "/power" ||
+      url.pathname === "/home")
+  ) {
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    const fwd = String(req.headers["x-forwarded-prefix"] || "").replace(/\/$/, "");
+    res.end(solarPageHtml({ basePath: fwd }));
+    return;
+  }
+
+
+  // phpMyAdmin (Apache on 127.0.0.1:8089) — do not JSON-wrap
+  if (
+    url.pathname === "/phpmyadmin" ||
+    url.pathname.startsWith("/phpmyadmin/")
+  ) {
+    // Upstream DocumentRoot is /usr/share/phpmyadmin — strip prefix
+    const stripped = url.pathname.replace(/^\/phpmyadmin\/?/, "/") || "/";
+    const u2 = new URL(stripped + (url.search || ""), "http://127.0.0.1:8089");
+    proxyPhpMyAdmin(req, res, u2);
+    return;
+  }
+
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+
+
+  // Public footer widget — last-hour CPU / RAM / SOC (CORS open)
+  if (method === "OPTIONS" && url.pathname === "/api/powered-by") {
+    res.writeHead(204, {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Max-Age": "86400",
+    });
+    res.end();
+    return;
+  }
+  if ((method === "GET" || method === "HEAD") && url.pathname === "/api/powered-by") {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "public, max-age=30");
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    try {
+      const payload = await buildSolarDashboardPayload({
+        hours: 1,
+        statusHttpUptimeMs: Date.now() - httpStartedAt,
+      });
+      const frames = itemizeHostMetricsTimeframes();
+      const hour = frames?.last_hour || null;
+      const cpu =
+        hour?.cpu_avg_pct ?? payload?.stats?.cpu?.hourAvgPct ?? payload?.live?.cpuHour;
+      const ram =
+        hour?.ram_avg_pct ?? payload?.stats?.cpu?.currentRamPct ?? payload?.live?.ram;
+      const soc =
+        payload?.stats?.bank?.rollingAvgPct ??
+        payload?.stats?.bank?.currentPct ??
+        payload?.live?.batteryPct ??
+        null;
+      const round = (n) =>
+        n == null || Number.isNaN(Number(n)) ? null : Math.round(Number(n) * 10) / 10;
+      res.end(
+        JSON.stringify({
+          ok: true,
+          service: "ava-ivy",
+          href: "https://ava.rootmc.net/",
+          window: "1h",
+          cpu: round(cpu),
+          ram: round(ram),
+          soc: round(soc),
+          label: "Powered by Ava",
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ ok: false, detail: err.message }));
+    }
+    return;
+  }
+
+  if ((method === "GET" || method === "HEAD") && url.pathname === "/api/connections") {
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    try {
+      const hours = Number(url.searchParams.get("hours") || 8);
+      const { buildConnectionsDashboardPayload } = await import("./connectionsTelemetry.mjs");
+      const payload = await buildConnectionsDashboardPayload({ hours });
+      res.end(JSON.stringify(payload));
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ ok: false, detail: err.message }));
+    }
+    return;
+  }
+
+  if ((method === "GET" || method === "HEAD") && url.pathname === "/api/solar") {
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    try {
+      const hours = Number(url.searchParams.get("hours") || 8);
+      const payload = await buildSolarDashboardPayload({
+        hours,
+        statusHttpUptimeMs: Date.now() - httpStartedAt,
+      });
+      res.end(JSON.stringify(payload));
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ ok: false, detail: err.message }));
+    }
+    return;
+  }
+
+  if ((method === "GET" || method === "HEAD") && url.pathname === "/api/status") {
+    if (method === "HEAD") {
+      res.end();
+      return;
+    }
+    const heartbeat = loadHeartbeat();
+    const updatedAt = heartbeat?.updatedAt || 0;
+    const liveness = readLiveness();
+    const deg = livenessDegraded(heartbeat, liveness);
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: "ava-ivy",
+        version: "0.5.1",
+        httpUp: true,
+        brain: "cursor",
+        cursor: Boolean(cursorApiKey(env)),
+        cursorModel: AVA_MODEL,
+        workspace: workspaceRoot(),
+        handoff: AVA_HANDOFF,
+        hushed: isHushed(),
+        lockout: isLockoutActive(),
+        ops: buildPublicOpsPayload(),
+        degraded: deg.degraded,
+        liveness,
+        livenessCheck: deg,
+        heartbeat,
+        heartbeatAgeMs: updatedAt ? Date.now() - updatedAt : null,
+        events: loadStatusEvents(24),
+        jobs: (await import("./jobQueue.mjs")).listJobs(5),
+        conversations: (await import("./conversationStore.mjs")).conversationStats(),
+        hostMetrics: loadHostSnapshot(),
+        hostMetricsTimeframes: itemizeHostMetricsTimeframes(),
+        tokenEconomy: (await import("./tokenEconomy.mjs")).loadTokenEconomy(),
+        tokenBoard: (await import("./tokenEconomy.mjs")).tokenBoardText(),
+        reserves: (await import("./tokenEconomy.mjs")).reserveSnapshot(),
+      }),
+    );
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/rewrite") {
+    const body = await readJsonBody(req);
+    if (!body || typeof body !== "object") {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ ok: false, detail: "invalid_json" }));
+      return;
+    }
+    const draft = String(body.text || body.content || "").trim();
+    const context = Array.isArray(body.context) ? body.context.slice(-42) : [];
+    const surface = String(body.surface || "discord");
+    if (!draft) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ ok: false, detail: "empty_text" }));
+      return;
+    }
+    const contextBlock = context
+      .map((m) => {
+        if (typeof m === "string") return m;
+        const who = m.who || m.author || "?";
+        const text = m.text || m.content || "";
+        return `${who}: ${text}`;
+      })
+      .join("\n")
+      .slice(0, 6000);
+    const question = [
+      "Rewrite the following draft in Ava Ivy voice before send.",
+      "Keep meaning; improve clarity; Gold not dollars; no secrets.",
+      "Return ONLY the rewritten message text.",
+      contextBlock ? `\nRecent context (last msgs):\n${contextBlock}` : "",
+      `\nDraft:\n${draft}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const lightCleanup = (t) =>
+      String(t || "")
+        .replace(/\b\$\s*(\d+)/g, "$1 Gold")
+        .replace(/\bdollars?\b/gi, "Gold")
+        .trim() || t;
+
+    try {
+      const rewriteMs = Math.min(
+        12000,
+        Math.max(3000, Number(body.timeoutMs) || 8000),
+      );
+      const rewritten = await Promise.race([
+        recommend({
+          question,
+          env,
+          surface,
+          // Desktop rewrite must stay fast — never open a Root Server dig.
+          forceDream: true,
+          authorId: String(body.authorId || "desktop"),
+          authorName: String(body.authorName || "desktop"),
+        }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("rewrite_timeout")), rewriteMs),
+        ),
+      ]);
+      let text = String(rewritten || draft).trim() || draft;
+      // Dream outage boilerplate is useless for rewrite-before-send — keep the draft.
+      if (
+        /dream state for now|Root Server'?s dark|deep digs and ships wait/i.test(
+          text,
+        )
+      ) {
+        text = lightCleanup(draft);
+        res.end(
+          JSON.stringify({
+            ok: true,
+            text,
+            contextUsed: context.length,
+            via: "draft-keep",
+            detail: "dream_boilerplate_ignored",
+          }),
+        );
+        return;
+      }
+      res.end(
+        JSON.stringify({
+          ok: true,
+          text,
+          contextUsed: context.length,
+          via: "recommend",
+        }),
+      );
+    } catch (err) {
+      // Never leave the desktop UI stuck — return cleaned draft so send can proceed.
+      res.end(
+        JSON.stringify({
+          ok: true,
+          text: lightCleanup(draft),
+          contextUsed: context.length,
+          via: "fallback",
+          detail: err.message || "rewrite_failed",
+        }),
+      );
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/health") {
+    const heartbeat = loadHeartbeat();
+    const liveness = readLiveness();
+    const deg = livenessDegraded(heartbeat, liveness);
+    res.end(
+      JSON.stringify({
+        ok: true,
+        service: "ava-ivy",
+        version: "0.5.1",
+        brain: "cursor",
+        cursor: Boolean(cursorApiKey(env)),
+        cursorModel: AVA_MODEL,
+        workspace: workspaceRoot(),
+        handoff: AVA_HANDOFF,
+        pollerLive: Boolean(heartbeat?.live),
+        heartbeatAgeMs: heartbeat?.updatedAt ? Date.now() - heartbeat.updatedAt : null,
+        restartPending: Boolean(loadRestartRequest()),
+        degraded: deg.degraded,
+        onBreak: Boolean(heartbeat?.onBreak),
+        asleep: Boolean(heartbeat?.asleep),
+        sleepWakeAt: heartbeat?.sleepWakeAtIso || null,
+        gateway: heartbeat?.gatewayStats || null,
+        childRestarts: liveness?.childRestartsTotal ?? 0,
+        children: liveness?.children || null,
+        note: "Open / for the status window. Grok unplugged. Watchdog respawns children.",
+      }),
+    );
+    return;
+  }
+
+  // Localhost-only silent self-restart (manual code push / upgrade).
+  if (
+    req.method === "POST" &&
+    (url.pathname === "/api/restart" || url.pathname === "/api/upgrade")
+  ) {
+    const parsed = await readJsonBody(req);
+    if (parsed === null) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ error: "invalid_json" }));
+      return;
+    }
+    const result = scheduleSelfRestart({
+      reason: parsed.reason || (url.pathname.includes("upgrade") ? "silent upgrade" : "manual restart"),
+      delayMs: Number(parsed.delayMs) > 0 ? Number(parsed.delayMs) : 1500,
+      requestedBy: parsed.requestedBy || "http",
+      silent: parsed.silent !== false,
+    });
+    res.statusCode = result.ok ? 202 : 409;
+    res.end(JSON.stringify(result));
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/v1/recommend") {
+    const parsed = await readJsonBody(req);
+    if (parsed === null) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ error: "invalid_json" }));
+      return;
+    }
+    const answer = await recommend({
+      question: parsed.question || parsed.prompt || "",
+      context: parsed.context || "",
+      env,
+      authorId: parsed.authorId || parsed.discordId || "",
+      authorName: parsed.authorName || parsed.username || "",
+    });
+    res.end(JSON.stringify({ answer }));
+    return;
+  }
+
+  res.statusCode = 404;
+  res.end(JSON.stringify({ error: "not_found" }));
+});
+
+server.listen(AVA_PORT, AVA_BIND, () => {
+  console.log(`ava-ivy status window http://127.0.0.1:${AVA_PORT}/ (bind ${AVA_BIND})`);
+  console.log(`ava-ivy public/tunnel → https://ava.rootmc.net/ (unified home; lockout does not mute HTTP)`);
+  // Server process owns telemetry/APIs so Ava-core poller can focus on companion talk.
+  startServerOpsLoops();
+});
+
+/**
+ * Background ops on the HTTP process: EcoFlow hydrate + status snapshot.
+ * Keeps ava.rootmc.net honest while lockout leaves chat for Alex DMs only.
+ */
+function startServerOpsLoops() {
+  const tickMs = Math.max(
+    60_000,
+    Number(process.env.AVA_SERVER_OPS_MS || 120_000) || 120_000,
+  );
+  const tick = async () => {
+    try {
+      const { refreshEcoFlow } = await import("./ecoflow.mjs");
+      await refreshEcoFlow().catch(() => {});
+    } catch {
+      /* optional */
+    }
+    try {
+      const { pushAvaStatusSnapshot } = await import("./avaStatusPush.mjs");
+      await pushAvaStatusSnapshot(env).catch(() => {});
+    } catch {
+      /* optional */
+    }
+    try {
+      const { buildPublicOpsPayload } = await import("./opsStatus.mjs");
+      buildPublicOpsPayload(); // warm mood.json
+    } catch {
+      /* optional */
+    }
+    try {
+      const { sampleConnectionsOnce } = await import("./connectionsTelemetry.mjs");
+      await sampleConnectionsOnce().catch(() => {});
+    } catch {
+      /* optional */
+    }
+  };
+  setTimeout(() => {
+    void tick();
+    setInterval(() => void tick(), tickMs);
+  }, 8_000);
+  console.log(`ava-ivy server ops loop · every ${Math.round(tickMs / 1000)}s (telemetry/status)`);
+}

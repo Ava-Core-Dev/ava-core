@@ -1,0 +1,91 @@
+{
+  "frozenAt": "2026-08-06T06:20:00Z",
+  "note": "Live Cloudflare cron inventory at Ava-core cutover freeze. Ava owns schedules after cutover.",
+  "cloudflare": {
+    "rootmc": {
+      "account": "Root@rootrecord.info",
+      "workers": {
+        "rootmc-api": {
+          "crons": ["*/10 * * * *", "0 * * * *", "0 18 * * 1"],
+          "jobs": [
+            "expireDueProposals",
+            "processGrantProposalMajorityHold",
+            "maybeRunLegislatureCron",
+            "evaluateShopPriceAlerts",
+            "runRootMcDiscordActivitySync",
+            "runConnectionPreferenceWatchdogCron",
+            "runDevWorkstationTimeoutCron",
+            "runHostPresenceMaintenance",
+            "runMysqlFullSyncCron",
+            "runMysqlEconomyPullCron",
+            "refreshAutomatedReportsBoard",
+            "maybeRunDailyReports",
+            "maybeRunWeeklyReports",
+            "runMonthlyTreasuryDividendCron",
+            "runWebstatPullCron",
+            "runLiveEconomyStatusPost"
+          ]
+        },
+        "rootmc-ava-edge": { "crons": [] },
+        "rootmc-minecraft-map": { "crons": [] },
+        "rootmc-webstat-proxy": { "crons": [] }
+      }
+    },
+    "rootrecord": {
+      "account": "Rootrecord@outlook.com",
+      "workers": {
+        "rootrecord-api-account": {
+          "crons": ["* * * * *", "45 8 * * *"],
+          "jobs": [
+            "runDiscordDeveloperMessageSync",
+            "runFarmsVarmintCron",
+            "runRootsCustodialDepositProcessor",
+            "runRootsSolSwapPendingCreditProcessor",
+            "runRootsOnchainBuyMonitor",
+            "reconcileStaleStripeSubscriptions@09:17UTC",
+            "runInactiveAccountCleanupCron",
+            "pruneWorkerHttpErrorEvents",
+            "runRootEconomyDiscordCron(disabled)"
+          ]
+        },
+        "rootrecord-api-weather": {
+          "crons": ["*/5 * * * *"],
+          "jobs": ["runNoaaAlertCron"]
+        },
+        "rootrecord-api-kilauea": {
+          "crons": ["*/10 * * * *"],
+          "jobs": [
+            "runUsgsKilaueaDiscordCron",
+            "runKilaueaAiAnalysisCron",
+            "runKilaueaVolcanoNoticePushCron"
+          ]
+        },
+        "rootrecord-solana-tx": {
+          "crons": [],
+          "missed": true,
+          "jobs": ["runTreasuryLiquidityReserveCheck", "runTreasurySolLpReserveCheck"],
+          "note": "Worker live but zero cron triggers — catch-up required"
+        },
+        "rootrecord-primary": {
+          "crons": [],
+          "note": "Serves api.rootrecord.info; no cron triggers"
+        }
+      }
+    }
+  },
+  "missedOffline": [
+    {
+      "id": "rrtt-custodial-payout",
+      "reason": "runRrttCustodialPayoutCron never wired to a live cron (docs claimed 07:00 UTC)"
+    },
+    {
+      "id": "treasury-sol-lp",
+      "reason": "rootrecord-solana-tx has no schedules"
+    },
+    {
+      "id": "treasury-liquidity",
+      "reason": "rootrecord-solana-tx has no schedules"
+    }
+  ],
+  "avaOwnedAfterCutover": true
+}

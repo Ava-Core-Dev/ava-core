@@ -1,0 +1,33 @@
+[Unit]
+Description=Ava Ivy (RootMC lead-dev bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ava
+Group=ava
+WorkingDirectory=/srv/rootmc/Web Files/rootmc-ava
+Environment=AVA_HEADLESS=1
+Environment=AVA_NO_STATUS_WINDOW=1
+Environment=AVA_RICH_PRESENCE=0
+Environment=AVA_HANDOFF=/srv/rootmc/Server Handoffs/Ava Ivy
+Environment=AVA_WORKSPACE=/srv/rootmc
+Environment=ROOTMC_ENV_FILE=/srv/rootmc/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=30
+
+# Secrets live in /srv/rootmc/.env — never commit
+# Install:
+#   sudo cp scripts/ava-ivy.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now ava-ivy
+# Status UI from laptop:
+#   ssh -L 8787:127.0.0.1:8787 rootatmus-prime
+
+[Install]
+WantedBy=multi-user.target

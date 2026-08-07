@@ -1,0 +1,305 @@
+/** Local ops status page for Ava Ivy — served at http://127.0.0.1:8787/ */
+export function statusPageHtml() {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ava Ivy — status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0c1210;
+      --bg1: #14201a;
+      --ink: #e8f2ea;
+      --muted: #8aa394;
+      --live: #3dcf7a;
+      --break: #e0a84a;
+      --hush: #7a8790;
+      --down: #e25b5b;
+      --line: rgba(232, 242, 234, 0.12);
+      --accent: #6ee7a8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1a3a2a 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #243018 0%, transparent 50%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2.25rem 1.25rem 3rem;
+    }
+    .brand {
+      font-family: Syne, sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      letter-spacing: -0.03em;
+      margin: 0 0 0.35rem;
+    }
+    .sub {
+      color: var(--muted);
+      margin: 0 0 1.75rem;
+      font-size: 0.95rem;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.85rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.25);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .dot {
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 50%;
+      background: var(--down);
+      box-shadow: 0 0 0 3px rgba(226, 91, 91, 0.25);
+    }
+    .dot.live { background: var(--live); box-shadow: 0 0 0 3px rgba(61, 207, 122, 0.28); animation: pulse 1.6s ease-in-out infinite; }
+    .dot.break { background: var(--break); box-shadow: 0 0 0 3px rgba(224, 168, 74, 0.28); }
+    .dot.hush { background: var(--hush); box-shadow: none; }
+    .dot.lockout { background: #c084fc; box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.3); animation: pulse 1.8s ease-in-out infinite; }
+    .modes {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.85rem 0 0;
+    }
+    .chip {
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; padding: 0.28rem 0.55rem;
+      border-radius: 999px; border: 1px solid var(--line);
+      color: var(--muted); background: rgba(0,0,0,0.2);
+    }
+    .chip.on { color: var(--ink); border-color: rgba(110, 231, 168, 0.35); background: rgba(61, 207, 122, 0.12); }
+    .chip.on.lockout { border-color: rgba(192, 132, 252, 0.45); background: rgba(192, 132, 252, 0.15); color: #e9d5ff; }
+    .chip.on.hush { border-color: rgba(122, 135, 144, 0.5); background: rgba(122, 135, 144, 0.18); }
+    .chip.on.sleep { border-color: rgba(122, 135, 144, 0.5); }
+    .chip.on.brain { border-color: rgba(110, 231, 168, 0.4); }
+    .chip.on.dig { border-color: rgba(224, 168, 74, 0.45); background: rgba(224, 168, 74, 0.12); color: #fde68a; }
+    .origin-banner {
+      display: none; margin: 0.75rem 0 0; padding: 0.55rem 0.75rem;
+      border: 1px solid rgba(224, 168, 74, 0.35); border-radius: 8px;
+      color: #fde68a; background: rgba(224, 168, 74, 0.1); font-size: 0.82rem;
+    }
+    .origin-banner.show { display: block; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.75; }
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin: 1.35rem 0 1.5rem;
+    }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    .cell {
+      border-top: 1px solid var(--line);
+      padding: 0.85rem 0 0.35rem;
+    }
+    .cell label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.3rem;
+    }
+    .cell strong {
+      font-size: 1.05rem;
+      font-weight: 600;
+      word-break: break-word;
+    }
+    .log {
+      border-top: 1px solid var(--line);
+      padding-top: 1rem;
+    }
+    .log h2 {
+      font-family: Syne, sans-serif;
+      font-size: 1rem;
+      margin: 0 0 0.65rem;
+      font-weight: 700;
+    }
+    .log ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 280px;
+      overflow: auto;
+    }
+    .log li {
+      font-size: 0.82rem;
+      color: var(--muted);
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--line);
+      font-variant-numeric: tabular-nums;
+    }
+    .log li span { color: var(--ink); }
+    footer {
+      margin-top: 1.75rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">Ava Ivy</p>
+    <p class="sub">Local status · RootMC lead-dev bot · <a href="/solar">Solar dashboard</a> · <a href="https://ava.rootmc.net/" target="_blank" rel="noopener">ava.rootmc.net</a></p>
+    <div class="pill"><span class="dot" id="dot"></span><span id="state">checking...</span></div>
+    <div class="origin-banner" id="originBanner">Node offline - showing last cached snapshot</div>
+    <div class="modes" id="modes"></div>
+    <div class="grid" id="grid"></div>
+    <section class="log">
+      <h2>Recent</h2>
+      <ul id="events"></ul>
+    </section>
+    <footer>
+      Auto-refresh every 2s · <a href="/solar">Solar / power graphs</a> · <a href="https://ava.rootmc.net/solar">tunnel /solar</a> · <a href="/api/status">/api/status</a> · <a href="/api/solar">/api/solar</a> · <a href="/health">/health</a> · <a href="https://ava.rootmc.net/">ava.rootmc.net</a>
+    </footer>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function ago(ms) {
+      if (!ms) return "—";
+      const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+      if (s < 60) return s + "s ago";
+      if (s < 3600) return Math.floor(s / 60) + "m ago";
+      return Math.floor(s / 3600) + "h ago";
+    }
+    function cells(rows) {
+      return rows.map(([k, v]) =>
+        '<div class="cell"><label>' + k + '</label><strong>' + v + '</strong></div>'
+      ).join("");
+    }
+    async function tick() {
+      try {
+        const res = await fetch("/api/status", { cache: "no-store" });
+        const d = await res.json();
+        const hb = d.heartbeat || {};
+        const ops = d.ops || {};
+        const age = d.heartbeatAgeMs;
+        const stale = age == null || age > 90000;
+        const lockout = Boolean(d.lockout || ops.lockout || hb.lockout || hb.mode === "lockout");
+        const hushed = Boolean(d.hushed || hb.hushed || ops.hushed);
+        const onBreak = Boolean(hb.onBreak || ops.onBreak);
+        const live = Boolean(hb.live) && !stale;
+        const dig = Number(hb.queueDepth || 0) > 0 || Number(hb.cursorAgents || 0) > 0 || Boolean(ops.digging);
+        const brain = ops.brain || {};
+
+        let label = ops.moodLabel || "offline";
+        let cls = ops.tone || "";
+        const banner = $("originBanner");
+        if (banner) banner.className = (d.originOffline || d.fromCache) ? "origin-banner show" : "origin-banner";
+        if (stale || !hb.updatedAt) {
+          if (lockout || ops.mood === "lockout") { label = "Lockout · cache"; cls = "lockout"; }
+          else { label = "poller offline"; cls = ""; }
+        } else if (lockout) { label = "Lockout"; cls = "lockout"; }
+        else if (hushed) { label = "Hushed"; cls = "hush"; }
+        else if (onBreak) { label = "On break"; cls = "break"; }
+        else if (String(hb.mode || "") === "time-off") { label = "Time off · admin"; cls = "break"; }
+        else if (dig) { label = "Digging · live"; cls = "live"; }
+        else if (live) { label = "Live"; cls = "live"; }
+        else { label = "Starting..."; cls = "break"; }
+
+        $("dot").className = "dot " + cls;
+        $("state").textContent = label;
+
+        const inds = Array.isArray(ops.indicators) && ops.indicators.length ? ops.indicators : [
+          { id: "lockout", label: "Lockout", on: lockout },
+          { id: "hush", label: "Hush", on: hushed },
+          { id: "brain", label: brain.label || ("Mode " + (brain.modeNum || 5)), on: true },
+          { id: "dig", label: "Digging", on: dig },
+        ];
+        const modesEl = $("modes");
+        if (modesEl) {
+          modesEl.innerHTML = inds.map((x) =>
+            '<span class="chip ' + (x.on ? ("on " + (x.id || "")) : "") + '">' + x.label + "</span>"
+          ).join("");
+        }
+
+        $("grid").innerHTML = cells([
+          ["Mood", ops.moodLabel || label],
+          ["Mode", hb.mode || ops.heartbeatMode || (onBreak ? "break" : live ? "live" : "-")],
+          ["Brain", brain.label || (brain.mode ? ("mode " + brain.modeNum + " · " + brain.mode) : "-")],
+          ["Lockout", lockout ? "on · TG Alex only" : "off"],
+          ["Poll", (hb.pollMs != null ? (hb.pollMs / 1000) + "s" : "-")],
+          ["Cursor digs", (hb.cursorAgents != null
+            ? (hb.cursorAgents + "/" + (hb.cursorMax || 3))
+            : "-")
+            + (hb.cursorWaiting
+              ? (" · +" + hb.cursorWaiting + " wait")
+              : (Number(hb.cursorAgents) === 0 && Number(hb.queueDepth || 0) === 0
+                ? " · idle"
+                : ""))],
+          ["Asks open", String(hb.queueDepth ?? "-")],
+          ["Transport", hb.transport || (hb.gateway ? "gateway" : "poller")],
+          ["Reactions", hb.reactions
+            ? (hb.reactions.total||0) + " (good " + (hb.reactions.good||0) + " / bad " + (hb.reactions.bad||0) + ")"
+            : "-"],
+          ["Last activity", ago(hb.lastActivityAt)],
+          ["Heartbeat", ago(hb.updatedAt)],
+          ["Last ask", hb.lastAsk || "-"],
+          ["Cursor key", d.cursor ? "yes" : "missing"],
+          ["Model", d.cursorModel || "-"],
+          ["Channels", String(hb.watchCount ?? "-")],
+          ["PID", String(hb.pid ?? "-")],
+          ["Degraded", d.degraded ? "yes" : "no"],
+          ["Child restarts", String(d.liveness?.childRestartsTotal ?? "-")],
+          ["Gateway", hb.gatewayStats
+            ? ((hb.gatewayStats.connected ? "up" : "down")
+              + " · rc " + (hb.gatewayStats.reconnectCount || 0)
+              + (hb.gatewayStats.joinWelcomes ? " · joins on" : " · joins off"))
+            : (hb.gateway ? "yes" : "-")],
+          ["CPU now", d.hostMetrics?.current
+            ? (d.hostMetrics.current.cpu_avg_pct ?? d.hostMetrics.current.cpu ?? "-") + "%"
+            : "-"],
+          ["CPU 1h", d.hostMetricsTimeframes?.last_hour
+            ? d.hostMetricsTimeframes.last_hour.cpu_avg_pct + "%"
+            : "-"],
+          ["Reserve Claims", d.reserves?.claims
+            ? ((d.reserves.claims.gold ?? 0) + " G" + (d.reserves.claims.pausedPayouts ? " · paused" : ""))
+            : "-"],
+          ["Reserve Towny", d.reserves?.towny
+            ? ((d.reserves.towny.gold ?? 0) + " G" + (d.reserves.towny.pausedPayouts ? " · paused" : ""))
+            : "-"],
+          ["Token discord", d.tokenEconomy?.surfaces?.discord
+            ? (d.tokenEconomy.surfaces.discord.used + "/" + (d.tokenEconomy.surfaces.discord.softCap ?? "-"))
+            : "-"],
+          ["Token slack", d.tokenEconomy?.surfaces?.slack
+            ? (d.tokenEconomy.surfaces.slack.used + "/" + (d.tokenEconomy.surfaces.slack.softCap ?? "-"))
+            : "-"],
+        ]);
+
+        $("events").innerHTML = (d.events || []).map((line) => {
+          const parts = line.split("\\t");
+          const ts = parts[0] || "";
+          const msg = parts.slice(1).join("\\t") || line;
+          return "<li>" + ts.slice(11, 19) + " · <span>" + msg.replace(/</g, "&lt;") + "</span></li>";
+        }).join("") || "<li>no events yet</li>";
+      } catch (e) {
+        $("dot").className = "dot";
+        $("state").textContent = "HTTP down";
+        const banner = $("originBanner");
+        if (banner) banner.className = "origin-banner show";
+      }
+    }
+    setInterval(tick, 2000);
+  </script>
+    <div id="powered-by-ava" class="powered-by-ava" data-powered-by-ava="1"></div>
+    <script src="https://rootrecord.info/ava/assets/powered-by-ava.js" defer></script>
+</body>
+</html>`;
+}

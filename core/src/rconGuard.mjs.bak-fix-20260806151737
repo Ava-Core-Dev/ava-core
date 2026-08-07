@@ -1,0 +1,361 @@
+/**
+ * Guarded RCON — real TCP when password + at least one host set.
+ * Targets: primary/test preferred. Legacy claims/towny env vars ignored for selection when primary is set.
+ * Blocked by emergency stop; dangerous commands denied.
+ */
+import net from "node:net";
+import { isEmergencyStopped } from "./emergencyStop.mjs";
+import { recordRconPair } from "./flightRecorder.mjs";
+
+function sharedPassword() {
+  return String(process.env.AVA_RCON_PASSWORD || "").trim();
+}
+
+function passwordFor(id) {
+  if (id === "test") {
+    const t = String(process.env.AVA_RCON_TEST_PASSWORD || "").trim();
+    if (t) return t;
+  }
+  if (id === "towny") {
+    const t = String(process.env.AVA_RCON_TOWNY_PASSWORD || "").trim();
+    if (t) return t;
+  }
+  if (id === "claims" || id === "default") {
+    const t = String(process.env.AVA_RCON_CLAIMS_PASSWORD || "").trim();
+    if (t) return t;
+  }
+  if (id === "prod") {
+    const t = String(process.env.AVA_RCON_PROD_PASSWORD || "").trim();
+    if (t) return t;
+  }
+  return sharedPassword();
+}
+
+/** @returns {{ id: string, host: string, port: number, password: string }[]} */
+export function rconTargets() {
+  const out = [];
+
+  const testHost = String(process.env.AVA_RCON_TEST_HOST || "").trim();
+  const testPort = Number(process.env.AVA_RCON_TEST_PORT || 25575);
+  const testPw = passwordFor("test");
+  if (testHost && testPw) {
+    out.push({ id: "test", host: testHost, port: testPort, password: testPw });
+  }
+
+  const shared = sharedPassword();
+  if (shared) {
+    const primaryHost = String(
+      process.env.AVA_RCON_PRIMARY_HOST || process.env.ROOTMC_PRIMARY_RCON_HOST || "",
+    ).trim();
+    const primaryPort = Number(
+      process.env.AVA_RCON_PRIMARY_PORT || process.env.ROOTMC_PRIMARY_RCON_PORT || 25575,
+    );
+    if (primaryHost) {
+      const primaryPw =
+        passwordFor("primary") ||
+        String(process.env.AVA_RCON_PRIMARY_PASSWORD || "").trim() ||
+        shared;
+      if (primaryPw) {
+        out.push({
+          id: "primary",
+          host: primaryHost,
+          port: primaryPort,
+          password: primaryPw,
+        });
+      }
+    }
+
+        const claimsHost = String(
+      process.env.AVA_RCON_CLAIMS_HOST || process.env.AVA_RCON_HOST || "",
+    ).trim();
+    const claimsPort = Number(
+      process.env.AVA_RCON_CLAIMS_PORT || process.env.AVA_RCON_PORT || 25575,
+    );
+    if (claimsHost) {
+      const claimsPw = passwordFor("claims") || shared;
+      if (claimsPw) {
+        out.push({
+          id: "claims",
+          host: claimsHost,
+          port: claimsPort,
+          password: claimsPw,
+        });
+      }
+    }
+
+    const townyHost = String(process.env.AVA_RCON_TOWNY_HOST || "").trim();
+    const townyPort = Number(process.env.AVA_RCON_TOWNY_PORT || 25575);
+    if (townyHost) {
+      const townyPw = passwordFor("towny") || shared;
+      if (townyPw) {
+        out.push({
+          id: "towny",
+          host: townyHost,
+          port: townyPort,
+          password: townyPw,
+        });
+      }
+    }
+
+    // Legacy single host that isn't already claims/test
+    const legacyHost = String(process.env.AVA_RCON_HOST || "").trim();
+    const legacyPort = Number(process.env.AVA_RCON_PORT || 25575);
+    if (
+      legacyHost &&
+      !out.some((t) => t.host === legacyHost && t.port === legacyPort)
+    ) {
+      out.push({
+        id: "default",
+        host: legacyHost,
+        port: legacyPort,
+        password: shared,
+      });
+    }
+  }
+
+  return out;
+}
+
+export function rconConfigured() {
+  return rconTargets().length > 0;
+}
+
+function pack(id, type, body) {
+  const payload = Buffer.from(String(body) + "\0\0", "utf8");
+  const len = 4 + 4 + payload.length;
+  const buf = Buffer.alloc(4 + len);
+  buf.writeInt32LE(len, 0);
+  buf.writeInt32LE(id, 4);
+  buf.writeInt32LE(type, 8);
+  payload.copy(buf, 12);
+  return buf;
+}
+
+function readPacket(socket) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let needed = null;
+    const onData = (d) => {
+      chunks.push(d);
+      const buf = Buffer.concat(chunks);
+      if (needed == null && buf.length >= 4) needed = buf.readInt32LE(0) + 4;
+      if (needed != null && buf.length >= needed) {
+        socket.off("data", onData);
+        const len = buf.readInt32LE(0);
+        const id = buf.readInt32LE(4);
+        const type = buf.readInt32LE(8);
+        const body = buf.slice(12, 4 + len - 2).toString("utf8");
+        resolve({ id, type, body });
+      }
+    };
+    socket.on("data", onData);
+    socket.on("error", reject);
+    setTimeout(() => reject(new Error("rcon_timeout")), 8000);
+  });
+}
+
+async function rconExec(command, target) {
+  const password = target.password || passwordFor(target.id);
+  const { host, port } = target;
+
+  return new Promise((resolve, reject) => {
+    const socket = net.connect({ host, port }, async () => {
+      try {
+        socket.write(pack(1, 3, password)); // AUTH
+        const auth = await readPacket(socket);
+        if (auth.id === -1) {
+          socket.destroy();
+          return reject(new Error("rcon_auth_failed"));
+        }
+        socket.write(pack(2, 2, command)); // COMMAND
+        const res = await readPacket(socket);
+        socket.end();
+        resolve(res.body || "");
+      } catch (err) {
+        socket.destroy();
+        reject(err);
+      }
+    });
+    socket.on("error", reject);
+  });
+}
+
+function defaultTargetId() {
+  const pref = String(process.env.AVA_RCON_DEFAULT_TARGET || "test")
+    .trim()
+    .toLowerCase();
+  const targets = rconTargets();
+  if (!targets.length) return pref || "primary" || "test" || "claims";
+  if (targets.some((t) => t.id === pref)) return pref;
+  if (targets.some((t) => t.id === "test")) return "test";
+  if (targets.some((t) => t.id === "primary")) return "primary";
+  if (targets.some((t) => t.id === "test")) return "test";
+  if (targets.some((t) => t.id === "claims")) return "claims";
+  return targets[0].id;
+}
+
+function resolveTarget(which) {
+  const targets = rconTargets();
+  if (!targets.length) return null;
+  const key = String(which || defaultTargetId())
+    .toLowerCase()
+    .trim();
+  return (
+    targets.find((t) => t.id === key) ||
+    targets.find((t) => t.id === "test") ||
+    targets.find((t) => t.id === "claims") ||
+    targets[0]
+  );
+}
+
+/**
+ * @param {string} command
+ * @param {{ allow?: boolean, target?: string, operatorConsole?: boolean }} [opts]
+ * @returns {Promise<{ ok: boolean, reason?: string, output?: string, target?: string }>}
+ */
+export async function guardedRcon(
+  command,
+  { allow = false, target = "", operatorConsole = false } = {},
+) {
+  const targetKey = String(target || defaultTargetId());
+  if (isEmergencyStopped()) {
+    if (allow) {
+      recordRconPair({
+        command,
+        ok: false,
+        reason: "emergency_stop",
+        target: targetKey,
+        allow,
+      });
+    }
+    return { ok: false, reason: "emergency_stop" };
+  }
+  if (!allow) {
+    return { ok: false, reason: "not_authorized" };
+  }
+  if (!rconConfigured()) {
+    recordRconPair({
+      command,
+      ok: false,
+      reason: "rcon_not_configured",
+      target: targetKey,
+      allow,
+    });
+    return { ok: false, reason: "rcon_not_configured" };
+  }
+
+  const cmd = String(command || "").trim();
+  if (!cmd) return { ok: false, reason: "empty" };
+  // Bare Paper stop / op — never. /rootrestart and /rootstop are allowed when allow=true.
+  if (/\b(op|deop|ban-ip|whitelist\s+off|pardon-ip)\b/i.test(cmd)) {
+    recordRconPair({
+      command: cmd,
+      ok: false,
+      reason: "blocked_command",
+      target: targetKey,
+      allow,
+    });
+    return { ok: false, reason: "blocked_command" };
+  }
+  if (/^(minecraft:)?stop\b/i.test(cmd) && !/^rootstop\b/i.test(cmd)) {
+    recordRconPair({
+      command: cmd,
+      ok: false,
+      reason: "blocked_command",
+      target: targetKey,
+      allow,
+    });
+    return { ok: false, reason: "blocked_command" };
+  }
+  // Explicit staff restart path Ava is allowed to fire when allow=true
+  const staffRestart = /^(rootrestart|rootstop)(\s+cancel)?$/i.test(cmd);
+  if (!staffRestart && /^(restart|reload)\b/i.test(cmd)) {
+    recordRconPair({
+      command: cmd,
+      ok: false,
+      reason: "blocked_command",
+      target: targetKey,
+      allow,
+    });
+    return { ok: false, reason: "blocked_command" };
+  }
+  // Safe read / private assist — list online + tell/msg/w (ingame chat batch)
+  const safeAssist =
+    /^list\b/i.test(cmd) ||
+    /^(tell|msg|w|whisper)\s+[A-Za-z0-9_]{1,16}\s+\S/i.test(cmd);
+  // Alex operator console: allow worldborder/time/weather/gamerule/say/etc.
+  // Still hard-blocks op/stop/restart above.
+  if (
+    !operatorConsole &&
+    !staffRestart &&
+    !safeAssist &&
+    /^(ban|kick|pardon|whitelist|gamemode|give|xp|effect|fill|setblock|summon)\b/i.test(
+      cmd,
+    )
+  ) {
+    recordRconPair({
+      command: cmd,
+      ok: false,
+      reason: "blocked_command",
+      target: targetKey,
+      allow,
+    });
+    return { ok: false, reason: "blocked_command" };
+  }
+
+  const dest = resolveTarget(targetKey);
+  if (!dest) {
+    recordRconPair({
+      command: cmd,
+      ok: false,
+      reason: "rcon_not_configured",
+      target: targetKey,
+      allow,
+    });
+    return { ok: false, reason: "rcon_not_configured" };
+  }
+
+  try {
+    const output = await rconExec(cmd, dest);
+    const out = String(output).slice(0, 1500);
+    recordRconPair({
+      command: cmd,
+      output: out,
+      ok: true,
+      target: dest.id,
+      allow,
+    });
+    return {
+      ok: true,
+      output: out,
+      target: dest.id,
+    };
+  } catch (err) {
+    recordRconPair({
+      command: cmd,
+      ok: false,
+      reason: err.message || "rcon_error",
+      target: dest.id,
+      allow,
+    });
+    return { ok: false, reason: err.message || "rcon_error", target: dest.id };
+  }
+}
+
+export function gatherRconBrief() {
+  const targets = rconTargets();
+  const lines = targets.length
+    ? targets.map((t) => `- ${t.id}: ${t.host}:${t.port}`).join("\n")
+    : "- (none)";
+  return {
+    brief: `### RCON
+configured: ${rconConfigured() ? "yes" : "no"}
+default: ${defaultTargetId()}
+targets:
+${lines}
+emergency_stop: ${isEmergencyStopped() ? "ACTIVE — writes/RCON paused" : "clear"}
+Dangerous cmds blocked. /rootrestart + /rootstop allowed when operator-authorized.
+Alex operatorConsole: worldborder/time/weather/gamerule/say/list.
+Execute only with operator allow + clear stop.`,
+  };
+}

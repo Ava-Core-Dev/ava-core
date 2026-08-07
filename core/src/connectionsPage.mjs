@@ -1,0 +1,285 @@
+/** Connections dashboard — same visual language as solarPage. */
+export function connectionsPageHtml({ basePath = "" } = {}) {
+  const base = String(basePath || "").replace(/\/$/, "");
+  const api = (p) => `${base}${p}`;
+  const statusHref = base ? `${base}` : "/status";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  ${base ? `<base href="${base}/">` : ""}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ava Ivy — Connections</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg0: #0a110e; --bg1: #121c16; --ink: #e8f2ea; --muted: #8aa394;
+      --line: rgba(232, 242, 234, 0.12); --accent: #6ee7a8; --lime: #b8ff5c;
+      --players: #7eb8ff; --online: #7dff9a; --apps: #e0a84a; --warn: #e25b5b;
+      --panel: rgba(0,0,0,0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; font-family: "DM Sans", system-ui, sans-serif; color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1a3a2a 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #243018 0%, transparent 50%),
+        linear-gradient(165deg, var(--bg0), var(--bg1));
+    }
+    main { max-width: 980px; margin: 0 auto; padding: 1.5rem 1.15rem 2.5rem; }
+    .top { display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:1rem; }
+    .brand { font-family: Syne, sans-serif; font-weight:800; font-size:clamp(1.8rem,4vw,2.4rem); letter-spacing:-0.03em; margin:0; }
+    .sub { color: var(--muted); margin:0.25rem 0 0; font-size:0.92rem; }
+    .links { display:flex; flex-wrap:wrap; gap:0.45rem; align-items:center; }
+    .links a {
+      color: var(--ink); text-decoration:none; font-size:0.82rem; font-weight:600;
+      padding:0.35rem 0.65rem; border-radius:999px; border:1px solid var(--line); background:rgba(0,0,0,0.22);
+    }
+    .links a:hover { border-color: rgba(110,231,168,0.45); }
+    .links a.primary { background: rgba(61,207,122,0.16); border-color: rgba(110,231,168,0.4); }
+    .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin:1rem 0 1.1rem; }
+    @media (max-width:700px){ .kpis { grid-template-columns:1fr; } }
+    .kpi { border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:0.85rem 1rem; }
+    .kpi label { display:block; color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:0.25rem; }
+    .kpi strong { font-family:Syne,sans-serif; font-size:1.65rem; font-weight:800; }
+    .kpi .hint { color:var(--muted); font-size:0.78rem; margin-top:0.2rem; }
+    .charts { display:grid; grid-template-columns:1fr 1fr; gap:0.9rem; margin-bottom:1.1rem; }
+    @media (max-width:760px){ .charts { grid-template-columns:1fr; } }
+    .chart { border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:0.85rem 0.85rem 0.55rem; }
+    .chart.wide { grid-column:1 / -1; }
+    .chart h2 { font-family:Syne,sans-serif; font-size:0.92rem; margin:0 0 0.35rem; font-weight:700; }
+    .chart .meta { color:var(--muted); font-size:0.72rem; margin:0 0 0.45rem; }
+    svg.plot { width:100%; height:180px; display:block; }
+    .legend { display:flex; flex-wrap:wrap; gap:0.65rem; margin-top:0.35rem; font-size:0.72rem; color:var(--muted); }
+    .legend i { display:inline-block; width:0.65rem; height:0.65rem; border-radius:2px; margin-right:0.3rem; vertical-align:middle; }
+    .empty { color:var(--muted); font-size:0.85rem; padding:1.5rem 0; text-align:center; }
+    .panel { border:1px solid var(--line); background:var(--panel); border-radius:12px; padding:0.9rem 1rem; margin-bottom:1rem; }
+    .panel h2 { font-family:Syne,sans-serif; font-size:0.92rem; margin:0 0 0.55rem; }
+    .servers { display:grid; gap:0.35rem; font-size:0.85rem; }
+    .servers div { display:grid; grid-template-columns:1.1fr 0.7fr 0.7fr 1.2fr; gap:0.5rem; padding:0.35rem 0; border-bottom:1px solid var(--line); }
+    .servers div:first-child { color:var(--muted); font-size:0.72rem; text-transform:uppercase; letter-spacing:0.06em; border:0; }
+    footer { margin-top:1.25rem; color:var(--muted); font-size:0.78rem; line-height:1.5; }
+    a { color: var(--accent); }
+    .pill { display:inline-flex; align-items:center; gap:0.4rem; padding:0.3rem 0.65rem; border-radius:999px; border:1px solid var(--line); font-size:0.78rem; font-weight:600; }
+    .pill.ok { color:#bbf7d0; border-color:rgba(125,255,154,0.35); background:rgba(125,255,154,0.1); }
+    .pill.bad { color:#fecaca; border-color:rgba(226,91,91,0.4); background:rgba(226,91,91,0.12); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top">
+      <div>
+        <p class="brand">Connections</p>
+        <p class="sub">In-game players · server online · app sessions · same board language as status</p>
+      </div>
+            <nav class="links" aria-label="Ava control panel">
+        <a href="https://rootrecord.info/ava/" rel="noopener">Wiki</a>
+        <a href="${base || ""}/connections">Connections</a>
+        <a href="${api("/api/connections")}">API</a>
+        <a href="${base || ""}/services">Services</a>
+      </nav>
+    </div>
+
+    <div id="banner"></div>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="charts">
+      <section class="chart wide">
+        <h2>In-game players</h2>
+        <p class="meta" id="playersMeta">Minecraft list ping · network</p>
+        <div id="chartPlayers"></div>
+        <div class="legend"><span><i style="background:var(--players)"></i>Players online</span><span><i style="background:var(--lime)"></i>Now</span></div>
+      </section>
+      <section class="chart">
+        <h2>Server online</h2>
+        <p class="meta">1 = reachable · 0 = down</p>
+        <div id="chartOnline"></div>
+        <div class="legend"><span><i style="background:var(--online)"></i>Online</span></div>
+      </section>
+      <section class="chart">
+        <h2>App sessions</h2>
+        <p class="meta" id="appsMeta">People logged into apps</p>
+        <div id="chartApps"></div>
+        <div class="legend"><span><i style="background:var(--apps)"></i>Active sessions</span></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>Servers probed</h2>
+      <div class="servers" id="servers"></div>
+    </section>
+
+    <footer>
+      Sampled by Ava on the OptiPlex Root Server (list ping + account sessions).
+      · <a href="https://rootrecord.info/ava/status">Status</a>
+      · <a href="https://rootrecord.info/ava/status/connections">Connections</a>
+      · <span id="age">…</span>
+    </footer>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function esc(s) {
+      return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+    function fmt(n, suffix="") {
+      if (n == null || Number.isNaN(Number(n))) return "—";
+      const x = Number(n);
+      const t = Math.abs(x) >= 100 ? Math.round(x) : Math.round(x * 10) / 10;
+      return t + suffix;
+    }
+    function fmtTime(t) {
+      try { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }
+      catch { return ""; }
+    }
+    function bridgeGaps(values, maxGap = 12) {
+      const out = values.slice();
+      let last = null, lastI = -1;
+      for (let i = 0; i < out.length; i++) {
+        if (out[i] != null) { last = out[i]; lastI = i; continue; }
+        if (last == null) continue;
+        let nextI = -1, next = null;
+        for (let j = i + 1; j < out.length && j - lastI <= maxGap; j++) {
+          if (out[j] != null) { nextI = j; next = out[j]; break; }
+        }
+        if (nextI < 0) { out[i] = last; continue; }
+        const span = nextI - lastI;
+        const f = (i - lastI) / span;
+        out[i] = last + (next - last) * f;
+      }
+      return out;
+    }
+    function pathFrom(values, w, h, pad, yMax, yMin) {
+      const n = values.length;
+      const span = Math.max(yMax - yMin, 1e-6);
+      let d = "";
+      let started = false;
+      for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || Number.isNaN(Number(v))) { started = false; continue; }
+        const x = pad + (n <= 1 ? 0 : (i / (n - 1)) * (w - pad * 2));
+        const y = h - pad - ((Number(v) - yMin) / span) * (h - pad * 2);
+        d += (started ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+        started = true;
+      }
+      return d.trim();
+    }
+    function areaSegments(values, w, h, pad, yMax, yMin) {
+      const n = values.length;
+      const span = Math.max(yMax - yMin, 1e-6);
+      const segs = [];
+      let cur = [];
+      const flush = () => {
+        if (cur.length < 2) { cur = []; return; }
+        let d = "";
+        cur.forEach((p, i) => { d += (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1) + " "; });
+        const last = cur[cur.length - 1], first = cur[0];
+        d += "L" + last.x.toFixed(1) + " " + (h - pad) + " L" + first.x.toFixed(1) + " " + (h - pad) + " Z";
+        segs.push(d);
+        cur = [];
+      };
+      for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || Number.isNaN(Number(v))) { flush(); continue; }
+        const x = pad + (n <= 1 ? 0 : (i / (n - 1)) * (w - pad * 2));
+        const y = h - pad - ((Number(v) - yMin) / span) * (h - pad * 2);
+        cur.push({ x, y });
+      }
+      flush();
+      return segs;
+    }
+    function lastPoint(values, w, h, pad, yMax, yMin) {
+      const n = values.length;
+      const span = Math.max(yMax - yMin, 1e-6);
+      for (let i = n - 1; i >= 0; i--) {
+        const v = values[i];
+        if (v == null || Number.isNaN(Number(v))) continue;
+        return {
+          x: pad + (n <= 1 ? 0 : (i / (n - 1)) * (w - pad * 2)),
+          y: h - pad - ((Number(v) - yMin) / span) * (h - pad * 2),
+        };
+      }
+      return null;
+    }
+    function drawChart(el, seriesList, opts = {}) {
+      const w = 560, h = 180, pad = 18;
+      const bridged = seriesList.map((s) => ({
+        ...s,
+        values: opts.bridge === false ? s.values : bridgeGaps(s.values, opts.maxGap || 12),
+      }));
+      const all = bridged.flatMap((s) => s.values.filter((v) => v != null));
+      let yMax = opts.yMax != null ? opts.yMax : Math.max(...all, 1);
+      let yMin = opts.yMin != null ? opts.yMin : 0;
+      if (opts.padMax) yMax = yMax * 1.08;
+      if (!all.length) { el.innerHTML = '<p class="empty">No samples in this window yet</p>'; return; }
+      const grid = [0.25,0.5,0.75].map((f) => {
+        const y = pad + f * (h - pad * 2);
+        return '<line x1="'+pad+'" x2="'+(w-pad)+'" y1="'+y+'" y2="'+y+'" stroke="rgba(184,255,92,0.08)" />';
+      }).join("");
+      const layers = bridged.map((s) => {
+        const fills = s.fill ? areaSegments(s.values, w, h, pad, yMax, yMin) : [];
+        const line = pathFrom(s.values, w, h, pad, yMax, yMin);
+        const fillHtml = fills.map((fd) =>
+          '<path d="'+fd+'" fill="'+s.color+'" fill-opacity="0.18" stroke="none" />'
+        ).join("");
+        return fillHtml +
+          '<path d="'+line+'" fill="none" stroke="'+s.color+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" />';
+      }).join("");
+      const dots = bridged.map((s) => {
+        const p = lastPoint(s.values, w, h, pad, yMax, yMin);
+        if (!p) return "";
+        const c = s.lime ? "#b8ff5c" : (s.dot || s.color);
+        return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="5.5" fill="'+c+'" fill-opacity="0.22" />' +
+          '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3.1" fill="'+c+'" stroke="#0a110e" stroke-width="1.2" />';
+      }).join("");
+      const labels = opts.times || [];
+      el.innerHTML =
+        '<svg class="plot" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" role="img">' +
+        grid + layers + dots +
+        '<text x="'+pad+'" y="'+(h-4)+'" fill="#8aa394" font-size="10">'+esc(fmtTime(labels[0]))+'</text>' +
+        '<text x="'+(w-pad)+'" y="'+(h-4)+'" fill="#8aa394" font-size="10" text-anchor="end">'+esc(fmtTime(labels[labels.length-1]))+'</text>' +
+        '<text x="'+(w-pad)+'" y="'+(pad+2)+'" fill="#b8ff5c" font-size="10" text-anchor="end">'+esc(Math.round(yMax))+(opts.unit||'')+'</text>' +
+        '</svg>';
+    }
+
+    async function tick() {
+      try {
+        const res = await fetch("${api("/api/connections")}?hours=8", { cache: "no-store" });
+        const d = await res.json();
+        const live = d.live || {};
+        const st = d.stats || {};
+        const online = Boolean(live.serverOnline);
+        $("banner").innerHTML = online
+          ? '<span class="pill ok">Server online</span>'
+          : '<span class="pill bad">Server offline</span>';
+        $("kpis").innerHTML =
+          '<div class="kpi"><label>In-game players</label><strong>'+esc(fmt(live.players))+'</strong><div class="hint">avg '+esc(fmt(st.playersAvg))+' · max '+esc(fmt(live.maxPlayers))+'</div></div>' +
+          '<div class="kpi"><label>Server online</label><strong>'+(online ? "Yes" : "No")+'</strong><div class="hint">uptime share '+esc(fmt(st.serverOnlinePct,"%"))+'</div></div>' +
+          '<div class="kpi"><label>App sessions</label><strong>'+esc(fmt(live.appSessions))+'</strong><div class="hint">logged-in · last '+(live.appsWindowMinutes||30)+'m · avg '+esc(fmt(st.appSessionsAvg))+'</div></div>';
+        $("playersMeta").textContent = "Minecraft list ping · "+(d.series?.sampleCount||0)+" samples / "+(d.series?.hours||8)+"h";
+        $("appsMeta").textContent = "Active license sessions · source "+(live.appsSource || "—");
+        const mins = (d.series && d.series.minutes) || [];
+        const times = mins.map((m) => m.t);
+        drawChart($("chartPlayers"), [{ values: mins.map((m)=>m.players), color:"#7eb8ff", fills:true, lime:true }], { times, padMax:true, unit:"" });
+        drawChart($("chartOnline"), [{ values: mins.map((m)=>m.serverOnline), color:"#7dff9a", fills:true, lime:true }], { times, yMax:1, yMin:0, unit:"" });
+        drawChart($("chartApps"), [{ values: mins.map((m)=>m.appSessions), color:"#e0a84a", fills:true, lime:true }], { times, padMax:true, unit:"" });
+        const servers = live.servers || [];
+        $("servers").innerHTML =
+          '<div><span>Id</span><span>Online</span><span>Players</span><span>Host</span></div>' +
+          (servers.length ? servers.map((s) =>
+            '<div><span>'+esc(s.id)+'</span><span>'+(s.ok ? "yes" : "no")+'</span><span>'+esc(fmt(s.players))+(s.max!=null?("/"+esc(fmt(s.max))):"")+'</span><span>'+esc(s.host)+':'+esc(s.port)+(s.version?(" · "+esc(s.version)):"")+(s.reason&&!s.ok?(" · "+esc(s.reason)):"")+'</span></div>'
+          ).join("") : '<div><span colspan>No probes yet</span></div>');
+        $("age").textContent = "Updated " + (d.updatedAt ? new Date(d.updatedAt).toLocaleString() : "—");
+      } catch (e) {
+        $("banner").innerHTML = '<span class="pill bad">Connections API unreachable</span>';
+      }
+    }
+    tick();
+    setInterval(tick, 30000);
+  </script>
+  <div id="powered-by-ava" class="powered-by-ava" data-powered-by-ava="1"></div>
+  <script src="https://rootrecord.info/ava/assets/powered-by-ava.js" defer></script>
+</body>
+</html>`;
+}

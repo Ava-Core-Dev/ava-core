@@ -1,0 +1,889 @@
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { storePaths } from "./store.mjs";
+
+/**
+ * EcoFlow Open API (official HMAC sign) — https://developer.ecoflow.com/
+ * REST quota + MQTT certification. Local data buckets created while Ava runs.
+ * Serials: AVA_ECOFLOW_SN (comma-separated) — supplied later by operator.
+ */
+
+const DEFAULT_BASE = "https://api-a.ecoflow.com";
+
+/** Hard-removed EcoFlow units — never poll / never show (Alex 2026-08-03). */
+export const ECO_REMOVED_SNS = new Set(["R331ZAB5SG755642"]); // ex Delta 2-B
+
+/**
+ * Live EcoFlow samples older than this are unusable for live calc / boards.
+ * Alex 2026-08-03: offline River 2 Pro was still shown from cached quota — 3 min max.
+ */
+export const ECO_STALE_MS = 3 * 60_000;
+
+export function isEcoRemoved(sn) {
+  return ECO_REMOVED_SNS.has(String(sn || "").trim());
+}
+
+/** Normalize EcoFlow device-list online flag → true / false / null (unknown). */
+export function isEcoDeviceOnlineFlag(online) {
+  if (online === 0 || online === false || online === "0" || online === "offline") {
+    return false;
+  }
+  if (online === 1 || online === true || online === "1" || online === "online") {
+    return true;
+  }
+  return null;
+}
+
+/**
+ * True when a perSn row may feed live bank / solar / boards.
+ * Offline device-list flag or age > ECO_STALE_MS → not live.
+ */
+export function isEcoSampleLive(entry, { now = Date.now(), staleMs = ECO_STALE_MS } = {}) {
+  if (!entry || entry.ok === false) return false;
+  if (entry.live === false || entry.deviceOnline === false) return false;
+  const at = entry.sampledAt ?? entry.at;
+  if (at != null && Number.isFinite(Number(at)) && now - Number(at) > staleMs) {
+    return false;
+  }
+  return Boolean(entry.ok);
+}
+
+function ecoPath() {
+  return path.join(storePaths().dir, "ecoflow.json");
+}
+
+/** Local telemetry buckets under Ava handoff data/ecoflow/ */
+export function ecoBucketsRoot() {
+  return path.join(storePaths().dir, "ecoflow");
+}
+
+export function ensureEcoBuckets() {
+  const root = ecoBucketsRoot();
+  const dirs = [
+    root,
+    path.join(root, "devices"),
+    path.join(root, "quota"),
+    path.join(root, "history"),
+    path.join(root, "mqtt"),
+    path.join(root, "certs"),
+  ];
+  for (const d of dirs) {
+    fs.mkdirSync(d, { recursive: true });
+  }
+  const readme = path.join(root, "README.txt");
+  if (!fs.existsSync(readme)) {
+    fs.writeFileSync(
+      readme,
+      [
+        "Ava EcoFlow buckets (created at runtime)",
+        "devices/  — device list snapshots",
+        "quota/    — per-SN quota JSON",
+        "history/  — rolling SOC / power samples",
+        "mqtt/     — last MQTT certification payload (no secret in git)",
+        "certs/    — reserved",
+        "",
+        "Keys live in RootMC .env (AVA_ECOFLOW_*). Serials: AVA_ECOFLOW_SN.",
+        "Docs: https://developer.ecoflow.com/",
+      ].join("\n"),
+      "utf8",
+    );
+  }
+  return root;
+}
+
+function accessKey() {
+  return String(
+    process.env.AVA_ECOFLOW_ACCESS_KEY || process.env.ECOFLOW_ACCESS_KEY || "",
+  ).trim();
+}
+
+function secretKey() {
+  return String(
+    process.env.AVA_ECOFLOW_SECRET_KEY || process.env.ECOFLOW_SECRET_KEY || "",
+  ).trim();
+}
+
+function baseUrl() {
+  return String(
+    process.env.AVA_ECOFLOW_BASE_URL || process.env.ECOFLOW_BASE_URL || DEFAULT_BASE,
+  )
+    .trim()
+    .replace(/\/$/, "");
+}
+
+/** Comma/space separated serials. Empty until operator provides them. */
+export function configuredSerials() {
+  return String(process.env.AVA_ECOFLOW_SN || process.env.ECOFLOW_SN || "")
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((sn) => !ECO_REMOVED_SNS.has(sn));
+}
+
+export function ecoConfigured() {
+  return Boolean(accessKey() && secretKey());
+}
+
+function qstring(params) {
+  return Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+}
+
+function hmacSha256Hex(data, key) {
+  return crypto.createHmac("sha256", key).update(data, "utf8").digest("hex");
+}
+
+/** Official Open API signed GET. */
+export async function ecoflowGet(apiPath, params = {}) {
+  const key = accessKey();
+  const secret = secretKey();
+  if (!key || !secret) throw new Error("EcoFlow keys missing");
+
+  const nonce = String(Math.floor(100000 + Math.random() * 900000));
+  const timestamp = String(Date.now());
+  const signHeaders = { accessKey: key, nonce, timestamp };
+  const flatParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v != null && v !== ""),
+  );
+  const paramQs = qstring(flatParams);
+  const headerQs = qstring(signHeaders);
+  const signStr = (paramQs ? `${paramQs}&` : "") + headerQs;
+  const sign = hmacSha256Hex(signStr, secret);
+
+  // Manual query string (same bytes as sign). Do NOT set Content-Type on GET —
+  // EcoFlow returns code 8521 "signature is wrong" when application/json is sent.
+  const fullUrl = paramQs ? `${baseUrl()}${apiPath}?${paramQs}` : `${baseUrl()}${apiPath}`;
+  const res = await fetch(fullUrl, {
+    method: "GET",
+    headers: {
+      accessKey: key,
+      nonce,
+      timestamp,
+      sign,
+      Accept: "application/json",
+      "User-Agent": "AvaIvyRootMC/0.5 (EcoFlow OpenAPI)",
+    },
+  });
+  const text = await res.text();
+  let json = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    json = null;
+  }
+  // Treat EcoFlow business codes: HTTP 200 + code "0" = ok
+  const code = json?.code != null ? String(json.code) : null;
+  const bizOk = code == null || code === "0";
+  return {
+    ok: res.ok && bizOk,
+    status: res.status,
+    json,
+    text: text.slice(0, 500),
+  };
+}
+
+export function loadEcoSnapshot() {
+  try {
+    if (!fs.existsSync(ecoPath())) return null;
+    return JSON.parse(fs.readFileSync(ecoPath(), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+export function saveEcoSnapshot(partial) {
+  const prev = loadEcoSnapshot() || {};
+  const next = { ...prev, ...partial, updatedAt: Date.now() };
+  // Drop hard-removed SNs from live maps (never leave Delta 2-B ghosts).
+  if (next.perSn && typeof next.perSn === "object") {
+    for (const sn of Object.keys(next.perSn)) {
+      if (isEcoRemoved(sn)) delete next.perSn[sn];
+    }
+  }
+  if (Array.isArray(next.sns)) {
+    next.sns = next.sns.filter((sn) => !isEcoRemoved(sn));
+  }
+  if (Array.isArray(next.devices)) {
+    next.devices = next.devices.filter((d) => !isEcoRemoved(d?.sn));
+  }
+  fs.mkdirSync(path.dirname(ecoPath()), { recursive: true });
+  fs.writeFileSync(ecoPath(), JSON.stringify(next, null, 2), "utf8");
+  return next;
+}
+
+function pickSoc(data) {
+  if (!data || typeof data !== "object") return null;
+  const candidates = [
+    data.soc,
+    data.bmsBattSoc,
+    data.batteryPercentage,
+    data.cmsBattSoc,
+    data?.bmsMaster?.soc,
+    data?.bmsHeartBeatPack?.[0],
+    data["bms_bmsStatus.soc"],
+    data["bmsMaster.soc"],
+    data["pd.soc"],
+  ];
+  for (const c of candidates) {
+    if (c != null && !Number.isNaN(Number(c))) return Number(c);
+  }
+  for (const [k, v] of Object.entries(data)) {
+    if (/soc|battery.*pct|batt.*soc/i.test(k) && typeof v === "number") return v;
+  }
+  return null;
+}
+
+/** EcoFlow often reports mW; normalize to watts for Ava briefs. */
+function toWatts(raw, keyHint = "") {
+  if (raw == null || Number.isNaN(Number(raw))) return null;
+  const n = Number(raw);
+  const key = String(keyHint || "");
+  if (/mw|milliwatt/i.test(key) || Math.abs(n) >= 10000) return Math.round(n / 1000);
+  return Math.round(n);
+}
+
+function pickPowerWatts(data) {
+  if (!data || typeof data !== "object") return { inW: null, outW: null, solarW: null };
+
+  const has = (k) => data[k] != null && !Number.isNaN(Number(data[k]));
+  const w = (k) => toWatts(Number(data[k]), k);
+
+  /**
+   * Intake: trust pd.wattsInSum when it's actually charging (>0).
+   * River often leaves PD sum empty/0 while mppt.inWatts is the real solar intake —
+   * then use max(mppt, inv.input). Never prefer a bare inv.input=0 over mppt.
+   */
+  let inW = null;
+  if (has("pd.wattsInSum") && w("pd.wattsInSum") > 0) {
+    inW = w("pd.wattsInSum");
+  } else {
+    const cands = [];
+    if (has("mppt.inWatts")) cands.push(w("mppt.inWatts"));
+    if (has("inv.inputWatts")) cands.push(w("inv.inputWatts"));
+    if (has("pd.wattsInSum_mw")) cands.push(w("pd.wattsInSum_mw"));
+    const pos = cands.filter((n) => n != null && n > 0);
+    if (pos.length) inW = Math.max(...pos);
+    else if (has("pd.wattsInSum")) inW = w("pd.wattsInSum");
+    else if (cands.length) inW = cands.find((n) => n != null) ?? null;
+  }
+
+  /**
+   * Load out: pd.wattsOutSum is authoritative when present — including 0.
+   * Do NOT fall through to inv.outputWatts when PD says 0 (River ghost ~49W
+   * with AC disabled fooled us). Only use inv when PD sum key is missing.
+   */
+  let outW = null;
+  if (has("pd.wattsOutSum")) outW = w("pd.wattsOutSum");
+  else if (has("pd.wattsOutSum_mw")) outW = w("pd.wattsOutSum_mw");
+  else if (has("inv.outputWatts")) outW = w("inv.outputWatts");
+
+  let solarW = null;
+  if (has("mppt.inWatts") && w("mppt.inWatts") > 0) solarW = w("mppt.inWatts");
+  else if (has("mppt.pv1InWatts") && w("mppt.pv1InWatts") > 0) solarW = w("mppt.pv1InWatts");
+  else if (has("mppt.pv2InWatts") && w("mppt.pv2InWatts") > 0) solarW = w("mppt.pv2InWatts");
+  else if (has("mppt.inWatts")) solarW = w("mppt.inWatts");
+
+  return { inW, outW, solarW };
+}
+
+function minuteBucketPath(sn) {
+  return path.join(ecoBucketsRoot(), "history", `${sn || "unknown"}-minutes.jsonl`);
+}
+
+function appendMinuteTotals(sn, sample, atMs = Date.now()) {
+  const file = minuteBucketPath(sn);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const minute = Math.floor(Number(atMs) / 60000) * 60000;
+  const hstDay = new Date(minute).toLocaleDateString("en-CA", {
+    timeZone: "Pacific/Honolulu",
+  });
+  fs.appendFileSync(
+    file,
+    `${JSON.stringify({ minute, at: Number(atMs) || Date.now(), hstDay, ...sample })}\n`,
+    "utf8",
+  );
+}
+
+/** True when this SN already has a minute-floor row (avoid duplicate hydrate lines). */
+function hasMinuteBucket(sn, minuteMs) {
+  const want = Math.floor(Number(minuteMs) / 60000) * 60000;
+  if (!Number.isFinite(want)) return false;
+  return readMinuteRows(sn).some((r) => {
+    const t = Number(r.minute || Math.floor(Number(r.at || 0) / 60000) * 60000);
+    return t === want;
+  });
+}
+
+/**
+ * Pull Worker/D1 ecoflow_samples into local minute buckets when Ava had Discord
+ * gaps or a short outage. Does not invent watts — only copies cloud samples.
+ * @param {{ limit?: number, maxAgeMs?: number }} [opts]
+ */
+export async function hydrateEcoMinutesFromD1(opts = {}) {
+  const limit = Math.max(60, Math.min(2000, Number(opts.limit ?? 720)));
+  const maxAgeMs = Number(opts.maxAgeMs ?? 10 * 3600_000);
+  const since = Date.now() - maxAgeMs;
+  const base = String(
+    process.env.AVA_API_BASE || process.env.ROOTMC_API_BASE || "https://api.rootmc.net",
+  ).replace(/\/$/, "");
+  let samples = [];
+  try {
+    const res = await fetch(
+      `${base}/api/rootmc/host-site/ecoflow/samples?limit=${limit}&since=${since}`,
+      {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "AvaIvyRootMC/0.5",
+        },
+      },
+    );
+    if (!res.ok) return { ok: false, detail: `http_${res.status}`, wrote: 0 };
+    const data = await res.json();
+    samples = Array.isArray(data?.samples) ? data.samples : [];
+  } catch (err) {
+    return { ok: false, detail: err.message, wrote: 0 };
+  }
+  let wrote = 0;
+  for (const s of samples) {
+    const sn = String(s?.sn || "").trim();
+    if (!sn || isEcoRemoved(sn)) continue;
+    const sampledAt = Number(s.sampled_at || s.sampledAt || 0);
+    if (!Number.isFinite(sampledAt) || sampledAt < since) continue;
+    if (hasMinuteBucket(sn, sampledAt)) continue;
+    const sample = {
+      soc: s.soc != null ? Number(s.soc) : null,
+      solarW: s.solar_w != null ? Number(s.solar_w) : s.solarW != null ? Number(s.solarW) : null,
+      inW: s.in_w != null ? Number(s.in_w) : s.inW != null ? Number(s.inW) : null,
+      outW: s.out_w != null ? Number(s.out_w) : s.outW != null ? Number(s.outW) : null,
+      source: "d1-hydrate",
+    };
+    if (
+      sample.soc == null &&
+      sample.solarW == null &&
+      sample.inW == null &&
+      sample.outW == null
+    ) {
+      continue;
+    }
+    appendMinuteTotals(sn, sample, sampledAt);
+    wrote += 1;
+  }
+  return { ok: true, wrote, fetched: samples.length };
+}
+
+/** Current HST calendar day key (YYYY-MM-DD). */
+export function ecoHstDayKey(ms = Date.now()) {
+  return new Date(ms).toLocaleDateString("en-CA", {
+    timeZone: "Pacific/Honolulu",
+  });
+}
+
+function readMinuteRows(sn) {
+  try {
+    const file = minuteBucketPath(sn);
+    if (!fs.existsSync(file)) return [];
+    return fs
+      .readFileSync(file, "utf8")
+      .trim()
+      .split(/\n+/)
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Rolling minute series for status/solar graphs — live buckets only, never invent.
+ * @param {{ maxAgeMs?: number, limit?: number }} [opts]
+ */
+export function loadEcoMinuteSeries(opts = {}) {
+  const maxAgeMs = Number(opts.maxAgeMs ?? 8 * 3600_000);
+  const limit = Math.max(12, Math.min(720, Number(opts.limit ?? 240)));
+  const since = Date.now() - maxAgeMs;
+  const snap = loadEcoSnapshot();
+  const sns = (
+    Object.keys(snap?.perSn || {}).length
+      ? Object.keys(snap.perSn)
+      : configuredSerials()
+  ).filter((sn) => !isEcoRemoved(sn));
+  const byMinute = new Map();
+  for (const sn of sns) {
+    const off = isEcoOffCircuit(sn);
+    const rows = readMinuteRows(sn);
+    // Dedupe to last sample per minute floor
+    const lastByMin = new Map();
+    for (const r of rows) {
+      const t = Number(r.minute || Math.floor(Number(r.at || 0) / 60000) * 60000);
+      if (!Number.isFinite(t) || t < since) continue;
+      lastByMin.set(t, r);
+    }
+    for (const [t, r] of lastByMin) {
+      const cur = byMinute.get(t) || {
+        t,
+        solarSum: 0,
+        solarN: 0,
+        outSum: 0,
+        outN: 0,
+        inSum: 0,
+        inN: 0,
+        bankSocSum: 0,
+        bankSocN: 0,
+        devices: {},
+      };
+      const solarW = Number.isFinite(Number(r.solarW)) ? Number(r.solarW) : null;
+      const outW = Number.isFinite(Number(r.outW)) ? Number(r.outW) : null;
+      const inW = Number.isFinite(Number(r.inW)) ? Number(r.inW) : null;
+      // SOC 0 on disconnect/stale glitches — treat as missing (not a real empty bank)
+      let soc = Number.isFinite(Number(r.soc)) ? Number(r.soc) : null;
+      if (soc === 0 && r.source === "d1-hydrate" && solarW == null && outW == null) {
+        soc = null;
+      }
+      if (!off && solarW != null) {
+        cur.solarSum += solarW;
+        cur.solarN += 1;
+      }
+      if (!off && outW != null) {
+        cur.outSum += outW;
+        cur.outN += 1;
+      }
+      if (!off && inW != null) {
+        cur.inSum += inW;
+        cur.inN += 1;
+      }
+      if (!off && soc != null) {
+        cur.bankSocSum += soc;
+        cur.bankSocN += 1;
+      }
+      cur.devices[sn] = {
+        soc,
+        solarW,
+        outW,
+        inW,
+        offCircuit: off,
+      };
+      byMinute.set(t, cur);
+    }
+  }
+  const series = [...byMinute.values()]
+    .sort((a, b) => a.t - b.t)
+    .slice(-limit)
+    .map((row) => ({
+      t: row.t,
+      solarW: row.solarN > 0 ? Math.round(row.solarSum) : null,
+      outW: row.outN > 0 ? Math.round(row.outSum) : null,
+      inW: row.inN > 0 ? Math.round(row.inSum) : null,
+      bankSoc:
+        row.bankSocN > 0
+          ? Math.round(row.bankSocSum / row.bankSocN)
+          : null,
+      devices: row.devices,
+    }));
+  // Scrub impossible bank cliffs (e.g. 80% → 0% → 80% from a dead poll)
+  for (let i = 1; i < series.length - 1; i++) {
+    const prev = series[i - 1].bankSoc;
+    const cur = series[i].bankSoc;
+    const next = series[i + 1].bankSoc;
+    if (
+      cur === 0 &&
+      prev != null &&
+      prev >= 5 &&
+      next != null &&
+      next >= 5 &&
+      Math.abs(prev - next) <= 25
+    ) {
+      series[i] = { ...series[i], bankSoc: null, scrubbedZeroSoc: true };
+    }
+  }
+  return { series, sns, sampleCount: series.filter((r) => r.solarW != null || r.bankSoc != null).length };
+}
+
+/**
+ * Average solar intake from local minute buckets for "this morning" (local TZ).
+ * Honest about sample window — never invent dawn if buckets start later.
+ * @param {{ tzOffsetHours?: number, morningStartHour?: number, morningEndHour?: number }} [opts]
+ */
+export function summarizeMorningSolar(opts = {}) {
+  const tz = Number(opts.tzOffsetHours ?? -10); // Hawaii default
+  const startHour = Number(opts.morningStartHour ?? 6);
+  const endHour = Number(opts.morningEndHour ?? 12);
+  const now = Date.now();
+  // Local calendar day at tz offset
+  const localNow = new Date(now + tz * 3600_000);
+  const y = localNow.getUTCFullYear();
+  const m = localNow.getUTCMonth();
+  const d = localNow.getUTCDate();
+  // Convert local wall times back to UTC ms
+  const morningStart =
+    Date.UTC(y, m, d, startHour, 0, 0) - tz * 3600_000;
+  const morningEnd = Date.UTC(y, m, d, endHour, 0, 0) - tz * 3600_000;
+  const end = Math.min(now, morningEnd);
+
+  const snap = loadEcoSnapshot();
+  const fromSnap = Object.keys(snap?.perSn || {});
+  const sns = fromSnap.length
+    ? fromSnap
+    : configuredSerials().length
+      ? configuredSerials()
+      : Object.values(ECO_NICKNAMES).filter((v, i, a) => a.indexOf(v) === i);
+
+  const perSn = {};
+  const minuteMap = new Map();
+  let earliest = null;
+  let latest = null;
+
+  for (const sn of sns) {
+    const today = ecoHstDayKey(now);
+    const rows = readMinuteRows(sn).filter((r) => {
+      const t = Number(r.minute || r.at || 0);
+      if (!(t >= morningStart && t <= end)) return false;
+      // Don't mix prior HST days into today's morning cycle
+      if (r.hstDay && String(r.hstDay) !== today) return false;
+      return true;
+    });
+    const vals = rows
+      .map((r) => Number(r.solarW))
+      .filter((n) => Number.isFinite(n));
+    for (const r of rows) {
+      const t = Number(r.minute || Math.floor(Number(r.at || 0) / 60000) * 60000);
+      if (!Number.isFinite(t)) continue;
+      if (earliest == null || t < earliest) earliest = t;
+      if (latest == null || t > latest) latest = t;
+      const cur = minuteMap.get(t) || { solar: 0 };
+      if (Number.isFinite(Number(r.solarW)) && !isEcoOffCircuit(sn)) {
+        cur.solar += Number(r.solarW);
+      }
+      minuteMap.set(t, cur);
+    }
+    perSn[sn] = {
+      samples: vals.length,
+      avgW: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null,
+      minW: vals.length ? Math.min(...vals) : null,
+      maxW: vals.length ? Math.max(...vals) : null,
+    };
+  }
+
+  const siteVals = [...minuteMap.values()].map((v) => v.solar);
+  return {
+    tzOffsetHours: tz,
+    morningStart,
+    morningEnd: end,
+    sampleStart: earliest,
+    sampleEnd: latest,
+    siteMinutes: siteVals.length,
+    siteAvgW: siteVals.length
+      ? siteVals.reduce((a, b) => a + b, 0) / siteVals.length
+      : null,
+    siteMaxW: siteVals.length ? Math.max(...siteVals) : null,
+    perSn,
+    sns,
+    note:
+      earliest != null && earliest > morningStart + 30 * 60_000
+        ? "sample window starts after dawn - not a full morning average"
+        : siteVals.length
+          ? "ok"
+          : "no morning samples yet",
+  };
+}
+
+/** Friendly labels / aliases → SN for ops talk. Display names: Delta 2 · River 2 Pro. */
+export const ECO_NICKNAMES = {
+  "Delta 2": "R331ZAB5SG6S2858", // primary — on host circuit
+  "River 2 Pro": "R621ZA16XH6K1155", // on host circuit
+  cucumbers: "R331ZAB5SG6S2858", // retired casual alias
+  shackas: "R621ZA16XH6K1155", // retired casual alias
+  "delta-2-a": "R331ZAB5SG6S2858",
+  "river-2-pro": "R621ZA16XH6K1155",
+};
+
+/**
+ * Off-circuit EcoFlow SNs (excluded from site bank / site solar totals).
+ * Empty after Delta 2-B full removal (Alex 2026-08-03).
+ */
+export const ECO_OFF_CIRCUIT_SNS = new Set();
+
+export function isEcoOffCircuit(sn) {
+  return ECO_OFF_CIRCUIT_SNS.has(String(sn || "").trim()) || isEcoRemoved(sn);
+}
+
+function writeJson(file, obj) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(obj, null, 2), "utf8");
+}
+
+function appendHistory(sn, sample) {
+  const file = path.join(ecoBucketsRoot(), "history", `${sn || "unknown"}.jsonl`);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.appendFileSync(file, `${JSON.stringify({ at: Date.now(), ...sample })}\n`, "utf8");
+}
+
+/**
+ * Ensure buckets exist, refresh MQTT cert (account-level), device list, and per-SN quota.
+ */
+export async function refreshEcoFlow() {
+  ensureEcoBuckets();
+
+  if (!ecoConfigured()) {
+    const prev = loadEcoSnapshot();
+    if (prev?.perSn && Object.keys(prev.perSn).length) {
+      // Keep last good pack — do not bump updatedAt (would fake freshness).
+      return {
+        ...prev,
+        status: prev.status === "live" ? "live" : "unconfigured",
+        note:
+          (prev.note ? `${prev.note} · ` : "") +
+          "keys missing in this process — last pack retained",
+      };
+    }
+    return saveEcoSnapshot({
+      status: "unconfigured",
+      batteryPct: null,
+      buckets: ecoBucketsRoot(),
+      note: "Set AVA_ECOFLOW_ACCESS_KEY + AVA_ECOFLOW_SECRET_KEY",
+    });
+  }
+
+  const prev = loadEcoSnapshot() || {};
+  let sns = configuredSerials();
+  const noteParts = [];
+  let batteryPct = prev.batteryPct ?? null;
+  let devices = prev.devices || [];
+
+  // 1) MQTT certification bucket (Open API) — no SN required on some regions
+  try {
+    const cert = await ecoflowGet("/iot-open/sign/certification", {});
+    if (cert.ok && cert.json?.data) {
+      const d = cert.json.data;
+      writeJson(path.join(ecoBucketsRoot(), "mqtt", "certification.json"), {
+        at: Date.now(),
+        url: d.url,
+        port: d.port,
+        protocol: d.protocol,
+        certificateAccount: d.certificateAccount,
+        // keep password on disk for runtime MQTT only — handoff data is local
+        certificatePassword: d.certificatePassword,
+      });
+      noteParts.push("mqtt cert ok");
+    } else {
+      noteParts.push(`mqtt cert ${cert.status}: ${(cert.json?.message || cert.text || "").slice(0, 80)}`);
+    }
+  } catch (err) {
+    noteParts.push(`mqtt cert err: ${err.message}`);
+  }
+
+  // 2) Device list
+  try {
+    const list = await ecoflowGet("/iot-open/sign/device/list", {});
+    if (list.ok && list.json?.data) {
+      const rows = Array.isArray(list.json.data)
+        ? list.json.data
+        : list.json.data?.devices || list.json.data?.list || [];
+      devices = rows
+        .map((r) => ({
+          sn: r.sn || r.deviceSn || r.serialNumber,
+          productName: r.productName || r.productType || r.name,
+          online: r.online ?? r.status,
+        }))
+        .filter((d) => d.sn && !isEcoRemoved(d.sn));
+      writeJson(path.join(ecoBucketsRoot(), "devices", "list.json"), {
+        at: Date.now(),
+        devices,
+      });
+      noteParts.push(`devices ${devices.length}`);
+    } else {
+      noteParts.push(`device list ${list.status}: ${(list.json?.message || list.text || "").slice(0, 80)}`);
+    }
+  } catch (err) {
+    noteParts.push(`device list err: ${err.message}`);
+  }
+
+  // 3) Quota per SN — env first, else serials discovered from device list
+  if (!sns.length && devices.length) {
+    sns = devices
+      .map((d) => String(d.sn || "").trim())
+      .filter(Boolean)
+      .filter((sn) => !isEcoRemoved(sn));
+    if (sns.length) noteParts.push("sns from device list");
+  }
+  sns = sns.filter((sn) => !isEcoRemoved(sn));
+  if (!sns.length) {
+    return saveEcoSnapshot({
+      status: "needs_sn",
+      batteryPct,
+      devices,
+      buckets: ecoBucketsRoot(),
+      baseUrl: baseUrl(),
+      note: `${noteParts.join(" · ")} · keys live — give Ava AVA_ECOFLOW_SN (comma-separated)`,
+    });
+  }
+
+  const perSn = {};
+  const onCircuitSocs = [];
+  for (const sn of sns) {
+    try {
+      const q = await ecoflowGet("/iot-open/sign/device/quota/all", { sn });
+      writeJson(path.join(ecoBucketsRoot(), "quota", `${sn}.json`), {
+        at: Date.now(),
+        status: q.status,
+        body: q.json,
+      });
+      const onlineFlag = isEcoDeviceOnlineFlag(
+        devices.find((d) => String(d.sn) === String(sn))?.online,
+      );
+      if (q.ok && q.json?.data) {
+        const data = q.json.data;
+        const soc = pickSoc(data);
+        const power = pickPowerWatts(data);
+        const off = isEcoOffCircuit(sn);
+        // Offline on device list → quota is cached junk for live calc (River 2 Pro).
+        if (onlineFlag === false) {
+          perSn[sn] = {
+            ok: false,
+            live: false,
+            deviceOnline: false,
+            message: "offline (device list)",
+            sampledAt: Date.now(),
+            lastKnown: { soc, ...power },
+            offCircuit: off,
+          };
+          noteParts.push(`${sn} offline (list) — excluded from live`);
+          continue;
+        }
+        perSn[sn] = {
+          ok: true,
+          live: true,
+          deviceOnline: onlineFlag !== false,
+          sampledAt: Date.now(),
+          soc,
+          ...power,
+          offCircuit: off,
+        };
+        if (soc != null && !off) onCircuitSocs.push(Number(soc));
+        appendHistory(sn, {
+          soc,
+          ...power,
+          offCircuit: off,
+          deviceOnline: onlineFlag !== false,
+          keys: Object.keys(data).slice(0, 24),
+        });
+        appendMinuteTotals(sn, { soc, ...power });
+        noteParts.push(
+          `${sn} quota ok` +
+            (off ? " [off-circuit]" : "") +
+            (soc != null ? ` soc=${soc}%` : "") +
+            (power.outW != null ? ` out=${power.outW}W` : ""),
+        );
+      } else {
+        perSn[sn] = {
+          ok: false,
+          live: false,
+          deviceOnline: onlineFlag,
+          message: q.json?.message || q.text?.slice(0, 100),
+          sampledAt: Date.now(),
+          offCircuit: isEcoOffCircuit(sn),
+        };
+        noteParts.push(`${sn} quota ${q.status}`);
+      }
+    } catch (err) {
+      perSn[sn] = {
+        ok: false,
+        live: false,
+        message: err.message,
+        sampledAt: Date.now(),
+        offCircuit: isEcoOffCircuit(sn),
+      };
+      noteParts.push(`${sn} err`);
+    }
+  }
+  if (onCircuitSocs.length) {
+    batteryPct = Math.round(
+      onCircuitSocs.reduce((a, b) => a + b, 0) / onCircuitSocs.length,
+    );
+  } else {
+    batteryPct = null;
+  }
+
+  return saveEcoSnapshot({
+    status: "live",
+    batteryPct,
+    devices,
+    perSn,
+    sns,
+    nicknames: ECO_NICKNAMES,
+    offCircuitSns: [...ECO_OFF_CIRCUIT_SNS],
+    buckets: ecoBucketsRoot(),
+    baseUrl: baseUrl(),
+    note: noteParts.join(" · "),
+  });
+}
+
+export function moodFromPower(snap) {
+  const pct = snap?.batteryPct;
+  if (pct == null) return "neutral";
+  if (pct >= 70) return "upbeat";
+  if (pct >= 35) return "focused";
+  return "power_saver";
+}
+
+export function gatherEcoBrief() {
+  const snap = loadEcoSnapshot();
+  let solarLine = "";
+  try {
+    // Lazy import avoided — solar brief merged in recommend; keep eco brief lean.
+    const p = path.join(storePaths().dir, "solar-profile.json");
+    if (fs.existsSync(p)) {
+      const s = JSON.parse(fs.readFileSync(p, "utf8"));
+      const panels = s?.panels?.count ?? "?";
+      const circuits = s?.panels?.circuits ?? "?";
+      const batteries = s?.batteries?.count ?? "?";
+      solarLine = `host solar profile: ${panels} panels / ${circuits} circuits / ${batteries} batteries`;
+    }
+  } catch {
+    /* ignore */
+  }
+  if (!snap) {
+    return {
+      brief: `### Power (EcoFlow)\n(no snapshot yet)${solarLine ? `\n${solarLine}` : ""}`,
+    };
+  }
+  const snLine = snap.sns?.length
+    ? `sns: ${snap.sns.join(", ")}`
+    : "sns: (waiting — operator will provide)";
+  const perLines = Object.entries(snap.perSn || {})
+    .map(([sn, v]) => {
+      if (!v?.ok) return `  ${sn}: FAIL ${v?.message || "?"}`;
+      const bits = [
+        v.soc != null ? `soc=${v.soc}%` : null,
+        v.inW != null ? `in=${v.inW}W` : null,
+        v.outW != null ? `out=${v.outW}W` : null,
+        v.solarW != null ? `solar=${v.solarW}W` : null,
+      ].filter(Boolean);
+      return `  ${sn}: ${bits.join(" ") || "ok"}`;
+    })
+    .join("\n");
+  const nick =
+    "labels: Delta 2 R331ZAB5SG6S2858 · River 2 Pro R621ZA16XH6K1155 (Delta 2-B removed)";
+  return {
+    brief: `### Power (EcoFlow)
+status: ${snap.status || "?"} · battery: ${snap.batteryPct != null ? `${snap.batteryPct}%` : "unknown"} · mood hint: ${moodFromPower(snap)}
+${snLine}
+${nick}
+${perLines}
+${solarLine}
+buckets: ${snap.buckets || ecoBucketsRoot()} (quota + minute watt totals)
+${snap.note || ""}
+rule: device-list offline OR sample age > ${Math.round(ECO_STALE_MS / 60000)}m → excluded from live calc (never invent from cache).
+Solar/low-power: prefer lighter digs when power_saver or cloudy.`,
+    snapshot: snap,
+  };
+}

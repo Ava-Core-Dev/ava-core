@@ -1,0 +1,33 @@
+{
+  "name": "rootmc-ava",
+  "version": "0.5.1",
+  "private": true,
+  "type": "module",
+  "description": "Ava Ivy — lead developer of the RootMC ecosystem (Discord + Slack; Cursor Root Server).",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "server": "node src/server.mjs",
+    "poller": "node src/poller.mjs",
+    "presence": "node scripts/rich-presence.mjs",
+    "restart": "node scripts/restart-ava.mjs",
+    "upgrade": "node scripts/restart-ava.mjs silent upgrade push",
+    "post-proposal": "node scripts/post-proposal.mjs",
+    "phase-catchup": "node scripts/phase-catchup.mjs",
+    "ensure-deps": "node scripts/ensure-deps.mjs",
+    "cron-catchup": "node scripts/ava-core-catchup.mjs",
+    "d1-export": "node scripts/d1-export-to-local.mjs",
+    "disable-cf-crons": "node scripts/disable-cf-crons.mjs",
+    "local-api": "node ../local-api/src/server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@cursor/sdk": "^1.0.0",
+    "@slack/bolt": "^4.7.3",
+    "better-sqlite3": "^11.10.0",
+    "discord-rpc": "^4.0.1",
+    "mysql2": "^3.23.2",
+    "ws": "^8.21.1"
+  }
+}

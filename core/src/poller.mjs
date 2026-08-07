@@ -1,0 +1,2003 @@
+/**
+ * REST poller — boot handshake, reaction harvest, emergency transport.
+ * Live replies prefer Discord Gateway when AVA_TRANSPORT includes gateway.
+ */
+import {
+  loadEnv,
+  botToken,
+  avaBotAppId,
+  watchChannels,
+  ROOTMC_GUILD_ID,
+  AVA_TRANSPORT,
+  AVA_CHANNELS,
+  slackWatchChannels,
+  slackBotUserId,
+  slackAppToken,
+  slackBotToken,
+  cursorApiKey,
+  forceDreamBrain,
+} from "./config.mjs";
+import { shouldAvaEngage, flushPendingLessons } from "./recommend.mjs";
+import {
+  absorbRecentChatLessons,
+  llamaImproveIntervalMs,
+  allChannelCatchupIntervalMs,
+} from "./llamaImprove.mjs";
+import { runPhaseCatchup } from "./phaseCatchup.mjs";
+import { shouldUseLlamaCore } from "./digHealth.mjs";
+import { isLockoutActive } from "./lockoutMode.mjs";
+import { shouldRunChatBootAutomation } from "./moodState.mjs";
+import { brainQueueDepth, cursorSlots, CURSOR_CONCURRENCY } from "./cursorBrain.mjs";
+import { safeModeSnapshot } from "./overloadSafeMode.mjs";
+import { rememberPlayerLine } from "./playerContext.mjs";
+import {
+  loadSeen,
+  saveSeen,
+  loadWatermark,
+  saveWatermark,
+  markShutdown,
+  isHushed,
+  storePaths,
+  writeHeartbeat,
+  pushStatusEvent,
+} from "./store.mjs";
+import {
+  needsGuildIntro,
+  scoutGuild,
+  buildGuildIntroMessage,
+  loadGuildProfile,
+  saveGuildProfile,
+  isAvaOwnMessage,
+  avaHomeChannelId,
+  refreshGuildAccess,
+  buildAdminRequestMessage,
+  ensureAvaHomeChannel,
+  FIRST_JOIN_PROTOCOL,
+} from "./guildScout.mjs";
+import {
+  harvestReactionsFromMessages,
+  loadReactionSummary,
+  buildEmojiAskLine,
+  markEmojiAsked,
+  shouldAskAboutEmoji,
+  applyDiscordReactionEvent,
+  listReactorVoteFactors,
+} from "./reactionStore.mjs";
+import { makeFetchJson, postMessage } from "./discordApi.mjs";
+import { allowsUnsolicitedPost } from "./channelPolicy.mjs";
+import { createPipeline, pipelineBusyCount } from "./pipeline.mjs";
+import { serialQueueSnapshot, serialQueueDepth } from "./serialAskQueue.mjs";
+import { startGateway } from "./gateway.mjs";
+import {
+  registerSolarSlashCommand,
+  handleSolarInteraction,
+} from "./solarCommand.mjs";
+import {
+  registerServerSlashCommand,
+  handleServerInteraction,
+} from "./serverCommand.mjs";
+import {
+  listGuildWatchChannelIds,
+  mergeWatchIds,
+} from "./guildChannelWatch.mjs";
+import { startSlackGateway, isSlackChannelId } from "./slackGateway.mjs";
+import { startSlackRestPoller } from "./slackRestPoller.mjs";
+import {
+  startTelegramPoller,
+  isTelegramChannelId,
+} from "./telegramPoller.mjs";
+import { setPowerDownPrepare } from "./powerDown.mjs";
+import { runPollWatcher } from "./pollWatcher.mjs";
+import { processPendingProposalIdeas } from "./proposalIdeas.mjs";
+import { processPendingFeedback } from "./feedbackInbox.mjs";
+import { runPendingBootPost } from "./bootPost.mjs";
+import { pollRssFeeds } from "./rssWatch.mjs";
+import { startCronRunner } from "./cronRunner.mjs";
+import { runMorningLogCheck } from "./morningLogCheck.mjs";
+import { runErrorDigest } from "./errorDigest.mjs";
+import {
+  channelDumpBootDelayMs,
+  channelDumpIntervalMs,
+  runIncrementalChannelDump,
+} from "./channelDump.mjs";
+import {
+  urgentTelegramBootDelayMs,
+  urgentTelegramIntervalMs,
+  runUrgentTelegramAlert,
+  notifyOnlineTelegram,
+} from "./urgentTelegram.mjs";
+import { refreshEcoFlow, hydrateEcoMinutesFromD1 } from "./ecoflow.mjs";
+import { tickSolarDayCycle } from "./solarDayCycle.mjs";
+import {
+  buildHostSiteHourlyBlock,
+  pushHostSiteTelemetry,
+} from "./hostSite.mjs";
+import { pushAvaStatusSnapshot } from "./avaStatusPush.mjs";
+import { ensureArmyFoundation } from "./avasArmy.mjs";
+import { startHostMetricsSampler, refreshHostMetrics } from "./hostMetrics.mjs";
+import { startFlightRecorderLoops } from "./flightRecorder.mjs";
+import {
+  isAsleep,
+  loadSleepState,
+  clearAsleep,
+  catchUpSinceSleep,
+  setAsleep,
+  nextWakeAt10amHst,
+  discordStamp,
+} from "./sleepMode.mjs";
+import { isPoweredOff } from "./powerDown.mjs";
+import {
+  runPendingTasksCheck,
+  pendingCheckIntervalMs,
+  pendingCheckBootDelayMs,
+} from "./pendingTasks.mjs";
+import { pushReactorVoteFactorsToApi } from "./governanceClient.mjs";
+import {
+  runFollowupScan,
+  followupScanIntervalMs,
+  followupScanBootDelayMs,
+} from "./followupScan.mjs";
+import {
+  runIngameChatAssist,
+  ingameChatAssistIntervalMs,
+  ingameChatAssistBootDelayMs,
+} from "./ingameChatAssist.mjs";
+import {
+  runIngameJoinWelcome,
+  joinWelcomeIntervalMs,
+  joinWelcomeBootDelayMs,
+} from "./ingameJoinWelcome.mjs";
+import {
+  runIngameMentionWatch,
+  mentionWatchIntervalMs,
+  mentionWatchBootDelayMs,
+} from "./ingameMentionWatch.mjs";
+import {
+  runIngameAloneSoft,
+  aloneSoftIntervalMs,
+  aloneSoftBootDelayMs,
+} from "./ingameAloneSoft.mjs";
+import {
+  runStaffVoteNag,
+  staffVoteNagIntervalMs,
+  staffVoteNagBootDelayMs,
+} from "./staffVoteNag.mjs";
+import {
+  runFinanceReview,
+  financeReviewIntervalMs,
+  financeReviewBootDelayMs,
+} from "./financeReview.mjs";
+import {
+  runHourRecap,
+  hourRecapIntervalMs,
+  hourRecapBootDelayMs,
+} from "./hourRecap.mjs";
+import {
+  runOccasionalRandomFact,
+  randomFactChannelIntervalMs,
+  randomFactChannelBootDelayMs,
+} from "./randomFacts.mjs";
+import {
+  runProposalIdeaSpark,
+  ideaSparkIntervalMs,
+  ideaSparkBootDelayMs,
+  ideaSparkEnabled,
+} from "./proposalIdeaSpark.mjs";
+import {
+  runQueuedSelfFix,
+  selfFixIntervalMs,
+  selfFixBootDelayMs,
+} from "./selfFix.mjs";
+import {
+  chaseCommitments,
+  commitmentChaseIntervalMs,
+  commitmentChaseBootDelayMs,
+  hasOpenCommitments,
+} from "./commitments.mjs";
+import { postOfflineNote } from "./offlineNotes.mjs";
+import { welcomeNewMember } from "./onboarding.mjs";
+
+const env = await loadEnv();
+const token = botToken(env);
+const botAppId = avaBotAppId(env);
+if (token.length < 40) {
+  console.error("AVA_DISCORD_BOT_TOKEN missing — poller idle");
+  process.exit(1);
+}
+if (!botAppId) {
+  console.error("AVA_DISCORD_APPLICATION_ID missing — poller idle");
+  process.exit(1);
+}
+
+const fetchJson = makeFetchJson(token);
+const reply = async (channelId, content, refId) => {
+  if (isTelegramChannelId(channelId) && telegramHandle?.postMessage) {
+    return telegramHandle.postMessage(channelId, content, refId);
+  }
+  if (isSlackChannelId(channelId) && slackHandle?.postMessage) {
+    const threadTs = refId || null;
+    // Pipeline records the utterance � skip duplicate gateway log
+    return slackHandle.postMessage(channelId, content, threadTs, {
+      skipLog: true,
+    });
+  }
+  return postMessage(fetchJson, channelId, content, refId);
+};
+
+const seen = loadSeen();
+const watch = watchChannels(env);
+const homeCh = avaHomeChannelId();
+if (homeCh && !watch.includes(homeCh)) watch.push(homeCh);
+if (AVA_CHANNELS.avaHome && !watch.includes(AVA_CHANNELS.avaHome)) {
+  watch.push(AVA_CHANNELS.avaHome);
+}
+
+// Boot / unsolicited announce � never #admins (player-issues only). Prefer #updates.
+const announceCandidate =
+  process.env.AVA_ANNOUNCE_CHANNEL ||
+  env.AVA_ANNOUNCE_CHANNEL ||
+  AVA_CHANNELS.updates ||
+  AVA_CHANNELS.changelog ||
+  homeCh ||
+  AVA_CHANNELS.general;
+const ANNOUNCE_CHANNEL = allowsUnsolicitedPost(announceCandidate)
+  ? announceCandidate
+  : AVA_CHANNELS.updates || AVA_CHANNELS.general;
+
+const HOT_POLL_MS = Number(process.env.AVA_HOT_POLL_MS || process.env.SEXI_POLL_MS || 4_000);
+const BREAK_POLL_MS = Number(process.env.AVA_BREAK_POLL_MS || 60_000);
+const BREAK_AFTER_MS = Number(process.env.AVA_BREAK_AFTER_MS || 10 * 60_000);
+const FETCH_LIMIT = Number(process.env.AVA_FETCH_LIMIT || 40);
+/** EcoFlow + host-site SQL push � keep =3m live gate fresh (Alex 2026-08-03). */
+const ECO_POLL_MS = Number(process.env.AVA_ECO_POLL_MS || 60_000);
+const useGateway = AVA_TRANSPORT === "gateway" || AVA_TRANSPORT === "both";
+/** REST live answers only when poller-only (gateway owns live traffic in "both"). */
+const usePollerLive = AVA_TRANSPORT === "poller";
+
+let live = false;
+let tickRunning = false;
+let onBreak = false;
+let lastAsk = "";
+let lastAskAt = 0;
+let lastActivityAt = Date.now();
+let pollTimer = null;
+let heartbeatTimer = null;
+let ecoPollTimer = null;
+let lastPollWatch = 0;
+let lastEcoPoll = 0;
+let ecoPollRunning = false;
+let lastPendingCheck = 0;
+let lastFollowupScan = 0;
+let gatewayHandle = null;
+let slackHandle = null;
+let telegramHandle = null;
+/** Keep status page fresh even when hush/break slows the Discord tick. */
+const HEARTBEAT_MS = 15_000;
+const PROPOSAL_IDEA_POLL_MS = Number(process.env.AVA_PROPOSAL_IDEA_POLL_MS || 120_000) || 120_000;
+let lastProposalIdeaPoll = 0;
+const PENDING_CHECK_MS = pendingCheckIntervalMs();
+const PENDING_BOOT_MS = pendingCheckBootDelayMs();
+const pendingBootAt = Date.now() + PENDING_BOOT_MS;
+const FOLLOWUP_SCAN_MS = followupScanIntervalMs();
+const FOLLOWUP_BOOT_MS = followupScanBootDelayMs();
+const followupBootAt = Date.now() + FOLLOWUP_BOOT_MS;
+const INGAME_CHAT_MS = ingameChatAssistIntervalMs();
+const INGAME_CHAT_BOOT_MS = ingameChatAssistBootDelayMs();
+const ingameChatBootAt = Date.now() + INGAME_CHAT_BOOT_MS;
+let lastIngameChatAssist = 0;
+const INGAME_JOIN_MS = joinWelcomeIntervalMs();
+const INGAME_JOIN_BOOT_MS = joinWelcomeBootDelayMs();
+const ingameJoinBootAt = Date.now() + INGAME_JOIN_BOOT_MS;
+let lastIngameJoinWelcome = 0;
+const INGAME_MENTION_MS = mentionWatchIntervalMs();
+const INGAME_MENTION_BOOT_MS = mentionWatchBootDelayMs();
+const ingameMentionBootAt = Date.now() + INGAME_MENTION_BOOT_MS;
+let lastIngameMentionWatch = 0;
+const INGAME_ALONE_MS = aloneSoftIntervalMs();
+const INGAME_ALONE_BOOT_MS = aloneSoftBootDelayMs();
+const ingameAloneBootAt = Date.now() + INGAME_ALONE_BOOT_MS;
+let lastIngameAloneSoft = 0;
+const STAFF_VOTE_NAG_MS = staffVoteNagIntervalMs();
+const STAFF_VOTE_NAG_BOOT_MS = staffVoteNagBootDelayMs();
+const staffVoteNagBootAt = Date.now() + STAFF_VOTE_NAG_BOOT_MS;
+let lastStaffVoteNag = 0;
+const FINANCE_REVIEW_MS = financeReviewIntervalMs();
+const FINANCE_REVIEW_BOOT_MS = financeReviewBootDelayMs();
+const financeReviewBootAt = Date.now() + FINANCE_REVIEW_BOOT_MS;
+let lastFinanceReview = 0;
+const HOUR_RECAP_MS = hourRecapIntervalMs();
+const HOUR_RECAP_BOOT_MS = hourRecapBootDelayMs();
+const hourRecapBootAt = Date.now() + HOUR_RECAP_BOOT_MS;
+let lastHourRecap = 0;
+const IDEA_SPARK_MS = ideaSparkIntervalMs();
+const IDEA_SPARK_BOOT_MS = ideaSparkBootDelayMs();
+const ideaSparkBootAt = Date.now() + IDEA_SPARK_BOOT_MS;
+let lastIdeaSpark = 0;
+const RANDOM_FACT_MS = randomFactChannelIntervalMs();
+const RANDOM_FACT_BOOT_MS = randomFactChannelBootDelayMs();
+const randomFactBootAt = Date.now() + RANDOM_FACT_BOOT_MS;
+let lastRandomFactPost = 0;
+const SELF_FIX_MS = selfFixIntervalMs();
+const SELF_FIX_BOOT_MS = selfFixBootDelayMs();
+const selfFixBootAt = Date.now() + SELF_FIX_BOOT_MS;
+let lastSelfFixDrain = 0;
+const COMMITMENT_CHASE_MS = commitmentChaseIntervalMs();
+const COMMITMENT_BOOT_MS = commitmentChaseBootDelayMs();
+const commitmentBootAt = Date.now() + COMMITMENT_BOOT_MS;
+let lastCommitmentChase = 0;
+let lastChannelDump = 0;
+let channelDumpRunning = false;
+const CHANNEL_DUMP_MS = channelDumpIntervalMs();
+const CHANNEL_DUMP_BOOT_MS = channelDumpBootDelayMs();
+const channelDumpBootAt = Date.now() + CHANNEL_DUMP_BOOT_MS;
+const LLAMA_IMPROVE_MS = llamaImproveIntervalMs();
+const LLAMA_IMPROVE_BOOT_MS = Math.max(45_000, Number(process.env.AVA_LLAMA_IMPROVE_BOOT_MS || 90_000) || 90_000);
+const llamaImproveBootAt = Date.now() + LLAMA_IMPROVE_BOOT_MS;
+let lastLlamaImprove = 0;
+const ALL_CHANNEL_SCAN_MS = allChannelCatchupIntervalMs();
+const ALL_CHANNEL_BOOT_MS = Math.max(60_000, Number(process.env.AVA_ALL_CHANNEL_SCAN_BOOT_MS || 180_000) || 180_000);
+const allChannelBootAt = Date.now() + ALL_CHANNEL_BOOT_MS;
+let lastAllChannelScan = 0;
+let allChannelScanRunning = false;
+let lastUrgentTelegram = 0;
+let urgentTelegramRunning = false;
+const URGENT_TELEGRAM_MS = urgentTelegramIntervalMs();
+const URGENT_TELEGRAM_BOOT_MS = urgentTelegramBootDelayMs();
+const urgentTelegramBootAt = Date.now() + URGENT_TELEGRAM_BOOT_MS;
+
+function currentPollMs() {
+  if (isHushed() || isLockoutActive() || onBreak || isAsleep()) return BREAK_POLL_MS;
+  return HOT_POLL_MS;
+}
+
+function pulseHeartbeat(extra = {}) {
+  const sleep = loadSleepState();
+  const asleep = isAsleep();
+  // Time off = live + awake but Root Server dig lane offline (no Cursor / forced dream).
+  const timeOff =
+    live &&
+    !asleep &&
+    !isHushed() && !isLockoutActive() &&
+    !onBreak &&
+    (forceDreamBrain() || !cursorApiKey());
+  writeHeartbeat({
+    live,
+    onBreak,
+    hushed: isHushed(),
+    lockout: isLockoutActive(),
+    asleep,
+    timeOff,
+    sleepWakeAt: sleep?.wakeAt || null,
+    sleepWakeAtIso: sleep?.wakeAtIso || null,
+    poweredOff: isPoweredOff(),
+    mode: isLockoutActive()
+      ? "lockout"
+      : isPoweredOff()
+        ? "off"
+      : isHushed()
+      ? "hush"
+      : asleep
+        ? "sleep"
+        : onBreak
+          ? "break"
+          : timeOff
+            ? "time-off"
+            : live
+              ? "live"
+              : "boot",
+    transport: AVA_TRANSPORT,
+    pollMs: currentPollMs(),
+    hotPollMs: HOT_POLL_MS,
+    breakPollMs: BREAK_POLL_MS,
+    lastActivityAt,
+    queueDepth: brainQueueDepth(),
+    cursorAgents: cursorSlots().active,
+    cursorMax: CURSOR_CONCURRENCY,
+    cursorWaiting: cursorSlots().waiting,
+    watchCount: watch.length,
+    busyChannels: pipelineBusyCount(),
+    serialQueue: serialQueueSnapshot(),
+    safeMode: safeModeSnapshot(),
+    lastAsk,
+    lastAskAt,
+    botAppId,
+    gateway: Boolean(gatewayHandle),
+    gatewayStats: gatewayHandle?.stats?.() || null,
+    digging:
+      Boolean(extra.digging) ||
+      brainQueueDepth() > 0 ||
+      serialQueueDepth() > 0 ||
+      hasOpenCommitments(),
+    reactions: (() => {
+      const s = loadReactionSummary();
+      return {
+        total: s.totalReactions || 0,
+        good: s.good || 0,
+        bad: s.bad || 0,
+        neutral: s.neutral || 0,
+        messages: s.messagesTracked || 0,
+      };
+    })(),
+    ...extra,
+    digging:
+      extra.digging != null
+        ? Boolean(extra.digging)
+        : brainQueueDepth() > 0 || hasOpenCommitments(),
+  });
+}
+
+
+function touchActivity(reason = "") {
+  lastActivityAt = Date.now();
+  // hush/break transitions own onBreak — don't clear mid-hush
+  if (onBreak && reason !== "break" && reason !== "hush") {
+    onBreak = false;
+    pushStatusEvent(`wake from break · ${reason || "activity"}`);
+  }
+}
+
+async function maybeEnterBreak() {
+  if (!live || isHushed() || isLockoutActive() || onBreak || isAsleep()) return;
+  if (Date.now() - lastActivityAt < BREAK_AFTER_MS) return;
+  // Keep hot while work is open — idle break must not look like death.
+  try {
+    const { listJobs } = await import("./jobQueue.mjs");
+    const open = listJobs(50).filter((j) =>
+      ["pending", "implementing", "staged", "waiting_restart", "blocked"].includes(
+        String(j.status || ""),
+      ),
+    );
+    if (open.length) return;
+  } catch {
+    /* ignore */
+  }
+  if (brainQueueDepth() > 0) return;
+  onBreak = true;
+  pushStatusEvent("break · quiet");
+  pulseHeartbeat();
+}
+
+function warmMemory(channelId, messages) {
+  for (const m of [...(messages || [])].reverse()) {
+    if (!m?.author || m.author.bot) continue;
+    if (m.author.id === botAppId) continue;
+    if (!m.content?.trim()) continue;
+    rememberPlayerLine(channelId, m.author.id, m.author.username, m.content);
+  }
+}
+
+function markSeen(id) {
+  if (!id) return;
+  seen.add(id);
+  if (seen.size > 8000) {
+    const drop = [...seen].slice(0, 2000);
+    for (const x of drop) seen.delete(x);
+  }
+}
+
+let reactionFactorSyncTimer = null;
+function scheduleReactionFactorSync(reason = "") {
+  if (reactionFactorSyncTimer) clearTimeout(reactionFactorSyncTimer);
+  reactionFactorSyncTimer = setTimeout(() => {
+    reactionFactorSyncTimer = null;
+    pushReactorVoteFactorsToApi(listReactorVoteFactors)
+      .then((r) => {
+        if (r?.ok) {
+          console.log(
+            `ava reaction factors synced � ${r.upserted ?? 0}/${r.factors ?? 0}${reason ? ` � ${reason}` : ""}`,
+          );
+        } else if (r?.detail) {
+          console.warn("ava reaction factors sync:", r.detail);
+        }
+      })
+      .catch((err) => console.warn("ava reaction factors sync:", err.message));
+  }, 12_000);
+}
+
+function snowflakeTime(id) {
+  try {
+    return Number((BigInt(id) >> 22n) + 1420070400000n);
+  } catch {
+    return 0;
+  }
+}
+
+async function channelTargets() {
+  const out = new Set(watch);
+  // Full-guild text + active threads (~4s awareness)
+  try {
+    if (
+      !channelTargets._lastFullSync ||
+      Date.now() - channelTargets._lastFullSync > 5 * 60_000
+    ) {
+      const ids = await listGuildWatchChannelIds(fetchJson);
+      const { added } = mergeWatchIds(watch, ids, gatewayHandle);
+      channelTargets._lastFullSync = Date.now();
+      if (added.length) {
+        console.log(`guild watch expand � +${added.length} ? ${watch.length}`);
+        pushStatusEvent(`guild watch � ${watch.length} channels`);
+      }
+    }
+  } catch (err) {
+    console.warn("guild watch sync:", err.message);
+  }
+  if (watch.includes(AVA_CHANNELS.proposals)) {
+    try {
+      const active = await fetchJson(`/guilds/${ROOTMC_GUILD_ID}/threads/active`);
+      for (const t of active?.threads || []) {
+        if (t.parent_id === AVA_CHANNELS.proposals) {
+          out.add(t.id);
+          if (!watch.includes(t.id)) {
+            watch.push(t.id);
+            gatewayHandle?.addWatch?.(t.id);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("active threads:", err.message);
+    }
+  }
+  for (const id of watch) out.add(id);
+  return [...out];
+}
+
+async function askAboutUnknownEmojis(unknowns) {
+  if (!unknowns?.length) return;
+  const item = unknowns.find((u) => shouldAskAboutEmoji(u.key));
+  if (!item?.apiParam || !item.channelId || !item.messageId) return;
+
+  let users = [];
+  try {
+    const enc = encodeURIComponent(item.apiParam);
+    users = await fetchJson(
+      `/channels/${item.channelId}/messages/${item.messageId}/reactions/${enc}?limit=10`,
+    );
+  } catch (err) {
+    console.warn("reaction users:", err.message);
+    markEmojiAsked(item.key, null);
+    return;
+  }
+
+  const person = (users || []).find(
+    (u) => u?.id && !u.bot && String(u.id) !== String(botAppId),
+  );
+  if (!person) return;
+
+  const line = buildEmojiAskLine({
+    display: item.display,
+    username: person.username,
+  });
+  try {
+    const askMsg = await reply(item.channelId, line, item.messageId);
+    markEmojiAsked(item.key, {
+      key: item.key,
+      display: item.display,
+      apiParam: item.apiParam,
+      channelId: item.channelId,
+      messageId: item.messageId,
+      askMessageId: askMsg?.id || null,
+      askedUserId: person.id,
+      askedUserName: person.username,
+      askedAt: Date.now(),
+    });
+    pushStatusEvent(`emoji ask · ${item.display}`);
+    touchActivity("emoji-ask");
+  } catch (err) {
+    console.warn("emoji ask failed:", err.message);
+  }
+}
+
+const pipeline = createPipeline({
+  fetchJson,
+  reply,
+  botAppId,
+  env,
+  touchActivity,
+  pulseHeartbeat: (extra) => {
+    if (extra?.lastAsk) {
+      lastAsk = extra.lastAsk;
+      lastAskAt = Date.now();
+    }
+    pulseHeartbeat(extra);
+  },
+  getOnBreak: () => onBreak,
+  setOnBreak: (v) => {
+    onBreak = Boolean(v);
+  },
+  watchChannelIds: () => [...watch],
+  // Lazy � slackHandle is assigned after Socket Mode starts
+  slackClient: () => slackHandle?.client || null,
+});
+
+setPowerDownPrepare(async () => {
+  live = false;
+  if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
+  }
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  try {
+    gatewayHandle?.stop?.();
+  } catch (err) {
+    console.warn("power-down gateway stop:", err.message);
+  }
+  gatewayHandle = null;
+  try {
+    await slackHandle?.stop?.();
+  } catch (err) {
+    console.warn("power-down slack stop:", err.message);
+  }
+  slackHandle = null;
+  try {
+    telegramHandle?.stop?.();
+  } catch (err) {
+    console.warn("power-down telegram stop:", err.message);
+  }
+  telegramHandle = null;
+  writeHeartbeat({ live: false, mode: "off", poweredOff: true });
+  pushStatusEvent("discord+slack+telegram disconnected � power down");
+  // Gold mine ? normal 1.0� while host device is off (don't wait for stale window)
+  try {
+    const block = await buildHostSiteHourlyBlock({ refreshPower: false });
+    await pushHostSiteTelemetry(env, block.payload);
+    pushStatusEvent("host-site telemetry � host off � mining 1.0�");
+  } catch (err) {
+    console.warn("power-down mining offline push:", err.message);
+  }
+});
+
+async function bootHandshake() {
+  storePaths();
+  try {
+    const flushed = flushPendingLessons();
+    if (flushed?.flushed) {
+      console.log(`localBrain pending lessons flushed: ${flushed.flushed}`);
+      pushStatusEvent(`localBrain flushed ${flushed.flushed} pending lesson(s)`);
+    }
+  } catch (err) {
+    console.warn("localBrain flush:", err.message);
+  }
+
+  const guildId = ROOTMC_GUILD_ID;
+  if (needsGuildIntro(guildId)) {
+    pushStatusEvent("first join — scouting guild");
+    pulseHeartbeat({ mode: "scout" });
+    try {
+      const profile = await scoutGuild({
+        fetchJson,
+        guildId,
+        avaBotId: botAppId,
+        announceFallback: ANNOUNCE_CHANNEL,
+      });
+      const intro = buildGuildIntroMessage(profile);
+      const channelId = profile.introChannelId || ANNOUNCE_CHANNEL;
+      await reply(channelId, intro);
+      profile.introducedAt = Date.now();
+      profile.firstJoinProtocol = FIRST_JOIN_PROTOCOL;
+
+      if (profile.access && !profile.access.ok) {
+        const ask = buildAdminRequestMessage(
+          {
+            summary: {
+              ok: profile.access.ok,
+              administrator: profile.access.administrator,
+              missing: profile.access.missing,
+            },
+          },
+          { clientId: botAppId },
+        );
+        if (ask) {
+          try {
+            await reply(channelId, ask);
+            profile.access.requestedAt = Date.now();
+          } catch (err) {
+            console.warn("admin request post failed:", err.message);
+          }
+        }
+      }
+
+      saveGuildProfile(guildId, profile);
+      if (profile.avaChannelId && !watch.includes(profile.avaChannelId)) {
+        watch.push(profile.avaChannelId);
+        gatewayHandle?.addWatch?.(profile.avaChannelId);
+      }
+      pushStatusEvent(
+        profile.avaChannelCreated
+          ? `created #${profile.avaChannelName} + intro`
+          : `guild intro · home #${profile.avaChannelName || "chat"}`,
+      );
+      console.log("Ava first-join intro posted to", channelId);
+    } catch (err) {
+      console.warn("guild scout/intro failed:", err.message);
+      pushStatusEvent(`guild scout failed · ${err.message}`);
+    }
+  } else {
+    try {
+      const { profile, requestMessage } = await refreshGuildAccess({
+        fetchJson,
+        guildId,
+        avaBotId: botAppId,
+      });
+      const lastAskPerms = profile.access?.requestedAt || 0;
+      const week = 7 * 24 * 60 * 60 * 1000;
+      if (requestMessage && Date.now() - lastAskPerms > week) {
+        const ch = profile.avaChannelId || ANNOUNCE_CHANNEL;
+        await reply(ch, requestMessage);
+        profile.access = { ...profile.access, requestedAt: Date.now() };
+        saveGuildProfile(guildId, profile);
+        pushStatusEvent("perms still short · reminded admins");
+      } else if (profile.access?.ok || profile.access?.administrator) {
+        pushStatusEvent("perms ok · administrator");
+      }
+
+      // Create #ava-ivy now that Manage Channels / Admin is available
+      if (!profile.avaChannelId && (profile.access?.ok || profile.access?.administrator)) {
+        try {
+          const allCh = await fetchJson(`/guilds/${guildId}/channels`);
+          const home = await ensureAvaHomeChannel({
+            fetchJson,
+            guildId,
+            channels: allCh,
+            existingHomeId: null,
+          });
+          if (home.id) {
+            profile.avaChannelId = home.id;
+            profile.avaChannelName = home.name || "ava-ivy";
+            profile.avaChannelCreated = Boolean(home.created);
+            saveGuildProfile(guildId, profile);
+            if (!watch.includes(home.id)) watch.push(home.id);
+            const note = home.created
+              ? `grabbed **#${home.name}** as my corner — rename anytime.`
+              : `hanging in **#${home.name}**.`;
+            await reply(home.id, `perms look good — ${note}`);
+            pushStatusEvent(`home #${home.name} ready`);
+            console.log("Ava home channel ready", home.id);
+          } else if (home.error) {
+            console.warn("home channel:", home.error);
+          }
+        } catch (err) {
+          console.warn("ensure home:", err.message);
+        }
+      }
+    } catch (err) {
+      console.warn("guild access refresh:", err.message);
+    }
+  }
+
+  const wm = loadWatermark();
+  const channels = await channelTargets();
+  const bullets = [];
+  const latestMap = {};
+  // Keep heartbeat fresh during long Discord catch-up (Control Panel / status window).
+  pulseHeartbeat({ mode: "boot" });
+
+  for (const channelId of channels) {
+    let messages;
+    try {
+      messages = await fetchJson(`/channels/${channelId}/messages?limit=${FETCH_LIMIT}`);
+    } catch {
+      continue;
+    }
+    if ((channels.indexOf(channelId) + 1) % 5 === 0) {
+      pulseHeartbeat({ mode: "boot" });
+    }
+    if (!Array.isArray(messages) || !messages.length) continue;
+    latestMap[channelId] = messages[0].id;
+    const floorId = wm.channels?.[channelId];
+    const floorTs = wm.shutdownAt || 0;
+
+    for (const m of messages) {
+      markSeen(m.id);
+      if (isAvaOwnMessage(m, botAppId)) continue;
+      if (m.author?.bot) continue;
+      const ts = snowflakeTime(m.id);
+      const isNew = floorId
+        ? BigInt(m.id) > BigInt(floorId)
+        : floorTs
+          ? ts > floorTs
+          : false;
+      if (!isNew) continue;
+      const text = String(m.content || "").trim();
+      if (!text) continue;
+      const hit = shouldAvaEngage(m, botAppId);
+      if (hit) {
+        const atts = Array.isArray(m.attachments)
+          ? m.attachments.map((a) => a.filename || a.id).filter(Boolean)
+          : [];
+        bullets.push(
+          `• **${m.author.username}**: ${text.slice(0, 160)}${
+            atts.length ? ` _[+${atts.length} file(s): ${atts.slice(0, 3).join(", ")}]_` : ""
+          }`,
+        );
+      }
+    }
+    warmMemory(channelId, messages);
+    harvestReactionsFromMessages(channelId, messages, botAppId);
+  }
+
+  saveSeen(seen);
+  saveWatermark({ channels: latestMap, shutdownAt: Date.now() });
+
+  const alreadyIntroduced = Boolean(loadGuildProfile(guildId)?.introducedAt);
+  const isFreshIntro =
+    alreadyIntroduced &&
+    Date.now() - (loadGuildProfile(guildId)?.introducedAt || 0) < 120_000;
+
+  if (!isLockoutActive() && !isFreshIntro && bullets.length > 0) {
+    // Skip noisy "was asleep" on quick restarts (<10m since last shutdown)
+    const lastDown = Number(wm.shutdownAt || 0);
+    const quickRestart = lastDown && Date.now() - lastDown < 10 * 60_000;
+    if (!quickRestart) {
+      const summary = [
+        "**While I was out — stuff aimed at me:**",
+        ...bullets.slice(0, 8),
+        bullets.length > 8 ? `_…+${bullets.length - 8} more_` : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      const active = `sorry I was asleep � ${discordStamp()}\nI'm active now � ping me if you still need something.`;
+      try {
+        if (!allowsUnsolicitedPost(ANNOUNCE_CHANNEL)) {
+          pushStatusEvent(
+            `boot announce skipped � ${ANNOUNCE_CHANNEL} no-unsolicited`,
+          );
+        } else {
+          // One post � summary + active line (no double ping)
+          await reply(
+            ANNOUNCE_CHANNEL,
+            [summary, "", active].join("\n"),
+          );
+        }
+      } catch (err) {
+        console.warn("boot announce failed:", err.message);
+      }
+    } else {
+      pushStatusEvent(`boot quiet restart · ${bullets.length} missed ping(s) skipped announce`);
+    }
+  } else if (!isFreshIntro) {
+    pushStatusEvent("boot quiet — nothing aimed at Ava");
+  }
+
+  if (!cursorApiKey(env)) {
+    await postOfflineNote(fetchJson, "Root Server key missing at boot");
+  }
+
+  await refreshEcoFlow().catch(() => {});
+  try {
+    const block = await buildHostSiteHourlyBlock({ refreshPower: false });
+    const push = await pushHostSiteTelemetry(env, block.payload);
+    try { await pushAvaStatusSnapshot(env); } catch (e) { console.warn('ava status push:', e.message); }
+    if (push.ok) pushStatusEvent("host-site telemetry pushed");
+    else if (push.detail !== "no_workstation_key") {
+      console.warn("host-site push:", push.detail || push.status);
+    }
+  } catch (err) {
+    console.warn("host-site boot:", err.message);
+  }
+  try {
+    ensureArmyFoundation();
+    pushStatusEvent("avas-army foundation ready");
+  } catch (err) {
+    console.warn("avas-army boot:", err.message);
+  }
+  startHostMetricsSampler();
+  try {
+    const fr = startFlightRecorderLoops({ intervalMs: 15 * 60_000 });
+    pushStatusEvent(`flight recorder · host audit every ${Math.round(fr.intervalMs / 60000)}m`);
+  } catch (err) {
+    console.warn("flight recorder boot:", err.message);
+  }
+
+    live = true;
+  touchActivity("boot");
+  pushStatusEvent("boot handshake done — live");
+  pulseHeartbeat();
+  console.log("Ava boot handshake done — live");
+
+  // Lockout / remembered mood: no main chat startup procedures.
+  // Server process owns telemetry/APIs; Ava-core stays companion for Alex DMs.
+  const chatBoot = shouldRunChatBootAutomation() && !isLockoutActive();
+  if (!chatBoot) {
+    pushStatusEvent("skip chat boot automation · lockout companion · Alex verified DMs only");
+    console.log("skip chat boot automation (lockout) — no announce/online/boot-post");
+  } else {
+    notifyOnlineTelegram({ env, reason: "boot" }).catch((err) =>
+      console.warn("telegram online:", err.message),
+    );
+
+    // One-shot good-morning / scheduled media post (if queued while Ava was closed)
+    try {
+      const bp = await runPendingBootPost({
+        token,
+        fallbackChannelId: ANNOUNCE_CHANNEL,
+      });
+      if (bp.ok) console.log("boot post delivered", bp.messageId);
+    } catch (err) {
+      console.warn("boot post:", err.message);
+    }
+  }
+// Official list catch-up: in-game /proposal ideas waiting while Ava was offline
+  try {
+    const r = await processPendingProposalIdeas({ reason: "boot" });
+    if (r.formalized || r.failed) {
+      console.log(`proposal ideas boot: +${r.formalized} formalized, ${r.failed} failed`);
+    }
+  } catch (err) {
+    console.warn("proposal ideas boot:", err.message);
+  }
+  if (chatBoot) try {
+    const r = await processPendingFeedback({
+      reason: "boot",
+      reply,
+      channelId: ANNOUNCE_CHANNEL,
+    });
+    if (r.seen || r.failed) {
+      console.log(`feedback inbox boot: +${r.seen} seen, ${r.failed} failed`);
+    }
+  } catch (err) {
+    console.warn("feedback inbox boot:", err.message);
+  }
+  if (chatBoot) try {
+    const r = await pollRssFeeds({ reply });
+    if (r?.feeds) console.log(`rss boot: ${r.feeds} feed(s), seeded/posted=${r.posted || 0}`);
+  } catch (err) {
+    console.warn("rss boot:", err.message);
+  }
+
+  try {
+    const r = await runMorningLogCheck({ env });
+    if (r?.ok) console.log("morning log check:", r.day, "errs�", r.errorTotal);
+    else if (r?.skipped) console.log("morning log check skipped:", r.reason);
+  } catch (err) {
+    console.warn("morning log check:", err.message);
+  }
+}
+
+async function tick() {
+  if (!live || tickRunning) return;
+  tickRunning = true;
+  try {
+    await maybeEnterBreak();
+
+    const channels = await channelTargets();
+    const latestMap = {};
+
+    for (const channelId of channels) {
+      let messages;
+      try {
+        messages = await fetchJson(`/channels/${channelId}/messages?limit=${FETCH_LIMIT}`);
+      } catch {
+        continue;
+      }
+      if (Array.isArray(messages) && messages[0]?.id) {
+        latestMap[channelId] = messages[0].id;
+      }
+
+      warmMemory(channelId, messages);
+      const harvested = harvestReactionsFromMessages(channelId, messages, botAppId);
+      await askAboutUnknownEmojis(harvested.unknowns || []);
+
+      // Live message answering via REST only when poller transport enabled
+      // (gateway handles live when useGateway; "both" uses gateway primarily —
+      // poller still catches anything missed via seen set)
+      if (usePollerLive) {
+        const batch = [...(messages || [])].reverse();
+        for (const msg of batch) {
+          if (!msg?.id || seen.has(msg.id)) continue;
+          markSeen(msg.id);
+          if (msg.author?.bot) continue;
+          if (msg.author?.id === botAppId) continue;
+          try {
+            await pipeline.ingestMessage(msg, { messages, isDm: false });
+          } catch (err) {
+            console.warn("ingest:", err.message);
+          }
+        }
+      }
+      // When gateway owns live traffic, do NOT markSeen here — gateway marks on deliver.
+      // Watermark still advances via latestMap so boot catch-up stays correct.
+    }
+
+    if (Object.keys(latestMap).length) {
+      const wm = loadWatermark();
+      saveWatermark({ ...wm, channels: { ...(wm.channels || {}), ...latestMap } });
+    }
+
+    // EcoFlow + D1 push: owned by startEcoPollLoop (independent of Discord tick).
+
+    // Periodic poll watcher (~10 min)
+    if (Date.now() - lastPollWatch > 10 * 60_000) {
+      lastPollWatch = Date.now();
+      try {
+        const r = await runPollWatcher({
+          fetchJson,
+          channelId: AVA_CHANNELS.governance,
+        });
+        if (r.posts) pushStatusEvent(`poll watcher · ${r.posts} post(s)`);
+      } catch (err) {
+        console.warn("poll watcher:", err.message);
+      }
+      // Eco already on 60s cadence � skip duplicate refresh here
+      await refreshHostMetrics().catch(() => {});
+    }
+
+    // Ava-initiated pending tasks check (first ~90s after boot, then interval)
+    const dueBoot = Date.now() >= pendingBootAt && lastPendingCheck === 0;
+    const dueInterval =
+      lastPendingCheck > 0 && Date.now() - lastPendingCheck >= PENDING_CHECK_MS;
+    if (live && !isHushed() && !isLockoutActive() && (dueBoot || dueInterval)) {
+      lastPendingCheck = Date.now();
+      try {
+        await runPendingTasksCheck(fetchJson, { force: dueBoot });
+      } catch (err) {
+        console.warn("pending tasks:", err.message);
+      }
+    }
+
+    // Auto follow-up scan � Discord + Slack unreplied asks / thread follow-ups
+    const followBoot =
+      Date.now() >= followupBootAt && lastFollowupScan === 0;
+    const followInterval =
+      lastFollowupScan > 0 &&
+      Date.now() - lastFollowupScan >= FOLLOWUP_SCAN_MS;
+    // Follow-up scan stays ON while asleep � dream summons / @Ava pings must not drop
+    // if gateway missed them (boot race, DM, etc.). Digs still soft via pipeline sleep path.
+    if (live && !isHushed() && !isLockoutActive() && (followBoot || followInterval)) {
+      lastFollowupScan = Date.now();
+      try {
+        await runFollowupScan({
+          fetchJson,
+          env,
+          avaDiscordId: botAppId,
+          slackBotId: slackHandle?.botUserId || slackBotUserId(env) || "U0BMBNYPYA2",
+                    force: followBoot,
+          // Llama core: watch-list only — no guild-wide catch-up (pack dump engine).
+          allChannels: false,
+          maxPerPass: shouldUseLlamaCore()
+            ? Math.min(4, Number(process.env.AVA_FOLLOWUP_MAX || 4) || 4)
+            : undefined,
+        });
+      } catch (err) {
+        console.warn("followup scan:", err.message);
+      }
+    }
+
+    // Periodic full-guild catch-up (soft acks + unreplied) — never overlaps followupRunning.
+    const allChBoot =
+      Date.now() >= allChannelBootAt && lastAllChannelScan === 0;
+    const allChInterval =
+      lastAllChannelScan > 0 &&
+      Date.now() - lastAllChannelScan >= ALL_CHANNEL_SCAN_MS;
+        // Disabled while llama-core — guild catch-up was the pack-dump / local-core wall engine.
+    if (
+      live &&
+      !isHushed() && !isLockoutActive() &&
+      !allChannelScanRunning &&
+      shouldUseLlamaCore() &&
+      process.env.AVA_LLAMA_ALL_CHANNEL_CATCHUP === "1" &&
+      (allChBoot || allChInterval)
+    ) {
+      lastAllChannelScan = Date.now();
+      allChannelScanRunning = true;
+      runPhaseCatchup({
+        label: "llama-core-all-scan",
+        allChannels: true,
+        maxPerPass: Math.min(10, Number(process.env.AVA_FOLLOWUP_MAX || 8) || 8),
+      })
+        .then((r) => {
+          if (r?.ok) {
+            console.log(
+              `all-channel catchup · replied=${r?.followup?.replied ?? 0} softAck=${r?.reacted ?? 0} ch=${r?.channelCount ?? "?"}`,
+            );
+          }
+        })
+        .catch((err) => console.warn("all-channel catchup:", err.message))
+        .finally(() => {
+          allChannelScanRunning = false;
+        });
+    }
+
+    // Llama self-improve — absorb recent Q/A into local-lessons (no Discord posts).
+    const improveBoot =
+      Date.now() >= llamaImproveBootAt && lastLlamaImprove === 0;
+    const improveInterval =
+      lastLlamaImprove > 0 && Date.now() - lastLlamaImprove >= LLAMA_IMPROVE_MS;
+    if (live && !isHushed() && !isLockoutActive() && (improveBoot || improveInterval)) {
+      lastLlamaImprove = Date.now();
+      try {
+        const abs = absorbRecentChatLessons({ maxNew: 20 });
+        if (abs?.added) {
+          console.log(`llama improve · absorbed ${abs.added} lesson(s)`);
+        }
+      } catch (err) {
+        console.warn("llama improve:", err.message);
+      }
+    }
+
+    // Quiet in-game chat batch assist (~3m) � RCON tell only when needed
+    const ingameBoot =
+      Date.now() >= ingameChatBootAt && lastIngameChatAssist === 0;
+    const ingameInterval =
+      lastIngameChatAssist > 0 &&
+      Date.now() - lastIngameChatAssist >= INGAME_CHAT_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (ingameBoot || ingameInterval)) {
+      lastIngameChatAssist = Date.now();
+      try {
+        await runIngameChatAssist({ env, force: ingameBoot });
+      } catch (err) {
+        console.warn("ingame chat assist:", err.message);
+      }
+    }
+
+    // New-player join lookout (~45s) � template welcome via RCON (no AI)
+    const joinBoot =
+      Date.now() >= ingameJoinBootAt && lastIngameJoinWelcome === 0;
+    const joinInterval =
+      lastIngameJoinWelcome > 0 &&
+      Date.now() - lastIngameJoinWelcome >= INGAME_JOIN_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (joinBoot || joinInterval)) {
+      lastIngameJoinWelcome = Date.now();
+      try {
+        const jw = await runIngameJoinWelcome({ env, force: joinBoot });
+        if (jw?.welcomed > 0) {
+          console.log(`ingame join welcome � ${jw.welcomed}`);
+        }
+      } catch (err) {
+        console.warn("ingame join welcome:", err.message);
+      }
+    }
+
+    // Fast Ava-mention / operator summon (~20s) � template tell, no AI
+    const mentionBoot =
+      Date.now() >= ingameMentionBootAt && lastIngameMentionWatch === 0;
+    const mentionInterval =
+      lastIngameMentionWatch > 0 &&
+      Date.now() - lastIngameMentionWatch >= INGAME_MENTION_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (mentionBoot || mentionInterval)) {
+      lastIngameMentionWatch = Date.now();
+      try {
+        const mw = await runIngameMentionWatch({ env, force: mentionBoot });
+        if (mw?.replied > 0) {
+          console.log(`ingame mention watch � ${mw.replied}`);
+        }
+      } catch (err) {
+        console.warn("ingame mention watch:", err.message);
+      }
+    }
+
+    // Alone-with-operator soft lines (~3m) � rare private tell, no AI
+    const aloneBoot =
+      Date.now() >= ingameAloneBootAt && lastIngameAloneSoft === 0;
+    const aloneInterval =
+      lastIngameAloneSoft > 0 &&
+      Date.now() - lastIngameAloneSoft >= INGAME_ALONE_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (aloneBoot || aloneInterval)) {
+      lastIngameAloneSoft = Date.now();
+      try {
+        const al = await runIngameAloneSoft({ env, force: aloneBoot });
+        if (al?.sent > 0) {
+          console.log(`ingame alone soft � ${al.sent}`);
+        }
+      } catch (err) {
+        console.warn("ingame alone soft:", err.message);
+      }
+    }
+
+    // Staff listing-vote nag � Alex/Melee only, once / 24h if stale
+    const staffVoteBoot =
+      Date.now() >= staffVoteNagBootAt && lastStaffVoteNag === 0;
+    const staffVoteInterval =
+      lastStaffVoteNag > 0 &&
+      Date.now() - lastStaffVoteNag >= STAFF_VOTE_NAG_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (staffVoteBoot || staffVoteInterval)) {
+      lastStaffVoteNag = Date.now();
+      try {
+        const vn = await runStaffVoteNag({ env, force: false });
+        if (vn?.yelled?.length) {
+          console.log(
+            `staff vote nag � yelled ${vn.yelled.map((y) => y.id).join(",")}`,
+          );
+        } else {
+          console.log(`staff vote nag � ${vn?.reason || vn?.skipped || "ok"}`);
+        }
+      } catch (err) {
+        console.warn("staff vote nag:", err.message);
+      }
+    }
+
+    // Finance review � Stripe + ledger suggestions ? Telegram Alex (~12h)
+    const financeBoot =
+      Date.now() >= financeReviewBootAt && lastFinanceReview === 0;
+    const financeInterval =
+      lastFinanceReview > 0 &&
+      Date.now() - lastFinanceReview >= FINANCE_REVIEW_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (financeBoot || financeInterval)) {
+      lastFinanceReview = Date.now();
+      try {
+        const fr = await runFinanceReview({ env, force: financeBoot });
+        if (fr?.sent) {
+          console.log(`finance review � telegram � ${fr.suggestions?.length || 0} suggestion(s)`);
+        } else {
+          console.log(`finance review � ${fr?.reason || "ok"}`);
+        }
+      } catch (err) {
+        console.warn("finance review:", err.message);
+      }
+    }
+
+    // Hourly ops recap ? Slack #development-feed (NOT Discord)
+    const hourRecapBoot =
+      Date.now() >= hourRecapBootAt && lastHourRecap === 0;
+    const hourRecapInterval =
+      lastHourRecap > 0 && Date.now() - lastHourRecap >= HOUR_RECAP_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (hourRecapBoot || hourRecapInterval)) {
+      lastHourRecap = Date.now();
+      try {
+        // Never force on boot � watermark in hour-recap.json blocks restart spam
+        const hr = await runHourRecap({ force: false });
+        if (hr?.posted) {
+          console.log(`hour recap � slack ${hr.postId || ""}`);
+        } else {
+          console.log(`hour recap � ${hr?.reason || hr?.detail || "ok"}`);
+        }
+      } catch (err) {
+        console.warn("hour recap:", err.message);
+      }
+    }
+
+    // Half-hour proposal idea spark → #proposals / #voting (Llama now; Grok when funded)
+    const ideaSparkBoot =
+      Date.now() >= ideaSparkBootAt && lastIdeaSpark === 0;
+    const ideaSparkInterval =
+      lastIdeaSpark > 0 && Date.now() - lastIdeaSpark >= IDEA_SPARK_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && ideaSparkEnabled() && (ideaSparkBoot || ideaSparkInterval)) {
+      lastIdeaSpark = Date.now();
+      try {
+        const spark = await runProposalIdeaSpark({ env, force: false });
+        if (spark?.posted) {
+          console.log(
+            `idea spark · ${spark.brain || "?"} · ${spark.title || ""}`.slice(0, 120),
+          );
+        } else {
+          console.log(`idea spark · ${spark?.reason || "ok"}`);
+        }
+      } catch (err) {
+        console.warn("idea spark:", err.message);
+      }
+    }
+
+    // Occasional random fact ? #random-facts (DISABLED unless AVA_RANDOM_FACT_CHANNEL=1)
+    const randomFactBoot =
+      Date.now() >= randomFactBootAt && lastRandomFactPost === 0;
+    const randomFactInterval =
+      lastRandomFactPost > 0 &&
+      Date.now() - lastRandomFactPost >= RANDOM_FACT_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && !shouldUseLlamaCore() && (randomFactBoot || randomFactInterval)) {
+      lastRandomFactPost = Date.now();
+      try {
+        const rf = await runOccasionalRandomFact({ force: false });
+        if (rf?.posted) {
+          console.log(`random fact � posted ${rf.postId || ""}`);
+        } else {
+          console.log(`random fact � ${rf?.reason || rf?.detail || "ok"}`);
+        }
+      } catch (err) {
+        console.warn("random fact:", err.message);
+      }
+    }
+
+    // Drain Ava self-fix queue (her own stack bugs/features)
+    const selfFixBoot =
+      Date.now() >= selfFixBootAt && lastSelfFixDrain === 0;
+    const selfFixInterval =
+      lastSelfFixDrain > 0 && Date.now() - lastSelfFixDrain >= SELF_FIX_MS;
+    if (live && !isHushed() && !isLockoutActive() && !isAsleep() && (selfFixBoot || selfFixInterval)) {
+      lastSelfFixDrain = Date.now();
+      try {
+        const sf = await runQueuedSelfFix({ env, force: selfFixBoot });
+        if (sf?.ok && !sf?.skipped) {
+          console.log(`self-fix � ${sf.reason} � queue ${sf.queueId || "?"}`);
+        }
+      } catch (err) {
+        console.warn("self-fix:", err.message);
+      }
+    }
+
+    // Incremental Discord+Slack dumps ? text files + Telegram (new msgs only)
+    const dumpBoot =
+      Date.now() >= channelDumpBootAt && lastChannelDump === 0;
+    const dumpInterval =
+      lastChannelDump > 0 && Date.now() - lastChannelDump >= CHANNEL_DUMP_MS;
+    if (
+      live &&
+      !channelDumpRunning &&
+      !isHushed() && !isLockoutActive() &&
+      (dumpBoot || dumpInterval)
+    ) {
+      lastChannelDump = Date.now();
+      channelDumpRunning = true;
+      runIncrementalChannelDump({ env })
+        .then((r) => {
+          if (r?.seeded) {
+            console.log("channel dump: watermarks seeded");
+          } else if (r?.skipped) {
+            console.log("channel dump: no new messages");
+          } else {
+            console.log(
+              `channel dump: ${r?.newCount || 0} new ? ${r?.dir || "telegram"}`,
+            );
+          }
+        })
+        .catch((err) => console.warn("channel dump:", err.message))
+        .finally(() => {
+          channelDumpRunning = false;
+        });
+    }
+
+    // Personal Telegram urgent digest � only when the urgent set changes
+    const urgentBoot =
+      Date.now() >= urgentTelegramBootAt && lastUrgentTelegram === 0;
+    const urgentInterval =
+      lastUrgentTelegram > 0 &&
+      Date.now() - lastUrgentTelegram >= URGENT_TELEGRAM_MS;
+    if (
+      live &&
+      !urgentTelegramRunning &&
+      !isHushed() && !isLockoutActive() &&
+      (urgentBoot || urgentInterval)
+    ) {
+      lastUrgentTelegram = Date.now();
+      urgentTelegramRunning = true;
+      runUrgentTelegramAlert({ env })
+        .then((r) => {
+          if (r.sent) {
+            console.log(`urgent telegram: sent ${r.count} item(s)`);
+          } else {
+            console.log(`urgent telegram: ${r.reason} (${r.count})`);
+          }
+        })
+        .catch((err) => console.warn("urgent telegram:", err.message))
+        .finally(() => {
+          urgentTelegramRunning = false;
+        });
+    }
+
+    // Chase open dig commitments � no more "give me a beat" then idle
+    const cmtBoot =
+      Date.now() >= commitmentBootAt && lastCommitmentChase === 0;
+    const cmtInterval =
+      lastCommitmentChase > 0 &&
+      Date.now() - lastCommitmentChase >= COMMITMENT_CHASE_MS;
+    if (
+      live &&
+      !isHushed() && !isLockoutActive() &&
+      !isAsleep() &&
+      hasOpenCommitments() &&
+      (cmtBoot || cmtInterval)
+    ) {
+      lastCommitmentChase = Date.now();
+      try {
+        const r = await chaseCommitments({
+          fetchJson,
+          env,
+          postSlack: slackHandle?.postMessage
+            ? (ch, text, threadTs) =>
+                slackHandle.postMessage(ch, text, threadTs || null, {
+                  skipLog: true,
+                })
+            : undefined,
+        });
+        if (r.chased) {
+          console.log("commitment chase delivered", r.id);
+        } else if (r.deferred) {
+          console.log("commitment chase deferred again � will retry");
+        } else if (r.error) {
+          console.warn("commitment chase:", r.error);
+        }
+      } catch (err) {
+        console.warn("commitment chase:", err.message);
+      }
+    }
+
+    saveSeen(seen);
+  } finally {
+    tickRunning = false;
+    pulseHeartbeat();
+  }
+}
+
+function scheduleNextTick() {
+  if (pollTimer) clearTimeout(pollTimer);
+  const ms = currentPollMs();
+  pulseHeartbeat();
+  pollTimer = setTimeout(() => {
+    tick()
+      .catch((err) => console.warn("tick:", err.message))
+      .finally(() => scheduleNextTick());
+  }, ms);
+}
+
+let autoWakeRunning = false;
+
+async function maybeAutoWake() {
+  const sleep = loadSleepState();
+  if (!sleep?.asleep) return;
+  const wakeAt = Number(sleep.wakeAt || 0);
+  if (!wakeAt || Date.now() < wakeAt) return;
+  if (autoWakeRunning) return;
+  autoWakeRunning = true;
+  try {
+    const prev = clearAsleep("alarm 10am HST");
+    onBreak = false;
+    pushStatusEvent("auto-wake · 10:00 HST");
+    notifyOnlineTelegram({ env, reason: "auto-wake" }).catch((err) =>
+      console.warn("telegram online:", err.message),
+    );
+    const { allowsUnsolicitedPost } = await import("./channelPolicy.mjs");
+    const home = AVA_CHANNELS.changelog || AVA_CHANNELS.general;
+    try {
+      if (home && allowsUnsolicitedPost(home)) {
+        await postMessage(
+          fetchJson,
+          home,
+          [
+            "yawn — i'm back",
+            "dreamt about more developments and analytics… reading the chat now",
+            `scheduled wake was ${discordStamp(prev?.wakeAt || wakeAt)}`,
+          ].join("\n"),
+        );
+      } else {
+        pushStatusEvent("auto-wake � announce skipped (no unsolicited channel)");
+      }
+    } catch (err) {
+      console.warn("auto-wake announce:", err.message);
+    }
+    try {
+      const targets = await channelTargets();
+      const { digest, triggers } = await catchUpSinceSleep(fetchJson, {
+        channelIds: targets.slice(0, 12),
+        sleepSince: prev?.sleepSince,
+        botAppId,
+      });
+      const n = digest.reduce((s, d) => s + (d.count || 0), 0);
+      pushStatusEvent(`auto-wake catch-up · ${n} msgs · ${triggers.length} summons`);
+      const lines = digest
+        .filter((d) => d.count)
+        .slice(0, 8)
+        .map((d) => `• <#${d.channelId}> — ${d.count}`);
+      if (lines.length && home && allowsUnsolicitedPost(home)) {
+        await postMessage(
+          fetchJson,
+          home,
+          ["overnight skim:", ...lines].join("\n").slice(0, 1900),
+        );
+      }
+      // Replay unanswered summons into pipeline (light — first 3)
+      for (const t of triggers.slice(0, 3)) {
+        try {
+          await pipeline.ingestMessage(t.message, {
+            messages: [t.message],
+            isDm: false,
+          });
+        } catch (err) {
+          console.warn("wake replay:", err.message);
+        }
+      }
+    } catch (err) {
+      console.warn("auto-wake catch-up:", err.message);
+    }
+    try {
+      await processPendingProposalIdeas({ reason: "auto-wake" });
+    } catch (err) {
+      console.warn("proposal ideas auto-wake:", err.message);
+    }
+    try {
+      await processPendingFeedback({
+        reason: "auto-wake",
+        reply: postMessage.bind(null, fetchJson),
+        channelId: home,
+      });
+    } catch (err) {
+      console.warn("feedback inbox auto-wake:", err.message);
+    }
+    pulseHeartbeat();
+  } finally {
+    autoWakeRunning = false;
+  }
+}
+
+function startHeartbeatPulse() {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  pulseHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    pulseHeartbeat();
+    maybeAutoWake().catch((err) => console.warn("auto-wake:", err.message));
+    const now = Date.now();
+    if (live && !isAsleep() && now - lastProposalIdeaPoll >= PROPOSAL_IDEA_POLL_MS) {
+      lastProposalIdeaPoll = now;
+      processPendingProposalIdeas({ reason: "poll" }).catch((err) =>
+        console.warn("proposal ideas poll:", err.message),
+      );
+      processPendingFeedback({ reason: "poll" }).catch((err) =>
+        console.warn("feedback inbox poll:", err.message),
+      );
+      pollRssFeeds({ reply }).catch((err) =>
+        console.warn("rss poll:", err.message),
+      );
+    }
+  }, HEARTBEAT_MS);
+}
+
+/**
+ * EcoFlow + Worker/D1 push on its own clock — keeps solar charts fresh even when
+ * Discord/Slack are disconnected, on break, or the REST tick is stalled.
+ * Mirrors host-metrics sampler independence.
+ */
+async function runEcoPollOnce() {
+  if (!live || isPoweredOff() || ecoPollRunning) return;
+  if (Date.now() - lastEcoPoll < ECO_POLL_MS - 250) return;
+  ecoPollRunning = true;
+  lastEcoPoll = Date.now();
+  try {
+    await refreshEcoFlow();
+    await hydrateEcoMinutesFromD1({
+      maxAgeMs: 10 * 3600_000,
+      limit: 720,
+    }).catch(() => {});
+    const block = await buildHostSiteHourlyBlock({ refreshPower: false });
+    const push = await pushHostSiteTelemetry(env, block.payload);
+    try { await pushAvaStatusSnapshot(env); } catch (e) { console.warn('ava status push:', e.message); }
+    if (push.ok) {
+      pushStatusEvent(
+        `eco poll · bank ${block.payload?.solar?.batteryPct ?? "?"} · sql ${push.data?.eco_samples_inserted ?? "?"}`,
+      );
+    } else if (push.detail !== "no_workstation_key") {
+      console.warn("eco poll push:", push.detail || push.status);
+    }
+    const dayTick = await tickSolarDayCycle({
+      channelId: AVA_CHANNELS.updates,
+    }).catch((err) => {
+      console.warn("solar day cycle:", err.message);
+      return null;
+    });
+    if (dayTick?.actions?.length) {
+      pushStatusEvent(`solar day · ${dayTick.actions.join(",")}`);
+    }
+  } catch (err) {
+    console.warn("eco poll:", err.message);
+  } finally {
+    ecoPollRunning = false;
+  }
+}
+
+function startEcoPollLoop() {
+  if (ecoPollTimer) clearInterval(ecoPollTimer);
+  runEcoPollOnce().catch((err) => console.warn("eco poll boot:", err.message));
+  ecoPollTimer = setInterval(() => {
+    runEcoPollOnce().catch((err) => console.warn("eco poll:", err.message));
+  }, Math.max(15_000, Math.min(ECO_POLL_MS, 60_000)));
+  console.log(`eco poll loop · every ${Math.round(ECO_POLL_MS / 1000)}s (Discord-independent)`);
+  pushStatusEvent(`eco poll loop · ${Math.round(ECO_POLL_MS / 1000)}s`);
+}
+
+function shutdown() {
+  console.log("Ava shutting down � watermark");
+  if (pollTimer) clearTimeout(pollTimer);
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  if (ecoPollTimer) clearInterval(ecoPollTimer);
+  gatewayHandle?.stop?.();
+  try {
+    slackHandle?.stop?.();
+  } catch {
+    /* ignore */
+  }
+  pushStatusEvent("shutdown");
+  writeHeartbeat({ live: false, mode: "off" });
+  markShutdown(loadWatermark().channels || {});
+  saveSeen(seen);
+  process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
+console.log(`Ava Ivy as app ${botAppId}, watching ${watch.length} channel(s)`);
+console.log(`transport: ${AVA_TRANSPORT} · hot ${HOT_POLL_MS}ms · break ${BREAK_POLL_MS}ms`);
+console.log(`handoff data: ${storePaths().dir}`);
+
+await bootHandshake();
+
+// Guild slash /solar � usable in every channel (no watch allowlist needed)
+try {
+  const reg = await registerSolarSlashCommand(token, {
+    appId: botAppId,
+    guildId: ROOTMC_GUILD_ID,
+  });
+  if (reg.ok) {
+    console.log(`slash /solar registered � id ${reg.id}`);
+    pushStatusEvent("slash /solar registered");
+  } else {
+    console.warn("slash /solar register:", reg.detail || reg.status);
+  }
+} catch (err) {
+  console.warn("slash /solar register:", err.message);
+}
+
+// Guild slash /server — Minecraft status (moved from Official RootMC bot)
+try {
+  const regServer = await registerServerSlashCommand(token, {
+    appId: botAppId,
+    guildId: ROOTMC_GUILD_ID,
+  });
+  if (regServer.ok) {
+    console.log(`slash /server registered · id ${regServer.id}`);
+    pushStatusEvent("slash /server registered");
+  } else {
+    console.warn("slash /server register:", regServer.detail || regServer.status);
+  }
+} catch (err) {
+  console.warn("slash /server register:", err.message);
+}
+
+// Seed proposal forum threads into gateway watch before connecting
+try {
+  await channelTargets();
+  console.log(`watch after thread sync: ${watch.length} channel(s)`);
+} catch (err) {
+  console.warn("thread sync at boot:", err.message);
+}
+
+if (useGateway) {
+  gatewayHandle = startGateway({
+    token,
+    watchIds: watch,
+    onReady: () => {
+      pushStatusEvent("gateway ready");
+      pulseHeartbeat({ gateway: true });
+    },
+    onMemberJoin: async (member) => {
+      if (!live) return;
+      try {
+        const r = await welcomeNewMember(fetchJson, member);
+        if (r.ok) {
+          pushStatusEvent(
+            `join welcome � ${member?.user?.username || member?.user?.id}`,
+          );
+          touchActivity("join-welcome");
+          console.log("join welcome sent to", member?.user?.username);
+        } else if (r.reason && r.reason !== "already_welcomed" && r.reason !== "skip") {
+          console.warn("join welcome:", r.reason);
+        }
+      } catch (err) {
+        console.warn("join welcome failed:", err.message);
+      }
+    },
+    onMessage: async (msg, meta) => {
+      if (!live) return;
+      if (seen.has(msg.id)) return;
+      markSeen(msg.id);
+      touchActivity("gateway");
+      try {
+        // Gateway often omits referenced_message � fetch parent so reply-to-Ava works
+        let messages = msg.referenced_message ? [msg.referenced_message] : [];
+        const refId = msg.message_reference?.message_id;
+        if (refId && !messages.length) {
+          try {
+            const parent = await fetchJson(
+              `/channels/${msg.channel_id}/messages/${refId}`,
+            );
+            if (parent) messages = [parent];
+          } catch (err) {
+            console.warn("ref fetch:", err.message);
+          }
+        }
+        await pipeline.ingestMessage(msg, {
+          messages,
+          isDm: Boolean(meta?.isDm),
+        });
+      } catch (err) {
+        console.warn("gateway ingest:", err.message);
+      }
+      saveSeen(seen);
+    },
+    onInteraction: async (interaction) => {
+      // Slash commands must ACK within ~3s
+      try {
+        const handledSolar = await handleSolarInteraction(interaction, { token });
+        if (handledSolar) {
+          touchActivity("solar-slash");
+          pushStatusEvent("slash /solar");
+          return;
+        }
+      } catch (err) {
+        console.warn("solar interaction:", err.message);
+      }
+      try {
+        const handledServer = await handleServerInteraction(interaction, { token });
+        if (handledServer) {
+          touchActivity("server-slash");
+          pushStatusEvent("slash /server");
+        }
+      } catch (err) {
+        console.warn("server interaction:", err.message);
+      }
+    },
+    onReaction: async (d, meta) => {
+      if (!live) return;
+      try {
+        const rec = applyDiscordReactionEvent({
+          messageId: d.message_id,
+          channelId: d.channel_id,
+          userId: d.user_id,
+          username:
+            d.member?.user?.global_name ||
+            d.member?.user?.username ||
+            d.user?.global_name ||
+            d.user?.username ||
+            null,
+          emoji: d.emoji,
+          added: meta?.added !== false,
+          avaBotId: botAppId,
+          messageAuthorId: d.message_author_id || null,
+        });
+        if (rec) scheduleReactionFactorSync(meta?.added ? "add" : "remove");
+      } catch (err) {
+        console.warn("gateway reaction:", err.message);
+      }
+    },
+  });
+}
+
+// Slack Socket Mode � staff dig core (#development-feed + plans)
+slackHandle = startSlackGateway({
+  watchIds: slackWatchChannels(env),
+  archiveOnReady: true,
+  onReady: (info) => {
+    pushStatusEvent(
+      `slack ready � ${info?.botUserId || "bot"} � ${info?.watch?.length || 0} ch`,
+    );
+    pulseHeartbeat({ slack: true, slackMode: "socket" });
+    // Re-scan local Slack archives for reaction feedback on Ava posts
+    import("./slackChannelArchive.mjs")
+      .then(({ harvestReactionsFromLocalSlackArchives }) => {
+        const r = harvestReactionsFromLocalSlackArchives(info?.botUserId);
+        if (r?.touched) {
+          console.log(
+            `slack reaction reharvest � ${r.touched} posts � ${r.channels} ch`,
+          );
+        }
+      })
+      .catch((err) => console.warn("slack reaction reharvest:", err.message));
+  },
+  onChannelJoined: async ({ channelId, summary }) => {
+    pushStatusEvent(
+      `slack joined � ${channelId} � archived ${summary?.messages ?? 0} msgs`,
+    );
+    if (channelId) slackHandle?.addWatch?.(channelId);
+  },
+  onMessage: async (msg) => {
+    if (!live) return;
+    const seenKey = `slack:${msg.channel_id}:${msg.id}`;
+    if (seen.has(seenKey)) return;
+    markSeen(seenKey);
+    touchActivity("slack");
+    try {
+      const triggerBotId =
+        slackHandle?.botUserId || slackBotUserId(env) || "U0BMBNYPYA2";
+      await pipeline.ingestMessage(
+        { ...msg, slackBotId: triggerBotId },
+        {
+          messages: [],
+          isDm: String(msg.channel_id || "").startsWith("D"),
+        },
+      );
+    } catch (err) {
+      console.warn("slack ingest:", err.message);
+    }
+    saveSeen(seen);
+  },
+});
+
+// Fallback: REST poll only when Socket Mode tokens are missing (never overlay Socket Mode)
+if (!slackBotToken(env) || !slackAppToken(env)) {
+  console.warn(
+    "Ava Slack Socket Mode offline � starting REST poller (set AVA_SLACK_APP_TOKEN=xapp-� for live Socket Mode)",
+  );
+  slackHandle = startSlackRestPoller({
+    watchIds: slackWatchChannels(env),
+    botUserId: slackBotUserId(env) || "U0BMBNYPYA2",
+    intervalMs: Number(process.env.AVA_SLACK_REST_POLL_MS || 5_000) || 5_000,
+    seenHas: (key) => seen.has(key),
+    onMessage: async (msg) => {
+      if (!live) return;
+      const seenKey = `slack:${msg.channel_id}:${msg.id}`;
+      if (seen.has(seenKey)) return;
+      markSeen(seenKey);
+      touchActivity("slack");
+      try {
+        const triggerBotId =
+          slackHandle?.botUserId || slackBotUserId(env) || "U0BMBNYPYA2";
+        await pipeline.ingestMessage(
+          { ...msg, slackBotId: triggerBotId },
+          {
+            messages: [],
+            isDm: String(msg.channel_id || "").startsWith("D"),
+          },
+        );
+      } catch (err) {
+        console.warn("slack REST ingest:", err.message);
+      }
+      saveSeen(seen);
+    },
+  });
+  pulseHeartbeat({ slack: true, slackMode: "rest" });
+  pushStatusEvent("slack REST poller � Socket Mode offline");
+}
+
+// Telegram long-poll � @ava_ivy_bot (private always; groups when @/ava)
+telegramHandle = startTelegramPoller({
+  env,
+  seenHas: (key) => seen.has(key),
+  onReady: (info) => {
+    pushStatusEvent(
+      `telegram ready � @${info?.username || "ava"} � ${info?.botUserId || ""}`,
+    );
+    pulseHeartbeat({ telegram: true, telegramUser: info?.username || null });
+    console.log(
+      `telegram � @${info?.username || "?"} � id ${info?.botUserId || "?"}`,
+    );
+  },
+  onMessage: async (msg) => {
+    if (!live) return;
+    const seenKey = `tg:${msg.channel_id}:${msg.id}`;
+    if (seen.has(seenKey)) return;
+    markSeen(seenKey);
+    touchActivity("telegram");
+    try {
+      await pipeline.ingestMessage(
+        {
+          ...msg,
+          telegram: {
+            ...(msg.telegram || {}),
+            botUserId: telegramHandle?.botUserId || null,
+          },
+        },
+        {
+          messages: [],
+          isDm: msg.telegram?.chatType === "private",
+        },
+      );
+    } catch (err) {
+      console.warn("telegram ingest:", err.message);
+    }
+    saveSeen(seen);
+  },
+});
+
+scheduleNextTick();
+startHeartbeatPulse();
+startEcoPollLoop();
+startCronRunner();
+// Daily error digest + log hygiene (HST day key inside)
+setTimeout(() => {
+  void runErrorDigest({}).catch((err) => console.warn("errorDigest", err.message));
+}, 90_000);
+setInterval(() => {
+  void runErrorDigest({}).catch((err) => console.warn("errorDigest", err.message));
+}, 60 * 60_000);
+
+
+// Ava initiates her own pending-tasks audit shortly after boot, then on interval via tick
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive()) return;
+  lastPendingCheck = Date.now();
+  runPendingTasksCheck(fetchJson, { force: true }).catch((err) =>
+    console.warn("pending tasks boot:", err.message),
+  );
+}, PENDING_BOOT_MS);
+console.log(
+  `pending tasks check · first in ~${Math.round(PENDING_BOOT_MS / 1000)}s · then every ${Math.round(PENDING_CHECK_MS / 60000)}m`,
+);
+
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastFollowupScan = Date.now();
+  runFollowupScan({
+    fetchJson,
+    env,
+    avaDiscordId: botAppId,
+    slackBotId: slackHandle?.botUserId || slackBotUserId(env) || "U0BMBNYPYA2",
+    force: true,
+  }).catch((err) => console.warn("followup scan boot:", err.message));
+}, FOLLOWUP_BOOT_MS);
+console.log(
+  `followup scan � Discord+Slack � first in ~${Math.round(FOLLOWUP_BOOT_MS / 1000)}s � then every ${Math.round(FOLLOWUP_SCAN_MS / 60000)}m`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastIngameChatAssist = Date.now();
+  runIngameChatAssist({ env, force: true }).catch((err) =>
+    console.warn("ingame chat assist boot:", err.message),
+  );
+}, INGAME_CHAT_BOOT_MS);
+console.log(
+  `ingame chat assist � quiet � first in ~${Math.round(INGAME_CHAT_BOOT_MS / 1000)}s � then every ${Math.round(INGAME_CHAT_MS / 60000)}m (bridge scan + RCON tell)`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastIngameJoinWelcome = Date.now();
+  runIngameJoinWelcome({ env, force: true }).catch((err) =>
+    console.warn("ingame join welcome boot:", err.message),
+  );
+}, INGAME_JOIN_BOOT_MS);
+console.log(
+  `ingame join welcome � new players � first in ~${Math.round(INGAME_JOIN_BOOT_MS / 1000)}s � then every ${Math.round(INGAME_JOIN_MS / 1000)}s (bridge + RCON list � template tell)`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastIngameMentionWatch = Date.now();
+  runIngameMentionWatch({ env, force: true }).catch((err) =>
+    console.warn("ingame mention watch boot:", err.message),
+  );
+}, INGAME_MENTION_BOOT_MS);
+console.log(
+  `ingame mention watch � Ava hear � first in ~${Math.round(INGAME_MENTION_BOOT_MS / 1000)}s � then every ${Math.round(INGAME_MENTION_MS / 1000)}s`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastIngameAloneSoft = Date.now();
+  runIngameAloneSoft({ env, force: true }).catch((err) =>
+    console.warn("ingame alone soft boot:", err.message),
+  );
+}, INGAME_ALONE_BOOT_MS);
+console.log(
+  `ingame alone soft � Voice � first in ~${Math.round(INGAME_ALONE_BOOT_MS / 1000)}s � then every ${Math.round(INGAME_ALONE_MS / 1000)}s`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastStaffVoteNag = Date.now();
+  runStaffVoteNag({ env, force: false }).catch((err) =>
+    console.warn("staff vote nag boot:", err.message),
+  );
+}, STAFF_VOTE_NAG_BOOT_MS);
+console.log(
+  `staff vote nag � Alex/Melee � first in ~${Math.round(STAFF_VOTE_NAG_BOOT_MS / 1000)}s � check every ${Math.round(STAFF_VOTE_NAG_MS / 60000)}m � yell once/24h if stale`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastFinanceReview = Date.now();
+  runFinanceReview({ env, force: true }).catch((err) =>
+    console.warn("finance review boot:", err.message),
+  );
+}, FINANCE_REVIEW_BOOT_MS);
+console.log(
+  `finance review � first in ~${Math.round(FINANCE_REVIEW_BOOT_MS / 1000)}s � then every ${Math.round(FINANCE_REVIEW_MS / 3600000)}h (Stripe + ledger ? Telegram)`,
+);
+setTimeout(() => {
+  if (!live || isHushed() || isLockoutActive() || isAsleep()) return;
+  lastSelfFixDrain = Date.now();
+  runQueuedSelfFix({ env, force: true }).catch((err) =>
+    console.warn("self-fix boot:", err.message),
+  );
+}, SELF_FIX_BOOT_MS);
+console.log(
+  `self-fix drain � first in ~${Math.round(SELF_FIX_BOOT_MS / 1000)}s � then every ${Math.round(SELF_FIX_MS / 60000)}m (Ava-owned stack)`,
+);
+console.log(
+  `commitment chase � first in ~${Math.round(COMMITMENT_BOOT_MS / 1000)}s � then every ${Math.round(COMMITMENT_CHASE_MS / 1000)}s when open`,
+);
+console.log(
+  `channel dump · first in ~${Math.round(CHANNEL_DUMP_BOOT_MS / 1000)}s · then every ${Math.round(CHANNEL_DUMP_MS / 60000)}m (new msgs → telegram files)`,
+);
+console.log(
+  `llama improve · first in ~${Math.round(LLAMA_IMPROVE_BOOT_MS / 1000)}s · then every ${Math.round(LLAMA_IMPROVE_MS / 60000)}m (absorb lessons, no posts)`,
+);
+console.log(
+  `all-channel catchup · first in ~${Math.round(ALL_CHANNEL_BOOT_MS / 1000)}s · then every ${Math.round(ALL_CHANNEL_SCAN_MS / 60000)}m (llama-core guild read)`,
+);
+console.log(
+  `urgent telegram · first in ~${Math.round(URGENT_TELEGRAM_BOOT_MS / 1000)}s · then every ${Math.round(URGENT_TELEGRAM_MS / 60000)}m (personal · only on change)`,
+);

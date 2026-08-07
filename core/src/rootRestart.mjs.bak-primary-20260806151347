@@ -1,0 +1,110 @@
+/**
+ * Minecraft /rootrestart via guarded RCON (console = full perms).
+ * Operators (Alex / Melee) can tell Ava to run it; she may also call
+ * runRootRestart after asking online players (spec).
+ */
+import { guardedRcon, rconConfigured, rconTargets } from "./rconGuard.mjs";
+import { appendAction } from "./fullLog.mjs";
+import { isQuietOperator } from "./recommend.mjs";
+
+const ROOT_RESTART_RE =
+  /(?:^|[\s/])(?:ava[,:]?\s+)?(?:please\s+)?(?:run\s+)?\/?rootrestart(?:\s+(cancel|claims|towny|both))?(?:\s+(cancel|claims|towny|both))?/i;
+
+/**
+ * True when message is asking Ava to fire Minecraft /rootrestart (not Ava process restart).
+ */
+export function isMinecraftRootRestartCommand(content) {
+  const q = String(content || "")
+    .toLowerCase()
+    .replace(/<@!?\d+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!q) return false;
+  // Avoid colliding with Ava self-restart ("restart ava", "ava restart")
+  if (
+    /\b(restart|reboot|reload)\s+(ava|yourself|the\s+bot)\b/.test(q) ||
+    /\bava\s+(restart|reboot)\b/.test(q)
+  ) {
+    return false;
+  }
+  if (/^\/?rootrestart\b/.test(q)) return true;
+  if (/\brootrestart\b/.test(q) && /\b(ava|run|do|please|fire|trigger|start)\b/.test(q)) {
+    return true;
+  }
+  if (/\b(cancel)\s+\/?rootrestart\b|\b\/?rootrestart\s+cancel\b/.test(q)) {
+    return true;
+  }
+  return ROOT_RESTART_RE.test(q);
+}
+
+function parseRootRestartArgs(content) {
+  const q = String(content || "").toLowerCase();
+  const cancel = /\bcancel\b/.test(q);
+  let target = "claims";
+  if (/\bboth\b/.test(q)) target = "both";
+  else if (/\btowny\b/.test(q)) target = "towny";
+  else if (/\bclaims\b/.test(q)) target = "claims";
+  return { cancel, target };
+}
+
+/**
+ * @param {{ target?: string, cancel?: boolean, requestedBy?: string, reason?: string }} opts
+ */
+export async function runRootRestart({
+  target = "claims",
+  cancel = false,
+  requestedBy = "ava",
+  reason = "operator",
+} = {}) {
+  if (!rconConfigured()) {
+    return { ok: false, reason: "rcon_not_configured" };
+  }
+
+  const cmd = cancel ? "rootrestart cancel" : "rootrestart";
+  const ids =
+    target === "both"
+      ? rconTargets().map((t) => t.id)
+      : [String(target || "claims")];
+
+  if (!ids.length) {
+    return { ok: false, reason: "rcon_not_configured" };
+  }
+
+  const results = [];
+  for (const id of ids) {
+    const res = await guardedRcon(cmd, { allow: true, target: id });
+    results.push({ target: id, ...res });
+    appendAction("minecraft.rootrestart", {
+      target: id,
+      cancel: Boolean(cancel),
+      ok: Boolean(res.ok),
+      reason: res.reason || null,
+      requestedBy,
+      why: reason,
+      output: res.output ? String(res.output).slice(0, 400) : null,
+    });
+  }
+
+  const anyOk = results.some((r) => r.ok);
+  return {
+    ok: anyOk,
+    reason: anyOk ? "ok" : results[0]?.reason || "failed",
+    results,
+    command: cmd,
+  };
+}
+
+/** Optional: broadcast ask to online players before restart (operator can skip). */
+export async function askPlayersRootRestart({ target = "claims" } = {}) {
+  const msg =
+    "say §eAva§7: staff may §c/rootrestart§7 soon — say in chat if you need a minute.";
+  return guardedRcon(msg, { allow: true, target });
+}
+
+export function rootRestartOperatorOk(authorId) {
+  return isQuietOperator(authorId);
+}
+
+export function parseRootRestartRequest(content) {
+  return parseRootRestartArgs(content);
+}

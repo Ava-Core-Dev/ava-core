@@ -1,0 +1,23 @@
+.env
+.env.*
+!.env.example
+**/.env
+**/node_modules/
+**/dist/
+**/build/
+**/.wrangler/
+**/.cache/
+**/__pycache__/
+*.pem
+*.key
+*credentials*
+*secret*
+**/data/billing/
+**/data/flight/
+**/data/ecoflow/
+**/data/*.db
+**/data/*.sqlite*
+**/*.log
+**/Server Handoffs/
+**/Server Live Backups/
+**/.tmp-gh-token

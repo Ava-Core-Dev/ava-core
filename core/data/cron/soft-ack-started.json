@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-08-06T06:39:06Z",
+  "undeployAfterDays": 7,
+  "tunnel": [
+    "api-ava.rootmc.net",
+    "api-local.rootmc.net",
+    "ava.rootmc.net"
+  ]
+}

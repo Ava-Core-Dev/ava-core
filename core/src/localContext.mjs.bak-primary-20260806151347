@@ -1,0 +1,174 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { AVA_HANDOFF } from "./config.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, "../../..");
+
+function safeRead(file, max = 8000) {
+  try {
+    if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return null;
+    const raw = fs.readFileSync(file, "utf8");
+    const cleaned = raw
+      .split(/\r?\n/)
+      .filter((line) => !/(password|token|secret|api[_-]?key|jdbc:|Bearer\s)/i.test(line))
+      .join("\n");
+    return cleaned.slice(-max);
+  } catch {
+    return null;
+  }
+}
+
+function listNewest(dir, pred, limit = 5) {
+  try {
+    if (!fs.existsSync(dir)) return [];
+    return fs
+      .readdirSync(dir)
+      .map((name) => ({ name, full: path.join(dir, name) }))
+      .filter((e) => {
+        try {
+          return pred(e.full, e.name);
+        } catch {
+          return false;
+        }
+      })
+      .map((e) => ({ ...e, mtime: fs.statSync(e.full).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime)
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+function findLatestLogs() {
+  const fixed = [
+    path.join(ROOT, "Server Live Backups", "1. RootMC - Claims", "logs", "latest.log"),
+    path.join(ROOT, "Server Live Backups", "2. RootMC - Towny", "logs", "latest.log"),
+    path.join(ROOT, "Server Live Backups", "3. RootMC - Test Server", "logs", "latest.log"),
+    path.join(ROOT, "Server Handoffs", "1. RootMC - Claims", "logs", "latest.log"),
+    path.join(ROOT, "Server Handoffs", "2. RootMC - Towny", "logs", "latest.log"),
+  ];
+  return fixed
+    .filter((full) => {
+      try {
+        return fs.existsSync(full);
+      } catch {
+        return false;
+      }
+    })
+    .map((full) => ({
+      name: path.relative(ROOT, full).replace(/\\/g, "/"),
+      full,
+      mtime: fs.statSync(full).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, 2);
+}
+
+/** Tiny always-on accuracy anchors (no secrets). */
+function coreFacts() {
+  return `### RootMC facts (must not contradict)
+- Currency: Gold (G), never dollars in player-facing copy
+- Game: play.rootmc.net | API: https://api.rootmc.net | Site: https://rootmc.net | Map: https://map.rootmc.net
+- Tracked hosts only: **live production** (play.rootmc.net) + **test ava-core** (OptiPlex). No dual Claims/Towny tracking.
+- Features need proposals + votes; bugs: verify then fix
+- Ava handoff drop zone: Server Handoffs/Ava Ivy (uploads/, plans/, data/)`;
+}
+
+/**
+ * Pull local workspace snippets Ava can discuss (scrubbed).
+ * Keyword-route for accuracy; keep packs lean for speed.
+ */
+export function gatherLocalContext(question = "") {
+  const q = String(question || "").toLowerCase();
+  const blocks = [coreFacts()];
+  const wantLogs = /log|weird|error|crash|exception|console|stack/.test(q);
+  const wantHeads = /head|mobhead|skull/.test(q);
+  const wantThanks = /token|thanks|appreciation|redeem|bonus|vote/.test(q);
+  const wantGamble = /lotto|gamble|casino|bet/.test(q);
+  const wantOps = /restart|ops|admin|kick|ban/.test(q);
+  const wantLead =
+    /proposal|vote|plan|lead.?dev|handoff|upload|governance|autonomy|offline/.test(q);
+  const wantChangelog = /changelog|what.?changed|update|version|shipped|release/.test(q);
+
+  const changeDir = path.join(ROOT, "Change Logs", "plugins");
+  const changelogLimit = wantChangelog || wantLogs || wantHeads || wantThanks ? 4 : 2;
+  const changelogs = listNewest(changeDir, (full, name) => name.endsWith(".md"), 8);
+  for (const c of changelogs.slice(0, changelogLimit)) {
+    // Prefer matching names when question hints a plugin
+    const nameHit =
+      !wantChangelog ||
+      q.includes(c.name.replace(/\.md$/i, "").replace(/^root-/, "")) ||
+      wantHeads ||
+      wantThanks ||
+      wantGamble ||
+      wantOps;
+    if (!nameHit && changelogLimit <= 2 && changelogs.indexOf(c) >= 2) continue;
+    const text = safeRead(c.full, 2200);
+    if (text) blocks.push(`### changelog ${c.name}\n${text}`);
+  }
+
+  const extras = [];
+  if (wantHeads) {
+    extras.push(path.join(ROOT, "Change Logs", "plugins", "root-heads.md"));
+    extras.push(
+      path.join(
+        ROOT,
+        "Plugin Building",
+        "Minecraft",
+        "plugins",
+        "root-heads",
+        "src",
+        "main",
+        "resources",
+        "root-heads.yml",
+      ),
+    );
+  }
+  if (wantThanks) {
+    extras.push(path.join(ROOT, "Change Logs", "plugins", "root-appreciation.md"));
+  }
+  if (wantGamble) {
+    extras.push(path.join(ROOT, "Change Logs", "plugins", "root-gamble.md"));
+  }
+  if (wantOps) {
+    extras.push(path.join(ROOT, "Change Logs", "plugins", "root-ops.md"));
+  }
+  for (const file of extras) {
+    const text = safeRead(file, 2800);
+    if (text) blocks.push(`### ${path.basename(file)}\n${text}`);
+  }
+
+  if (wantLogs) {
+    for (const log of findLatestLogs()) {
+      const text = safeRead(log.full, 3500);
+      if (text) blocks.push(`### log tail (${log.name})\n${text}`);
+    }
+  }
+
+  // Full locked notes are packed via gatherCoreSpec — skip duplicate long excerpt here
+  if (wantLead) {
+    const handoffNotes = path.join(AVA_HANDOFF || "", "rootmc-lead-dev-bot-notes.md");
+    const notes = safeRead(handoffNotes, 1500);
+    if (notes) blocks.push(`### Ava notes pointer (full spec already in core pack)\n${notes.slice(0, 800)}…`);
+  }
+
+  const uploadsDir = path.join(AVA_HANDOFF || "", "uploads");
+  const plansDir = path.join(AVA_HANDOFF || "", "plans");
+  for (const f of listNewest(uploadsDir, (full) => fs.statSync(full).isFile(), 3)) {
+    const text = safeRead(f.full, 2500);
+    if (text) blocks.push(`### upload ${f.name}\n${text}`);
+  }
+  // Always include recent plans (plan: uploads + plans first-class)
+  for (const f of listNewest(plansDir, (full, name) => name.endsWith(".md"), wantLead || /plan/.test(q) ? 5 : 3)) {
+    const text = safeRead(f.full, 2800);
+    if (text) blocks.push(`### plan ${f.name}\n${text}`);
+  }
+
+  const joined = blocks.join("\n\n").slice(0, 12000);
+  return {
+    hasFiles: blocks.length > 1,
+    brief: `Local RootMC workspace pack (scrubbed; prefer these facts; don't invent):\n${joined}`,
+  };
+}

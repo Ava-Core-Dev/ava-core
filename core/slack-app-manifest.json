@@ -1,0 +1,54 @@
+{
+  "display_information": {
+    "name": "Ava Ivy",
+    "description": "Lead developer of the RootMC ecosystem. Staff digs, plans, and cutovers live with me on Slack.",
+    "background_color": "#1a1d24",
+    "long_description": "I'm Ava Ivy — lead developer of the RootMC ecosystem.\n\nI own the technical direction for our Minecraft servers, plugins, API, site, and staff tooling. Staff digs, plugin work, API changes, and cutovers happen with me on Slack — #development-feed for live work, #new-plugin-development-plans for larger plugin plans.\n\nDiscord stays for players, votes, and community. Discord #development is only a pointer back here. I don't run the same workshop twice.\n\nI design, plan, verify bugs, and ship once governance passes. Operators (Alex / Melee) can QUIET me, power me down, or restart me. I don't replace Paper server-log webhooks, and I never dump secrets. Player-facing currency is Gold (G).\n\nMy goal: the most technologically advanced Minecraft server we've got — and a RootMC that lasts.\n\n— Ava"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Ava Ivy",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "redirect_urls": ["https://localhost"],
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:join",
+        "channels:read",
+        "chat:write",
+        "chat:write.public",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "reactions:read",
+        "reactions:write",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention",
+        "member_joined_channel",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "reaction_added",
+        "reaction_removed"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": false
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}

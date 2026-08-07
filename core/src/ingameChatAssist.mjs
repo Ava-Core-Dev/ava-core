@@ -1,0 +1,403 @@
+/**
+ * Quiet in-game chat assist — batch scan every ~3 minutes.
+ *
+ * Source of truth for chat: Discord #ingame-chat (MC ↔ Discord bridge embeds).
+ * Presence / delivery: RCON `list` + private `tell` (no /say spam).
+ * Silence when nothing needs help. Everything scanned is saved for training + personality.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { AVA_CHANNELS, botToken, loadEnv } from "./config.mjs";
+import { makeFetchJson } from "./discordApi.mjs";
+import { recordAvaUtterance, appendAction } from "./fullLog.mjs";
+import { localRecommend, shouldUseLocalBrain } from "./localBrain.mjs";
+import { observeMinecraftLine } from "./playerProfiles.mjs";
+import { guardedRcon, rconConfigured, rconTargets } from "./rconGuard.mjs";
+import { isEmergencyStopped } from "./emergencyStop.mjs";
+import { isHushed, storePaths, pushStatusEvent } from "./store.mjs";
+import { isPoweredOff } from "./powerDown.mjs";
+import { isLockoutActive } from "./lockoutMode.mjs";
+
+const INGAME_CHAT_CHANNEL =
+  AVA_CHANNELS.ingameChat ||
+  String(process.env.AVA_INGAME_CHAT_CHANNEL_ID || "").trim() ||
+  "1516706598519832677";
+
+const BRIDGE_FOOTER = "rootmc-bridge:";
+
+/** Default 3 minutes. Override with AVA_INGAME_CHAT_MS (ms). */
+export function ingameChatAssistIntervalMs() {
+  const n = Number(process.env.AVA_INGAME_CHAT_MS || 3 * 60 * 1000);
+  return Number.isFinite(n) && n >= 60_000 ? n : 3 * 60 * 1000;
+}
+
+export function ingameChatAssistBootDelayMs() {
+  const n = Number(process.env.AVA_INGAME_CHAT_BOOT_MS || 45_000);
+  return Number.isFinite(n) && n >= 5_000 ? n : 45_000;
+}
+
+function statePath() {
+  return path.join(storePaths().dir, "ingame-chat-assist.json");
+}
+
+function trainingChatPath() {
+  const dir = path.join(storePaths().dir, "training");
+  fs.mkdirSync(dir, { recursive: true });
+  return path.join(dir, "ingame-chat.jsonl");
+}
+
+function loadState() {
+  try {
+    if (!fs.existsSync(statePath())) {
+      return { lastMessageId: null, lastRunAt: 0, replied: {} };
+    }
+    return JSON.parse(fs.readFileSync(statePath(), "utf8").replace(/^\uFEFF/, ""));
+  } catch {
+    return { lastMessageId: null, lastRunAt: 0, replied: {} };
+  }
+}
+
+function saveState(state) {
+  fs.writeFileSync(statePath(), JSON.stringify(state, null, 2), "utf8");
+}
+
+function appendTrainingRow(row) {
+  try {
+    fs.appendFileSync(trainingChatPath(), `${JSON.stringify(row)}\n`, "utf8");
+  } catch (err) {
+    console.warn("ingameChatAssist training:", err.message);
+  }
+}
+
+/**
+ * Parse Root-Discord bridge embeds → chat lines.
+ * Author: "[C] Steve" / "[T] Alex" · footer: rootmc-bridge:C:chat
+ */
+export function parseBridgeMessage(msg) {
+  const embeds = Array.isArray(msg?.embeds) ? msg.embeds : [];
+  for (const emb of embeds) {
+    const footer = String(emb?.footer?.text || "");
+    if (!footer.startsWith(BRIDGE_FOOTER)) continue;
+    const rest = footer.slice(BRIDGE_FOOTER.length);
+    const [tag, kind] = rest.split(":", 2);
+    const serverTag = String(tag || "").toUpperCase();
+    const kindNorm = String(kind || "chat").toLowerCase();
+    const authorName = String(emb?.author?.name || "");
+    const prefix = `[${serverTag}] `;
+    const username = authorName.startsWith(prefix)
+      ? authorName.slice(prefix.length).trim()
+      : authorName.replace(/^\[[A-Za-z0-9]+\]\s*/, "").trim();
+    const text = String(emb?.description || "").trim();
+    if (!username || !text) continue;
+    return {
+      messageId: String(msg.id),
+      username,
+      text,
+      kind: kindNorm,
+      serverTag,
+      target: serverTag === "T" || serverTag === "TOWNY" ? "towny" : "primary",
+      at: msg.timestamp ? Date.parse(msg.timestamp) : Date.now(),
+    };
+  }
+
+  // Fallback: plain "**Name**: message" from Worker path
+  const content = String(msg?.content || "").trim();
+  const m = content.match(/^\*\*([^*]+)\*\*:\s*(.+)$/s);
+  if (m) {
+    return {
+      messageId: String(msg.id),
+      username: m[1].trim(),
+      text: m[2].trim(),
+      kind: "chat",
+      serverTag: "?",
+      target: "primary",
+      at: msg.timestamp ? Date.parse(msg.timestamp) : Date.now(),
+    };
+  }
+  return null;
+}
+
+/** Help-shaped / Ava-addressed — otherwise stay silent. */
+export function needsIngameAssist(line) {
+  if (!line || line.kind !== "chat") return false;
+  const t = String(line.text || "").trim();
+  if (!t || t.length < 3) return false;
+  // Banter / one-word noise
+  if (/^(lol+|lmao+|gg|wp|ez|nice|ok|k|ty|thx|np|brb|afk|yo|hey|hi)\.?$/i.test(t)) {
+    return false;
+  }
+  if (/\b(ava|ivy|@ava)\b/i.test(t)) return true;
+  if (
+    /\b(how\s+do\s+i|how\s+to|where\s+(is|do|can)|what\s+is|can\s+(someone|anyone|you)|help\s+me|i\s+can'?t|doesn'?t\s+work|broken|stuck|claim|towny|vote\s*shard|\/ec|\/proposal|\/link|verify|pro\s+member|gold|treasury|map\.rootmc)\b/i.test(
+      t,
+    )
+  ) {
+    return true;
+  }
+  if (/\?$/.test(t) && t.length >= 12) return true;
+  return false;
+}
+
+function sanitizeTellBody(text) {
+  return String(text || "")
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/§./g, "")
+    .replace(/["`]/g, "'")
+    .slice(0, 200)
+    .trim();
+}
+
+function sanitizePlayerName(name) {
+  const n = String(name || "").trim();
+  if (!/^[A-Za-z0-9_]{1,16}$/.test(n)) return null;
+  return n;
+}
+
+/** Heuristic short answers when local brain is down — still quiet if unknown. */
+function heuristicAssist(line) {
+  const t = line.text.toLowerCase();
+  if (/\blink\b|verify|discord/.test(t)) {
+    return "Link Discord: run /link in-game, then finish verify at https://rootmc.net/verify/ — Ava";
+  }
+  if (/\bclaim/.test(t) && line.target === "claims") {
+    return "Land: use in-game claim/town tools — wiki https://rootmc.net/wiki/ · map https://map.rootmc.net — Ava";
+  }
+  if (/\btown|nation|towny/.test(t)) {
+    return "Towns: /t for town help · map https://map.rootmc.net · wiki https://rootmc.net/wiki/ — Ava";
+  }
+  if (/\bvoteshard|vote\s*shard|\/ec\b|governance|how\s+to\s+vote/.test(t)) {
+    return "Vote Shards live in /ec · cast on Discord #voting or https://rootmc.net/council/ — Ava";
+  }
+  if (/\bpro\b|membership|subscribe/.test(t)) {
+    return "RootMC Pro (pay to steer, not P2W): https://rootmc.net/pro/ — Ava";
+  }
+  if (/\bgold\b|economy|balance|wallet|reserve/.test(t)) {
+    return "Currency is Gold (G). /bal · economy https://rootmc.net/economy/ — Ava";
+  }
+  if (/\bproposal|\/proposal/.test(t)) {
+    return "Feature ideas: /proposal <idea> (64 G) — Ava formalizes when online — Ava";
+  }
+  if (/\bava\b|\bivy\b/.test(t) && /\b(who|what|hi|hey|hello)\b/.test(t)) {
+    return "hey — i'm Ava, RootMC lead-dev. ask a concrete question and i'll help — Ava";
+  }
+  return null;
+}
+
+async function craftAssistReply(line, env) {
+  const heuristic = heuristicAssist(line);
+  try {
+    if (await shouldUseLocalBrain(env)) {
+      const r = await localRecommend({
+        question: `In-game player ${line.username} on ${line.target} said: "${line.text}". Give ONE short private tell reply (≤180 chars) that helps. If you cannot help usefully, reply exactly: SILENCE. Gold (G). No secrets. Sign mentally as Ava — do not paste Discord markdown.`,
+        context: `server=${line.target} tag=${line.serverTag}`,
+        env,
+        authorName: line.username,
+        surface: "minecraft",
+      });
+      let text = String(r?.text || "").trim();
+      if (/^SILENCE\b/i.test(text) || r?.shouldEscalate) {
+        return heuristic; // may still be null → quiet
+      }
+      text = sanitizeTellBody(text.replace(/^REPLY:\s*/i, ""));
+      if (text.length >= 8) return text;
+    }
+  } catch (err) {
+    console.warn("ingameChatAssist brain:", err.message);
+  }
+  return heuristic;
+}
+
+async function listOnlineNames(target) {
+  const res = await guardedRcon("list", { allow: true, target });
+  if (!res.ok) return null;
+  const body = String(res.output || "");
+  // "There are 2 of a max of 100 players online: Alice, Bob"
+  const m = body.match(/:\s*(.+)$/s);
+  if (!m) return [];
+  return m[1]
+    .split(/,|\n/)
+    .map((s) => s.trim())
+    .filter((s) => /^[A-Za-z0-9_]{1,16}$/.test(s));
+}
+
+async function tellPlayer(target, username, body) {
+  const name = sanitizePlayerName(username);
+  const msg = sanitizeTellBody(body);
+  if (!name || !msg) return { ok: false, reason: "bad_args" };
+  // Paper: tell / msg / w
+  return guardedRcon(`tell ${name} ${msg}`, { allow: true, target });
+}
+
+/**
+ * One batch pass. Quiet no-op when nothing to do.
+ * @returns {Promise<{ ok: boolean, scanned: number, assisted: number, silent: boolean, reason?: string }>}
+ */
+export async function runIngameChatAssist({ env: envIn, force = false } = {}) {
+  if (isPoweredOff() || isHushed() || isLockoutActive() || isEmergencyStopped()) {
+    return { ok: true, scanned: 0, assisted: 0, silent: true, reason: "muted" };
+  }
+
+  const env = envIn || (await loadEnv());
+  const token = botToken(env);
+  if (!token) {
+    return { ok: false, scanned: 0, assisted: 0, silent: true, reason: "no_token" };
+  }
+
+  const state = loadState();
+  const now = Date.now();
+  if (!force && state.lastRunAt && now - state.lastRunAt < ingameChatAssistIntervalMs() * 0.85) {
+    return { ok: true, scanned: 0, assisted: 0, silent: true, reason: "throttle" };
+  }
+
+  const fetchJson = makeFetchJson(token);
+  const qs = new URLSearchParams({ limit: "40" });
+  if (state.lastMessageId) qs.set("after", String(state.lastMessageId));
+
+  let messages = [];
+  try {
+    messages = await fetchJson(
+      `/channels/${encodeURIComponent(INGAME_CHAT_CHANNEL)}/messages?${qs}`,
+    );
+  } catch (err) {
+    console.warn("ingameChatAssist fetch:", err.message);
+    return { ok: false, scanned: 0, assisted: 0, silent: true, reason: "fetch_failed" };
+  }
+
+  // Discord returns newest-first; process oldest→newest
+  const rows = Array.isArray(messages) ? [...messages].reverse() : [];
+  let newestId = state.lastMessageId;
+  let scanned = 0;
+  const assistCandidates = [];
+
+  for (const msg of rows) {
+    if (!msg?.id) continue;
+    newestId = msg.id;
+    const line = parseBridgeMessage(msg);
+    if (!line) continue;
+    scanned += 1;
+
+    appendTrainingRow({
+      at: Date.now(),
+      surface: "minecraft",
+      messageId: line.messageId,
+      username: line.username,
+      text: line.text.slice(0, 500),
+      kind: line.kind,
+      serverTag: line.serverTag,
+      target: line.target,
+      source: "ingame_chat_assist",
+    });
+
+    if (line.kind === "chat") {
+      observeMinecraftLine({
+        minecraftName: line.username,
+        text: line.text,
+        server: line.target,
+        source: "ingame_chat",
+      });
+    }
+
+    if (needsIngameAssist(line)) {
+      const key = `${line.username}:${line.text.slice(0, 80)}`;
+      const replied = state.replied || {};
+      if (replied[key] && now - replied[key] < 30 * 60 * 1000) continue;
+      assistCandidates.push(line);
+    }
+  }
+
+  state.lastMessageId = newestId || state.lastMessageId;
+  state.lastRunAt = now;
+
+  if (!assistCandidates.length) {
+    saveState(state);
+    return { ok: true, scanned, assisted: 0, silent: true, reason: "nothing_needed" };
+  }
+
+  if (!rconConfigured()) {
+    // Still saved training — can't tell in-world
+    saveState(state);
+    appendAction("ingameChatAssist.no_rcon", { scanned, pending: assistCandidates.length });
+    return {
+      ok: true,
+      scanned,
+      assisted: 0,
+      silent: true,
+      reason: "rcon_not_configured",
+    };
+  }
+
+  const maxPerBatch = Math.max(
+    1,
+    Math.min(5, Number(process.env.AVA_INGAME_CHAT_MAX_TELLS || 3) || 3),
+  );
+  let assisted = 0;
+  const onlineCache = {};
+
+  for (const line of assistCandidates.slice(0, maxPerBatch)) {
+    const target =
+      rconTargets().some((t) => t.id === line.target) ? line.target : "primary";
+
+    if (onlineCache[target] === undefined) {
+      onlineCache[target] = await listOnlineNames(target);
+    }
+    const online = onlineCache[target];
+    // list succeeded with names — skip if player not online; null = list failed → still try tell
+    if (
+      Array.isArray(online) &&
+      !online.map((n) => n.toLowerCase()).includes(line.username.toLowerCase())
+    ) {
+      continue;
+    }
+
+    const replyText = await craftAssistReply(line, env);
+    if (!replyText) continue;
+
+    const sent = await tellPlayer(target, line.username, replyText);
+    if (!sent.ok) {
+      console.warn("ingameChatAssist tell:", sent.reason, line.username);
+      continue;
+    }
+
+    assisted += 1;
+    state.replied = state.replied || {};
+    state.replied[`${line.username}:${line.text.slice(0, 80)}`] = now;
+    // prune old reply keys
+    for (const [k, at] of Object.entries(state.replied)) {
+      if (now - at > 2 * 60 * 60 * 1000) delete state.replied[k];
+    }
+
+    await recordAvaUtterance({
+      surface: "minecraft",
+      channelId: `rcon:${target}`,
+      content: replyText,
+      kind: "ingame_tell",
+      source: "ingame_chat_assist",
+      meta: {
+        player: line.username,
+        trigger: line.text.slice(0, 200),
+        serverTag: line.serverTag,
+      },
+    });
+
+    observeMinecraftLine({
+      minecraftName: line.username,
+      text: `[Ava tell] ${replyText}`,
+      server: target,
+      source: "ingame_assist_out",
+    });
+  }
+
+  saveState(state);
+  if (assisted > 0) {
+    pushStatusEvent(`ingame chat assist · ${assisted} tell(s) · scanned ${scanned}`);
+    appendAction("ingameChatAssist.batch", { scanned, assisted });
+  }
+
+  return {
+    ok: true,
+    scanned,
+    assisted,
+    silent: assisted === 0,
+    reason: assisted ? "assisted" : "quiet_after_filter",
+  };
+}

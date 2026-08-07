@@ -1,0 +1,571 @@
+/**
+ * Ava staged boot — lockout/safemode + regular profiles.
+ * Relays every stage start/complete to Alex on Telegram.
+ *
+ * Stage 0 — system already up (systemd)
+ * Stage 1 — programs + Telegram + MySQL
+ * Stage 2 — web / phpMyAdmin (after MySQL OK)
+ * Stage 3 — EcoFlow + Paper test MC + Llama
+ * Stage 4 — APIs / live polls + Cursor/Grok warmup
+ * Stage 5 — finalize live
+ */
+import { spawn, execFile } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+import { AVA_PORT, AVA_HANDOFF } from "./config.mjs";
+import { storePaths, pushStatusEvent, setHushed } from "./store.mjs";
+import { isLockoutActive, setLockout } from "./lockoutMode.mjs";
+import {
+  loadRememberedMood,
+  rememberMood,
+  restoreMoodOnBoot,
+} from "./moodState.mjs";
+import { loadMysqlCreds } from "./mysqlCreds.mjs";
+import {
+  notifyBoot,
+  stageStart,
+  stageDone,
+  stageFail,
+  appendBootLog,
+} from "./bootTelegram.mjs";
+
+const execFileAsync = promisify(execFile);
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const AVA_ROOT = path.resolve(__dirname, "..");
+const AVA_HOME = path.resolve(AVA_HANDOFF || path.join(AVA_ROOT, ".."));
+
+/** @typedef {'lockout'|'regular'} BootProfile */
+
+function profilePath() {
+  return path.join(storePaths().dir, "boot-profile.json");
+}
+
+export function loadBootProfile() {
+  try {
+    if (fs.existsSync(profilePath())) {
+      return JSON.parse(fs.readFileSync(profilePath(), "utf8"));
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function saveBootProfile(payload) {
+  fs.mkdirSync(path.dirname(profilePath()), { recursive: true });
+  fs.writeFileSync(profilePath(), JSON.stringify(payload, null, 2), "utf8");
+  return payload;
+}
+
+/**
+ * Resolve boot profile. Force restart / host reboot / remembered lockout → lockout safemode.
+ */
+export function resolveBootProfile({ forceLockout = false } = {}) {
+  const remembered = loadRememberedMood() || {};
+  const prior = loadBootProfile() || {};
+  const lockout =
+    forceLockout ||
+    isLockoutActive() ||
+    Boolean(remembered.lockout) ||
+    String(remembered.mood || "").toLowerCase() === "lockout" ||
+    prior.profile === "lockout" ||
+    prior.safemode === true ||
+    prior.forceRestart === true;
+
+  const profile = /** @type {BootProfile} */ (lockout ? "lockout" : "regular");
+  const saved = saveBootProfile({
+    profile,
+    safemode: lockout,
+    forceRestart: Boolean(prior.forceRestart && lockout),
+    label: lockout ? "lockout / safemode companion" : "regular public",
+    at: Date.now(),
+  });
+  return saved;
+}
+
+/** Mark next boot as lockout safemode (force restart / host reboot). */
+export function markNextBootSafemode(reason = "force restart") {
+  const cur = loadBootProfile() || {};
+  return saveBootProfile({
+    ...cur,
+    profile: "lockout",
+    safemode: true,
+    forceRestart: true,
+    reason: String(reason).slice(0, 200),
+    at: Date.now(),
+  });
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function waitUrl(url, { timeoutMs = 30_000, okCodes = [200, 301, 302, 401, 403] } = {}) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 2000);
+      const res = await fetch(url, { signal: ac.signal, redirect: "manual" });
+      clearTimeout(t);
+      if (okCodes.includes(res.status) || res.ok) return { ok: true, status: res.status };
+    } catch {
+      /* retry */
+    }
+    await sleep(500);
+  }
+  return { ok: false, status: 0 };
+}
+
+function runDetached(cmd, args, { cwd, env, logFile } = {}) {
+  try {
+    const out = logFile
+      ? fs.openSync(logFile, "a")
+      : "ignore";
+    const child = spawn(cmd, args, {
+      cwd: cwd || AVA_HOME,
+      detached: true,
+      stdio: logFile ? ["ignore", out, out] : "ignore",
+      env: { ...process.env, ...(env || {}) },
+    });
+    child.unref();
+    return { ok: true, pid: child.pid };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
+async function mysqlPing() {
+  const login = loadMysqlCreds() || {};
+  const user = login.user || "ava";
+  const pass = login.password || process.env.AVA_MYSQL_PASSWORD || "";
+  const host = login.host || "127.0.0.1";
+  const port = String(login.port || 3306);
+  try {
+    await execFileAsync(
+      "mysqladmin",
+      ["--protocol=tcp", `-h${host}`, `-P${port}`, `-u${user}`, `-p${pass}`, "ping", "--silent"],
+      { timeout: 8000 },
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: err?.stderr?.toString?.() || err.message };
+  }
+}
+
+async function ensureMysql() {
+  const login = loadMysqlCreds() || {};
+  const ping = await mysqlPing();
+  if (ping?.ok) {
+    return {
+      ok: true,
+      detail: `MySQL OK · ${login?.host || "127.0.0.1"}:${login?.port || 3306} / ${login?.database || "ava_core"} · user ${login?.user || "ava"}`,
+    };
+  }
+  // try start service
+  runDetached("sudo", ["-n", "systemctl", "start", "mariadb"]);
+  runDetached("sudo", ["-n", "systemctl", "start", "mysql"]);
+  await sleep(3000);
+  const ping2 = await mysqlPing();
+  if (ping2?.ok) {
+    return { ok: true, detail: "MySQL started and ping OK" };
+  }
+  return {
+    ok: false,
+    detail:
+      `MySQL failed: ${ping2?.reason || ping?.reason || "unreachable"}\n` +
+      `Fix: sudo systemctl status mariadb · check ${path.join(AVA_HOME, "data/mysql-login.json")}\n` +
+      `phpMyAdmin: https://ava.rootmc.net/phpmyadmin/`,
+  };
+}
+
+async function stage1(profile) {
+  await stageStart(
+    1,
+    "Programs begin · Telegram primary linked",
+    `Profile: **${profile.label}**\nHost: Ava-core Pacific SSD\nHandoff: ${AVA_HOME}`,
+  );
+  const host = {
+    hostname: fs.existsSync("/etc/hostname")
+      ? fs.readFileSync("/etc/hostname", "utf8").trim()
+      : "ava-core",
+    uptimeSec: Math.floor(fs.readFileSync("/proc/uptime", "utf8").split(" ")[0]),
+  };
+  await notifyBoot(
+    `📡 Boot info\n` +
+      `host: ${host.hostname}\n` +
+      `uptime: ${host.uptimeSec}s\n` +
+      `profile: ${profile.profile}\n` +
+      `Phase 1 begins — MySQL checks next.`,
+  );
+
+  await notifyBoot("🗄 Stage 1 · MySQL checks / login / database boot…");
+  const mysql = await ensureMysql();
+  if (!mysql.ok) {
+    await stageFail(1, "MySQL", mysql.detail);
+    return { ok: false, mysql };
+  }
+  await stageDone(1, "MySQL ready", mysql.detail);
+  return { ok: true, mysql };
+}
+
+async function stage2(profile) {
+  await stageStart(
+    2,
+    "Web surfaces + phpMyAdmin",
+    "Starts only after MySQL OK.",
+  );
+  // Ensure apache for phpmyadmin
+  runDetached("sudo", ["-n", "systemctl", "start", "apache2"]);
+  const checks = [];
+  const home = await waitUrl(`http://127.0.0.1:${AVA_PORT}/`, { timeoutMs: 45_000 });
+  checks.push(`home :${AVA_PORT}/ → ${home.ok ? home.status : "FAIL"}`);
+  const health = await waitUrl(`http://127.0.0.1:${AVA_PORT}/health`);
+  checks.push(`health → ${health.ok ? health.status : "FAIL"}`);
+  const pma = await waitUrl("http://127.0.0.1:8089/", { timeoutMs: 15_000 });
+  checks.push(`phpMyAdmin :8089 → ${pma.ok ? pma.status : "FAIL"}`);
+  const pmaProxy = await waitUrl(`http://127.0.0.1:${AVA_PORT}/phpmyadmin/`, {
+    timeoutMs: 10_000,
+    okCodes: [200, 301, 302, 401, 403, 404],
+  });
+  checks.push(`/phpmyadmin proxy → ${pmaProxy.status || "FAIL"}`);
+  const publicHome = await waitUrl("https://ava.rootmc.net/", { timeoutMs: 20_000 });
+  checks.push(`ava.rootmc.net → ${publicHome.ok ? publicHome.status : "FAIL"}`);
+
+  const ok = home.ok && health.ok;
+  const detail =
+    checks.join("\n") +
+    `\nBroadcasting: ${ok ? "yes" : "partial"}` +
+    (profile.profile === "lockout"
+      ? "\nLockout: public pages stay up; chat is Alex DMs only."
+      : "\nRegular: public surfaces open.");
+  if (!ok) {
+    await stageFail(2, "Web hosts", detail);
+    return { ok: false, detail };
+  }
+  await stageDone(2, "Connected & broadcasting", detail);
+  await notifyBoot(
+    "🌐 Web live\n" +
+      "• https://ava.rootmc.net/\n" +
+      "• https://ava.rootmc.net/phpmyadmin/\n" +
+      "• LAN :8787\nStarting Stage 3…",
+  );
+  return { ok: true, detail };
+}
+
+async function stage3Ecoflow() {
+  await notifyBoot("🔋 Stage 3a · EcoFlow stats + polling + DB/web…");
+  try {
+    const { refreshEcoFlow, hydrateEcoMinutesFromD1 } = await import("./ecoflow.mjs");
+    await hydrateEcoMinutesFromD1?.().catch(() => {});
+    const r = await refreshEcoFlow();
+    // light poll loop owned by poller later — kick once here
+    const ok = r?.ok !== false;
+    await notifyBoot(
+      ok
+        ? `✅ EcoFlow refresh OK · polling will continue via poller/server ops`
+        : `⚠️ EcoFlow refresh soft-fail · ${r?.detail || r?.reason || "see logs"} — will retry in poller`,
+    );
+    return { ok: true, eco: r };
+  } catch (err) {
+    await notifyBoot(`⚠️ EcoFlow module: ${err.message} — continuing`);
+    return { ok: true, soft: true };
+  }
+}
+
+function paperHome() {
+  return (
+    process.env.AVA_PAPER_HOME ||
+    path.join(AVA_HOME, "workstations/minecraft-test")
+  );
+}
+
+function paperArchive() {
+  return (
+    process.env.AVA_PAPER_ARCHIVE ||
+    "/mnt/e/old/Gen3 Current Handoff"
+  );
+}
+
+async function stage3Paper() {
+  await notifyBoot(
+    "⛏ Stage 3b · Minecraft Paper test server (no Towny) + playit…",
+  );
+  const home = paperHome();
+  const archive = paperArchive();
+  fs.mkdirSync(home, { recursive: true });
+  const jar =
+    fs.readdirSync(home).find((f) => /^paper-.*\.jar$/i.test(f)) ||
+    (fs.existsSync(archive)
+      ? fs.readdirSync(archive).find((f) => /^paper-.*\.jar$/i.test(f))
+      : null);
+
+  // Prefer SSD copy of jar+plugins; worlds may symlink to HDD
+  if (!fs.existsSync(path.join(home, "paper.jar")) && jar && fs.existsSync(archive)) {
+    try {
+      const srcJar = path.join(archive, jar);
+      if (fs.existsSync(srcJar) && !fs.existsSync(path.join(home, jar))) {
+        fs.copyFileSync(srcJar, path.join(home, jar));
+      }
+      const plugSrc = path.join(archive, "plugins");
+      const plugDst = path.join(home, "plugins");
+      if (fs.existsSync(plugSrc) && !fs.existsSync(plugDst)) {
+        // shallow: tell operator we need rsync — spawn rsync excluding huge
+        runDetached("rsync", [
+          "-a",
+          "--max-size=50m",
+          `${plugSrc}/`,
+          `${plugDst}/`,
+        ]);
+      }
+      // eula
+      fs.writeFileSync(path.join(home, "eula.txt"), "eula=true\n");
+      if (!fs.existsSync(path.join(home, "server.properties"))) {
+        fs.writeFileSync(
+          path.join(home, "server.properties"),
+          "motd=Ava Core Test Server\\nserver-port=25565\\nmax-players=20\\n",
+        );
+      }
+      // symlink world from archive if present and not on SSD
+      const worldSrc = path.join(archive, "world");
+      const worldDst = path.join(home, "world");
+      if (fs.existsSync(worldSrc) && !fs.existsSync(worldDst)) {
+        try {
+          fs.symlinkSync(worldSrc, worldDst, "dir");
+        } catch {
+          /* windows/fuse may block — leave fresh world */
+        }
+      }
+    } catch (err) {
+      await notifyBoot(`⚠️ Paper prepare: ${err.message}`);
+    }
+  }
+
+  const jars = fs.existsSync(home)
+    ? fs.readdirSync(home).filter((f) => /\.jar$/i.test(f))
+    : [];
+  if (!jars.length) {
+    await notifyBoot(
+      `⚠️ Paper jar not on SSD yet.\n` +
+        `Expected: ${home}\nArchive: ${archive}\n` +
+        `Skipping MC start this boot — Stage 3 continues (llama). ` +
+        `Say when to rsync test server onto SSD.`,
+    );
+    return { ok: true, skipped: true };
+  }
+
+  const mainJar = jars.find((j) => /paper/i.test(j)) || jars[0];
+  const logFile = path.join(AVA_HOME, "logs/paper-test.log");
+  // If Paper already running, leave it — don't spawn a second instance.
+  try {
+    const { stdout } = await execFileAsync(
+      "bash",
+      ["-lc", "pgrep -af 'workstations/minecraft-test.*\\.jar' || true"],
+      { timeout: 5000 },
+    );
+    if (/\.jar\b/.test(String(stdout || ""))) {
+      await notifyBoot("⛏ Paper test already running — left alone (no double-start).");
+      return { ok: true, skipped: false, alreadyUp: true };
+    }
+  } catch {
+    /* proceed to start */
+  }
+  // stop existing + wait for session.lock
+  runDetached("pkill", ["-f", `workstations/minecraft-test.*\\.jar`]);
+  await sleep(3000);
+  runDetached("pkill", ["-9", "-f", `workstations/minecraft-test.*\\.jar`]);
+  await sleep(2000);
+  const start = runDetached(
+    "java",
+    ["-Xms1G", "-Xmx2G", "-jar", mainJar, "--nogui"],
+    { cwd: home, logFile },
+  );
+  // playit if present
+  const playitBin =
+    ["/usr/local/bin/playit", "/home/ava-core/.local/bin/playit", "playit"].find(
+      (p) => p === "playit" || fs.existsSync(p),
+    ) || null;
+  let playit = { ok: false };
+  if (playitBin) {
+    const pLog = path.join(AVA_HOME, "logs/playit.log");
+    playit = runDetached(playitBin, [], {
+      cwd: path.join(AVA_HOME, "workstations/rootmc/playit"),
+      logFile: pLog,
+    });
+  }
+  await notifyBoot(
+    start.ok
+      ? `✅ Paper starting · jar ${mainJar} · pid ${start.pid || "?"}\n` +
+          `playit: ${playit.ok ? "started" : "not found / skipped"}\nlog: ${logFile}`
+      : `❌ Paper start failed: ${start.reason}`,
+  );
+  return { ok: start.ok, start, playit };
+}
+
+async function stage3Llama() {
+  await notifyBoot("🦙 Stage 3c · Llama / Ollama…");
+  runDetached("sudo", ["-n", "systemctl", "start", "ollama"]);
+  await sleep(2000);
+  let ok = false;
+  let detail = "";
+  try {
+    let base = "http://127.0.0.1:11434";
+    let model = process.env.AVA_OLLAMA_MODEL || "llama3.1:8b";
+    try {
+      const lb = await import("./localBrain.mjs");
+      if (typeof lb.ollamaBaseUrl === "function") base = lb.ollamaBaseUrl();
+      if (typeof lb.ollamaModel === "function") model = lb.ollamaModel();
+      if (typeof lb.probeOllama === "function") ok = await lb.probeOllama();
+      else {
+        const r = await fetch(`${base}/api/tags`);
+        ok = r.ok;
+      }
+    } catch {
+      const r = await fetch(`${base}/api/tags`);
+      ok = r.ok;
+    }
+    detail = `Ollama ${base} · model ${model} · probe ${ok ? "OK" : "FAIL"}`;
+  } catch (err) {
+    detail = err.message;
+  }
+  if (!ok) {
+    await notifyBoot(`⚠️ Llama not ready yet — ${detail}. Poller will retry.`);
+  } else {
+    await notifyBoot(`✅ Llama ready · ${detail}`);
+  }
+  return { ok: true, llama: ok, detail };
+}
+
+async function stage3(profile) {
+  await stageStart(3, "EcoFlow · Paper test · Llama", `profile=${profile.profile}`);
+  const eco = await stage3Ecoflow();
+  const paper = await stage3Paper();
+  const llama = await stage3Llama();
+  await stageDone(
+    3,
+    "Stage 3 finished",
+    `EcoFlow · Paper ${paper.skipped ? "skipped" : paper.ok ? "up" : "fail"} · Llama ${llama.llama ? "up" : "warming"}`,
+  );
+  return { ok: true, eco, paper, llama };
+}
+
+async function stage4(profile) {
+  await stageStart(4, "APIs · live data · Cursor/Grok warmup");
+  // server already should be up — verify APIs
+  const apiStatus = await waitUrl(`http://127.0.0.1:${AVA_PORT}/api/status`);
+  const apiSolar = await waitUrl(`http://127.0.0.1:${AVA_PORT}/api/solar?hours=1`);
+  await notifyBoot(
+    `API checks\n/api/status → ${apiStatus.status || "FAIL"}\n/api/solar → ${apiSolar.status || "FAIL"}`,
+  );
+
+  // Cursor / Grok warmup (once)
+  let warm = "skipped";
+  try {
+    const { cursorApiKey, forceDreamBrain } = await import("./config.mjs");
+    const hasCursor = Boolean(cursorApiKey());
+    const dream = forceDreamBrain();
+    await notifyBoot(
+      `🧠 Warmup\nCursor key: ${hasCursor ? "present" : "missing"}\n` +
+        `Dream/Grok force: ${dream ? "on" : "off"}\n` +
+        `Ecosystem: SSD Ava-core · MariaDB ava_core · phpMyAdmin · EcoFlow · Ollama · ` +
+        `Paper test ${paperHome()} · profile ${profile.profile}`,
+    );
+    if (hasCursor && profile.profile === "regular") {
+      // light touch — don't burn tokens in lockout unless needed
+      warm = "cursor available (regular)";
+    } else if (hasCursor && profile.profile === "lockout") {
+      warm = "cursor available (lockout — private only)";
+    } else {
+      warm = "cursor unavailable — llama-core primary";
+    }
+    // Skip localRecommend boot ping — ollama can hang and delays Telegram live.
+    warm += " · local llama ping skipped (fast boot)";
+  } catch (err) {
+    warm = err.message;
+  }
+
+  await stageDone(4, "APIs + warmup", warm);
+  return { ok: apiStatus.ok, warm };
+}
+
+async function stage5(profile) {
+  await stageStart(5, "Finalize — Ava live");
+  if (profile.profile === "lockout") {
+    setLockout({
+      on: true,
+      reason: "boot safemode / lockout remembered",
+      by: "boot-sequence",
+    });
+    setHushed(true, "boot lockout companion");
+    rememberMood({
+      mood: "lockout",
+      lockout: true,
+      hush: true,
+      asleep: false,
+      poweredOff: false,
+      reason: "stage5 boot safemode",
+      by: "boot-sequence",
+    });
+  }
+  // clear one-shot forceRestart flag
+  const p = loadBootProfile() || {};
+  saveBootProfile({ ...p, forceRestart: false, liveAt: Date.now() });
+
+  await stageDone(
+    5,
+    "Ava is LIVE",
+    profile.profile === "lockout"
+      ? "Lockout/safemode · Alex verified DMs only · infra broadcasting · ready to process"
+      : "Regular · public surfaces · ready to process",
+  );
+  await notifyBoot(
+    profile.profile === "lockout"
+      ? "🔒 Ava live in lockout companion mode. I'm with you on Telegram/Discord/Slack DMs."
+      : "🌿 Ava live in regular mode. Channels + digs online per policy.",
+  );
+  return { ok: true };
+}
+
+/**
+ * Full staged boot. Call from index after HTTP server is up (or as first child task).
+ * @param {{ forceLockout?: boolean }} opts
+ */
+export async function runBootSequence(opts = {}) {
+  // Stage 0 note
+  restoreMoodOnBoot({
+    isLockoutActive,
+    setLockout,
+    setHushed,
+  });
+  const profile = resolveBootProfile({ forceLockout: opts.forceLockout });
+  await notifyBoot(
+    `⏻ Stage 0 — System up\n` +
+      `Ava-core Pacific boot sequence starting.\n` +
+      `Profile: **${profile.profile}** (${profile.label})\n` +
+      `I will relay every stage to you.`,
+  );
+
+  const s1 = await stage1(profile);
+  if (!s1.ok) {
+    await notifyBoot(
+      "⛔ Boot halted at Stage 1 (MySQL). Web Stage 2 not started.\n" + s1.mysql?.detail,
+    );
+    return { ok: false, stage: 1, profile };
+  }
+
+  const s2 = await stage2(profile);
+  const s3 = await stage3(profile);
+  const s4 = await stage4(profile);
+  const s5 = await stage5(profile);
+
+  pushStatusEvent(`boot sequence complete · ${profile.profile}`);
+  appendBootLog(`COMPLETE profile=${profile.profile}`);
+  return {
+    ok: Boolean(s2.ok && s5.ok),
+    profile,
+    stages: { s1, s2, s3, s4, s5 },
+  };
+}
