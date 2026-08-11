@@ -59,6 +59,7 @@ This repository is the **public discovery packet** for Ava: searchable, citable,
 **Live boards (public display):**
 
 - Wiki hub — https://rootrecord.info/ava/
+- Build & support Ava — https://rootrecord.info/ava/build
 - Status / solar — https://rootrecord.info/ava/status
 - Connections — https://rootrecord.info/ava/status/connections
 - Logs — https://rootrecord.info/ava/logs
