@@ -1,0 +1,16 @@
+name = "rootrecord-api"
+main = "src/rootrecord-api/worker.ts"
+compatibility_date = "2024-11-01"
+
+routes = [
+  { pattern = "rootrecord.online/*", zone_name = "rootrecord.online" },
+  { pattern = "api.rootrecord.online/*", zone_name = "rootrecord.online" },
+]
+
+[[d1_databases]]
+binding = "AVA_HEARTBEAT_DB"
+database_name = "ava-heartbeat"
+database_id = ""
+
+[triggers]
+crons = ["*/10 * * * *", "*/5 * * * *"]

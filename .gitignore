@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Node / Workers
+node_modules/
+.wrangler/
+dist/
+*.tsbuildinfo
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Runtime data — persisted on disk, not in git
+data/generated/
+data/logs/
+data/db/
+data/reports/
+
+# Audio assets — migrated separately, large
+apps/voice/assets/numbers/
+apps/voice/assets/words/
+apps/voice/assets/time_clips/
+apps/voice/assets/sounds/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,23 @@
+name = "ava-api"
+main = "src/ava-api/worker.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Routes for avaivy.cloud
+routes = [
+  { pattern = "avaivy.cloud/*", zone_name = "avaivy.cloud" },
+  { pattern = "api.avaivy.cloud/*", zone_name = "avaivy.cloud" },
+]
+
+# D1 binding for heartbeat
+[[d1_databases]]
+binding = "AVA_HEARTBEAT_DB"
+database_name = "ava-heartbeat"
+database_id = ""   # fill after creating DB
+
+[vars]
+AVA_ORIGIN_URL = "https://ava-origin.rootmc.net"
+
+# Scheduled triggers — stand down when Ava is awake (heartbeat gate)
+[triggers]
+crons = ["*/5 * * * *"]

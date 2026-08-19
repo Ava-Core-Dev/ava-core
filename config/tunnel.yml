@@ -1,0 +1,22 @@
+tunnel: <your-tunnel-id>
+credentials-file: /home/ava-core/.cloudflared/<your-tunnel-id>.json
+
+ingress:
+  # Ava brain — main HTTP server
+  - hostname: ava-origin.rootmc.net
+    service: http://127.0.0.1:8787
+
+  # Direct tunnel alias
+  - hostname: ava.rootmc.net
+    service: http://127.0.0.1:8787
+
+  # RootMC site origin — fixes missing hostname from old config
+  - hostname: site-origin.rootmc.net
+    service: http://127.0.0.1:8787
+
+  # Local API
+  - hostname: ava-local-api.rootmc.net
+    service: http://127.0.0.1:8791
+
+  # Catch-all
+  - service: http_status:404

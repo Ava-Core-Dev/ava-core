@@ -1,0 +1,16 @@
+name = "rootmc-api"
+main = "src/rootmc-api/worker.ts"
+compatibility_date = "2024-11-01"
+
+routes = [
+  { pattern = "rootmc.info/*", zone_name = "rootmc.info" },
+  { pattern = "api.rootmc.info/*", zone_name = "rootmc.info" },
+]
+
+[[d1_databases]]
+binding = "AVA_HEARTBEAT_DB"
+database_name = "ava-heartbeat"
+database_id = ""
+
+[triggers]
+crons = ["* * * * *", "45 8 * * *"]

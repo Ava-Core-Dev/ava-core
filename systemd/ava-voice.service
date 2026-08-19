@@ -1,0 +1,25 @@
+[Unit]
+Description=Ava Voice Pipeline + Stream Director
+After=ava-core.service
+Wants=ava-core.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=exec
+User=ava-core
+Group=ava-core
+WorkingDirectory=/home/ava-core/ava
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/home/ava-core/ava/.env
+ExecStart=/home/ava-core/ava/.venv/bin/python -m apps.voice.director
+
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+
+StandardOutput=append:/home/ava-core/ava/data/logs/ava-voice.log
+StandardError=append:/home/ava-core/ava/data/logs/ava-voice.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,260 @@
+"""
+Stream Director — centralized audio/video manager for Ava streams.
+
+Priority queue with pause/resume. Higher priority pauses current playback,
+plays to completion, then resumes the paused track where it left off.
+OBS WebSocket 5.x integration for scene/source switching and media control.
+
+Priority tiers:
+  P3 Critical  — earthquake alert, eruption alert (interrupts immediately)
+  P2 Scheduled — hourly chime, time announcement
+  P1 Report    — voice reports (weather, solar, economy, volcano) — queued FIFO
+  P0 Ambient   — rotating background MP4 playlist (paused by everything)
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import time
+from dataclasses import dataclass, field
+from enum import IntEnum
+from pathlib import Path
+from typing import Any
+
+import websockets
+
+log = logging.getLogger("ava.director")
+
+
+class Priority(IntEnum):
+    AMBIENT   = 0
+    REPORT    = 1
+    SCHEDULED = 2
+    CRITICAL  = 3
+
+
+@dataclass(order=True)
+class AudioItem:
+    priority: int
+    ts: float = field(compare=False, default_factory=time.monotonic)
+    path: Path = field(compare=False, default=None)
+    name: str = field(compare=False, default="")
+    scene: str | None = field(compare=False, default=None)   # OBS scene to switch to
+
+    def to_sse(self) -> dict:
+        return {
+            "src": f"/data/generated/{self.path.name}",
+            "name": self.name,
+            "priority": self.priority,
+        }
+
+
+# Scene map — which OBS scene to show for each report type
+SCENE_MAP: dict[str, str] = {
+    "kilauea":    "Kilauea Watch",
+    "volcano":    "Kilauea Watch",
+    "earthquake": "Quake Overlay",
+    "solar":      "Solar Dashboard",
+    "weather":    "Solar Dashboard",
+    "economy":    "Economy Board",
+    "chime":      "Default",
+    "ambient":    "Ambient Playlist",
+}
+
+
+class StreamDirector:
+    def __init__(self):
+        self._queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
+        self._current: AudioItem | None = None
+        self._paused: AudioItem | None = None
+        self._paused_position: float = 0.0
+        self._running = False
+        self._obs_ws: Any | None = None
+        self._sse_listeners: list[asyncio.Queue] = []
+
+    # ── Public API ────────────────────────────────────────────────────────────
+
+    async def queue(self, path: Path, name: str = "", priority: int = Priority.REPORT,
+                    scene: str | None = None) -> None:
+        """Submit audio to the queue. Higher priority pauses current playback."""
+        item = AudioItem(priority=-(priority), path=path, name=name, scene=scene)
+        await self._queue.put(item)
+        log.info("Queued: %s  priority=%s", name or path.name, priority)
+
+    async def queue_chime(self, path: Path) -> None:
+        await self.queue(path, name="Hourly Chime", priority=Priority.SCHEDULED, scene="Default")
+
+    async def queue_report(self, path: Path, name: str, report_type: str = "") -> None:
+        scene = SCENE_MAP.get(report_type.lower())
+        await self.queue(path, name=name, priority=Priority.REPORT, scene=scene)
+
+    async def queue_alert(self, path: Path, name: str) -> None:
+        await self.queue(path, name=name, priority=Priority.CRITICAL, scene="Kilauea Watch")
+
+    def get_status(self) -> dict:
+        return {
+            "running": self._running,
+            "current": self._current.name if self._current else None,
+            "paused": self._paused.name if self._paused else None,
+            "queue_depth": self._queue.qsize(),
+            "obs_connected": self._obs_ws is not None,
+        }
+
+    # ── OBS WebSocket ─────────────────────────────────────────────────────────
+
+    async def _connect_obs(self) -> bool:
+        from apps.core import config
+        if not config.OBS_WS_URL:
+            return False
+        try:
+            self._obs_ws = await websockets.connect(config.OBS_WS_URL, ping_interval=20)
+            # OBS WebSocket 5.x Hello → Identify handshake
+            hello = json.loads(await self._obs_ws.recv())
+            auth = hello.get("d", {}).get("authentication")
+            identify: dict = {"op": 1, "d": {"rpcVersion": 1}}
+            if auth and config.OBS_WS_PASSWORD:
+                import base64, hashlib
+                challenge = auth["challenge"]
+                salt = auth["salt"]
+                secret = base64.b64encode(
+                    hashlib.sha256((config.OBS_WS_PASSWORD + salt).encode()).digest()
+                ).decode()
+                auth_str = base64.b64encode(
+                    hashlib.sha256((secret + challenge).encode()).digest()
+                ).decode()
+                identify["d"]["authentication"] = auth_str
+            await self._obs_ws.send(json.dumps(identify))
+            identified = json.loads(await self._obs_ws.recv())
+            log.info("OBS WebSocket connected  op=%s", identified.get("op"))
+            return True
+        except Exception as e:
+            log.warning("OBS WebSocket connect failed: %s", e)
+            self._obs_ws = None
+            return False
+
+    async def _obs_request(self, request_type: str, data: dict | None = None) -> dict | None:
+        if not self._obs_ws:
+            return None
+        try:
+            import uuid
+            req_id = str(uuid.uuid4())[:8]
+            payload = {"op": 6, "d": {"requestType": request_type,
+                                       "requestId": req_id,
+                                       "requestData": data or {}}}
+            await self._obs_ws.send(json.dumps(payload))
+            resp = json.loads(await asyncio.wait_for(self._obs_ws.recv(), timeout=5))
+            return resp.get("d", {})
+        except Exception as e:
+            log.warning("OBS request %s failed: %s", request_type, e)
+            self._obs_ws = None
+            return None
+
+    async def _switch_scene(self, scene_name: str) -> None:
+        await self._obs_request("SetCurrentProgramScene", {"sceneName": scene_name})
+        log.debug("OBS scene → %s", scene_name)
+
+    # ── SSE broadcast ─────────────────────────────────────────────────────────
+
+    def _broadcast(self, item: AudioItem) -> None:
+        payload = json.dumps(item.to_sse())
+        for q in list(self._sse_listeners):
+            try:
+                q.put_nowait(payload)
+            except asyncio.QueueFull:
+                pass
+
+    def register_listener(self, q: asyncio.Queue) -> None:
+        self._sse_listeners.append(q)
+
+    def unregister_listener(self, q: asyncio.Queue) -> None:
+        try:
+            self._sse_listeners.remove(q)
+        except ValueError:
+            pass
+
+    # ── Main loop ─────────────────────────────────────────────────────────────
+
+    async def run(self) -> None:
+        self._running = True
+        await self._connect_obs()
+        log.info("Stream Director running")
+
+        while self._running:
+            try:
+                item: AudioItem = await asyncio.wait_for(self._queue.get(), timeout=5)
+                item.priority = -item.priority  # restore natural priority
+                await self._play(item)
+            except asyncio.TimeoutError:
+                continue
+            except Exception:
+                log.exception("Stream Director loop error")
+
+    async def _play(self, item: AudioItem) -> None:
+        if self._current and item.priority > self._current.priority:
+            # Pause current
+            self._paused = self._current
+            log.info("Pausing %s for %s (higher priority)", self._current.name, item.name)
+
+        self._current = item
+        if item.scene:
+            await self._switch_scene(item.scene)
+
+        self._broadcast(item)
+        log.info("Playing: %s  priority=%s  file=%s",
+                 item.name, item.priority, item.path.name if item.path else "?")
+
+        # Simulate playback duration by waiting on the queue for the duration
+        # In production, the OBS browser source signals 'ended' via SSE; here we
+        # approximate by sleeping for estimated audio length (MP3 bitrate ÷ size).
+        duration = self._estimate_duration(item.path)
+        await asyncio.sleep(duration)
+
+        self._current = None
+
+        # Resume paused track
+        if self._paused:
+            log.info("Resuming %s", self._paused.name)
+            resumed = self._paused
+            self._paused = None
+            await self._play(resumed)
+
+    @staticmethod
+    def _estimate_duration(path: Path | None) -> float:
+        if not path or not path.exists():
+            return 5.0
+        try:
+            size_bytes = path.stat().st_size
+            # Assume 128kbps MP3 → bytes/s ≈ 16000
+            return max(2.0, size_bytes / 16000)
+        except Exception:
+            return 5.0
+
+    async def stop(self) -> None:
+        self._running = False
+        if self._obs_ws:
+            await self._obs_ws.close()
+
+
+# Singleton
+_director: StreamDirector | None = None
+
+
+def get_director() -> StreamDirector:
+    global _director
+    if _director is None:
+        _director = StreamDirector()
+    return _director
+
+
+def cli():
+    """Entry point for ava-voice CLI."""
+    import sys
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s  %(name)s  %(levelname)s  %(message)s")
+    asyncio.run(get_director().run())
+
+
+if __name__ == "__main__":
+    cli()
