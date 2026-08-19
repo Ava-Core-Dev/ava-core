@@ -49,4 +49,19 @@ export async function initHeartbeatTable(env: HeartbeatEnv): Promise<void> {
       ts   TEXT NOT NULL
     )`
   );
+  await env.AVA_HEARTBEAT_DB.exec(
+    `CREATE TABLE IF NOT EXISTS ava_offline_inbox (
+      id TEXT PRIMARY KEY,
+      at INTEGER NOT NULL,
+      iso TEXT NOT NULL,
+      surface TEXT NOT NULL,
+      channel_id TEXT,
+      message_id TEXT,
+      author_id TEXT,
+      author_name TEXT,
+      kind TEXT,
+      content TEXT,
+      read_at INTEGER
+    )`
+  );
 }

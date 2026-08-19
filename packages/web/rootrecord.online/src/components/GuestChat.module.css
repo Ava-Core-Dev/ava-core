@@ -1,0 +1,31 @@
+.box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.log { padding: 16px; min-height: 160px; display: flex; flex-direction: column; gap: 10px; }
+.ava, .user { font-size: 13px; line-height: 1.5; max-width: 90%; }
+.ava { color: var(--text); }
+.user { align-self: flex-end; color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px; }
+.chips button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.row { display: flex; border-top: 1px solid var(--border); }
+.row input {
+  flex: 1; background: transparent; border: none; outline: none;
+  padding: 12px 14px; color: var(--text); font-family: inherit;
+}
+.row button {
+  background: var(--accent); color: #000; border: none;
+  padding: 0 16px; font-weight: 700; cursor: pointer; font-family: inherit;
+}

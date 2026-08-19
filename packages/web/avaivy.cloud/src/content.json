@@ -12,6 +12,7 @@
 
   "nav": [
     { "label": "Status", "href": "/status" },
+    { "label": "Updates", "href": "/blog" },
     { "label": "Context", "href": "/context" },
     { "label": "Solar", "href": "https://rootrecord.online" },
     { "label": "RootMC", "href": "https://rootmc.net" }
@@ -50,7 +51,7 @@
 
   "chat": {
     "title": "Talk to Ava",
-    "sub": "Ask me about solar, RootMC, K\u012blauea, or anything Root Record."
+    "sub": "Panel's open. Canned answers are free — log in to type a live message."
   },
 
   "footer": {

@@ -111,3 +111,21 @@ async def log_cron_run(job_id: str, started_at: int, finished_at: int,
                 )
     except Exception as e:
         log.warning("log_cron_run failed: %s", e)
+
+
+async def recent_cron_runs(limit: int = 50) -> list[dict[str, Any]]:
+    """Most recent rows from ava_cron.cron_runs, newest first."""
+    import aiomysql
+
+    pool = await _get_pool()
+    if not pool:
+        return []
+    async with pool.acquire() as conn:
+        await conn.select_db("ava_cron")
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            await cur.execute(
+                """SELECT job_id, started_at, finished_at, ok, detail, error
+                   FROM cron_runs ORDER BY started_at DESC LIMIT %s""",
+                (int(limit),),
+            )
+            return list(await cur.fetchall())

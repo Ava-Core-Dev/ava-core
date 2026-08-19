@@ -2,10 +2,54 @@
  * Allowlisted Ava operator commands for the desktop Terminal page.
  * Only entries here can be spawned from the Electron UI.
  */
+/** Python cron jobs, triggered through the core API. Ids match scheduler.py. */
+const CRON_BUTTONS = [
+  ["time-chime", "Time chime (:00/:30)", "Bell + spoken time → desktop + OBS"],
+  ["rr-noaa", "NOAA weather", "Pull NWS/NOAA weather now"],
+  ["rr-kilauea", "Kīlauea", "Pull Kīlauea volcano status now"],
+  ["hourly-solar-weather", "Solar + weather", "Hourly solar and weather roundup"],
+  ["system-performance", "System performance", "Host CPU / memory / disk snapshot"],
+  ["player-economy-report", "Player economy", "Player economy + Kīlauea multiplier"],
+  ["morning-report", "Morning report", "The 10:00 HST morning report"],
+  ["merged-morning-summary", "Merged morning summary", "Grok synthesis → #updates"],
+  ["economy-brief", "Economy brief", "The 15:00 HST economy brief"],
+  ["overnight-relay", "Late-night relay", "Late-night status check-in"],
+  ["heartbeat", "Heartbeat write", "Force a Cloudflare D1 heartbeat write"],
+];
+
 export const OPS_COMMAND_GROUPS = [
   {
+    id: "crons",
+    label: "Crons · run now (Python core)",
+    commands: CRON_BUTTONS.map(([id, label, detail]) => ({
+      id: `cron-${id}`,
+      label,
+      kind: "http",
+      method: "POST",
+      path: `/api/crons/${id}/run`,
+      detail,
+    })).concat([
+      {
+        id: "cron-list",
+        label: "List schedule",
+        kind: "http",
+        method: "GET",
+        path: "/api/crons",
+        detail: "All registered jobs with their next run time",
+      },
+      {
+        id: "cron-history",
+        label: "Run history",
+        kind: "http",
+        method: "GET",
+        path: "/api/crons/runs?limit=40",
+        detail: "Last 40 cron runs from ava_cron MySQL",
+      },
+    ]),
+  },
+  {
     id: "reports",
-    label: "Reports · issue now / early",
+    label: "Reports · issue now / early (legacy Node scripts)",
     commands: [
       {
         id: "economy-brief-force",

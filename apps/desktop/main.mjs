@@ -67,13 +67,21 @@ import {
   testConnection,
   brainOrigin,
   operatorHeaders,
-  isRemoteCompute,
 } from "./lib/connectionConfig.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONTEXT_LIMIT = 150;
 const AVA_HOME = process.env.AVA_HANDOFF || "/home/ava-core/ava";
-const AVA_CORE = process.env.AVA_CORE || path.join(AVA_HOME, "core");
+// Legacy Node ops scripts (scripts/*.mjs) were never ported to the Python core.
+// Until they are, resolve them wherever they still exist: the archive tree is
+// the fallback, so those buttons keep working before the disk is retired.
+const AVA_CORE =
+  process.env.AVA_CORE ||
+  [
+    path.join(AVA_HOME, "core"),
+    "/home/ava-core/ava-old-20260819/core",
+  ].find((p) => fs.existsSync(path.join(p, "scripts"))) ||
+  path.join(AVA_HOME, "core");
 
 function brainFetchHeaders(extra = {}) {
   return { ...operatorHeaders(loadConnectionConfig()), ...extra };
@@ -803,27 +811,14 @@ ipcMain.handle("ava:activity", async (_e, opts = {}) => {
   if (brain?.ok) {
     return { ...brain, runningOps: runningOpsId };
   }
-  try {
-    const { buildActivityLive } = await import("../core/src/activityLive.mjs");
-    const desk = await loadDesktopEnv();
-    const local = await buildActivityLive({
-      env: {
-        AVA_OLLAMA_URL: desk.ollamaUrl,
-        AVA_OLLAMA_MODEL: desk.ollamaModel,
-      },
-      limit,
-    });
-    return { ...local, runningOps: runningOpsId, detail: brain?.detail || null };
-  } catch (err) {
-    return {
-      ok: false,
-      detail: brain?.detail || err?.message || "activity_fail",
-      runningOps: runningOpsId,
-      logs: [],
-      processes: [],
-      inflight: [],
-    };
-  }
+  return {
+    ok: false,
+    detail: brain?.detail || "core unreachable on /api/activity",
+    runningOps: runningOpsId,
+    logs: [],
+    processes: [],
+    inflight: [],
+  };
 });
 
 ipcMain.handle("ava:list-links", async () => listAvaLinks());
@@ -993,35 +988,16 @@ ipcMain.handle("ava:ops-run", async (_e, { id }) => {
   });
 });
 
-async function loadMinecraftControl() {
-  return import(path.join(AVA_CORE, "src", "minecraftControl.mjs"));
-}
-
-async function loadRconGuard() {
-  return import(path.join(AVA_CORE, "src", "rconGuard.mjs"));
-}
-
-ipcMain.handle("ava:mc-status", async () => {
-  if (isRemoteCompute()) {
-    return brainJson("/api/minecraft/status");
-  }
-  const { paperStatus } = await loadMinecraftControl();
-  return paperStatus();
-});
+// Minecraft goes through the core HTTP API in both local and headless mode:
+// brainOrigin() is 127.0.0.1:8787 when local, so there is one code path.
+ipcMain.handle("ava:mc-status", async () => brainJson("/api/minecraft/status"));
 
 ipcMain.handle("ava:mc-log", async (_e, opts = {}) => {
-  if (isRemoteCompute()) {
-    const q = new URLSearchParams({
-      bytes: String(Number(opts.bytes) || 200_000),
-      lines: String(Number(opts.lines) || 220),
-    });
-    return brainJson(`/api/minecraft/log?${q}`);
-  }
-  const { paperLogTail } = await loadMinecraftControl();
-  return paperLogTail({
-    bytes: Number(opts.bytes) || 200_000,
-    lines: Number(opts.lines) || 220,
+  const q = new URLSearchParams({
+    bytes: String(Number(opts.bytes) || 200_000),
+    lines: String(Number(opts.lines) || 220),
   });
+  return brainJson(`/api/minecraft/log?${q}`);
 });
 
 ipcMain.handle("ava:mc-control", async (_e, { action } = {}) => {
@@ -1029,32 +1005,24 @@ ipcMain.handle("ava:mc-control", async (_e, { action } = {}) => {
   if (!["start", "stop", "restart"].includes(a)) {
     return { ok: false, detail: "action must be start|stop|restart" };
   }
-  if (isRemoteCompute()) {
-    return brainJson("/api/minecraft/control", {
-      method: "POST",
-      body: { action: a },
-      timeoutMs: 120000,
-    });
-  }
-  const { runPaperProcess } = await loadMinecraftControl();
-  return runPaperProcess(a);
+  return brainJson("/api/minecraft/control", {
+    method: "POST",
+    body: { action: a },
+    timeoutMs: 120000,
+  });
 });
 
-ipcMain.handle("ava:mc-rcon", async (_e, { command, target } = {}) => {
+ipcMain.handle("ava:mc-rcon", async (_e, { command, target, allow } = {}) => {
   const cmd = String(command || "").trim();
   if (!cmd) return { ok: false, reason: "empty" };
-  if (isRemoteCompute()) {
-    return brainJson("/api/minecraft/rcon", {
-      method: "POST",
-      body: { command: cmd, target: String(target || "test").trim() || "test" },
-      timeoutMs: 30000,
-    });
-  }
-  const { guardedRcon } = await loadRconGuard();
-  return guardedRcon(cmd, {
-    allow: true,
-    target: String(target || "test").trim() || "test",
-    operatorConsole: true,
+  return brainJson("/api/minecraft/rcon", {
+    method: "POST",
+    body: {
+      command: cmd,
+      target: String(target || "test").trim() || "test",
+      allow: Boolean(allow),
+    },
+    timeoutMs: 30000,
   });
 });
 

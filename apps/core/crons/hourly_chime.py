@@ -17,8 +17,8 @@ from apps.core import config
 log = logging.getLogger("ava.cron.hourly_chime")
 
 HST = ZoneInfo("Pacific/Honolulu")
-BELL = config.VOICE_DIR / "assets" / "sounds" / "futuristic_bell.mp3"
-TIME_DIR = config.VOICE_DIR / "assets" / "time_clips"
+BELL = config.ASSETS_DIR / "sounds" / "futuristic_bell.mp3"
+TIME_DIR = config.ASSETS_DIR / "time_clips"
 
 
 def _time_clip(hour: int, minute: int) -> Path | None:

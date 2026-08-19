@@ -1,0 +1,12 @@
+[Unit]
+Description=Ava — every 2 minutes, push local changes to GitHub
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+AccuracySec=20s
+Persistent=true
+Unit=ava-auto-push.service
+
+[Install]
+WantedBy=timers.target

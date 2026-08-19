@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "../app/page.module.css";
 import StatTile from "./StatTile";
 import DataCard from "./DataCard";
+import GuestChat from "./GuestChat";
 
 interface Props {
   initial: { status: any; solar: any; mc: any; kilauea?: any; weather?: any };
@@ -54,6 +55,7 @@ export default function DashboardClient({ initial }: Props) {
             <span className={styles.brandSub}>Live</span>
           </div>
           <nav className={styles.nav}>
+            <a href="/blog">Updates</a>
             <a href="https://avaivy.cloud">Ava Ivy</a>
             <a href="https://rootmc.net">RootMC</a>
             <a href="https://rootrecord.info">Wiki</a>
@@ -125,6 +127,11 @@ export default function DashboardClient({ initial }: Props) {
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>RootMC</h2>
           <DataCard title="Server Details" data={mc} keys={["version", "motd", "latency_ms"]} />
+        </div>
+
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Talk to Ava</h2>
+          <GuestChat />
         </div>
       </div>
 

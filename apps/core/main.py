@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(3)  # let the server finish binding
             director = get_director()
             from apps.voice.director import Priority
-            clip = config.VOICE_DIR / "assets" / "words" / "phrase_device_startup.mp3"
+            clip = config.ASSETS_DIR / "words" / "phrase_device_startup.mp3"
             if clip.exists():
                 await director.queue(clip, name="startup", priority=Priority.CRITICAL)
                 log.info("Startup voice clip queued")
@@ -101,8 +101,9 @@ app.add_middleware(
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld  # noqa: E402
+from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld, crons  # noqa: E402
 
+app.include_router(crons.router)
 app.include_router(status.router)
 app.include_router(context.router)
 app.include_router(goals.router)

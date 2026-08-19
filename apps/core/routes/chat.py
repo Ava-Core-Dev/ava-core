@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -12,6 +12,32 @@ from .. import config
 
 router = APIRouter(prefix="/api")
 log = logging.getLogger("ava.chat")
+
+LOGIN_REPLY = (
+    "The chat is here — log in to talk with me. "
+    "Free accounts get 1 live use per IP, unlimited canned answers, and 3 resources."
+)
+
+GENERIC = {
+    "rootmc": "RootMC is survival Minecraft at play.rootmc.net — closed-loop Gold, claims, votes.",
+    "solar": "I run on the HI Pacific Solar Root Server — panels + battery on the Big Island.",
+    "kilauea": "Kīlauea and weather live under Root Record — real-world ops, not Minecraft.",
+}
+
+_ip_live_uses: dict[str, int] = {}
+_ip_resources: dict[str, int] = {}
+
+
+def _client_ip(request: Request) -> str:
+    cf = request.headers.get("cf-connecting-ip")
+    if cf:
+        return cf
+    xff = request.headers.get("x-forwarded-for") or ""
+    return (xff.split(",")[0].strip() if xff else request.client.host if request.client else "unknown")
+
+
+def _has_session(request: Request) -> bool:
+    return bool(request.cookies.get("ava_session") or request.headers.get("x-ava-session"))
 
 AVA_SYSTEM_PROMPT = """You are Ava Ivy — the infrastructure runtime and public face of the Root Record data center and RootMC Minecraft ecosystem.
 
@@ -35,13 +61,41 @@ class ChatRequest(BaseModel):
     max_tokens: int = 512
 
 
+@router.get("/auth/session")
+async def api_session(request: Request):
+    return {
+        "loggedIn": _has_session(request),
+        "free": {"liveUsesPerIp": 1, "genericUnlimited": True, "resources": 3},
+        "login": "/login",
+    }
+
+
 @router.post("/chat")
-async def api_chat(req: ChatRequest):
+async def api_chat(req: ChatRequest, request: Request):
     """
-    Conversational endpoint for the wiki chat interface.
-    Tries Ollama first, falls back to xAI if Ollama is unavailable.
+    Conversational endpoint for the public chat panel.
+    Unregistered typed messages are gated. Canned/generic answers stay free.
+    Free accounts: 1 live use per IP, 3 resources.
     """
     import httpx
+
+    raw = (req.message or "").strip()
+    if raw.startswith("__generic:"):
+        key = raw.split(":", 1)[-1].strip()
+        return {"reply": GENERIC.get(key, GENERIC["rootmc"]), "brain": "canned", "generic": True}
+
+    if not _has_session(request):
+        return {"reply": LOGIN_REPLY, "gated": True, "login": "/login", "brain": "gate"}
+
+    ip = _client_ip(request)
+    used = _ip_live_uses.get(ip, 0)
+    if used >= 1:
+        return {
+            "reply": "Free live uses are spent for this IP. Canned answers stay unlimited — upgrade for more live talks.",
+            "gated": True,
+            "brain": "free-limit",
+        }
+    _ip_live_uses[ip] = used + 1
 
     # Always inject Ava's identity; caller can add extra context on top
     system = AVA_SYSTEM_PROMPT

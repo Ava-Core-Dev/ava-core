@@ -1,9 +1,10 @@
 /**
- * Central Ava media directory helpers for the desktop control app.
- * Default: $AVA_HANDOFF/apps/media (override AVA_MEDIA_DIR).
+ * Central Ava media directory. Canonical path: $AVA_HOME/media
+ * (override AVA_MEDIA_DIR). Audio, video, images, documents — one tree.
  */
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 
 const IMAGE_EXT = new Set([
   ".png",
@@ -21,34 +22,59 @@ export function handoffRoot() {
   return (
     process.env.AVA_HANDOFF ||
     process.env.AVA_HOME ||
-    "/run/media/ava-core/6B6C97406BF24558/ava-core-v2"
+    path.join(os.homedir(), "ava")
   );
 }
 
 export function mediaRoot() {
   const fromEnv = String(process.env.AVA_MEDIA_DIR || "").trim();
   if (fromEnv) return fromEnv;
+  const homeMedia = path.join(os.homedir(), "ava", "media");
+  if (fs.existsSync(homeMedia)) return homeMedia;
   const staged = path.join(handoffRoot(), "apps", "media");
   if (fs.existsSync(staged)) return staged;
-  return path.join(handoffRoot(), "media");
+  return homeMedia;
 }
 
 export function ensureMediaDirs() {
   const root = mediaRoot();
   for (const sub of [
-    "brand",
-    "portraits",
-    "thumbnails",
-    "emojis/discord",
-    "videos/clips",
-    "videos/mp4-current",
     "audio/station",
     "audio/reports",
+    "audio/crons",
+    "audio/words",
+    "audio/numbers",
+    "audio/time_clips",
+    "audio/sounds",
+    "audio/generated",
+    "video/clips",
+    "video/reports",
+    "video/current",
+    "video/appearance",
+    "images/channels",
+    "images/character",
+    "images/thumbnails",
+    "images/discord",
+    "images/slack",
+    "images/telegram",
+    "images/brand",
+    "images/emojis/discord",
+    "images/direct messages/discord",
+    "images/direct messages/slack",
+    "images/direct messages/telegram",
+    "images/imports",
+    "documents/discord",
+    "documents/reports",
+    "documents/slack",
+    "documents/telegram",
+    "documents/persona",
+    "documents/notes",
+    "documents/plans",
+    "documents/docs",
+    "documents/context",
+    "documents/logs",
     "stream/overlays",
     "stream/obs-cams",
-    "library",
-    "outbound",
-    "imports",
   ]) {
     fs.mkdirSync(path.join(root, sub), { recursive: true });
   }
@@ -80,7 +106,7 @@ export function isImageFile(filePath) {
 /**
  * Recursively list media files under media root (follows library symlinks).
  */
-export function listMediaFiles({ limit = 200, under = "library" } = {}) {
+export function listMediaFiles({ limit = 200, under = "" } = {}) {
   const root = ensureMediaDirs();
   const start = under
     ? path.join(root, under)
@@ -129,7 +155,8 @@ export function listMediaFiles({ limit = 200, under = "library" } = {}) {
  */
 export function importMediaFiles(filePaths = []) {
   const root = ensureMediaDirs();
-  const destDir = path.join(root, "imports");
+  const destDir = path.join(root, "images", "imports");
+  fs.mkdirSync(destDir, { recursive: true });
   const imported = [];
   for (const raw of filePaths || []) {
     const src = path.resolve(String(raw || ""));

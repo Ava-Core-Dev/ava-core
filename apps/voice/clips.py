@@ -14,8 +14,9 @@ from pathlib import Path
 
 log = logging.getLogger("ava.clips")
 
-_REPO_ROOT  = Path(__file__).resolve().parent.parent.parent
-ASSETS_DIR  = _REPO_ROOT / "apps" / "voice" / "assets"
+# Clips live in the central media library (media/audio), not apps/voice/assets.
+from apps.core import config as _cfg
+ASSETS_DIR  = _cfg.ASSETS_DIR
 NUMBERS_DIR = ASSETS_DIR / "numbers"
 WORDS_DIR   = ASSETS_DIR / "words"
 TIME_DIR    = ASSETS_DIR / "time_clips"

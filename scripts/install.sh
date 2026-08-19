@@ -109,6 +109,18 @@ else
   fi
 fi
 
+# ── Auto-push to GitHub (user timer, no sudo) ────────────────────────────────
+USER_SD="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+mkdir -p "$USER_SD"
+# Rewrite unit paths to this checkout so a moved tree still works
+sed "s|/home/ava-core/ava/ava-core-v2|$AVA_ROOT|g" \
+  "$AVA_ROOT/systemd/ava-auto-push.service" > "$USER_SD/ava-auto-push.service"
+cp "$AVA_ROOT/systemd/ava-auto-push.timer" "$USER_SD/ava-auto-push.timer"
+chmod +x "$AVA_ROOT/scripts/auto-push.sh" "$AVA_ROOT/.cursor/hooks/auto-push.sh" 2>/dev/null || true
+systemctl --user daemon-reload
+systemctl --user enable --now ava-auto-push.timer
+echo "  Git auto-push: every 2 min → origin (systemctl --user status ava-auto-push.timer)"
+
 echo ""
 echo "=== Install complete ==="
 echo "Logs:   $AVA_ROOT/data/logs/"

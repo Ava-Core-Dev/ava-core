@@ -28,13 +28,12 @@ from apps.core import config
 log = logging.getLogger("ava.plugin.hourly_chime")
 
 # Default sound lives next to the package
-_DEFAULT_SOUND = Path(__file__).resolve().parent.parent.parent / "sounds" / "futuristic_bell.mp3"
+_DEFAULT_SOUND = config.ASSETS_DIR / "sounds" / "futuristic_bell.mp3"
 
 # Candidate locations for the 48 time clips (time_HHMM.mp3)
 _DEFAULT_TIME_DIRS = [
-    Path(__file__).resolve().parent.parent / "assets" / "time_clips",  # apps/voice/assets/time_clips
-    Path.home() / "ava" / "voice" / "time_clips",
-    Path(__file__).resolve().parent.parent.parent / "voice" / "time_clips",
+    config.ASSETS_DIR / "time_clips",
+    Path.home() / "ava" / "media" / "audio" / "time_clips",
 ]
 
 

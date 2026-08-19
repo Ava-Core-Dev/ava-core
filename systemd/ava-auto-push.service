@@ -1,0 +1,10 @@
+[Unit]
+Description=Ava — commit and push local git changes to GitHub
+After=network-online.target
+
+[Service]
+Type=oneshot
+Nice=10
+# Resolve via this unit's copy of the script; install.sh rewrites WorkingDirectory
+WorkingDirectory=/home/ava-core/ava/ava-core-v2
+ExecStart=/home/ava-core/ava/ava-core-v2/scripts/auto-push.sh

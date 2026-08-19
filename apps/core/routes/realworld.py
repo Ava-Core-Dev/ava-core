@@ -98,15 +98,13 @@ async def api_voice_play(req: VoicePlayRequest):
     """
     try:
         from apps.voice.director import get_director, Priority
-        from apps.voice.clips import WORDS_DIR, TIME_DIR
+        from apps.voice.clips import WORDS_DIR, TIME_DIR, SOUNDS_DIR, ASSETS_DIR
 
-        assets = config.VOICE_DIR / "assets"
         candidates = [
             WORDS_DIR / f"{req.clip}.mp3",
             TIME_DIR / f"{req.clip}.mp3",
-            assets / "sounds" / f"{req.clip}.mp3",
-            assets / "words" / f"{req.clip}.mp3",
-            assets / "time_clips" / f"{req.clip}.mp3",
+            SOUNDS_DIR / f"{req.clip}.mp3",
+            ASSETS_DIR / f"{req.clip}.mp3",
         ]
         clip_path = next((p for p in candidates if p.exists()), None)
         if not clip_path:

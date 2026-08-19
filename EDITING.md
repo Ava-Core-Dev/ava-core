@@ -9,6 +9,10 @@ and the site is live in about a minute.
 
 Repo: <https://github.com/Ava-Core-Dev/ava-core>
 
+On the Ava machine, **you do not have to remember to push.** A timer checks
+every 2 minutes: if anything changed, it commits and uploads to GitHub.
+Closing a Cursor agent session also kicks a push. `.env` is never included.
+
 ---
 
 ## The fastest loop: edit a file on GitHub

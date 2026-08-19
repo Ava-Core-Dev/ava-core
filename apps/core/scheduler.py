@@ -10,6 +10,7 @@ Cloudflare Workers take over automatically once the heartbeat stops.
 
 from __future__ import annotations
 
+import inspect
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -21,11 +22,21 @@ from .heartbeat import write_heartbeat
 
 log = logging.getLogger("ava.scheduler")
 
+_instance: "Scheduler | None" = None
+
+
+def get_scheduler() -> "Scheduler | None":
+    """The live Scheduler, or None before boot. Lets routes trigger jobs
+    without importing main.py (which imports the routes)."""
+    return _instance
+
 
 class Scheduler:
     def __init__(self):
+        global _instance
         self._apscheduler = AsyncIOScheduler(timezone="Pacific/Honolulu")
         self._register_jobs()
+        _instance = self
 
     def _register_jobs(self):
         s = self._apscheduler
@@ -139,3 +150,25 @@ class Scheduler:
             }
             for j in self._apscheduler.get_jobs()
         ]
+
+    async def run_job_now(self, job_id: str) -> dict:
+        """Run a registered job immediately, out of band from its schedule.
+
+        Awaited inline so the caller gets the real outcome instead of a
+        fire-and-forget ack; cron bodies also log themselves to ava_cron.
+        """
+        job = self._apscheduler.get_job(job_id)
+        if job is None:
+            return {
+                "ok": False,
+                "detail": f"unknown job {job_id!r}",
+                "known": [j.id for j in self._apscheduler.get_jobs()],
+            }
+        try:
+            result = job.func()
+            if inspect.isawaitable(result):
+                await result
+            return {"ok": True, "id": job_id, "name": job.name}
+        except Exception as exc:
+            log.exception("Manual run of %s failed", job_id)
+            return {"ok": False, "id": job_id, "name": job.name, "detail": str(exc)}

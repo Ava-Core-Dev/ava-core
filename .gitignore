@@ -42,24 +42,11 @@ apps/desktop/data/
 **/telegram-context.json
 
 # Audio assets — not tracked in git (binary, large).
-# Source: canonical build at /run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/voice/assets/
-# Deploy: scripts/migrate.sh copies them into apps/voice/assets/ on fresh installs
-apps/voice/assets/numbers/
-apps/voice/assets/words/
-apps/voice/assets/time_clips/
-apps/voice/assets/sounds/
-
-# Media library binaries (staged on SSD; too large for git)
-apps/media/videos/
-apps/media/audio/
-apps/media/portraits/
-apps/media/thumbnails/
-apps/media/brand/
-apps/media/emojis/
-apps/media/stream/
-# Keep README + manifest tracked
-!apps/media/README.md
-!apps/media/manifest.json
+# Canonical library: /home/ava-core/ava/media
+# These are local symlinks (git sees a symlink as a file — no trailing slash).
+/apps/voice/assets
+/apps/media
+/ava_core/
 
 # OS
 .DS_Store
