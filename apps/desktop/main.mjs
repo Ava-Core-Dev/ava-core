@@ -838,6 +838,31 @@ ipcMain.handle("ava:ops-run", async (_e, { id }) => {
   if (!cmd) return { ok: false, detail: "unknown_command" };
   if (runningOps) return { ok: false, detail: `busy:${runningOpsId}` };
 
+  // New-style: endpoint + body (POST to Python core)
+  if (cmd.endpoint) {
+    const url = `${brainOrigin()}${cmd.endpoint}`;
+    runningOpsId = cmd.id;
+    sendOps("ava:ops-start", { id: cmd.id, label: cmd.label, detail: `POST ${url}` });
+    appendLine(`$ POST ${url}`);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...brainFetchHeaders({}) },
+        body: JSON.stringify(cmd.body || {}),
+      });
+      const text = await res.text();
+      appendLine(`← ${res.status} ${text.slice(0, 200)}`);
+      sendOps("ava:ops-done", { id: cmd.id, code: res.ok ? 0 : res.status });
+      runningOpsId = null;
+      return { ok: res.ok, detail: `http_${res.status}` };
+    } catch (err) {
+      appendLine(`error: ${err?.message || err}`);
+      sendOps("ava:ops-done", { id: cmd.id, code: 1 });
+      runningOpsId = null;
+      return { ok: false, detail: err?.message || String(err) };
+    }
+  }
+
   if (cmd.kind === "http") {
     const url = `${brainOrigin()}${cmd.path}`;
     runningOpsId = cmd.id;
