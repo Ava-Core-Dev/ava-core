@@ -1,0 +1,11 @@
+[
+  {
+    "worker": "rootmc-api",
+    "crons": [
+      "0 * * * *",
+      "0 18 * * 1",
+      "*/10 * * * *"
+    ],
+    "cleared": true
+  }
+]
