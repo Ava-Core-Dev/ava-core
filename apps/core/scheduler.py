@@ -48,12 +48,13 @@ class Scheduler:
                   id="heartbeat", name="CF heartbeat writer", misfire_grace_time=30)
 
         # ── NOAA / NWS weather (every 15 min, all hours) ──────────────────────
-        s.add_job(self._run("noaa"), IntervalTrigger(minutes=15),
-                  id="rr-noaa", name="NOAA weather", misfire_grace_time=120)
+        s.add_job(self._run("noaa"), IntervalTrigger(minutes=60),
+                  id="rr-noaa", name="NOAA weather", misfire_grace_time=180)
 
-        # ── Kīlauea (every 10 min, all hours) ────────────────────────────────
-        s.add_job(self._run("kilauea"), IntervalTrigger(minutes=10),
-                  id="rr-kilauea", name="Kīlauea", misfire_grace_time=120)
+        # ── Kīlauea (hourly). Hash ignores the clock so unchanged USGS/HVO
+        #    does not republish. Grok/Cursor synthesis is a separate 2×/day drain.
+        s.add_job(self._run("kilauea"), IntervalTrigger(minutes=60),
+                  id="rr-kilauea", name="Kīlauea", misfire_grace_time=180)
 
         # ── Time chime (:00 and :30 HST) — bell + time_HHMM.mp3 ───────────────
         # Uses all 48 clips (time_0000 … time_2330) via Stream Director → desktop + OBS
@@ -69,8 +70,8 @@ class Scheduler:
                   id="system-performance", name="System performance", misfire_grace_time=120)
 
         # ── Player economy + Kīlauea multiplier (every 10 min) ───────────────
-        s.add_job(self._run("player_economy"), IntervalTrigger(minutes=10),
-                  id="player-economy-report", name="Player economy", misfire_grace_time=120)
+        s.add_job(self._run("player_economy"), IntervalTrigger(minutes=30),
+                  id="player-economy-report", name="Player economy", misfire_grace_time=180)
 
         # ── Morning report (10:00 HST) ────────────────────────────────────────
         s.add_job(self._run("morning_report"), CronTrigger(hour=10, minute=0),
@@ -80,6 +81,10 @@ class Scheduler:
         # Only cron that posts to #updates. Everything else → #automations.
         s.add_job(self._run("merged_morning"), CronTrigger(hour=10, minute=5),
                   id="merged-morning-summary", name="Merged morning summary", misfire_grace_time=300)
+
+        # ── Grok-down Cursor drain (2×/day, not per scan) ────────────────────
+        s.add_job(self._run("cursor_fallback"), CronTrigger(hour="10,16", minute=12),
+                  id="cursor-fallback", name="Cursor report fallback", misfire_grace_time=600)
 
         # ── Economy brief (15:00 HST daily) ──────────────────────────────────
         s.add_job(self._run("economy_brief"), CronTrigger(hour=15, minute=0),

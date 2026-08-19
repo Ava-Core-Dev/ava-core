@@ -126,11 +126,17 @@ def _env_str(key: str, default: str) -> str:
 AVA_ENV  = _env_str("AVA_ENV", "production")
 
 # ── xAI / Grok ────────────────────────────────────────────────────────────────
-XAI_API_KEY  = os.getenv("XAI_API_KEY", "").strip()
-GROK_MODEL   = os.getenv("GROK_MODEL", "grok-4.6").strip()
+XAI_API_KEY  = _first_env("XAI_API_KEY", "AVA_XAI_API_KEY", "SEXI_XAI_API_KEY")
+GROK_MODEL   = _first_env("GROK_MODEL", "AVA_GROK_MODEL", default="grok-4.6")
 TTS_VOICE    = os.getenv("TTS_VOICE", "ara").strip()
 VOICE_MODE   = _env_str("VOICE_MODE", "grok")
 MAX_SECONDS  = int(os.getenv("MAX_SECONDS", "55"))
+CURSOR_API_KEY = _first_env("CURSOR_API_KEY")
+# Cursor ask-mode fallback when Grok credits are dead. Keep this rare.
+CURSOR_FALLBACK = _env_str("AVA_CURSOR_FALLBACK", "1") not in {"0", "false", "no"}
+CURSOR_MAX_PER_DAY = _env_int("AVA_CURSOR_MAX_PER_DAY", 2)
+CURSOR_MIN_HOURS = _env_int("AVA_CURSOR_MIN_HOURS", 6)
+GROK_DOWN_HOURS = _env_int("AVA_GROK_DOWN_HOURS", 12)
 
 # ── Discord ───────────────────────────────────────────────────────────────────
 DISCORD_API     = "https://discord.com/api/v10"

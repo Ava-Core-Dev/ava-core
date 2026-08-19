@@ -1,11 +1,14 @@
 """
 xAI / Grok API client — ported from xai_client.py.
 Provides chat completions and TTS synthesis with clear error messages.
+Circuit-breaks on credit/auth failures so we do not hammer a dead key.
 """
 
 from __future__ import annotations
 
+import json
 import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +24,59 @@ TTS_URL  = "https://api.x.ai/v1/tts"
 
 class XAIError(RuntimeError):
     pass
+
+
+def _status_path() -> Path:
+    return config.DATA_DIR / "state" / "grok-status.json"
+
+
+def _load_status() -> dict[str, Any]:
+    p = _status_path()
+    if not p.exists():
+        return {"ok": True}
+    try:
+        return json.loads(p.read_text())
+    except json.JSONDecodeError:
+        return {"ok": True}
+
+
+def _save_status(data: dict[str, Any]) -> None:
+    p = _status_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def grok_is_down() -> bool:
+    st = _load_status()
+    if st.get("ok", True):
+        return False
+    until = st.get("until")
+    if not until:
+        return True
+    try:
+        return datetime.now(timezone.utc) < datetime.fromisoformat(until)
+    except ValueError:
+        return True
+
+
+def mark_grok_down(reason: str) -> None:
+    until = datetime.now(timezone.utc) + timedelta(hours=max(1, config.GROK_DOWN_HOURS))
+    _save_status({
+        "ok": False,
+        "reason": reason[:300],
+        "until": until.isoformat(),
+        "at": datetime.now(timezone.utc).isoformat(),
+    })
+    log.warning("Grok marked down until %s (%s)", until.isoformat(), reason[:120])
+
+
+def mark_grok_up() -> None:
+    _save_status({"ok": True, "at": datetime.now(timezone.utc).isoformat()})
+
+
+def is_credits_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return any(s in msg for s in ("403", "401", "429", "credit", "quota", "billing"))
 
 
 def _headers() -> dict[str, str]:
@@ -52,6 +108,8 @@ def chat(
     max_tokens: int = 340,
     timeout: int = 60,
 ) -> str:
+    if grok_is_down():
+        raise XAIError("Grok circuit-open (credits/auth). Skipping until cooldown.")
     payload: dict[str, Any] = {
         "model": model or config.GROK_MODEL,
         "messages": messages,
@@ -62,9 +120,24 @@ def chat(
     _check(r, "chat")
     data = r.json()
     try:
-        return data["choices"][0]["message"]["content"].strip()
+        text = data["choices"][0]["message"]["content"].strip()
     except (KeyError, IndexError, TypeError) as e:
         raise XAIError(f"Unexpected response: {data!r}") from e
+    mark_grok_up()
+    return text
+
+
+def try_chat(messages: list[dict[str, str]], **kwargs) -> str | None:
+    """Grok chat that returns None on failure and trips the credit breaker."""
+    if not config.XAI_API_KEY or grok_is_down():
+        return None
+    try:
+        return chat(messages, **kwargs)
+    except XAIError as e:
+        if is_credits_error(e):
+            mark_grok_down(str(e))
+        log.warning("Grok chat failed: %s", e)
+        return None
 
 
 def tts(text: str, out_path: Path, *, voice: str | None = None,
