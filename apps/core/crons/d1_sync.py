@@ -64,24 +64,41 @@ async def _mysql_rows(sql: str) -> list[dict]:
     return []
 
 
+def _row_get(row: dict, *names: str):
+    """Case-insensitive lookup; Root-Economy uses minecraft_uuid / minecraft_username."""
+    lower = {str(k).lower(): v for k, v in row.items()}
+    for name in names:
+        val = lower.get(name.lower())
+        if val is not None and val != "":
+            return val
+    return None
+
+
 def _map_balance(row: dict) -> tuple[str, str, float] | None:
     uuid = str(
-        row.get("uuid") or row.get("player_uuid") or row.get("player") or ""
+        _row_get(
+            row,
+            "minecraft_uuid",
+            "uuid",
+            "player_uuid",
+            "player",
+        )
+        or ""
     ).strip()
     if not uuid:
         return None
     name = str(
-        row.get("name")
-        or row.get("username")
-        or row.get("display_name")
-        or row.get("player_name")
+        _row_get(
+            row,
+            "minecraft_username",
+            "username",
+            "display_name",
+            "player_name",
+            "name",
+        )
         or ""
     )
-    raw = row.get("balance")
-    if raw is None:
-        raw = row.get("money")
-    if raw is None:
-        raw = row.get("gold")
+    raw = _row_get(row, "balance", "money", "gold")
     try:
         bal = float(raw or 0)
     except (TypeError, ValueError):
