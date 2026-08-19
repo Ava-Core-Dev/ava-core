@@ -1,3 +1,7 @@
+import content from "../../content.json";
+import wallets from "../../wallets.json";
+import styles from "../status/goals/goals.module.css";
+
 type Wallet = { name: string; address: string; note?: string };
 
 export const metadata = {

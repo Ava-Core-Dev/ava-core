@@ -69,6 +69,14 @@ The goals board is the same idea, different file:
 packages/web/avaivy.cloud/src/goals.json
 ```
 
+Official receive addresses (public keys only):
+
+```
+packages/web/avaivy.cloud/src/wallets.json
+```
+
+Never put a recovery phrase or private key in those files.
+
 Each goal is one object. Do not type in a raised total unless a real helper
 paid it. Do not add player Gold or ops-buffer as a funding source.
 
