@@ -18,5 +18,9 @@ ingress:
   - hostname: ava-local-api.rootmc.net
     service: http://127.0.0.1:8791
 
+  # Test Paper webstat (must match this tunnel id in DNS — 31a09834, not 7873a6af)
+  - hostname: test.rootmc.net
+    service: http://127.0.0.1:8765
+
   # Catch-all
   - service: http_status:404
