@@ -30,11 +30,16 @@ next-env.d.ts
 .env.*
 !.env.example
 
-# Runtime data — persisted on disk, not in git
-data/generated/
-data/logs/
-data/db/
-data/reports/
+# Runtime data — persisted on disk, not in git.
+# Ignore the whole tree: it holds report output, cam stills, sqlite indexes and
+# Discord/Telegram state, all of which regenerate and some of which is private.
+data/
+!data/**/README*
+
+# Desktop runtime state and the symlink to the old archive's node_modules
+apps/desktop/node_modules
+apps/desktop/data/
+**/telegram-context.json
 
 # Audio assets — not tracked in git (binary, large).
 # Source: canonical build at /run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/voice/assets/
