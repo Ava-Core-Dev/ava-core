@@ -157,6 +157,9 @@ def discord_bot_token() -> str:
 
 
 # Named Discord channel IDs (ported from AVA_CHANNELS in config.mjs)
+# Ava's public home — reports, automations, and global chat all land here.
+AVA_DISCORD_HOME = os.getenv("AVA_HOME_CHANNEL_ID", "1539779979280257054").strip() or "1539779979280257054"
+
 DISCORD_CHANNELS: dict[str, str] = {
     "general":           "1516108586307158088",
     "admins":            "1516121832493678612",
@@ -168,19 +171,19 @@ DISCORD_CHANNELS: dict[str, str] = {
     "memes_media":       "1516389376198840421",
     "ava_media":         "1533268458668687392",
     "random_facts":      "1531432703675596942",
-    "updates":           "1520665313631408251",   # merged morning summary only
-    "automations":       "1535712809399361668",   # hourly cron reports
-    "daily_summary":     "1516395175780286615",
+    "updates":           "1520665313631408251",   # pointer / forwards only — not report dump
+    "automations":       AVA_DISCORD_HOME,
+    "daily_summary":     AVA_DISCORD_HOME,
     "economy_info":      "1516804780884889621",
-    "ava_progress":      "1534974849489965197",
-    "hourly_snapshots":  "1528956490831102093",
+    "ava_progress":      AVA_DISCORD_HOME,
+    "hourly_snapshots":  AVA_DISCORD_HOME,
     "ingame_chat":       "1516706598519832677",
     "livestream_updates": os.getenv("AVA_LIVESTREAM_UPDATES_CHANNEL_ID", "1536631631572377712"),
-    "ava_home":          os.getenv("AVA_HOME_CHANNEL_ID", "1516121832493678612"),
+    "ava_home":          AVA_DISCORD_HOME,
     "audit":             os.getenv("AVA_AUDIT_CHANNEL_ID", ""),
-    "changelog":         os.getenv("AVA_CHANGELOG_CHANNEL_ID", "1535712809399361668"),
+    "changelog":         AVA_DISCORD_HOME,
     "work_orders":       "1537366733659185193",
-    "kilauea":           "1537290494135111730",
+    "kilauea":           AVA_DISCORD_HOME,
 }
 
 # Discord users Ava must never @mention
@@ -199,8 +202,7 @@ DEFAULT_WATCH_CHANNELS: list[str] = [
     "1516389376198840421",  # memes-and-media
     "1532929974154166522",  # development
     "1520665313631408251",  # updates
-    "1534974849489965197",  # ava-progress
-    "1535712809399361668",  # automations
+    AVA_DISCORD_HOME,       # Ava home — reports + global chat
 ]
 
 # ── Slack ─────────────────────────────────────────────────────────────────────

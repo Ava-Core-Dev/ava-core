@@ -71,6 +71,45 @@ async def post_message(channel_id: str, content: str, ref_id: str | None = None)
     return first
 
 
+async def pin_message(channel_id: str, message_id: str) -> bool:
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.put(
+            f"{config.DISCORD_API}/channels/{channel_id}/pins/{message_id}",
+            headers=_auth_headers(),
+        )
+    if r.status_code not in (200, 204):
+        log.error("Discord pin failed  ch=%s  msg=%s  status=%s  body=%s",
+                  channel_id, message_id, r.status_code, r.text[:200])
+        return False
+    return True
+
+
+async def forward_message(
+    dest_channel_id: str,
+    source_channel_id: str,
+    message_id: str,
+) -> dict | None:
+    """Native Discord forward (message_reference type 1). Falls back to None on failure."""
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.post(
+            f"{config.DISCORD_API}/channels/{dest_channel_id}/messages",
+            headers=_auth_headers(),
+            json={
+                "message_reference": {
+                    "type": 1,
+                    "message_id": str(message_id),
+                    "channel_id": str(source_channel_id),
+                },
+                "allowed_mentions": {"parse": []},
+            },
+        )
+    if r.status_code not in (200, 201):
+        log.warning("Discord forward failed  dest=%s  status=%s  body=%s",
+                    dest_channel_id, r.status_code, r.text[:200])
+        return None
+    return r.json()
+
+
 async def get_messages(channel_id: str, limit: int = 50) -> list[dict]:
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(

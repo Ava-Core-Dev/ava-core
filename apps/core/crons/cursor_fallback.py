@@ -33,7 +33,7 @@ async def run():
     body = f"**{header}** — {stamp}\n\n{text}"
 
     pub_kind = kind if kind in reports.PUBLIC_KINDS else "summary"
-    channel = job.get("channel") or ("kilauea" if kind == "kilauea" else "updates")
+    channel = job.get("channel") or "ava_home"
     await reports.publish(pub_kind, body, channel=channel)
     if pub_kind in {"morning", "summary"}:
         reports.write_current(body, kind=pub_kind, source="cursor")

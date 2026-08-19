@@ -209,7 +209,7 @@ async def publish(
     dm_text = body if body.lower().startswith("**ava") else f"**{header}**\n\n{body}"
 
     if channel:
-        ch_id = config.DISCORD_CHANNELS.get(channel, channel)
+        ch_id = config.DISCORD_CHANNELS.get("ava_home") or config.DISCORD_CHANNELS.get(channel, channel)
         if ch_id:
             posted = await discord.post_message(ch_id, body[:1900])
             result["channel"] = bool(posted)
@@ -255,7 +255,7 @@ async def submit_manual(
         return written
     kind = written["kind"]
     body = written["text"]
-    channel = {"summary": "updates", "kilauea": "kilauea"}.get(kind, "automations")
+    channel = "ava_home"
     posted = {"ok": True, "skipped": True}
     if post:
         posted = await publish(kind, body, channel=channel)

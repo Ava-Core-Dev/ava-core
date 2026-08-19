@@ -52,10 +52,10 @@ async def run_merged():
         "Under 400 words. Aloha tone. Use only the provided data. Do not invent numbers."
     )
     summary = synth.polish(
-        "summary", system, all_data[:4000], factual=factual, channel="updates"
+        "summary", system, all_data[:4000], factual=factual, channel="ava_home"
     )
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
-    await reports.publish("summary", content, channel="updates")
+    await reports.publish("summary", content, channel="ava_home")
     reports.write_current(content, kind="summary", source="cron")
-    log.info("Merged morning summary posted to #updates + report DMs")
+    log.info("Merged morning summary posted to Ava home + report DMs")
