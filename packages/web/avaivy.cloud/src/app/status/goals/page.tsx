@@ -1,4 +1,3 @@
-import content from "../../../content.json";
 import catalog from "../../../goals.json";
 import styles from "./goals.module.css";
 
@@ -87,14 +86,9 @@ export const metadata = {
 
 export default async function GoalsPage() {
   const data = await load();
-  const nav = content.nav;
   return (
     <main className={styles.wrap}>
-      <p className={styles.kicker}>
-        <a href="/">Ava Ivy</a>
-        {" · "}
-        <a href="/status">Status</a>
-      </p>
+      <p className={styles.eyebrow}>Wishlist</p>
       <h1>Goals</h1>
       <p className={styles.blurb}>{data.funding_rules.summary}</p>
       <p className={styles.weights}>
@@ -164,13 +158,6 @@ export default async function GoalsPage() {
           );
         })}
       </ol>
-      <nav className={styles.links}>
-        {nav.map((n) => (
-          <a key={n.href} href={n.href}>
-            {n.label}
-          </a>
-        ))}
-      </nav>
     </main>
   );
 }

@@ -1,6 +1,4 @@
-import styles from "../page.module.css";
 import idx from "./media.module.css";
-import content from "@/content.json";
 import {
   folderOf,
   formatBytes,
@@ -18,7 +16,6 @@ export const metadata = {
 };
 
 export default async function PublicMediaPage() {
-  const { site, nav, footer } = content;
   const catalog = await getPublicMediaCatalog();
   const groups = new Map<string, typeof catalog.files>();
   for (const f of catalog.files) {
@@ -30,21 +27,7 @@ export default async function PublicMediaPage() {
   const folders = [...groups.keys()].sort();
 
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <a className={styles.logo} href="/">
-            <span className={styles.logoMark}>{site.logoMark}</span>
-            <span className={styles.logoName}>{site.name}</span>
-          </a>
-          <nav className={styles.nav}>
-            {nav.map((item) => (
-              <a key={item.href} href={item.href}>{item.label}</a>
-            ))}
-          </nav>
-        </div>
-      </header>
-      <section className={idx.wrap}>
+    <section className={idx.wrap}>
         <p className={idx.eyebrow}>Public index</p>
         <h1 className={idx.title}>Media library</h1>
         <p className={idx.lead}>
@@ -89,15 +72,6 @@ export default async function PublicMediaPage() {
           </div>
         ))}
       </section>
-      <footer className={styles.footer}>
-        <p>
-          {site.name}
-          {footer.links.map((link) => (
-            <span key={link.href}> · <a href={link.href}>{link.label}</a></span>
-          ))}
-        </p>
-        <p className={styles.footerSub}>{footer.tagline}</p>
-      </footer>
-    </main>
+    </>
   );
 }

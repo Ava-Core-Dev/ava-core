@@ -1,4 +1,3 @@
-import content from "../../content.json";
 import wallets from "../../wallets.json";
 import styles from "../status/goals/goals.module.css";
 
@@ -12,11 +11,7 @@ export const metadata = {
 export default function WalletsPage() {
   return (
     <main className={styles.wrap}>
-      <p className={styles.kicker}>
-        <a href="/">Ava Ivy</a>
-        {" · "}
-        <a href="/status/goals">Goals</a>
-      </p>
+      <p className={styles.eyebrow}>Official receive addresses</p>
       <h1>{wallets.label}</h1>
       <p className={styles.blurb}>
         These are Ava Core receive addresses only. Do not send player Gold here. Helpers for
@@ -33,13 +28,6 @@ export default function WalletsPage() {
           </li>
         ))}
       </ol>
-      <nav className={styles.links}>
-        {content.nav.map((n) => (
-          <a key={n.href} href={n.href}>
-            {n.label}
-          </a>
-        ))}
-      </nav>
     </main>
   );
 }

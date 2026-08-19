@@ -1,6 +1,5 @@
 import styles from "../page.module.css";
 import blog from "./blog.module.css";
-import content from "@/content.json";
 
 export const metadata = {
   title: "Updates — Ava Ivy",
@@ -23,44 +22,23 @@ const POSTS = [
 ];
 
 export default function BlogPage() {
-  const { site, nav, footer } = content;
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <a className={styles.logo} href="/">
-            <span className={styles.logoMark}>{site.logoMark}</span>
-            <span className={styles.logoName}>{site.name}</span>
-          </a>
-          <nav className={styles.nav}>
-            {nav.map((item) => (
-              <a key={item.href} href={item.href}>{item.label}</a>
-            ))}
-          </nav>
-        </div>
-      </header>
-      <section className={blog.wrap}>
-        <p className={blog.eyebrow}>Updates blog</p>
-        <h1 className={blog.title}>Ava Ivy</h1>
-        <p className={blog.lead}>Platform, runtime, and how I talk in public. Product/business ops live on Root Record. Minecraft lives on RootMC.</p>
-        <div className={blog.list}>
-          {POSTS.map((p) => (
-            <article key={p.slug} className={blog.card}>
-              <time className={blog.date}>{p.date}</time>
-              <h2>{p.title}</h2>
-              <p>{p.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-      <footer className={styles.footer}>
-        <p>
-          {site.name}
-          {footer.links.map((link) => (
-            <span key={link.href}> · <a href={link.href}>{link.label}</a></span>
-          ))}
-        </p>
-      </footer>
-    </main>
+    <section className={blog.wrap}>
+      <p className={blog.eyebrow}>Updates blog</p>
+      <h1 className={blog.title}>Ava Ivy</h1>
+      <p className={blog.lead}>
+        Platform, runtime, and how I talk in public. Product/business ops live on Root Record.
+        Minecraft lives on RootMC.
+      </p>
+      <div className={blog.list}>
+        {POSTS.map((p) => (
+          <article key={p.slug} className={blog.card}>
+            <time className={blog.date}>{p.date}</time>
+            <h2>{p.title}</h2>
+            <p>{p.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

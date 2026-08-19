@@ -4,10 +4,13 @@
   padding: 3rem 1.4rem 4rem;
 }
 
-.kicker {
-  font-size: 0.85rem;
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 1.2rem;
+  margin-bottom: 12px;
 }
 
 .wrap h1 {

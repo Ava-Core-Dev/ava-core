@@ -9,7 +9,7 @@ export const revalidate = 30; // ISR — refresh every 30s
 export default async function Home() {
   const status = await getHostStatus();
   const online = !!status;
-  const { site, nav, cards, chat, footer } = content;
+  const { site, cards, chat } = content;
 
   // Cards marked `live: "host"` take their text from the origin instead of JSON.
   const hostCard = {
@@ -20,21 +20,7 @@ export default async function Home() {
   };
 
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.logo}>
-            <span className={styles.logoMark}>{site.logoMark}</span>
-            <span className={styles.logoName}>{site.name}</span>
-          </div>
-          <nav className={styles.nav}>
-            {nav.map((item) => (
-              <a key={item.href} href={item.href}>{item.label}</a>
-            ))}
-          </nav>
-        </div>
-      </header>
-
+    <>
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
         <p className={styles.heroEyebrow}>{site.eyebrow}</p>
@@ -74,16 +60,6 @@ export default async function Home() {
         <p className={styles.sectionSub}>{chat.sub}</p>
         <ChatWidget />
       </section>
-
-      <footer className={styles.footer}>
-        <p>
-          {site.name}
-          {footer.links.map((link) => (
-            <span key={link.href}> · <a href={link.href}>{link.label}</a></span>
-          ))}
-        </p>
-        <p className={styles.footerSub}>{footer.tagline}</p>
-      </footer>
-    </main>
+    </>
   );
 }

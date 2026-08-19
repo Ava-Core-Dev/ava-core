@@ -13,8 +13,12 @@ export default async function StatusPage() {
   const status = await getHostStatus(0);
   const online = !!status;
 
+export default async function StatusPage() {
+  const status = await getHostStatus(0);
+  const online = !!status;
+
   return (
-    <main className={styles.wrap}>
+    <div className={styles.wrap}>
       <div className={styles.card}>
         <span className={online ? styles.badgeOnline : styles.badgeOffline}>
           {online ? "HOST ONLINE" : "HOST OFFLINE"}
@@ -60,6 +64,6 @@ export default async function StatusPage() {
           <a href="https://rootmc.net">RootMC</a>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

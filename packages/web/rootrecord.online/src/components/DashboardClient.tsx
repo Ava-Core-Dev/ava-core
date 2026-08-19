@@ -50,10 +50,11 @@ export default function DashboardClient({ initial }: Props) {
     <div className={styles.wrap}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <div>
-            <span className={styles.brand}>Root Record</span>
+          <a href="/" className={styles.brand}>
+            <span className={styles.logoMark}>◈</span>
+            Root Record
             <span className={styles.brandSub}>Live</span>
-          </div>
+          </a>
           <nav className={styles.nav}>
             <a href="/goals">Goals</a>
             <a href="/blog">Updates</a>
@@ -137,7 +138,7 @@ export default function DashboardClient({ initial }: Props) {
       </div>
 
       <footer className={styles.footer}>
-        Root Record · <a href="https://avaivy.cloud">avaivy.cloud</a> · Powered by the sun · Hawaiʻi
+        Root Record · <a href="https://avaivy.cloud">avaivy.cloud</a> · Powered by the sun · Big Island, Hawaiʻi
       </footer>
     </div>
   );
