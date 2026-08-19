@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
             from apps.voice.director import Priority
             clip = config.VOICE_DIR / "assets" / "words" / "phrase_device_startup.mp3"
             if clip.exists():
-                await director.queue(clip, name="startup", priority=Priority.ALERT)
+                await director.queue(clip, name="startup", priority=Priority.CRITICAL)
                 log.info("Startup voice clip queued")
             else:
                 log.debug("No startup clip found at %s — skipping", clip)
