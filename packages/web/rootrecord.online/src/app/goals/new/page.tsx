@@ -57,10 +57,11 @@ export default function NewGoalPage() {
         return;
       }
       if (!res.ok) {
-        setErr(String(res.json.detail || "Could not create goal."));
+        setErr(String(res.json.detail ?? "Could not create goal."));
         return;
       }
-      const id = String(res.json?.goal?.id || "");
+      const created = res.json.goal as { id?: string } | undefined;
+      const id = String(created?.id || "");
       if (id) router.push(`/goals/${id}`);
       else setErr("Created, but no id came back.");
     } catch (ex) {
