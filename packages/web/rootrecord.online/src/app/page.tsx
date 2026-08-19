@@ -10,15 +10,17 @@ async function fetchAll() {
     try { const r = await fetch(url, opts); if (r.ok) return r.json(); } catch {}
     return null;
   };
-  const [status, solar, mc] = await Promise.all([
+  const [status, solar, mc, kilauea, weather] = await Promise.all([
     safe(`${origin}/api/status`),
     safe(`${origin}/api/solar`),
     safe(`${origin}/api/minecraft/status`),
+    safe(`${origin}/api/kilauea`),
+    safe(`${origin}/api/weather`),
   ]);
-  return { status, solar, mc };
+  return { status, solar, mc, kilauea, weather };
 }
 
 export default async function Dashboard() {
   const data = await fetchAll();
-  return <DashboardClient initial={data} />;
+  return <DashboardClient initial={data as any} />;
 }

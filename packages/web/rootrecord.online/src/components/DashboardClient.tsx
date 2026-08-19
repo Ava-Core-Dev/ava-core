@@ -6,7 +6,7 @@ import StatTile from "./StatTile";
 import DataCard from "./DataCard";
 
 interface Props {
-  initial: { status: any; solar: any; mc: any };
+  initial: { status: any; solar: any; mc: any; kilauea?: any; weather?: any };
 }
 
 export default function DashboardClient({ initial }: Props) {
@@ -17,24 +17,28 @@ export default function DashboardClient({ initial }: Props) {
   useEffect(() => {
     const iv = setInterval(async () => {
       try {
-        const [sr, mr, mcr] = await Promise.all([
+        const [sr, mr, mcr, kr, wr] = await Promise.all([
           fetch("/api/status"),
           fetch("/api/solar"),
           fetch("/api/minecraft/status"),
+          fetch("/api/kilauea"),
+          fetch("/api/weather"),
         ]);
-        const [status, solar, mc] = await Promise.all([
+        const [status, solar, mc, kilauea, weather] = await Promise.all([
           sr.ok ? sr.json() : null,
           mr.ok ? mr.json() : null,
           mcr.ok ? mcr.json() : null,
+          kr.ok ? kr.json() : null,
+          wr.ok ? wr.json() : null,
         ]);
-        setData({ status, solar, mc });
+        setData({ status, solar, mc, kilauea, weather });
         setLastRefresh(new Date());
       } catch {}
     }, 30_000);
     return () => clearInterval(iv);
   }, []);
 
-  const { status, solar, mc } = data;
+  const { status, solar, mc, kilauea, weather } = data;
   const online = !!status;
   const hstTime = new Intl.DateTimeFormat("en-US", {
     timeZone: "Pacific/Honolulu",
@@ -64,7 +68,7 @@ export default function DashboardClient({ initial }: Props) {
             label="Root Server"
             value={online ? "Online" : "Offline"}
             pill={online ? "green" : "red"}
-            sub={status ? `CPU ${status.cpu_pct ?? "?"}%  ·  RAM ${status.ram_pct ?? "?"}%` : "Solar night mode"}
+            sub={status ? `CPU ${status.cpu_pct ?? "?"}%  ·  RAM ${status.mem_pct ?? "?"}%` : "Device offline"}
           />
           <StatTile
             label="Uptime"
@@ -98,13 +102,23 @@ export default function DashboardClient({ initial }: Props) {
         {/* Kīlauea */}
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Kīlauea · USGS</h2>
-          <DataCard title="Latest Activity" data={null} placeholder="Live Kīlauea data — available when Ava is online." />
+          <DataCard
+            title="Latest Activity"
+            data={kilauea}
+            keys={["alert_level", "multiplier", "events_nearby", "max_magnitude", "updated_at"]}
+            placeholder="Kīlauea data — available when Ava is online."
+          />
         </div>
 
         {/* NOAA Weather */}
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>NOAA Weather · Big Island</h2>
-          <DataCard title="Current Conditions" data={null} placeholder="NOAA weather — available when Ava is online." />
+          <DataCard
+            title="Current Conditions"
+            data={weather}
+            keys={["period", "temperature_f", "forecast", "alerts_active"]}
+            placeholder="NOAA weather — available when Ava is online."
+          />
         </div>
 
         {/* Minecraft detail */}

@@ -90,7 +90,7 @@ app.add_middleware(
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-from .routes import status, context, goals, obs, minecraft, economy, chat, plugins  # noqa: E402
+from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld  # noqa: E402
 
 app.include_router(status.router)
 app.include_router(context.router)
@@ -100,6 +100,7 @@ app.include_router(minecraft.router)
 app.include_router(economy.router)
 app.include_router(chat.router)
 app.include_router(plugins.router)
+app.include_router(realworld.router)
 
 
 @app.get("/health")
