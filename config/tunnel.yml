@@ -1,5 +1,9 @@
-tunnel: 31a09834-5e86-4c4f-826b-ef4997cfe9b9
-credentials-file: /home/ava-core/.cloudflared/31a09834-5e86-4c4f-826b-ef4997cfe9b9.json
+# NOTE: systemd cloudflared uses a token for tunnel 7873a6af (account d2daf263).
+# This file is not loaded by the live service. Keep hostnames in sync with
+# Cloudflare remote ingress. Do not point test.rootmc.net at 31a09834.
+# Live connector is `cloudflared tunnel run --token-file ~/.cloudflared/ava-core-v2.token`
+# (no credentials JSON on disk). This yaml documents intended hostnames only.
+tunnel: 7873a6af-53e0-44fb-8980-eb1080c46308
 
 ingress:
   # Ava brain — main HTTP server
@@ -18,7 +22,7 @@ ingress:
   - hostname: ava-local-api.rootmc.net
     service: http://127.0.0.1:8791
 
-  # Test Paper webstat (must match this tunnel id in DNS — 31a09834, not 7873a6af)
+  # Test Paper webstat (live token tunnel 7873a6af → 127.0.0.1:8765)
   - hostname: test.rootmc.net
     service: http://127.0.0.1:8765
 
