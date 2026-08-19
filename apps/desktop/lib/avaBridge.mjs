@@ -203,7 +203,7 @@ export const AVA_POST_PRESETS = [
   { key: "facts", surface: "discord", id: "1531432703675596942", label: "Discord #random-facts" },
   { key: "solar", surface: "discord", id: "1533915343766949949", label: "Discord #solar-server" },
   { key: "ingame", surface: "discord", id: "1516706598519832677", label: "Discord in-game chat" },
-  { key: "daily", surface: "discord", id: "1516395175780286615", label: "Discord #daily" },
+  { key: "daily", surface: "discord", id: "1539779979280257054", label: "Discord Ava home" },
   { key: "economy", surface: "discord", id: "1516804780884889621", label: "Discord #economy" },
   { key: "slack-dev", surface: "slack", id: "C0BMCPMDDQR", label: "Slack #development-feed" },
   { key: "slack-plans", surface: "slack", id: "C0BM4P3GVDX", label: "Slack #new-plugin-development-plans" },

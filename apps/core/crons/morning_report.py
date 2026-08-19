@@ -33,14 +33,14 @@ async def run():
     summary = synth.polish("morning", system, f"Morning data:\n{raw[:3000]}", factual=factual)
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Ava morning report** — {now_hst}\n\n{summary}"
-    await discord.post_message(config.DISCORD_CHANNELS["automations"], content)
+    await discord.post_message(config.DISCORD_CHANNELS["ava_home"], content)
     from apps.core.services import reports as report_store
     report_store.write_current(content, kind="morning", source="cron")
     log.info("Morning report posted")
 
 
 async def run_merged():
-    """Merged morning summary — posts to #updates (the only cron that does)."""
+    """Merged morning summary — posts to Ava home."""
     log.info("Merged morning summary  %s", datetime.now(timezone.utc).isoformat())
     from apps.core.services import reports, synth
 

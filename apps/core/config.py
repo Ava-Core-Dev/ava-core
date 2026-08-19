@@ -158,7 +158,12 @@ def discord_bot_token() -> str:
 
 # Named Discord channel IDs (ported from AVA_CHANNELS in config.mjs)
 # Ava's public home — reports, automations, and global chat all land here.
-AVA_DISCORD_HOME = os.getenv("AVA_HOME_CHANNEL_ID", "1539779979280257054").strip() or "1539779979280257054"
+_raw_home = os.getenv("AVA_HOME_CHANNEL_ID", "1539779979280257054").strip()
+AVA_DISCORD_HOME = (
+    _raw_home
+    if _raw_home and _raw_home != "1516121832493678612"
+    else "1539779979280257054"
+)
 
 DISCORD_CHANNELS: dict[str, str] = {
     "general":           "1516108586307158088",
