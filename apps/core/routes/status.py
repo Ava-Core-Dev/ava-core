@@ -21,7 +21,7 @@ _start_time = time.time()
 
 @router.get("/")
 async def root():
-    return JSONResponse({"redirect": "https://rootrecord.info/ava/status"})
+    return JSONResponse({"redirect": "https://rootrecord.online/status", "ava": "online"})
 
 
 @router.get("/health")

@@ -42,6 +42,27 @@ async def lifespan(app: FastAPI):
     _scheduler = Scheduler()
     await _scheduler.start()
 
+    # Fire startup voice clip (non-blocking — best effort)
+    try:
+        import asyncio
+        from apps.voice.tts import synthesize
+        from apps.voice.director import get_director
+
+        async def _startup_voice():
+            await asyncio.sleep(3)  # let the server finish binding
+            director = get_director()
+            from apps.voice.director import Priority
+            clip = config.VOICE_DIR / "assets" / "words" / "phrase_device_startup.mp3"
+            if clip.exists():
+                await director.queue(clip, name="startup", priority=Priority.ALERT)
+                log.info("Startup voice clip queued")
+            else:
+                log.debug("No startup clip found at %s — skipping", clip)
+
+        asyncio.create_task(_startup_voice())
+    except Exception as e:
+        log.debug("Startup voice skipped: %s", e)
+
     yield
 
     log.info("Ava Core shutting down")
