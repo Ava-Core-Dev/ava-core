@@ -44,14 +44,24 @@ MP4_DIR       = Path(os.getenv("MP4_DIR", str(DATA_DIR / "generated" / "mp4"))).
 THUMBNAIL_PATH = _REPO_ROOT / "apps" / "voice" / "assets" / "thumbnail.jpg"
 
 # ── Server ─────────────────────────────────────────────────────────────────────
-AVA_PORT = int(os.getenv("AVA_PORT", "8787"))
-AVA_ENV  = os.getenv("AVA_ENV", "production").strip().lower()
+def _env_int(key: str, default: int) -> int:
+    raw = os.getenv(key, "")
+    val = raw.split("#")[0].strip()  # strip inline comments
+    return int(val) if val else default
+
+AVA_PORT = _env_int("AVA_PORT", 8787)
+def _env_str(key: str, default: str) -> str:
+    raw = os.getenv(key, "")
+    val = raw.split("#")[0].strip()
+    return val.lower() if val else default
+
+AVA_ENV  = _env_str("AVA_ENV", "production")
 
 # ── xAI / Grok ────────────────────────────────────────────────────────────────
 XAI_API_KEY  = os.getenv("XAI_API_KEY", "").strip()
 GROK_MODEL   = os.getenv("GROK_MODEL", "grok-4.6").strip()
 TTS_VOICE    = os.getenv("TTS_VOICE", "ara").strip()
-VOICE_MODE   = os.getenv("VOICE_MODE", "grok").strip().lower()
+VOICE_MODE   = _env_str("VOICE_MODE", "grok")
 MAX_SECONDS  = int(os.getenv("MAX_SECONDS", "55"))
 
 # ── Discord ───────────────────────────────────────────────────────────────────
