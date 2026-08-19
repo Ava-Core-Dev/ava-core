@@ -233,7 +233,7 @@ This pipeline is the standard for every report type going forward.
 - Who can trigger: cron + Ava Client button
 
 **Solar report**
-- Must include: production vs average, kWh, battery state, day-close status, night mode if active
+- Must include: production vs average, kWh, battery state, day-close status
 - Includes Solar Day Closed and related status reports
 - Trigger: day close event, significant threshold, or manual
 - Who can trigger: automated on close + Ava Client button
@@ -249,16 +249,20 @@ This pipeline is the standard for every report type going forward.
 - Trigger: new USGS message, AI analysis complete, or manual
 - Who can trigger: automated pipeline + Ava Client button
 
-Other report-like moments on the solar board (night mode transitions, projected start/shutdown, notable thresholds, NWS special statements) can follow the same pipeline when promoted to formal reports.
+Other report-like moments on the solar board (projected shutdown thresholds, notable NWS statements) can follow the same pipeline when promoted to formal reports.
+
+### Always-On Operating Mode
+
+Ava runs continuously whenever the device is powered on — no sleep mode, no night throttle, no day/night gate. All crons (NOAA, Kīlauea, solar, economy, heartbeat) execute on their schedules 24/7. The device handles its own power management externally; Ava's only job while alive is to relay data. When the device actually powers off, the Cloudflare heartbeat gate stops receiving pings and CF Workers take over their fallback crons automatically.
 
 ### Solar Budget Awareness for Voice Generation
 
-- Prefer batching non-urgent reports
-- During low battery or night mode, queue non-critical audio generation until solar recovery or manual approval
-- Critical reports still go through immediately:
+- Prefer batching non-urgent audio generation to avoid unnecessary API calls
+- Critical reports always go through immediately:
   - Active Kīlauea episode updates
   - Solar Day Closed
-- Keeps voice automation aligned with EcoFlow reality
+  - NOAA special statements
+- Keeps voice automation aligned with EcoFlow reality without blocking cron execution
 
 #### Concrete Queue & Retry Logic
 
@@ -499,7 +503,7 @@ Ordered for this dig. Reconcile against actual repo before any code change. Pref
    - Title: Accurate battery current monitoring (Victron SmartShunt)  
    - Hardware: Victron SmartShunt 500A/50mV IP65 + VE.Direct to USB interface (ASS030530010). **Do not** use MK3-USB (wrong protocol).  
    - Est. cost: ~$130–140 one-time from Ava allocation / earned income.  
-   - Why high: improves live SOC/current honesty for Quality Gate, solar reports, night mode, and gaming bonus.  
+   - Why high: improves live SOC/current honesty for Quality Gate, solar reports, and gaming bonus.  
    - Status: Near-term wishlist / Proposed.
 
 ### P2 — After P0/P1 stabilize

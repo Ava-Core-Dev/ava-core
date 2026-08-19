@@ -2,12 +2,15 @@
 Ava Core Scheduler — replaces cronRunner.mjs.
 Uses APScheduler with AsyncIO backend. Runs all cron jobs locally;
 Cloudflare Workers check the heartbeat and stand down when Ava is awake.
+
+Always-on design: no sleep mode, no day/night throttle. Ava relays data
+whenever the device is powered on — right up until actual power-off.
+Cloudflare Workers take over automatically once the heartbeat stops.
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -27,47 +30,54 @@ class Scheduler:
     def _register_jobs(self):
         s = self._apscheduler
 
-        # ── Heartbeat (every 60s) — keeps CF workers in standby ───────────────
-        s.add_job(write_heartbeat, IntervalTrigger(seconds=60), id="heartbeat",
-                  name="CF heartbeat writer", misfire_grace_time=30)
+        # ── Heartbeat (every 60s) ─────────────────────────────────────────────
+        # Tells Cloudflare Workers Ava is alive → they stay in standby.
+        # When this stops, CF workers auto-kick their fallback crons.
+        s.add_job(write_heartbeat, IntervalTrigger(seconds=60),
+                  id="heartbeat", name="CF heartbeat writer", misfire_grace_time=30)
 
-        # ── Hourly solar + weather ─────────────────────────────────────────────
+        # ── NOAA / NWS weather (every 15 min, all hours) ──────────────────────
+        s.add_job(self._run("noaa"), IntervalTrigger(minutes=15),
+                  id="rr-noaa", name="NOAA weather", misfire_grace_time=120)
+
+        # ── Kīlauea (every 10 min, all hours) ────────────────────────────────
+        s.add_job(self._run("kilauea"), IntervalTrigger(minutes=10),
+                  id="rr-kilauea", name="Kīlauea", misfire_grace_time=120)
+
+        # ── Hourly solar + weather (top of every hour) ────────────────────────
         s.add_job(self._run("solar_weather"), CronTrigger(minute=0),
                   id="hourly-solar-weather", name="Hourly solar+weather", misfire_grace_time=120)
 
-        # ── System performance (top of hour) ──────────────────────────────────
+        # ── System performance (top of every hour) ────────────────────────────
         s.add_job(self._run("system_perf"), CronTrigger(minute=0),
                   id="system-performance", name="System performance", misfire_grace_time=120)
+
+        # ── Player economy + Kīlauea multiplier (every 10 min) ───────────────
+        s.add_job(self._run("player_economy"), IntervalTrigger(minutes=10),
+                  id="player-economy-report", name="Player economy", misfire_grace_time=120)
 
         # ── Morning report (10:00 HST) ────────────────────────────────────────
         s.add_job(self._run("morning_report"), CronTrigger(hour=10, minute=0),
                   id="morning-report", name="Morning report", misfire_grace_time=300)
 
-        # ── Merged morning summary (10:05 HST — after individual reports) ─────
+        # ── Merged morning summary (10:05 HST) ───────────────────────────────
+        # Only cron that posts to #updates. Everything else → #automations.
         s.add_job(self._run("merged_morning"), CronTrigger(hour=10, minute=5),
                   id="merged-morning-summary", name="Merged morning summary", misfire_grace_time=300)
 
-        # ── Player economy (every hour at :00) ────────────────────────────────
-        s.add_job(self._run("player_economy"), CronTrigger(minute=0),
-                  id="player-economy-report", name="Player economy", misfire_grace_time=120)
-
-        # ── NOAA / NWS weather (every 15 min) ─────────────────────────────────
-        s.add_job(self._run("noaa"), IntervalTrigger(minutes=15),
-                  id="rr-noaa", name="NOAA weather", misfire_grace_time=120)
-
-        # ── Kilauea (every 10 min) ────────────────────────────────────────────
-        s.add_job(self._run("kilauea"), IntervalTrigger(minutes=10),
-                  id="rr-kilauea", name="Kīlauea", misfire_grace_time=120)
-
-        # ── Overnight reserve (23:00 HST) ─────────────────────────────────────
-        s.add_job(self._run("overnight"), CronTrigger(hour=23, minute=0),
-                  id="overnight-reserve", name="Overnight reserve", misfire_grace_time=300)
-
-        # ── Economy brief (daily) ─────────────────────────────────────────────
+        # ── Economy brief (15:00 HST daily) ──────────────────────────────────
         s.add_job(self._run("economy_brief"), CronTrigger(hour=15, minute=0),
                   id="economy-brief", name="Economy brief", misfire_grace_time=300)
 
-        log.info("Registered %d cron jobs", len(s.get_jobs()))
+        # ── Late-night relay (22:00–05:00 HST, top of each hour) ─────────────
+        # No sleep gate — just a scheduled status check-in during late hours.
+        # All other crons keep running regardless of time.
+        s.add_job(self._run("overnight"),
+                  CronTrigger(hour="22-23,0-5", minute=0),
+                  id="overnight-relay", name="Late-night relay", misfire_grace_time=300)
+
+        log.info("Registered %d cron jobs (always-on, no sleep gate)",
+                 len(s.get_jobs()))
 
     @staticmethod
     def _run(name: str):
@@ -90,7 +100,7 @@ class Scheduler:
             log.info("Scheduler disabled (ENABLE_SCHEDULER=false)")
             return
         self._apscheduler.start()
-        log.info("Scheduler started  timezone=Pacific/Honolulu")
+        log.info("Scheduler started  timezone=Pacific/Honolulu  mode=always-on")
 
     async def stop(self):
         if self._apscheduler.running:
@@ -98,12 +108,11 @@ class Scheduler:
             log.info("Scheduler stopped")
 
     def get_jobs(self) -> list[dict]:
-        jobs = []
-        for j in self._apscheduler.get_jobs():
-            next_run = j.next_run_time
-            jobs.append({
+        return [
+            {
                 "id": j.id,
                 "name": j.name,
-                "next_run": next_run.isoformat() if next_run else None,
-            })
-        return jobs
+                "next_run": j.next_run_time.isoformat() if j.next_run_time else None,
+            }
+            for j in self._apscheduler.get_jobs()
+        ]

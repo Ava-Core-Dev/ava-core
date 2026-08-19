@@ -1,11 +1,13 @@
 """
 Kīlauea / USGS volcano cron — real local driver (replaces CF proxy).
 Fetches HVO notices + USGS quake data. Triggers economy multiplier on eruption.
+Writes data/state/kilauea-alert.json so player_economy cron can pick up changes.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -71,8 +73,44 @@ async def run():
             report_path.write_text(content)
             log.info("Kīlauea report written: %s", report_path.name)
 
+            # Derive alert level from highest-magnitude event type
+            alert_level = _infer_alert_level(features)
+            _write_alert_state(config, alert_level)
+
     except Exception:
         log.exception("Kīlauea cron failed")
+
+
+def _infer_alert_level(features: list) -> str:
+    """
+    Infer a simple alert level from USGS event data.
+    Real HVO color-code parsing would require scraping HVO notices.
+    This heuristic triggers on significant local seismicity until HVO RSS is wired.
+    """
+    if not features:
+        return "normal"
+    max_mag = max((f.get("properties", {}).get("mag") or 0 for f in features), default=0)
+    if max_mag >= 5.0:
+        return "watch"
+    if max_mag >= 4.0:
+        return "advisory"
+    return "normal"
+
+
+def _write_alert_state(config, alert_level: str) -> None:
+    """Persist current alert level so economy cron can apply the multiplier."""
+    try:
+        state_dir = config.DATA_DIR / "state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        state_path = state_dir / "kilauea-alert.json"
+        state_path.write_text(json.dumps({
+            "alert_level": alert_level,
+            "multiplier": get_multiplier(alert_level),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }))
+        log.debug("Kīlauea alert state written: %s", alert_level)
+    except Exception as e:
+        log.warning("Could not write kilauea alert state: %s", e)
 
 
 def get_multiplier(alert_level: str) -> float:
