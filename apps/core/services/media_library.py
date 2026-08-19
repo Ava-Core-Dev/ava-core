@@ -100,14 +100,12 @@ def resolve_public(rel: str) -> Path | None:
     return full
 
 
-def list_public(*, limit: int = 400) -> dict:
+def list_public(*, limit: int = 400, per_folder: int = 80) -> dict:
     root = media_root()
-    files: list[dict] = []
+    by_folder: dict[str, list[dict]] = {}
     if not root.is_dir():
         return {"ok": False, "error": "media_missing", "files": []}
     for path in root.rglob("*"):
-        if len(files) >= limit:
-            break
         if not path.is_file():
             continue
         if path.name in SKIP_NAMES:
@@ -119,7 +117,8 @@ def list_public(*, limit: int = 400) -> dict:
         if not is_public_rel(rel):
             continue
         st = path.stat()
-        files.append(
+        folder = rel.rsplit("/", 1)[0] if "/" in rel else ""
+        by_folder.setdefault(folder, []).append(
             {
                 "path": rel,
                 "name": path.name,
@@ -128,14 +127,20 @@ def list_public(*, limit: int = 400) -> dict:
                 "download": f"/api/media/public/file?path={rel}",
             }
         )
+    files: list[dict] = []
+    for folder, rows in sorted(by_folder.items()):
+        rows.sort(key=lambda r: r["mtime"], reverse=True)
+        files.extend(rows[:per_folder])
     files.sort(key=lambda r: r["mtime"], reverse=True)
-    catalog = root / "public" / "catalog.json"
-    catalog.parent.mkdir(parents=True, exist_ok=True)
+    files = files[:limit]
     payload = {
         "ok": True,
         "generated": datetime.now(timezone.utc).isoformat(),
         "count": len(files),
-        "files": files[:limit],
+        "folders": {k: len(v) for k, v in sorted(by_folder.items())},
+        "files": files,
     }
+    catalog = root / "public" / "catalog.json"
+    catalog.parent.mkdir(parents=True, exist_ok=True)
     catalog.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return payload

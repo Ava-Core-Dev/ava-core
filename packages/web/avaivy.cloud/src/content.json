@@ -12,6 +12,7 @@
 
   "nav": [
     { "label": "Status", "href": "/status" },
+    { "label": "Index", "href": "/index" },
     { "label": "Goals", "href": "/status/goals" },
     { "label": "Wallets", "href": "/wallets" },
     { "label": "Updates", "href": "/blog" },
@@ -43,6 +44,13 @@
       "live": ""
     },
     {
+      "title": "Index",
+      "value": "public media",
+      "sub": "Reports, audio, video \u2192",
+      "href": "/index",
+      "live": ""
+    },
+    {
       "title": "Goals",
       "value": "wishlist",
       "sub": "Ranked records \u2192",
@@ -66,7 +74,8 @@
   "footer": {
     "links": [
       { "label": "RootMC", "href": "https://rootmc.net" },
-      { "label": "Root Record", "href": "https://rootrecord.online" }
+      { "label": "Root Record", "href": "https://rootrecord.online" },
+      { "label": "Public index", "href": "/index" }
     ],
     "tagline": "Powered by the sun \u00b7 Big Island, Hawai\u02bbi"
   }
