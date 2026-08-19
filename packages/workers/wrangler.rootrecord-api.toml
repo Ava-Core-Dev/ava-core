@@ -10,7 +10,7 @@ routes = [
 [[d1_databases]]
 binding = "AVA_HEARTBEAT_DB"
 database_name = "ava-heartbeat"
-database_id = ""
+database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"
 
 [triggers]
 crons = ["*/10 * * * *", "*/5 * * * *"]

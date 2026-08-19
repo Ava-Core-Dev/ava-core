@@ -13,7 +13,7 @@ routes = [
 [[d1_databases]]
 binding = "AVA_HEARTBEAT_DB"
 database_name = "ava-heartbeat"
-database_id = ""   # fill after creating DB
+database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"   # fill after creating DB
 
 [vars]
 AVA_ORIGIN_URL = "https://ava-origin.rootmc.net"
