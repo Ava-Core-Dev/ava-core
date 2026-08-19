@@ -77,6 +77,13 @@ export function ensureMediaDirs() {
     "documents/logs",
     "stream/overlays",
     "stream/obs-cams",
+    "public",
+    "private/1-1/discord",
+    "private/1-1/slack",
+    "private/1-1/telegram",
+    "private/life-story",
+    "private/profiling",
+    "private/accounts",
   ]) {
     fs.mkdirSync(path.join(root, sub), { recursive: true });
   }
@@ -135,6 +142,9 @@ export function listMediaFiles({ limit = 200, under = "" } = {}) {
     for (const ent of entries) {
       if (out.length >= limit) break;
       if (ent.name.startsWith(".")) continue;
+      if (ent.name === "private" && depth === 0) continue;
+      if (ent.name === "files.log") continue;
+      if (ent.name === "direct messages") continue;
       const abs = path.join(dir, ent.name);
       let st;
       try {

@@ -99,6 +99,9 @@ MEDIA_SUBDIRS = (
     "documents/persona", "documents/notes", "documents/plans", "documents/docs",
     "documents/context", "documents/logs",
     "stream/overlays", "stream/obs-cams",
+    "public",
+    "private/1-1/discord", "private/1-1/slack", "private/1-1/telegram",
+    "private/life-story", "private/profiling", "private/accounts",
 )
 
 # ── Server ─────────────────────────────────────────────────────────────────────

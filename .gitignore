@@ -56,3 +56,6 @@ credentials.env
 credentials.env.*
 **/recovery-phrase*
 **/wallet-secrets*
+
+# Operator private media (life story, 1:1, account exports) — never git
+**/media/private/
