@@ -58,7 +58,7 @@ async def exec_script(db_id: str, statements: list[str]) -> bool:
         sql = "\n".join(lines).strip()
         if not sql:
             continue
-        body = await d1.query(db_id, sql)
+        body = await query(db_id, sql)
         if not body.get("success"):
             ok = False
             log.warning("D1 exec failed: %s", body.get("errors"))

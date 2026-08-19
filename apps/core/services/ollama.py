@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import logging
+import time
 
 import httpx
 
 from .. import config
 
 log = logging.getLogger("ava.ollama")
+
+# /api/activity is polled every 2s from the GUI; do not hit Ollama that often.
+_TAGS_TTL_S = 30.0
+_tags_cache: tuple[float, bool, list[str]] = (0.0, False, [])
 
 
 async def chat(messages: list[dict], *, model: str | None = None,
@@ -30,10 +35,30 @@ async def chat(messages: list[dict], *, model: str | None = None,
         return None
 
 
-async def is_available() -> bool:
+async def tags(force: bool = False) -> tuple[bool, list[str]]:
+    """Cached GET /api/tags. Returns (up, model_names)."""
+    global _tags_cache
+    ts, up, models = _tags_cache
+    if not force and (time.monotonic() - ts) < _TAGS_TTL_S:
+        return up, models
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=2.0) as client:
             r = await client.get(f"{config.OLLAMA_URL}/api/tags")
-        return r.status_code == 200
-    except Exception:
-        return False
+        ok = r.status_code == 200
+        names: list[str] = []
+        if ok:
+            for m in (r.json() or {}).get("models") or []:
+                name = str(m.get("name") or "")
+                if name:
+                    names.append(name)
+        _tags_cache = (time.monotonic(), ok, names)
+        return ok, names
+    except Exception as e:
+        log.debug("Ollama tags unavailable: %s", e)
+        _tags_cache = (time.monotonic(), False, [])
+        return False, []
+
+
+async def is_available() -> bool:
+    up, _ = await tags()
+    return up
