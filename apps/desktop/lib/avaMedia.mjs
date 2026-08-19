@@ -46,7 +46,8 @@ export function ensureMediaDirs() {
     "audio/numbers",
     "audio/time_clips",
     "audio/sounds",
-    "audio/generated",
+    "audio/voice",
+    "audio/voice/generated",
     "video/clips",
     "video/reports",
     "video/current",
@@ -77,6 +78,16 @@ export function ensureMediaDirs() {
     "stream/obs-cams",
   ]) {
     fs.mkdirSync(path.join(root, sub), { recursive: true });
+  }
+  const voiceGen = path.join(root, "audio", "voice", "generated");
+  fs.mkdirSync(voiceGen, { recursive: true });
+  const generatedAlias = path.join(root, "audio", "generated");
+  if (!fs.existsSync(generatedAlias)) {
+    try {
+      fs.symlinkSync("voice/generated", generatedAlias);
+    } catch {
+      fs.mkdirSync(generatedAlias, { recursive: true });
+    }
   }
   return root;
 }
