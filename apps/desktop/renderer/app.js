@@ -1,0 +1,4564 @@
+const $ = (id) => document.getElementById(id);
+
+let presets = [];
+let providers = [];
+const providerSel = { discord: "dream", slack: "dream", telegram: "dream", post: "exact", core: "dream", feedback: "exact" };
+const replies = { discord: null, slack: null, telegram: null };
+/** Discord message currently loaded for PATCH edit (null = normal send). */
+let discordEditId = null;
+let discordHistoryCache = [];
+const feedbackState = {
+  items: [],
+  selectedId: null,
+  templates: [],
+  busy: false,
+  discordSel: null,
+  slackSel: null,
+  targets: {
+    discord: "1532929974154166522",
+    slack: "C0BLMGBVAMD",
+  },
+};
+/** After summarize/preview fills the draft, Send posts as-is (no second Grok pass). */
+const draftReadyExact = { discord: false, slack: false, telegram: false, post: false, feedback: false };
+const surfaceBusy = { discord: false, slack: false, telegram: false, post: false, feedback: false };
+
+const coreState = {
+  sessionId: null,
+  messages: [],
+  lastQuestion: "",
+  lastAnswer: "",
+  enhanceText: "",
+  enhanceProvider: "",
+  busy: false,
+  pending: false,
+  pendingLabel: "",
+};
+
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    $(`page-${btn.dataset.page}`).classList.add("active");
+    if (btn.dataset.page === "links") renderLinks();
+    if (btn.dataset.page === "release") refreshRelease();
+    if (btn.dataset.page === "crons") refreshCrons();
+    if (btn.dataset.page === "reports") refreshReports();
+    if (btn.dataset.page === "weather-gifs") refreshWeatherGifsPage();
+    if (btn.dataset.page === "biz") refreshBiz();
+    if (btn.dataset.page === "finance") refreshFinance();
+    if (btn.dataset.page === "core") refreshCoreStatus();
+    if (btn.dataset.page === "feedback") refreshFeedbackPage();
+    if (btn.dataset.page === "minecraft") refreshMinecraft();
+    if (btn.dataset.page === "stream") refreshStreamOps();
+    if (btn.dataset.page === "terminal") refreshTerminalLive();
+    if (btn.dataset.page === "settings") refreshConnectionForm();
+  });
+});
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const RESPONSE_LOG_KEY = "ava-ivy-response-log-v1";
+const RESPONSE_LOG_LIMIT = 80;
+const RESPONSE_LOG_SURFACES = ["discord", "slack", "telegram", "post", "core", "feedback"];
+
+function loadResponseLogStore() {
+  try {
+    const raw = localStorage.getItem(RESPONSE_LOG_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const out = {};
+    for (const s of RESPONSE_LOG_SURFACES) {
+      out[s] = Array.isArray(parsed?.[s]) ? parsed[s] : [];
+    }
+    return out;
+  } catch {
+    return Object.fromEntries(RESPONSE_LOG_SURFACES.map((s) => [s, []]));
+  }
+}
+
+function saveResponseLogStore(store) {
+  try {
+    localStorage.setItem(RESPONSE_LOG_KEY, JSON.stringify(store));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function formatLogTime(ts) {
+  try {
+    return new Date(ts).toLocaleString();
+  } catch {
+    return String(ts || "");
+  }
+}
+
+function renderResponseLog(surface) {
+  const host = $(`${surface}-response-log`);
+  const meta = $(`${surface}-response-log-meta`);
+  if (!host) return;
+  const store = loadResponseLogStore();
+  const entries = store[surface] || [];
+  if (meta) {
+    meta.textContent = entries.length
+      ? `${entries.length} saved · newest first · persists on this machine`
+      : "No responses yet — rewrites, summaries, compares, and sends land here.";
+  }
+  if (!entries.length) {
+    host.innerHTML = "<div class='msg meta'>(empty)</div>";
+    return;
+  }
+  host.innerHTML = entries
+    .map((e) => {
+      const head = [
+        `<span class="kind">${escapeHtml(e.kind || "response")}</span>`,
+        e.provider ? `<span>${escapeHtml(e.provider)}</span>` : "",
+        e.via ? `<span>${escapeHtml(e.via)}</span>` : "",
+        `<span>${escapeHtml(formatLogTime(e.at))}</span>`,
+      ]
+        .filter(Boolean)
+        .join("");
+      return `<article class="response-log-entry"><div class="head">${head}</div><pre class="body">${escapeHtml(e.text || "")}</pre></article>`;
+    })
+    .join("");
+}
+
+function appendResponseLog(surface, { kind, text, provider = "", via = "", meta = "" } = {}) {
+  const body = String(text || "").trim();
+  if (!body || !RESPONSE_LOG_SURFACES.includes(surface)) return;
+  const store = loadResponseLogStore();
+  const entry = {
+    at: Date.now(),
+    kind: String(kind || "response"),
+    provider: String(provider || ""),
+    via: String(via || ""),
+    meta: String(meta || ""),
+    text: body.slice(0, 20000),
+  };
+  store[surface] = [entry, ...(store[surface] || [])].slice(0, RESPONSE_LOG_LIMIT);
+  saveResponseLogStore(store);
+  renderResponseLog(surface);
+}
+
+function clearResponseLog(surface) {
+  const store = loadResponseLogStore();
+  store[surface] = [];
+  saveResponseLogStore(store);
+  renderResponseLog(surface);
+}
+
+function autosizeDraft(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  const next = Math.max(160, Math.min(el.scrollHeight + 4, Math.floor(window.innerHeight * 0.55)));
+  el.style.height = `${next}px`;
+}
+
+function wireDraftAutosize(id) {
+  const el = $(id);
+  if (!el) return;
+  const run = () => autosizeDraft(el);
+  el.addEventListener("input", run);
+  run();
+}
+
+function renderHistory(el, messages, { replyId = null, onPick = null, surface = null } = {}) {
+  el.innerHTML = (messages || [])
+    .map((m) => {
+      const id = m.id ? String(m.id) : "";
+      const who = escapeHtml(m.who || "?");
+      const clickable = id && onPick ? " clickable" : "";
+      const selected = id && replyId === id ? " msg-reply-target" : "";
+      const selfCls = m.self ? " msg-self" : "";
+      const dataId = id
+        ? ` data-id="${escapeHtml(id)}" data-who="${who}" data-self="${m.self ? "1" : "0"}" data-text="${escapeHtml(String(m.text || "").slice(0, 2000))}"`
+        : "";
+      const badge = m.self ? ` <span class="hint-inline">(ava)</span>` : "";
+      return `<div class="msg${clickable}${selected}${selfCls}"${dataId}><span class="who">${who}</span>${badge}: ${escapeHtml(m.text || "")}</div>`;
+    })
+    .join("") || "<div class='msg'>(no messages)</div>";
+
+  if (onPick) {
+    el.querySelectorAll(".msg.clickable").forEach((node) => {
+      node.addEventListener("click", () => {
+        onPick({
+          id: node.dataset.id,
+          who: node.dataset.who,
+          self: node.dataset.self === "1",
+          text: node.dataset.text || "",
+          surface,
+        });
+      });
+    });
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
+function setDiscordEditMode(on) {
+  const save = $("discord-save-edit");
+  const cancel = $("discord-cancel-edit");
+  const send = $("discord-send");
+  if (save) save.classList.toggle("hidden", !on);
+  if (cancel) cancel.classList.toggle("hidden", !on);
+  if (send) send.classList.toggle("hidden", on);
+}
+
+function updateDiscordSelectionBar(pick) {
+  const editBtn = $("discord-edit-load");
+  const delBtn = $("discord-delete");
+  const canEdit = Boolean(pick?.id && pick.self);
+  // Delete: Ava's own always; others try (needs Manage Messages)
+  const canDelete = Boolean(pick?.id);
+  if (editBtn) editBtn.classList.toggle("hidden", !canEdit);
+  if (delBtn) delBtn.classList.toggle("hidden", !canDelete);
+}
+
+function setReplyBar(surface, reply) {
+  replies[surface] = reply;
+  const bar = $(`${surface}-reply-bar`);
+  const whoEl = $(`${surface}-reply-who`);
+  if (!bar || !whoEl) return;
+  if (reply?.id) {
+    bar.classList.remove("hidden");
+    const shortId = reply.id.length > 8 ? `…${reply.id.slice(-6)}` : reply.id;
+    const tag = reply.self ? "ava" : "msg";
+    whoEl.textContent = `${tag} @${reply.who} (${shortId})`;
+  } else {
+    bar.classList.add("hidden");
+    whoEl.textContent = "?";
+  }
+  if (surface === "discord") {
+    updateDiscordSelectionBar(reply);
+    if (!reply?.id) {
+      discordEditId = null;
+      setDiscordEditMode(false);
+    }
+  }
+}
+
+function fillSelect(sel, items, { placeholder, nameFn } = {}) {
+  sel.innerHTML = "";
+  if (placeholder) {
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = placeholder;
+    sel.appendChild(blank);
+  }
+  for (const item of items || []) {
+    const opt = document.createElement("option");
+    opt.value = item.id;
+    opt.textContent = nameFn ? nameFn(item) : item.name || item.id;
+    sel.appendChild(opt);
+  }
+}
+
+function fillPresets(surface) {
+  const sel = $("post-preset");
+  const filtered = presets.filter((p) => p.surface === surface);
+  sel.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "(pick preset or type ID below)";
+  sel.appendChild(blank);
+  for (const p of filtered) {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = `${p.key} — ${p.label}`;
+    sel.appendChild(opt);
+  }
+}
+
+function markDraftReadyExact(surface, draftId) {
+  draftReadyExact[surface] = true;
+  const el = $(draftId);
+  if (!el || el.dataset.readyBound) return;
+  el.dataset.readyBound = "1";
+  el.addEventListener("input", () => {
+    draftReadyExact[surface] = false;
+  });
+}
+
+function stripRewritePreamble(text) {
+  return String(text || "")
+    .replace(
+      /^(here'?s\s+(the\s+)?(rewritten|revised|updated)\s+(message|reply|draft|version)[^\n]*:\s*)/i,
+      "",
+    )
+    .replace(/^(rewritten\s+(message|reply)\s+in\s+ava[^\n]*:\s*)/i, "")
+    .trim();
+}
+
+function renderProviders(containerId, surfaceKey) {
+  const host = $(containerId);
+  if (!host) return;
+  host.innerHTML = "";
+  const list = providers.length
+    ? providers
+    : [
+        { id: "exact", label: "Exactly the same" },
+        { id: "dream", label: "Dream / Grok" },
+        { id: "cursor", label: "Cursor" },
+        { id: "ollama", label: "Ollama" },
+        { id: "google", label: "Google" },
+      ];
+  for (const p of list) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = p.label || p.id;
+    btn.title = p.detail || p.model || p.id;
+    if (p.configured === false) btn.style.opacity = "0.45";
+    if (providerSel[surfaceKey] === p.id) btn.classList.add("active-provider");
+    btn.addEventListener("click", () => {
+      providerSel[surfaceKey] = p.id;
+      // Choosing a rewrite provider means Send may rewrite again.
+      if (p.id !== "exact" && draftReadyExact[surfaceKey] != null) {
+        draftReadyExact[surfaceKey] = false;
+      }
+      host.querySelectorAll("button").forEach((b) => b.classList.remove("active-provider"));
+      btn.classList.add("active-provider");
+    });
+    host.appendChild(btn);
+  }
+}
+
+function showCompare(elId, results) {
+  const el = $(elId);
+  if (!el) return;
+  el.classList.add("show");
+  el.textContent = (results || [])
+    .map((r) => {
+      const head = `── ${r.provider || "?"} · ${r.via || ""}${r.detail ? ` · ${r.detail}` : ""}`;
+      return `${head}\n${r.text || "(empty)"}\n`;
+    })
+    .join("\n");
+}
+
+function discordChannelId() {
+  const priv = $("discord-private").value;
+  return priv || $("discord-channel").value;
+}
+
+async function refreshDiscord() {
+  const channelId = discordChannelId();
+  const hist = await window.avaDesktop.history({
+    surface: "discord",
+    channelId,
+    limit: 150,
+  });
+  discordHistoryCache = hist.messages || [];
+  renderHistory($("discord-history"), hist.messages, {
+    replyId: replies.discord?.id || null,
+    surface: "discord",
+    onPick: (pick) => {
+      // Prefer full text from cache (dataset HTML-escapes)
+      const full = discordHistoryCache.find((m) => String(m.id) === String(pick.id));
+      const merged = {
+        ...pick,
+        text: full?.text ?? pick.text ?? "",
+        self: full?.self ?? pick.self,
+      };
+      setReplyBar("discord", merged);
+      $("discord-history").querySelectorAll(".msg").forEach((node) => {
+        node.classList.toggle("msg-reply-target", node.dataset.id === pick.id);
+      });
+      // Ava messages: auto-load into draft for edit (can't copy from history easily)
+      if (merged.self && merged.id) {
+        discordEditId = merged.id;
+        $("discord-draft").value = merged.text || "";
+        autosizeDraft($("discord-draft"));
+        draftReadyExact.discord = true;
+        setDiscordEditMode(true);
+        $("discord-status").textContent = `editing …${String(merged.id).slice(-6)} — change text, then Save edit`;
+      } else {
+        // Others: reply target only
+        if (discordEditId) {
+          discordEditId = null;
+          setDiscordEditMode(false);
+        }
+      }
+      $("discord-draft").focus();
+    },
+  });
+  $("discord-status").textContent = hist.ok
+    ? `loaded ${hist.messages?.length || 0} msgs${hist.botName ? ` · bot ${hist.botName}` : ""}`
+    : hist.detail || "fail";
+}
+
+async function loadDiscordEdit() {
+  const pick = replies.discord;
+  if (!pick?.id || !pick.self) {
+    $("discord-status").textContent = "select an Ava message to edit";
+    return;
+  }
+  const full = discordHistoryCache.find((m) => String(m.id) === String(pick.id));
+  const text = full?.text ?? pick.text ?? "";
+  discordEditId = pick.id;
+  $("discord-draft").value = text;
+  autosizeDraft($("discord-draft"));
+  draftReadyExact.discord = true;
+  setDiscordEditMode(true);
+  replies.discord = { ...pick, text };
+  $("discord-status").textContent = `editing message …${String(pick.id).slice(-6)} — Save edit or Cancel`;
+  $("discord-draft").focus();
+}
+
+async function saveDiscordEdit() {
+  const channelId = discordChannelId();
+  const text = ($("discord-draft").value || "").trim();
+  if (!discordEditId || !channelId || !text) {
+    $("discord-status").textContent = "need selected Ava message + text";
+    return;
+  }
+  if (surfaceBusy.discord) {
+    $("discord-status").textContent = "busy";
+    return;
+  }
+  surfaceBusy.discord = true;
+  $("discord-status").textContent = "saving edit…";
+  try {
+    const r = await window.avaDesktop.discordEdit({
+      channelId,
+      messageId: discordEditId,
+      text,
+    });
+    if (!r?.ok) {
+      $("discord-status").textContent = `edit failed · ${r?.detail || "?"}`;
+      return;
+    }
+    appendResponseLog("discord", {
+      kind: "edit",
+      text,
+      provider: "exact",
+      via: "discord-patch",
+      meta: `id ${r.id || discordEditId}`,
+    });
+    discordEditId = null;
+    setDiscordEditMode(false);
+    $("discord-draft").value = "";
+    setReplyBar("discord", null);
+    $("discord-status").textContent = `edited · ${r.id || "?"}`;
+    await refreshDiscord();
+  } catch (err) {
+    $("discord-status").textContent = String(err.message || err);
+  } finally {
+    surfaceBusy.discord = false;
+  }
+}
+
+function cancelDiscordEdit() {
+  discordEditId = null;
+  setDiscordEditMode(false);
+  $("discord-status").textContent = "edit cancelled";
+}
+
+async function deleteDiscordSelected() {
+  const pick = replies.discord;
+  const channelId = discordChannelId();
+  if (!pick?.id || !channelId) {
+    $("discord-status").textContent = "select a message to delete";
+    return;
+  }
+  const label = pick.self ? "Ava's message" : `message from ${pick.who}`;
+  if (!confirm(`Delete ${label} (…${String(pick.id).slice(-6)})?\n\nBots can always delete their own. Others need Manage Messages.`)) {
+    return;
+  }
+  if (surfaceBusy.discord) return;
+  surfaceBusy.discord = true;
+  $("discord-status").textContent = "deleting…";
+  try {
+    const r = await window.avaDesktop.discordDelete({
+      channelId,
+      messageId: pick.id,
+    });
+    if (!r?.ok) {
+      $("discord-status").textContent = `delete failed · ${r?.detail || "?"}`;
+      return;
+    }
+    appendResponseLog("discord", {
+      kind: "delete",
+      text: pick.text || `(deleted ${pick.id})`,
+      provider: "exact",
+      via: "discord-delete",
+      meta: `id ${pick.id}`,
+    });
+    if (discordEditId === pick.id) {
+      discordEditId = null;
+      setDiscordEditMode(false);
+      $("discord-draft").value = "";
+    }
+    setReplyBar("discord", null);
+    $("discord-status").textContent = `deleted · ${pick.id}`;
+    await refreshDiscord();
+  } catch (err) {
+    $("discord-status").textContent = String(err.message || err);
+  } finally {
+    surfaceBusy.discord = false;
+  }
+}
+
+async function refreshSlack() {
+  const channelId = $("slack-channel").value;
+  const hist = await window.avaDesktop.history({
+    surface: "slack",
+    channelId,
+    limit: 150,
+  });
+  renderHistory($("slack-history"), hist.messages, {
+    replyId: replies.slack?.id || null,
+    onPick: (pick) => {
+      setReplyBar("slack", pick);
+      $("slack-draft").focus();
+    },
+  });
+  $("slack-status").textContent = hist.ok
+    ? `loaded ${hist.messages?.length || 0} msgs`
+    : hist.detail || "fail";
+}
+
+async function refreshTelegram() {
+  const channelId = $("telegram-chat").value.trim();
+  const hist = await window.avaDesktop.history({
+    surface: "telegram",
+    channelId,
+    limit: 150,
+  });
+  renderHistory($("telegram-history"), hist.messages, {
+    replyId: replies.telegram?.id || null,
+    onPick: (pick) => {
+      setReplyBar("telegram", pick);
+      $("telegram-draft").focus();
+    },
+  });
+  $("telegram-status").textContent = `context ${hist.messages?.length || 0} msgs${hist.detail ? ` · ${hist.detail}` : ""}`;
+}
+
+async function refreshPostHistory() {
+  const surface = $("post-surface").value;
+  let channelId = $("post-channel").value.trim();
+  const asPreset = presets.find(
+    (p) => p.key === channelId.toLowerCase() || p.id === channelId,
+  );
+  if (asPreset) channelId = asPreset.id;
+  const meta = $("post-history-meta");
+  const host = $("post-history");
+  if (!channelId) {
+    host.innerHTML = "";
+    meta.textContent = "Pick a channel first.";
+    return;
+  }
+  meta.textContent = "loading…";
+  try {
+    const hist = await window.avaDesktop.history({
+      surface,
+      channelId,
+      limit: 150,
+    });
+    renderHistory(host, hist.messages, {
+      onPick: (pick) => {
+        if (pick?.id) $("post-ref").value = String(pick.id);
+        $("post-draft").focus();
+      },
+    });
+    const n = hist.messages?.length || 0;
+    meta.textContent = hist.ok
+      ? `${n} msgs · ${hist.detail || surface}`
+      : hist.detail || "fail";
+  } catch (err) {
+    host.innerHTML = "";
+    meta.textContent = String(err.message || err);
+  }
+}
+
+async function previewRewrite(surface, draftId, channelId, statusId, compareId, compare = false) {
+  const text = $(draftId).value.trim();
+  if (!text) {
+    $(statusId).textContent = "Type a draft first.";
+    return;
+  }
+  $(statusId).textContent = compare ? "comparing providers…" : `rewriting via ${providerSel[surface]}…`;
+  try {
+    const r = await window.avaDesktop.rewritePreview({
+      surface: surface === "post" ? $("post-surface").value : surface,
+      channelId,
+      text,
+      provider: providerSel[surface],
+      compare,
+    });
+    if (compare && r.results) {
+      showCompare(compareId, r.results);
+      $(statusId).textContent = `compared ${r.results.length} providers`;
+      const blob = (r.results || [])
+        .map((x) => `── ${x.provider || "?"} · ${x.via || ""}\n${x.text || ""}`)
+        .join("\n\n");
+      appendResponseLog(surface, {
+        kind: "compare",
+        text: blob,
+        provider: "all",
+        via: "compare",
+      });
+      return;
+    }
+    if (r.text) {
+      $(draftId).value = stripRewritePreamble(r.text);
+      autosizeDraft($(draftId));
+      markDraftReadyExact(surface, draftId);
+      appendResponseLog(surface, {
+        kind: "rewrite",
+        text: $(draftId).value,
+        provider: r.provider || providerSel[surface],
+        via: r.via || "",
+      });
+    }
+    $(statusId).textContent = `preview · ${r.provider || providerSel[surface]} · ${r.via || ""}${r.detail ? ` · ${r.detail}` : ""} · Send will post as-is`;
+  } catch (err) {
+    $(statusId).textContent = String(err.message || err);
+  }
+}
+
+async function summarizeSurface(surface, channelId, draftId, statusId) {
+  if (!channelId) {
+    $(statusId).textContent = "Pick a channel first.";
+    return;
+  }
+  if (surfaceBusy[surface]) {
+    $(statusId).textContent = "busy — wait for the current job";
+    return;
+  }
+  surfaceBusy[surface] = true;
+  $(statusId).textContent = "summarizing last 50–100 messages…";
+  try {
+    const r = await window.avaDesktop.summarize({
+      surface,
+      channelId,
+      provider: providerSel[surface] === "exact" ? "dream" : providerSel[surface],
+      limit: 150,
+    });
+    if (!r.ok) {
+      $(statusId).textContent = r.detail || "summarize failed";
+      return;
+    }
+    $(draftId).value = stripRewritePreamble(r.text || "");
+    autosizeDraft($(draftId));
+    markDraftReadyExact(surface, draftId);
+    appendResponseLog(surface, {
+      kind: "summary",
+      text: $(draftId).value,
+      provider: r.provider || "",
+      via: r.via || "",
+      meta: `${r.messageCount || "?"} msgs`,
+    });
+    $(statusId).textContent = `summary · ${r.messageCount || "?"} msgs · ${r.provider || ""} · ${r.via || ""} · Send will post as-is`;
+  } catch (err) {
+    $(statusId).textContent = String(err.message || err);
+  } finally {
+    surfaceBusy[surface] = false;
+  }
+}
+
+async function sendSurface(surface, draftId, channelId, statusId) {
+  const text = $(draftId).value.trim();
+  if (surface === "discord" && discordEditId) {
+    $(statusId).textContent = "in edit mode — use Save edit (or Cancel edit)";
+    return;
+  }
+  if (!channelId || !text) {
+    $(statusId).textContent = "Need channel + text.";
+    return;
+  }
+  if (surfaceBusy[surface]) {
+    $(statusId).textContent = "already sending — ignored double click";
+    return;
+  }
+  const provider = providerSel[surface];
+  // Don't run Dream/Grok a second time after Summarize / Preview already filled the draft.
+  const rewrite = provider !== "exact" && !draftReadyExact[surface];
+  surfaceBusy[surface] = true;
+  $(statusId).textContent = rewrite
+    ? `sending via ${provider}…`
+    : draftReadyExact[surface]
+      ? "sending exact (already rewritten — no second Grok pass)…"
+      : "sending exact…";
+  try {
+    const r = await window.avaDesktop.send({
+      surface,
+      channelId,
+      text,
+      refId: replies[surface]?.id || undefined,
+      rewrite,
+      provider: rewrite ? provider : "exact",
+    });
+    draftReadyExact[surface] = false;
+    appendResponseLog(surface, {
+      kind: "send",
+      text: r.text || text,
+      provider: r.provider || (rewrite ? provider : "exact"),
+      via: r.via || "",
+      meta: r.id ? `id ${r.id}` : "",
+    });
+    $(statusId).textContent = `sent · ${r.provider || provider} · ${r.via || ""} · id ${r.id || "?"}`;
+    $(draftId).value = "";
+    autosizeDraft($(draftId));
+    setReplyBar(surface, null);
+    if (surface === "discord") await refreshDiscord();
+    if (surface === "slack") await refreshSlack();
+    if (surface === "telegram") await refreshTelegram();
+  } catch (err) {
+    $(statusId).textContent = String(err.message || err);
+  } finally {
+    surfaceBusy[surface] = false;
+  }
+}
+
+function fmtMs(ms) {
+  if (ms == null) return "—";
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m`;
+  return `${Math.round(m / 60)}h`;
+}
+
+function fmtCountdown(ms) {
+  if (ms == null || !Number.isFinite(ms)) return "—";
+  if (ms <= 0) return "now";
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${String(sec).padStart(2, "0")}s`;
+  return `${sec}s`;
+}
+
+function countdownLabel(nextAt, now = Date.now()) {
+  if (!nextAt || !Number.isFinite(nextAt) || nextAt <= 0) return "—";
+  const left = nextAt - now;
+  return left <= 0 ? "now" : `next ${fmtCountdown(left)}`;
+}
+
+function tickCountdowns(root = document) {
+  const now = Date.now();
+  root.querySelectorAll("[data-next-at]").forEach((el) => {
+    const nextAt = Number(el.dataset.nextAt);
+    if (!Number.isFinite(nextAt) || nextAt <= 0) {
+      el.textContent = el.dataset.nextEmpty || "—";
+      el.classList.remove("due-now");
+      return;
+    }
+    el.textContent = countdownLabel(nextAt, now);
+    el.classList.toggle("due-now", nextAt - now <= 0);
+  });
+}
+
+function fmtAge(ts) {
+  if (!ts) return "never";
+  return `${fmtMs(Date.now() - Number(ts))} ago`;
+}
+
+async function refreshCrons() {
+  const meta = $("cron-meta");
+  const host = $("cron-table");
+  meta.textContent = "Loading cron status…";
+  try {
+    const st = await window.avaDesktop.cronStatus();
+    if (!st?.ok && !st?.jobs) {
+      meta.textContent =
+        st?.detail ||
+        "cron API unavailable — is Ava brain up on :8787? Try Refresh.";
+      host.innerHTML = "";
+      $("cron-status").textContent = JSON.stringify(st, null, 2);
+      return;
+    }
+    meta.textContent = [
+      st.started ? "runner: active" : "runner: idle/not started yet",
+      st.runnerEnvDisabled ? "AVA_CRON_RUNNER=0" : null,
+      `${(st.jobs || []).length} jobs`,
+      `${(st.jobs || []).filter((j) => j.running).length} running`,
+      `${(st.jobs || []).filter((j) => j.disabled).length} disabled`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    host.innerHTML = "";
+    for (const job of st.jobs || []) {
+      const row = document.createElement("div");
+      row.className = `cron-row${job.disabled ? " disabled" : ""}`;
+      const active = !job.disabled;
+      const nextAt = active ? Number(job.nextAt || 0) : 0;
+      row.innerHTML = `
+        <div>
+          <div class="id">${escapeHtml(job.id)}</div>
+          <div class="muted">${escapeHtml(job.cronHint || "")}</div>
+        </div>
+        <div>every ${fmtMs(job.everyMs)}</div>
+        <div class="cron-state">
+          <span>${job.running ? "running" : job.disabled ? "disabled" : "active"}</span>
+          ${
+            active
+              ? `<span class="cron-countdown" data-next-at="${nextAt || ""}">${countdownLabel(nextAt)}</span>`
+              : ""
+          }
+        </div>
+        <div class="muted">last ${fmtAge(job.lastFiredAt)}</div>
+        <div class="actions"></div>
+      `;
+      const actions = row.querySelector(".actions");
+      const runBtn = document.createElement("button");
+      runBtn.type = "button";
+      runBtn.textContent = "Run now";
+      runBtn.onclick = async () => {
+        $("cron-status").textContent = `running ${job.id}…`;
+        const r = await window.avaDesktop.cronRun(job.id);
+        $("cron-status").textContent = JSON.stringify(r, null, 2).slice(0, 2000);
+        await refreshCrons();
+      };
+      const tog = document.createElement("button");
+      tog.type = "button";
+      tog.textContent = job.disabled ? "Enable" : "Disable";
+      tog.onclick = async () => {
+        await window.avaDesktop.cronConfig({
+          toggleId: job.id,
+          enabled: job.disabled,
+        });
+        await refreshCrons();
+      };
+      const every = document.createElement("button");
+      every.type = "button";
+      every.textContent = "Set interval";
+      every.onclick = async () => {
+        const raw = window.prompt(
+          `Interval ms for ${job.id} (blank = default ${job.baseEveryMs})`,
+          String(job.everyMs || job.baseEveryMs || ""),
+        );
+        if (raw == null) return;
+        const n = Number(raw);
+        await window.avaDesktop.cronConfig({
+          setEveryMs: { id: job.id, everyMs: Number.isFinite(n) ? n : 0 },
+        });
+        await refreshCrons();
+      };
+      actions.append(runBtn, tog, every);
+      host.appendChild(row);
+    }
+    $("cron-status").textContent = "";
+    tickCountdowns(host);
+    ensureCronLive();
+  } catch (err) {
+    meta.textContent = String(err.message || err);
+    $("cron-status").textContent =
+      `Brain must be up on ${lastBrainUrl || "the selected connection"} — Settings → Connection, or ~/ava/bin/start-ava-desktop.sh`;
+  }
+}
+
+let cronTickTimer = null;
+let cronRefreshTimer = null;
+function ensureCronLive() {
+  if (!cronTickTimer) {
+    cronTickTimer = setInterval(() => tickCountdowns(), 1000);
+  }
+  if (!cronRefreshTimer) {
+    cronRefreshTimer = setInterval(() => {
+      if ($("page-crons")?.classList.contains("active")) refreshCrons();
+      if ($("page-reports")?.classList.contains("active")) refreshReports();
+    }, 20_000);
+  }
+}
+
+function fmtHst(ts) {
+  if (!ts) return "—";
+  return new Date(Number(ts)).toLocaleString("en-US", {
+    timeZone: "Pacific/Honolulu",
+    hour12: false,
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function reportStatusPill(status) {
+  const s = String(status || "upcoming");
+  return `<span class="report-pill ${escapeHtml(s)}">${escapeHtml(s)}</span>`;
+}
+
+async function refreshReports() {
+  const meta = $("reports-meta");
+  const dueHost = $("reports-due");
+  const recHost = $("reports-recurring");
+  const genHost = $("reports-generated");
+  if (!meta || !dueHost) return;
+  meta.textContent = "Loading reports…";
+  try {
+    const st = await window.avaDesktop.reportsStatus();
+    if (!st?.ok && !st?.dueToday) {
+      meta.textContent = st?.detail || "reports API unavailable — is Ava brain up?";
+      dueHost.innerHTML = "";
+      recHost.innerHTML = "";
+      genHost.innerHTML = "";
+      $("reports-status").textContent = JSON.stringify(st, null, 2);
+      return;
+    }
+    meta.textContent = [
+      `HST ${st.hstDay || "?"}`,
+      `${(st.dueToday || []).filter((r) => r.status !== "done").length} due/upcoming today`,
+      `${(st.generated || []).length} generated`,
+      st.asleep ? "asleep" : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    dueHost.innerHTML = "";
+    for (const r of st.dueToday || []) {
+      const row = document.createElement("div");
+      row.className = `cron-row report-row ${r.status || ""}`;
+      const nextAt = Number(r.nextAt || 0);
+      row.innerHTML = `
+        <div>
+          <div class="id">${escapeHtml(r.label || r.id)}</div>
+          <div class="muted">${escapeHtml(r.when || "")}</div>
+        </div>
+        <div>${reportStatusPill(r.status)}</div>
+        <div class="cron-countdown" data-next-at="${nextAt || ""}">${countdownLabel(nextAt)}</div>
+        <div class="muted">${r.done ? "posted today" : "not yet"}</div>
+        <div></div>
+      `;
+      dueHost.appendChild(row);
+    }
+
+    recHost.innerHTML = "";
+    for (const r of st.recurring || []) {
+      const row = document.createElement("div");
+      row.className = "cron-row report-row";
+      const nextAt = Number(r.nextAt || 0);
+      row.innerHTML = `
+        <div>
+          <div class="id">${escapeHtml(r.label || r.id)}</div>
+          <div class="muted">${escapeHtml(r.when || "")}${r.lastKey ? ` · last ${escapeHtml(r.lastKey)}` : ""}</div>
+        </div>
+        <div class="muted">recurring</div>
+        <div class="cron-countdown" data-next-at="${nextAt || ""}">${countdownLabel(nextAt)}</div>
+        <div class="muted">last ${r.lastAt ? fmtHst(r.lastAt) : "—"}</div>
+        <div></div>
+      `;
+      recHost.appendChild(row);
+    }
+
+    genHost.innerHTML = "";
+    for (const f of st.generated || []) {
+      const row = document.createElement("div");
+      row.className = "cron-row report-row generated";
+      row.innerHTML = `
+        <div>
+          <div class="id">${escapeHtml(f.label || f.name)}</div>
+          <div class="muted">${escapeHtml(f.rel || f.path || "")}</div>
+        </div>
+        <div class="muted">${escapeHtml(f.kind || "")}${f.dir ? " · folder" : ""}</div>
+        <div class="muted">${fmtHst(f.mtimeMs)}</div>
+        <div class="muted">${f.dir ? "—" : `${Math.max(1, Math.round((f.size || 0) / 1024))} KB`}</div>
+        <div class="actions"></div>
+      `;
+      const actions = row.querySelector(".actions");
+      const openBtn = document.createElement("button");
+      openBtn.type = "button";
+      openBtn.textContent = f.dir ? "Open" : "Open";
+      openBtn.onclick = () => window.avaDesktop.openPath(f.path);
+      const revealBtn = document.createElement("button");
+      revealBtn.type = "button";
+      revealBtn.textContent = "Reveal";
+      revealBtn.onclick = () => window.avaDesktop.revealPath(f.path);
+      actions.append(openBtn, revealBtn);
+      genHost.appendChild(row);
+    }
+    $("reports-status").textContent = "";
+    tickCountdowns();
+    ensureCronLive();
+  } catch (err) {
+    meta.textContent = String(err.message || err);
+    $("reports-status").textContent = `Brain must be up on ${lastBrainUrl || "the selected connection"}`;
+  }
+}
+
+async function refreshWeatherGifsPage() {
+  const meta = $("wg-meta");
+  const upHost = $("wg-updater");
+  const dirHost = $("wg-dirs");
+  const stEl = $("wg-status");
+  if (!meta || !upHost) return;
+  meta.textContent = "Loading leftover weather GIF board…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/weather-gifs`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      meta.textContent = d?.detail || "weather GIF API unavailable";
+      if (stEl) stEl.textContent = JSON.stringify(d, null, 2).slice(0, 2000);
+      return;
+    }
+    const up = d.updater || {};
+    meta.textContent = [
+      d.message || "Collector moved off Ava-core",
+      d.collector || up.abs || null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    upHost.innerHTML = "";
+    const urow = document.createElement("div");
+    urow.className = "cron-row";
+    urow.innerHTML = `
+      <div>
+        <div class="id">Desktop collector</div>
+        <div class="muted">${escapeHtml(d.collector || up.abs || "")}</div>
+      </div>
+      <div>Hawaii-Pacific v7</div>
+      <div class="muted">not Ava-core</div>
+      <div class="muted">${escapeHtml(d.message || "Ava-core no longer downloads weather GIFs.")}</div>
+      <div class="actions"></div>
+    `;
+    const uact = urow.querySelector(".actions");
+    const openCol = document.createElement("button");
+    openCol.type = "button";
+    openCol.textContent = "Open";
+    openCol.onclick = () => window.avaDesktop.openFolder("weatherGifsCollector");
+    uact.append(openCol);
+    upHost.appendChild(urow);
+
+    if (dirHost) {
+      dirHost.innerHTML = "";
+      const dirs = (d.directories || []).filter(
+        (x) => x.kind !== "archive-product" && x.kind !== "location-current",
+      );
+      for (const dir of dirs) {
+        const row = document.createElement("div");
+        row.className = "cron-row";
+        row.innerHTML = `
+          <div>
+            <div class="id">${escapeHtml(dir.kind)}</div>
+            <div class="muted">${escapeHtml(dir.abs || dir.rel || "")}</div>
+          </div>
+          <div>${Number(dir.files || 0)} leftover file${dir.files === 1 ? "" : "s"}</div>
+          <div class="muted">${dir.latestMtimeMs ? fmtAge(dir.latestMtimeMs) : "—"}</div>
+          <div class="muted">${dir.latestMtimeMs ? fmtHst(dir.latestMtimeMs) : ""}</div>
+          <div class="actions"></div>
+        `;
+        const actions = row.querySelector(".actions");
+        const openBtn = document.createElement("button");
+        openBtn.type = "button";
+        openBtn.textContent = "Open";
+        openBtn.onclick = () => window.avaDesktop.openPath(dir.abs);
+        actions.append(openBtn);
+        dirHost.appendChild(row);
+      }
+      if (!dirs.length) {
+        dirHost.innerHTML = `<div class="cron-row"><div class="muted">No leftover Ava-core GIF folders.</div></div>`;
+      }
+    }
+    if (stEl) stEl.textContent = d.message || "Collector is the Desktop Hawaii-Pacific v7 tool.";
+  } catch (err) {
+    meta.textContent = String(err.message || err);
+    if (stEl) stEl.textContent = `Brain must be up on ${lastBrainUrl || "the selected connection"}`;
+  }
+}
+
+/* ——— Biz / time tracking ——— */
+let bizBusy = false;
+let bizCache = null;
+let bizTimer = null;
+
+function fmtBizWhen(ms) {
+  if (!Number.isFinite(Number(ms))) return "—";
+  try {
+    return new Date(Number(ms)).toLocaleString("en-US", {
+      timeZone: "Pacific/Honolulu",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function drawBizLineChart(el, seriesList, { yMax, unit = "%", labels = [] } = {}) {
+  if (!el) return;
+  const w = 560;
+  const h = 160;
+  const pad = 18;
+  const all = seriesList.flatMap((s) => (s.values || []).filter((v) => v != null));
+  if (!all.length) {
+    el.innerHTML = '<p class="empty">No samples yet — keep Ava running and this fills in.</p>';
+    return;
+  }
+  let max = yMax != null ? yMax : Math.max(...all, 1);
+  max = Math.max(max * 1.08, 1);
+  const n = Math.max(...seriesList.map((s) => (s.values || []).length), 2);
+  const xAt = (i) => pad + (i / Math.max(1, n - 1)) * (w - pad * 2);
+  const yAt = (v) => pad + (1 - Number(v) / max) * (h - pad * 2);
+  const grid = [0.25, 0.5, 0.75]
+    .map((f) => {
+      const y = pad + f * (h - pad * 2);
+      return `<line x1="${pad}" x2="${w - pad}" y1="${y}" y2="${y}" stroke="rgba(184,255,92,0.08)" />`;
+    })
+    .join("");
+  const layers = seriesList
+    .map((s) => {
+      const pts = (s.values || [])
+        .map((v, i) => (v == null ? null : `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`))
+        .filter(Boolean);
+      if (pts.length < 2) return "";
+      return `<polyline fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" points="${pts.join(" ")}" />`;
+    })
+    .join("");
+  const left = escapeHtml(labels[0] || "");
+  const right = escapeHtml(labels[labels.length - 1] || "");
+  el.innerHTML =
+    `<svg class="plot" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img">${grid}${layers}` +
+    `<text x="${pad}" y="${h - 4}" fill="#8aa394" font-size="10">${left}</text>` +
+    `<text x="${w - pad}" y="${h - 4}" fill="#8aa394" font-size="10" text-anchor="end">${right}</text>` +
+    `<text x="${w - pad}" y="${pad + 2}" fill="#b8ff5c" font-size="10" text-anchor="end">${escapeHtml(String(Math.round(max)))}${escapeHtml(unit)}</text>` +
+    `</svg>`;
+}
+
+function drawBizHoursBars(el, rows = []) {
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = '<p class="empty">No hours logged yet.</p>';
+    return;
+  }
+  const w = 560;
+  const h = 160;
+  const pad = 22;
+  const max = Math.max(...rows.flatMap((r) => [r.alexH || 0, r.avaH || 0]), 1) * 1.15;
+  const slot = (w - pad * 2) / rows.length;
+  const bars = rows
+    .map((r, i) => {
+      const x0 = pad + i * slot;
+      const bw = Math.max(4, slot * 0.32);
+      const alexH = Number(r.alexH) || 0;
+      const avaH = Number(r.avaH) || 0;
+      const ah = (alexH / max) * (h - pad * 2);
+      const vh = (avaH / max) * (h - pad * 2);
+      const yA = h - pad - ah;
+      const yV = h - pad - vh;
+      const label = escapeHtml(String(r.day || "").slice(5));
+      return (
+        `<rect x="${(x0 + slot * 0.12).toFixed(1)}" y="${yA.toFixed(1)}" width="${bw.toFixed(1)}" height="${ah.toFixed(1)}" fill="#7dc8ff" rx="2" />` +
+        `<rect x="${(x0 + slot * 0.48).toFixed(1)}" y="${yV.toFixed(1)}" width="${bw.toFixed(1)}" height="${vh.toFixed(1)}" fill="#b8ff5c" rx="2" />` +
+        `<text x="${(x0 + slot * 0.5).toFixed(1)}" y="${h - 6}" fill="#8aa394" font-size="9" text-anchor="middle">${label}</text>`
+      );
+    })
+    .join("");
+  el.innerHTML =
+    `<svg class="plot" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img">` +
+    `<text x="${pad}" y="${pad}" fill="#7dc8ff" font-size="10">Alex</text>` +
+    `<text x="${pad + 40}" y="${pad}" fill="#b8ff5c" font-size="10">Ava</text>` +
+    `<text x="${w - pad}" y="${pad}" fill="#b8ff5c" font-size="10" text-anchor="end">${escapeHtml(String(Math.round(max)))}h</text>` +
+    `${bars}</svg>`;
+}
+
+function renderBiz(data) {
+  bizCache = data;
+  const meta = $("biz-meta");
+  if (meta) {
+    const ava = data?.ava || {};
+    meta.textContent = [
+      data?.hstDay || "",
+      ava.online ? `Ava up ${ava.uptimeLabel || ""}` : "Ava down",
+      data?.active?.alex?.active ? "Alex clocked in" : "Alex clocked out",
+      `CPU ${Number(data?.cpu?.host || 0).toFixed(0)}%`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+  const today = data?.today || {};
+  const week = data?.week || {};
+  const ava = data?.ava || {};
+  const cpu = data?.cpu || {};
+  if ($("biz-kpis")) {
+    $("biz-kpis").innerHTML = [
+      financeKpi("Alex today", today.alexLabel || "0m", data?.active?.alex?.active ? "clocked in" : "clocked out"),
+      financeKpi("Ava today", today.avaLabel || "0m", ava.online ? "dev online" : "offline"),
+      financeKpi("7d Alex", `${week.alexH ?? 0}h`, "operator"),
+      financeKpi("7d Ava", `${week.avaH ?? 0}h`, "uptime = dev"),
+    ].join("");
+  }
+  const projSel = $("biz-project");
+  const catSel = $("biz-category");
+  if (projSel) {
+    const cur = projSel.value || data?.active?.alex?.projectId || "proj-ava";
+    projSel.innerHTML = (data?.projects || [])
+      .map(
+        (p) =>
+          `<option value="${escapeHtml(p.id)}"${p.id === cur ? " selected" : ""}>${escapeHtml(p.name)}</option>`,
+      )
+      .join("");
+  }
+  if (catSel) {
+    const cur = catSel.value || data?.active?.alex?.categoryId || "cat-dev";
+    catSel.innerHTML = (data?.categories || [])
+      .map(
+        (c) =>
+          `<option value="${escapeHtml(c.id)}"${c.id === cur ? " selected" : ""}>${escapeHtml(c.name)}</option>`,
+      )
+      .join("");
+  }
+  drawBizHoursBars($("biz-hours-chart"), data?.charts?.hours7 || []);
+  const series = data?.cpu?.series || [];
+  drawBizLineChart(
+    $("biz-cpu-chart"),
+    [
+      { color: "#e8d48a", values: series.map((r) => r.host) },
+      { color: "#b8ff5c", values: series.map((r) => r.ava) },
+      { color: "#7dc8ff", values: series.map((r) => r.ollama) },
+    ],
+    {
+      unit: "%",
+      labels: series.length
+        ? [fmtBizWhen(series[0].t), fmtBizWhen(series[series.length - 1].t)]
+        : [],
+    },
+  );
+  const procsEl = $("biz-procs");
+  if (procsEl) {
+    const procs = data?.cpu?.procs || [];
+    procsEl.innerHTML = procs.length
+      ? procs
+          .map(
+            (p) =>
+              `<div class="term-proc ${escapeHtml(p.kind === "ollama" ? "ollama" : "ava")}">` +
+              `<strong>${escapeHtml(p.kind)} · ${Number(p.cpu || 0).toFixed(1)}%</strong>` +
+              `<div class="hint">pid ${escapeHtml(String(p.pid))} · ram ${Number(p.mem || 0).toFixed(1)}% · ${escapeHtml(p.etime || "")}<br>${escapeHtml((p.comm || "").slice(0, 48))}</div>` +
+              `</div>`,
+          )
+          .join("")
+      : '<p class="hint-inline">No Ava/Ollama processes sampled yet.</p>';
+  }
+  const entriesEl = $("biz-entries");
+  if (entriesEl) {
+    const rows = data?.entries || [];
+    entriesEl.innerHTML = rows.length
+      ? rows
+          .slice(0, 24)
+          .map((e) => {
+            const who = e.personId === "ava" ? "Ava" : "Alex";
+            const mins = Math.max(1, Math.round((Number(e.ms) || 0) / 60000));
+            return (
+              `<div class="biz-entry"><span class="who">${escapeHtml(who)}</span>` +
+              `<span class="dur">${mins}m</span>` +
+              `<span>${escapeHtml(e.description || e.source || "")}</span>` +
+              `<span class="dur">${escapeHtml(fmtBizWhen(e.startAt))}</span></div>`
+            );
+          })
+          .join("")
+      : '<p class="hint-inline">No time entries yet. Clock in from here or DM Ava.</p>';
+  }
+  if ($("biz-clock-in")) $("biz-clock-in").disabled = Boolean(data?.active?.alex?.active);
+  if ($("biz-clock-out")) $("biz-clock-out").disabled = !data?.active?.alex?.active;
+}
+
+async function refreshBiz() {
+  if (!window.avaDesktop?.biz) {
+    if ($("biz-status")) $("biz-status").textContent = "Biz IPC unavailable — restart desktop.";
+    return;
+  }
+  if ($("biz-status")) $("biz-status").textContent = "loading…";
+  try {
+    const data = await window.avaDesktop.biz();
+    if (!data?.ok && !data?.today) {
+      if ($("biz-status")) $("biz-status").textContent = data?.detail || "biz failed";
+      return;
+    }
+    renderBiz(data);
+    if ($("biz-status")) $("biz-status").textContent = `ok · ${data.hstDay || ""} · host ${Number(data.cpu?.host || 0).toFixed(0)}%`;
+  } catch (err) {
+    if ($("biz-status")) $("biz-status").textContent = err?.message || String(err);
+  }
+}
+
+async function runBizAction(body) {
+  if (bizBusy) return null;
+  bizBusy = true;
+  if ($("biz-status")) $("biz-status").textContent = "working…";
+  try {
+    const data = await window.avaDesktop.bizAction(body);
+    if (data?.ok || data?.today) renderBiz(data);
+    if ($("biz-status")) {
+      $("biz-status").textContent = data?.ok
+        ? `ok · ${body.action}`
+        : data?.detail || "failed";
+    }
+    return data;
+  } catch (err) {
+    if ($("biz-status")) $("biz-status").textContent = err?.message || String(err);
+    return null;
+  } finally {
+    bizBusy = false;
+  }
+}
+
+function ensureBizTimer() {
+  if (bizTimer) return;
+  bizTimer = setInterval(() => {
+    if (document.getElementById("page-biz")?.classList.contains("active")) {
+      refreshBiz().catch(() => {});
+    }
+  }, 45000);
+}
+
+/* ——— Finance suite (Stripe + ops ledger) ——— */
+let financeBusy = false;
+let financeCache = null;
+
+function fmtUsd(n) {
+  if (n == null || n === "" || !Number.isFinite(Number(n))) return "—";
+  return Number(n).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+}
+
+function fmtAgeMs(ms) {
+  if (!Number.isFinite(Number(ms))) return "";
+  const m = Math.max(0, Math.round(Number(ms) / 60000));
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 48) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
+}
+
+function financeKpi(label, value, hint) {
+  return `<div class="mc-kpi"><label>${escapeHtml(label)}</label><strong>${escapeHtml(value)}</strong>${
+    hint ? `<div class="hint">${escapeHtml(hint)}</div>` : ""
+  }</div>`;
+}
+
+function categoryOptions(selected, extra = []) {
+  const cats = [...new Set([...(financeCache?.ops?.expenseCategories || [
+    "hosting", "domains", "cloudflare", "software", "hardware", "utilities", "ads", "travel", "ops", "other",
+  ]), ...extra, selected].filter(Boolean))];
+  return cats
+    .map(
+      (c) =>
+        `<option value="${escapeHtml(c)}"${c === selected ? " selected" : ""}>${escapeHtml(c)}</option>`,
+    )
+    .join("");
+}
+
+function renderFinance(data) {
+  financeCache = data;
+  const stripe = data?.stripe || {};
+  const ops = data?.ops || {};
+  const sum = ops.summary || {};
+  const wishes = data?.wishlists || {};
+  const review = data?.review || {};
+  const meta = $("finance-meta");
+  const kpis = $("finance-kpis");
+  const note = $("finance-stripe-note");
+  const projectsHost = $("finance-projects");
+  const wishHost = $("finance-wishlists");
+  const reviewHost = $("finance-review-list");
+  const status = $("finance-status");
+  if (!meta || !kpis) return;
+
+  const age = stripe.ageMs != null ? fmtAgeMs(stripe.ageMs) : "";
+  const wlSum = wishes.summary || {};
+  meta.textContent = [
+    stripe.configured ? (stripe.ok ? "Stripe live" : `Stripe ${stripe.reason || "error"}`) : "Stripe not configured",
+    age ? `snapshot ${age}` : null,
+    `${sum.projectCount || 0} projects · ${sum.accountCount || 0} accounts`,
+    `${wlSum.listCount || 0} wishlists`,
+    "not player Gold",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const optimal = data?.optimal || {};
+  const optSum = optimal.summary || {};
+  const delta = Number(optimal.deltaMonthlyUsd);
+  const deltaHint = Number.isFinite(delta)
+    ? delta > 0.5
+      ? `${fmtUsd(delta)} over budget`
+      : delta < -0.5
+        ? `${fmtUsd(Math.abs(delta))} under budget`
+        : "on target"
+    : "";
+  const venmo = data?.venmo || {};
+  const vy = venmo.ytd || {};
+  kpis.innerHTML = [
+    financeKpi("Stripe available", fmtUsd(stripe.usdAvailable), stripe.explain?.healthyTiming ? "healthy timing" : age || ""),
+    financeKpi("Stripe pending", fmtUsd(stripe.usdPending), stripe.ok ? "in transit" : stripe.reason || ""),
+    financeKpi("Stripe 30d income", fmtUsd(stripe.income30dUsd), stripe.fees30dUsd != null ? `fees ${fmtUsd(stripe.fees30dUsd)}` : ""),
+    financeKpi("Stripe 30d payouts", fmtUsd(stripe.payouts30dUsd), ""),
+    financeKpi("Optimal /mo", fmtUsd(optSum.monthlyUsd), `${optSum.lineCount || 0} budget lines`),
+    financeKpi("Actual expense /mo", fmtUsd(sum.expensesMonthlyUsd), `${sum.expenseCount || 0} lines`),
+    financeKpi("Actual vs optimal", fmtUsd(Number.isFinite(delta) ? delta : null), deltaHint),
+    financeKpi("Ops income /mo", fmtUsd(sum.otherIncomeMonthlyUsd), `${sum.incomeCount || 0} lines`),
+    financeKpi("Ops net /mo", fmtUsd(sum.netOtherMonthlyUsd), sum.staleIds?.length ? `${sum.staleIds.length} stale` : ""),
+    financeKpi("Wishlist wanted", fmtUsd(wlSum.wantedUsd), `${wlSum.itemCount || 0} items`),
+    financeKpi("Profit", fmtUsd(data?.pnl?.totals?.profitUsd), data?.pnl?.plain?.split("\n")?.[0] || "RR full P&L"),
+    financeKpi("Revenue", fmtUsd(data?.pnl?.totals?.revenueUsd), `Stripe ${fmtUsd(data?.pnl?.stripe?.rr?.incomeUsd)} + deposits`),
+    financeKpi("Costs", fmtUsd(data?.pnl?.totals?.costsUsd), `Ava · Starlink external ${fmtUsd(data?.pnl?.starlink?.accruedUsd)}`),
+    financeKpi("~Profit /mo", fmtUsd(data?.pnl?.totals?.runRateMonthly?.profitUsd), `costs ${fmtUsd(data?.pnl?.totals?.runRateMonthly?.costsUsd)}/mo`),
+    financeKpi("RR P&L", fmtUsd(vy.pnlUsd), `${venmo.entity || "Root Record"} · from ${venmo.reportingStart || "2026-05-31"}`),
+    financeKpi("RR ops P&L", fmtUsd(vy.opsPnlUsd), `net cost ${fmtUsd(vy.opsNetCostUsd)} · ${venmo.reportedTxnCount || 0} txns`),
+    financeKpi(
+      "RR digital assets",
+      fmtUsd(vy.digitalAssetsNetCostUsd ?? vy.digitalAssetsUsd ?? 0),
+      `gross ${fmtUsd(vy.digitalAssetsUsd)} − credits ${fmtUsd(vy.digitalAssetsCreditsUsd)}`,
+    ),
+    financeKpi("RR deposits", fmtUsd(vy.returnsUsd ?? vy.opsReturnsUsd), "Root Record / others → revenue"),
+    financeKpi("Context P&L", fmtUsd(venmo.contextYtd?.pnlUsd), `all Venmo · ${venmo.txnCount || 0} txns · cash ${fmtUsd(venmo.endingUsd)}`),
+  ].join("");
+
+  const fullNote = $("finance-full-note");
+  if (fullNote) {
+    fullNote.textContent = data?.pnl?.plain || fullNote.textContent;
+  }
+  const fullKpis = $("finance-full-kpis");
+  if (fullKpis && data?.pnl?.totals) {
+    const t = data.pnl.totals;
+    const s = data.pnl.stripe || {};
+    fullKpis.innerHTML = [
+      financeKpi("Stripe available", fmtUsd(s.availableUsd), `pending ${fmtUsd(s.pendingUsd)}`),
+      financeKpi("Stripe RR income", fmtUsd(s.rr?.incomeUsd), `${s.rr?.paymentCount || 0} payments · fees ${fmtUsd(s.rr?.feesUsd)}`),
+      financeKpi(
+        "Paid to Stripe",
+        fmtUsd(s.spend?.totalUsd ?? s.rr?.feesUsd),
+        `processing ${fmtUsd(s.spend?.processingUsd)} · billing ${fmtUsd(s.spend?.billingUsd)} · tax ${fmtUsd(s.spend?.taxUsd)}`,
+      ),
+      financeKpi("Starlink external", fmtUsd(data.pnl.starlink?.accruedUsd), `${data.pnl.starlink?.days || 0}d · not in Ava P&L`),
+      financeKpi("Venmo ops costs", fmtUsd(data.pnl.venmo?.opsNetCostsUsd ?? data.pnl.venmo?.opsCostsUsd), `surplus ${fmtUsd(data.pnl.venmo?.opsSurplusUsd)} → revenue`),
+    ].join("");
+  }
+  const spendHost = $("finance-stripe-spend");
+  if (spendHost) {
+    const spend = data?.pnl?.stripe?.spend;
+    if (spend?.txns?.length) {
+      const rows = spend.txns
+        .map(
+          (t) => `<tr>
+            <td>${escapeHtml(t.date)}</td>
+            <td>${escapeHtml(t.kind)}</td>
+            <td>${escapeHtml(t.label)}</td>
+            <td class="num neg">${escapeHtml(fmtUsd(t.amountUsd))}</td>
+          </tr>`,
+        )
+        .join("");
+      spendHost.innerHTML = `<p class="hint-inline">${escapeHtml(spend.note || "Paid to Stripe Inc. on this seller account.")}</p>
+        <table class="fin-pnl-table"><thead><tr><th>Date</th><th>Kind</th><th>What</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>`;
+    } else {
+      spendHost.innerHTML = "";
+    }
+  }
+  const fullMonths = $("finance-full-months");
+  if (fullMonths) {
+    const rows = (data?.pnl?.months || [])
+      .map(
+        (m) => `<tr>
+          <td>${escapeHtml(m.month)}</td>
+          <td class="num pos">${escapeHtml(fmtUsd(m.revenueUsd))}</td>
+          <td class="num neg">${escapeHtml(fmtUsd(m.costsUsd))}</td>
+          <td class="num ${Number(m.profitUsd) >= 0 ? "pos" : "neg"}">${escapeHtml(fmtUsd(m.profitUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.stripeIncomeUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.venmoNetCostsUsd ?? m.venmoCostsUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.starlinkUsd))}</td>
+        </tr>`,
+      )
+      .join("");
+    fullMonths.innerHTML = rows
+      ? `<table class="fin-pnl-table"><thead><tr><th>Month</th><th>Revenue</th><th>Costs</th><th>Profit</th><th>Stripe</th><th>Venmo</th><th>Starlink</th></tr></thead><tbody>${rows}</tbody></table>`
+      : "";
+  }
+  const incTxnsHost = $("finance-income-txns");
+  if (incTxnsHost) {
+    const incRows = (data?.pnl?.incomeTxns || [])
+      .map(
+        (t) => `<tr>
+          <td>${escapeHtml(t.date || "")}</td>
+          <td class="muted">${escapeHtml(t.source || "")}</td>
+          <td>${escapeHtml(t.label || "")}</td>
+          <td class="num pos">${escapeHtml(fmtUsd(t.amountUsd))}</td>
+        </tr>`,
+      )
+      .join("");
+    incTxnsHost.innerHTML = incRows
+      ? `<p class="hint-inline">Every official income txn — Stripe Pro + digital assets (Coinbase) + Venmo deposits.</p><table class="fin-pnl-table"><thead><tr><th>Date</th><th>Source</th><th>What</th><th>Amount</th></tr></thead><tbody>${incRows}</tbody></table>`
+      : `<p class="hint-inline">No official income txns yet.</p>`;
+  }
+  const costTxnsHost = $("finance-cost-txns");
+  if (costTxnsHost) {
+    const costRows = (data?.pnl?.costTxns || [])
+      .map(
+        (t) => `<tr>
+          <td>${escapeHtml(t.date || "")}</td>
+          <td class="muted">${escapeHtml(t.source || "")}</td>
+          <td class="muted">${escapeHtml(t.category || "")}</td>
+          <td>${escapeHtml(t.label || "")}</td>
+          <td class="num neg">${escapeHtml(fmtUsd(t.amountUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(t.runningUsd))}</td>
+        </tr>`,
+      )
+      .join("");
+    costTxnsHost.innerHTML = costRows
+      ? `<p class="hint-inline">Ava cost txns (Venmo CSV + Stripe fees). Starlink is external.</p><table class="fin-pnl-table"><thead><tr><th>Date</th><th>Source</th><th>Category</th><th>What</th><th>Amount</th><th>Running</th></tr></thead><tbody>${costRows}</tbody></table>`
+      : `<p class="hint-inline">No official cost txns yet.</p>`;
+  }
+
+  const pnlNote = $("finance-pnl-note");
+  if (pnlNote) {
+    pnlNote.textContent = venmo.plain || venmo.note || "Deposits (Root Record / others) = revenue. Coinbase = digital assets (income source, not marketing).";
+  }
+  const pnlKpis = $("finance-pnl-kpis");
+  if (pnlKpis) {
+    pnlKpis.innerHTML = (venmo.reportedMonths || [])
+      .map((m) =>
+        financeKpi(
+          m.month,
+          fmtUsd(m.pnlUsd),
+          `ops ${fmtUsd(m.opsPnlUsd)} · digital assets ${fmtUsd(m.digitalAssetsUsd ?? m.marketingUsd)} · ret ${fmtUsd(m.returnsUsd)}`,
+        ),
+      )
+      .join("");
+  }
+  const pnlMonths = $("finance-pnl-months");
+  if (pnlMonths) {
+    const rrRows = (venmo.reportedMonths || [])
+      .map(
+        (m) => `<tr>
+          <td>${escapeHtml(m.month)}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.costsUsd ?? m.reportedCostsUsd))}</td>
+          <td class="num pos">${escapeHtml(fmtUsd(m.returnsUsd ?? m.reportedReturnsUsd))}</td>
+          <td class="num ${Number(m.pnlUsd ?? m.reportedPnlUsd) >= 0 ? "pos" : "neg"}">${escapeHtml(fmtUsd(m.pnlUsd ?? m.reportedPnlUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.opsPnlUsd ?? m.reportedOpsPnlUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.digitalAssetsUsd ?? m.reportedDigitalAssetsUsd ?? m.marketingUsd))}</td>
+        </tr>`,
+      )
+      .join("");
+    const ctxRows = (venmo.months || [])
+      .map(
+        (m) => `<tr>
+          <td>${escapeHtml(m.month)}${m.reportedTxnCount ? "" : " <span class=\"muted\">context</span>"}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.costsUsd))}</td>
+          <td class="num pos">${escapeHtml(fmtUsd(m.returnsUsd))}</td>
+          <td class="num ${Number(m.pnlUsd) >= 0 ? "pos" : "neg"}">${escapeHtml(fmtUsd(m.pnlUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.opsPnlUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.digitalAssetsUsd ?? m.marketingUsd))}</td>
+          <td class="num">${escapeHtml(fmtUsd(m.personalUsd))}</td>
+        </tr>`,
+      )
+      .join("");
+    pnlMonths.innerHTML =
+      (rrRows
+        ? `<p class="hint-inline">Official RR months (from ${escapeHtml(venmo.reportingStart || "2026-05-31")})</p><table class="fin-pnl-table"><thead><tr><th>Month</th><th>Costs</th><th>Returns</th><th>P&amp;L</th><th>Ops P&amp;L</th><th>Digital assets</th></tr></thead><tbody>${rrRows}</tbody></table>`
+        : "") +
+      (ctxRows
+        ? `<p class="hint-inline">Full Venmo context (pre-start kept)</p><table class="fin-pnl-table"><thead><tr><th>Month</th><th>Costs</th><th>Returns</th><th>P&amp;L</th><th>Ops P&amp;L</th><th>Digital assets</th><th>Personal</th></tr></thead><tbody>${ctxRows}</tbody></table>`
+        : `<p class="hint-inline">No Venmo statements imported yet.</p>`);
+  }
+  const pnlTxns = $("finance-pnl-txns");
+  if (pnlTxns) {
+    const cats = venmo.categories || ["digital-assets", "marketing", "domains", "software", "personal", "return", "ops"];
+    const txnRows = (venmo.txns || [])
+      .map((t) => {
+        const amt = Number(t.amountUsd) || 0;
+        const opts = cats
+          .map(
+            (c) =>
+              `<option value="${escapeHtml(c)}"${c === t.category ? " selected" : ""}>${escapeHtml(c)}</option>`,
+          )
+          .join("");
+        return `<tr>
+          <td>${escapeHtml(t.date || "")}</td>
+          <td class="muted">${t.rrReporting ? "RR" : "ctx"}</td>
+          <td>${escapeHtml(t.label || t.to || "")}</td>
+          <td><select data-venmo-id="${escapeHtml(t.id)}" class="fin-venmo-cat">${opts}</select></td>
+          <td class="num ${amt >= 0 ? "pos" : "neg"}">${escapeHtml(fmtUsd(amt))}</td>
+          <td class="num">${escapeHtml(fmtUsd(t.rrReporting ? t.runningRrPnlUsd : t.runningPnlUsd))}</td>
+        </tr>`;
+      })
+      .join("");
+    pnlTxns.innerHTML = txnRows
+      ? `<table class="fin-pnl-table"><thead><tr><th>Date</th><th></th><th>Merchant</th><th>Category</th><th>Amount</th><th>Running P&amp;L</th></tr></thead><tbody>${txnRows}</tbody></table>`
+      : "";
+  }
+
+  const expl = stripe.explain;
+  const explBits = [];
+  if (stripe.plain) explBits.push(stripe.plain);
+  if (expl?.healthyTiming) explBits.push("Penny-level negative + pending cover — not an incident.");
+  else if (expl?.pendingCoversDeficit) explBits.push("Pending covers available deficit (fee/payout timing).");
+  else if (expl && expl.avail < 0) explBits.push("Available is negative and pending does not cover it — check payouts/disputes.");
+  note.textContent = explBits.join(" · ");
+
+  const dl = $("fin-project-list");
+  if (dl) {
+    dl.innerHTML = (ops.projects || [])
+      .map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name || p.id)}</option>`)
+      .join("");
+  }
+  const catSel = $("fin-category");
+  if (catSel && !(catSel.dataset.ready === "1")) {
+    catSel.innerHTML = categoryOptions(catSel.value || "hosting");
+    catSel.dataset.ready = "1";
+  }
+
+  const optNote = $("finance-optimal-note");
+  if (optNote) {
+    optNote.textContent = optimal.note || "Target spend for development + resources — not invoices.";
+  }
+  const optHost = $("finance-optimal");
+  if (optHost) {
+    optHost.innerHTML = "";
+    for (const line of optimal.lines || []) {
+      const row = document.createElement("div");
+      row.className = "fin-line fin-optimal";
+      const mo =
+        line.period === "year"
+          ? (Number(line.amountUsd) || 0) / 12
+          : line.period === "week"
+            ? ((Number(line.amountUsd) || 0) * 52) / 12
+            : Number(line.amountUsd) || 0;
+      row.innerHTML = `
+        <form class="fin-opt-edit" data-id="${escapeHtml(line.id)}">
+          <input name="label" type="text" value="${escapeHtml(line.label || "")}" />
+          <input name="amount" type="number" step="0.01" min="0" value="${Number(line.amountUsd) || 0}" />
+          <select name="period">
+            ${["month", "year", "week"]
+              .map(
+                (p) =>
+                  `<option value="${p}"${line.period === p ? " selected" : ""}>/${p}</option>`,
+              )
+              .join("")}
+          </select>
+          <select name="category">${categoryOptions(line.category || "ops")}</select>
+          <input name="note" type="text" value="${escapeHtml(line.note || "")}" placeholder="Note" />
+          <span class="hint-inline">~${escapeHtml(fmtUsd(mo))}/mo</span>
+          <button type="submit">Save</button>
+          <button type="button" class="danger-inline fin-opt-del">Delete</button>
+        </form>
+      `;
+      optHost.appendChild(row);
+    }
+  }
+
+  if (wishHost) {
+    wishHost.innerHTML = "";
+    for (const wl of wishes.lists || []) {
+      const card = document.createElement("article");
+      card.className = "fin-project fin-wishlist";
+      card.innerHTML = `
+        <div class="fin-project-head">
+          <div>
+            <h4>${escapeHtml(wl.name || wl.id)}</h4>
+            <p class="hint-inline">${escapeHtml(wl.note || wl.id)}</p>
+          </div>
+          <button type="button" class="danger-inline fin-wl-del" data-id="${escapeHtml(wl.id)}">Delete list</button>
+        </div>
+        <div class="fin-wl-items"></div>
+        <form class="fin-form fin-wl-item-form" data-id="${escapeHtml(wl.id)}">
+          <input name="label" type="text" placeholder="Item name" required />
+          <input name="url" type="url" placeholder="https://… item URL" required />
+          <input name="price" type="number" step="0.01" min="0" placeholder="Price USD" required />
+          <button type="submit" class="primary">Add item</button>
+        </form>
+      `;
+      const itemsHost = card.querySelector(".fin-wl-items");
+      for (const it of wl.items || []) {
+        const row = document.createElement("div");
+        row.className = "fin-line fin-wl-row";
+        row.innerHTML = `
+          <form class="fin-wl-edit" data-list="${escapeHtml(wl.id)}" data-item="${escapeHtml(it.id)}">
+            <input name="label" type="text" value="${escapeHtml(it.label || "")}" />
+            <input name="url" type="url" value="${escapeHtml(it.url || "")}" placeholder="URL" />
+            <input name="price" type="number" step="0.01" min="0" value="${Number(it.priceUsd) || 0}" />
+            <select name="status">
+              ${["wanted", "bought", "dropped"]
+                .map(
+                  (s) =>
+                    `<option value="${s}"${it.status === s ? " selected" : ""}>${s}</option>`,
+                )
+                .join("")}
+            </select>
+            <button type="submit">Save</button>
+            <button type="button" class="danger-inline fin-wl-item-del">Delete</button>
+            ${
+              it.url
+                ? `<a class="fin-link" href="${escapeHtml(it.url)}" target="_blank" rel="noreferrer">Open</a>`
+                : ""
+            }
+          </form>
+        `;
+        itemsHost.appendChild(row);
+      }
+      wishHost.appendChild(card);
+    }
+    if (!(wishes.lists || []).length) {
+      wishHost.innerHTML = `<p class="hint-inline">No wishlists yet — add Hardware or any named list, then paste item URLs like prices.</p>`;
+    }
+  }
+
+  projectsHost.innerHTML = "";
+  for (const proj of ops.projects || []) {
+    const card = document.createElement("article");
+    card.className = "fin-project";
+    const head = document.createElement("div");
+    head.className = "fin-project-head";
+    head.innerHTML = `<div><h4>${escapeHtml(proj.name || proj.id)}</h4><p class="hint-inline">${escapeHtml(proj.note || proj.id)}</p></div>`;
+    card.appendChild(head);
+
+    for (const acct of proj.accounts || []) {
+      const box = document.createElement("div");
+      box.className = "fin-account";
+      const balInputId = `fin-bal-${proj.id}-${acct.id}`;
+      box.innerHTML = `
+        <div class="fin-account-head">
+          <div>
+            <strong>${escapeHtml(acct.name || acct.id)}</strong>
+            <span class="fin-kind-pill">${escapeHtml(acct.kind || "cash")}</span>
+            <div class="hint-inline">${escapeHtml(acct.note || "")}</div>
+          </div>
+          <form class="fin-balance-form" data-project="${escapeHtml(proj.id)}" data-account="${escapeHtml(acct.id)}">
+            <label>Balance
+              <input type="number" step="0.01" value="${Number(acct.balanceUsd) || 0}" id="${escapeHtml(balInputId)}" />
+            </label>
+            <button type="submit">Set</button>
+          </form>
+        </div>
+        <div class="fin-lines" data-kind-host></div>
+      `;
+      const linesHost = box.querySelector("[data-kind-host]");
+      const groups = [
+        ["income", acct.income || []],
+        ["expense", acct.expenses || []],
+        ["debt", acct.debts || []],
+      ];
+      for (const [kind, rows] of groups) {
+        if (!rows.length) continue;
+        const wrap = document.createElement("div");
+        wrap.className = "fin-line-group";
+        wrap.innerHTML = `<h5>${escapeHtml(kind)}</h5>`;
+        for (const row of rows) {
+          const amt = kind === "debt" ? row.balanceUsd : row.amountUsd;
+          const line = document.createElement("div");
+          line.className = kind === "expense" ? "fin-line fin-expense" : "fin-line";
+          if (kind === "expense") {
+            const recs = row.receipts || [];
+            line.innerHTML = `
+              <form class="fin-exp-form" data-project="${escapeHtml(proj.id)}" data-account="${escapeHtml(acct.id)}" data-line="${escapeHtml(row.id)}">
+                <input name="label" type="text" value="${escapeHtml(row.label || "")}" />
+                <input name="amount" type="number" step="0.01" min="0" value="${Number(amt) || 0}" />
+                <select name="period">
+                  ${["month", "year", "week", "once"]
+                    .map(
+                      (p) =>
+                        `<option value="${p}"${(row.period || "month") === p ? " selected" : ""}>${p}</option>`,
+                    )
+                    .join("")}
+                </select>
+                <select name="category">${categoryOptions(row.category || "ops")}</select>
+                <input name="note" type="text" value="${escapeHtml(row.note || "")}" placeholder="Note" />
+                <button type="submit">Save</button>
+                <button type="button" class="fin-rcpt">Receipt</button>
+                <button type="button" class="danger-inline fin-del">Delete</button>
+              </form>
+              <div class="fin-receipts">${
+                recs.length
+                  ? recs
+                      .map(
+                        (r) =>
+                          `<span class="fin-rcpt-chip"><button type="button" class="fin-rcpt-open" data-abs="${escapeHtml(
+                            r.abs || "",
+                          )}" data-id="${escapeHtml(r.id)}">${escapeHtml(r.name || r.id)}</button><button type="button" class="danger-inline fin-rcpt-del" data-id="${escapeHtml(
+                            r.id,
+                          )}">×</button></span>`,
+                      )
+                      .join("")
+                  : `<span class="muted">no receipt</span>`
+              }</div>
+              ${
+                row.paidThrough || row.expires || (row.invoices || []).length
+                  ? `<div class="hint-inline">${[
+                      row.paidThrough ? `paid through ${escapeHtml(row.paidThrough)}` : "",
+                      row.expires ? `expires ${escapeHtml(row.expires)}` : "",
+                      (row.invoices || [])
+                        .map((i) => `${escapeHtml(i.id)} $${Number(i.amountUsd).toFixed(2)}`)
+                        .join(" · "),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}</div>`
+                  : ""
+              }
+            `;
+          } else {
+            line.innerHTML = `
+              <div>
+                <div class="id">${escapeHtml(row.label || row.id)}</div>
+                <div class="muted">${escapeHtml(row.period || (kind === "debt" ? "once" : "month"))}${
+                  row.note ? ` · ${escapeHtml(row.note)}` : ""
+                }${row.updatedAt ? ` · ${escapeHtml(fmtHst(row.updatedAt))}` : " · never set"}</div>
+              </div>
+              <form class="fin-line-form" data-project="${escapeHtml(proj.id)}" data-account="${escapeHtml(acct.id)}" data-kind="${escapeHtml(kind)}" data-line="${escapeHtml(row.id)}">
+                <input type="number" step="0.01" min="0" value="${Number(amt) || 0}" />
+                <button type="submit">Save</button>
+                <button type="button" class="danger-inline fin-del">Delete</button>
+              </form>
+            `;
+          }
+          wrap.appendChild(line);
+        }
+        linesHost.appendChild(wrap);
+      }
+      card.appendChild(box);
+    }
+    projectsHost.appendChild(card);
+  }
+
+  reviewHost.innerHTML = "";
+  const suggestions = review.suggestions || [];
+  if (!suggestions.length) {
+    reviewHost.innerHTML = `<p class="hint-inline">No suggestions${
+      review.lastRunAt ? ` · last review ${escapeHtml(fmtHst(review.lastRunAt))}` : ""
+    }.</p>`;
+  } else {
+    if (review.lastRunAt) {
+      const p = document.createElement("p");
+      p.className = "hint-inline";
+      p.textContent = `Last review ${fmtHst(review.lastRunAt)}`;
+      reviewHost.appendChild(p);
+    }
+    for (const s of suggestions) {
+      const row = document.createElement("div");
+      row.className = `fin-suggest ${escapeHtml(s.severity || "info")}`;
+      row.innerHTML = `<span class="report-pill ${escapeHtml(s.severity || "info")}">${escapeHtml(
+        s.severity || "info",
+      )}</span> <code>${escapeHtml(s.code || "")}</code> ${escapeHtml(s.text || "")}`;
+      reviewHost.appendChild(row);
+    }
+  }
+
+  if (status && data?.ok !== false) status.textContent = "";
+
+  projectsHost.querySelectorAll(".fin-balance-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = form.querySelector("input");
+      await runFinanceAction({
+        action: "set-balance",
+        projectId: form.dataset.project,
+        account: form.dataset.account,
+        balanceUsd: Number(input?.value),
+      });
+    });
+  });
+  projectsHost.querySelectorAll(".fin-line-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = form.querySelector("input");
+      await runFinanceAction({
+        action: "update-line",
+        projectId: form.dataset.project,
+        account: form.dataset.account,
+        kind: form.dataset.kind,
+        lineId: form.dataset.line,
+        amountUsd: Number(input?.value),
+      });
+    });
+    form.querySelector(".fin-del")?.addEventListener("click", async () => {
+      if (!confirm("Delete this ledger line?")) return;
+      await runFinanceAction({
+        action: "delete-line",
+        projectId: form.dataset.project,
+        account: form.dataset.account,
+        kind: form.dataset.kind,
+        lineId: form.dataset.line,
+      });
+    });
+  });
+  projectsHost.querySelectorAll(".fin-exp-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await runFinanceAction({
+        action: "update-line",
+        projectId: form.dataset.project,
+        account: form.dataset.account,
+        kind: "expense",
+        lineId: form.dataset.line,
+        label: form.label.value,
+        amountUsd: Number(form.amount.value),
+        period: form.period.value,
+        category: form.category.value,
+        note: form.note.value,
+      });
+    });
+    form.querySelector(".fin-del")?.addEventListener("click", async () => {
+      if (!confirm("Delete this expense?")) return;
+      await runFinanceAction({
+        action: "delete-line",
+        projectId: form.dataset.project,
+        account: form.dataset.account,
+        kind: "expense",
+        lineId: form.dataset.line,
+      });
+    });
+    form.querySelector(".fin-rcpt")?.addEventListener("click", async () => {
+      const r = await window.avaDesktop.financeReceipt({
+        projectId: form.dataset.project,
+        account: form.dataset.account,
+        lineId: form.dataset.line,
+      });
+      if (r?.canceled) return;
+      if (!r?.ok && !r?.stripe) {
+        if ($("finance-status")) $("finance-status").textContent = r?.detail || "receipt failed";
+        return;
+      }
+      renderFinance(r);
+    });
+    const wrap = form.parentElement;
+    wrap?.querySelectorAll(".fin-rcpt-open").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (btn.dataset.abs) window.avaDesktop.openPath(btn.dataset.abs);
+      });
+    });
+    wrap?.querySelectorAll(".fin-rcpt-del").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this receipt?")) return;
+        await runFinanceAction({
+          action: "delete-receipt",
+          projectId: form.dataset.project,
+          account: form.dataset.account,
+          lineId: form.dataset.line,
+          receiptId: btn.dataset.id,
+        });
+      });
+    });
+  });
+
+  wishHost?.querySelectorAll(".fin-wl-del").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this wishlist?")) return;
+      await runFinanceAction({ action: "delete-wishlist", wishlistId: btn.dataset.id });
+    });
+  });
+  wishHost?.querySelectorAll(".fin-wl-item-form").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await runFinanceAction({
+        action: "add-wishlist-item",
+        wishlistId: form.dataset.id,
+        label: form.label.value.trim(),
+        url: form.url.value.trim(),
+        priceUsd: Number(form.price.value),
+      });
+    });
+  });
+  wishHost?.querySelectorAll(".fin-wl-edit").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await runFinanceAction({
+        action: "update-wishlist-item",
+        wishlistId: form.dataset.list,
+        itemId: form.dataset.item,
+        label: form.label.value.trim(),
+        url: form.url.value.trim(),
+        priceUsd: Number(form.price.value),
+        status: form.status.value,
+      });
+    });
+    form.querySelector(".fin-wl-item-del")?.addEventListener("click", async () => {
+      if (!confirm("Delete this wishlist item?")) return;
+      await runFinanceAction({
+        action: "delete-wishlist-item",
+        wishlistId: form.dataset.list,
+        itemId: form.dataset.item,
+      });
+    });
+  });
+}
+
+async function refreshFinance({ refreshStripe = false } = {}) {
+  const meta = $("finance-meta");
+  const status = $("finance-status");
+  if (!meta) return;
+  if (financeBusy) return;
+  financeBusy = true;
+  meta.textContent = refreshStripe ? "Refreshing Stripe…" : "Loading finance…";
+  try {
+    const data = await window.avaDesktop.finance({ refresh: refreshStripe });
+    if (!data?.ok && !data?.stripe && !data?.ops) {
+      meta.textContent = data?.detail || "finance API unavailable — is Ava brain up?";
+      if (status) status.textContent = JSON.stringify(data, null, 2);
+      return;
+    }
+    renderFinance(data);
+  } catch (err) {
+    meta.textContent = String(err.message || err);
+    if (status) status.textContent = `Brain must be up on ${lastBrainUrl || "the selected connection"}`;
+  } finally {
+    financeBusy = false;
+  }
+}
+
+async function runFinanceAction(body) {
+  const status = $("finance-status");
+  if (financeBusy) return;
+  financeBusy = true;
+  if (status) status.textContent = `${body.action || "action"}…`;
+  try {
+    const data = await window.avaDesktop.financeAction(body);
+    if (!data?.ok && !data?.stripe) {
+      if (status) status.textContent = data?.detail || JSON.stringify(data, null, 2);
+      return;
+    }
+    renderFinance(data);
+    if (status) {
+      status.textContent = data.lastReview
+        ? `review ${data.lastReview.reason || "ok"} · sent ${data.lastReview.sent ? "yes" : "no"} · ${(data.lastReview.suggestions || []).length} suggestions`
+        : "";
+    }
+  } catch (err) {
+    if (status) status.textContent = String(err.message || err);
+  } finally {
+    financeBusy = false;
+  }
+}
+
+/* ——— Terminal (live Ava + Ollama, plus ops commands) ——— */
+let opsBusy = false;
+let termTimer = null;
+let termLiveText = "";
+let termOpsOverlay = [];
+const confirmHints = new Map();
+
+function terminalAppend(line) {
+  termOpsOverlay.push(String(line));
+  if (termOpsOverlay.length > 80) termOpsOverlay = termOpsOverlay.slice(-80);
+  renderTerminalLog();
+}
+
+function renderTerminalLog() {
+  const el = $("terminal-out");
+  if (!el) return;
+  const follow = $("terminal-follow")?.checked !== false;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  const extra = termOpsOverlay.length ? `\n${termOpsOverlay.join("\n")}` : "";
+  const next = `${termLiveText || "(no activity yet)"}${extra}`;
+  if (el.textContent !== next) {
+    el.textContent = next;
+    if (follow || atBottom) el.scrollTop = el.scrollHeight;
+  }
+}
+
+function setOpsBusy(busy, label = "idle") {
+  opsBusy = busy;
+  const run = $("terminal-run-label");
+  if (!busy) {
+    /* live poller will set label */
+  } else if (run) {
+    run.textContent = label;
+    run.classList.toggle("busy", true);
+    run.classList.toggle("idle", false);
+  }
+  $("terminal-commands")
+    ?.querySelectorAll(".cmd-btn")
+    .forEach((btn) => {
+      btn.disabled = busy;
+    });
+  if ($("terminal-cancel")) $("terminal-cancel").disabled = !busy;
+}
+
+function renderTerminalProcs(snap) {
+  const host = $("terminal-procs");
+  if (!host) return;
+  const cards = [];
+  const ol = snap?.ollama || {};
+  cards.push({
+    kind: ol.up ? "ollama" : "ava",
+    title: ol.up ? "Ollama up" : "Ollama down",
+    hint: [ol.model, ol.baseUrl?.replace(/^https?:\/\//, "")].filter(Boolean).join(" · "),
+  });
+  for (const m of ol.ps || []) {
+    cards.push({
+      kind: "ollama",
+      title: String(m.name || "model").replace(/:latest$/, ""),
+      hint: m.expiresAt ? `loaded · exp ${String(m.expiresAt).slice(11, 19)}` : "loaded",
+    });
+  }
+  for (const w of snap?.inflight || []) {
+    cards.push({
+      kind: "ollama",
+      title: w.kind || "ollama call",
+      hint: `${Math.round((w.ms || 0) / 1000)}s${w.model ? ` · ${w.model}` : ""}`,
+    });
+  }
+  for (const id of snap?.runningCrons || []) {
+    cards.push({ kind: "cron", title: `cron · ${id}`, hint: "running now" });
+  }
+  for (const p of snap?.processes || []) {
+    cards.push({
+      kind: p.kind === "ollama" ? "ollama" : "ava",
+      title: `${p.comm} · ${p.pid}`,
+      hint: `${p.cpu}% cpu · ${p.etime} · ${String(p.args || "").slice(0, 64)}`,
+    });
+  }
+  if (!cards.length) {
+    host.innerHTML = `<div class="term-proc"><strong>No live processes</strong><div class="hint">Waiting for Ava / Ollama</div></div>`;
+    return;
+  }
+  host.innerHTML = cards
+    .slice(0, 18)
+    .map(
+      (c) =>
+        `<div class="term-proc ${escapeHtml(c.kind)}"><strong>${escapeHtml(c.title)}</strong><div class="hint">${escapeHtml(c.hint || "")}</div></div>`,
+    )
+    .join("");
+}
+
+async function refreshTerminalLive() {
+  if (!window.avaDesktop?.activity) return;
+  try {
+    const snap = await window.avaDesktop.activity({ limit: 220 });
+    renderTerminalProcs(snap?.ok ? snap : {});
+    const run = $("terminal-run-label");
+    if (run && !opsBusy) {
+      const label = snap?.label || (snap?.ok ? "idle" : snap?.detail || "brain offline");
+      run.textContent = label;
+      const busy = Boolean(snap?.ollamaBusy || (snap?.inflight || []).length || (snap?.runningCrons || []).length);
+      run.classList.toggle("busy", busy);
+      run.classList.toggle("idle", !busy);
+    }
+    const meta = $("terminal-log-meta");
+    if (meta) {
+      meta.textContent = [
+        snap?.logs?.length ? `${snap.logs.length} lines` : "",
+        snap?.heartbeat?.pid ? `ava pid ${snap.heartbeat.pid}` : "",
+        snap?.ollama?.up ? "ollama" : "ollama down",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    if (Array.isArray(snap?.logs)) {
+      termLiveText = snap.logs.join("\n");
+    } else if (!snap?.ok) {
+      termLiveText = `! ${snap?.detail || "activity unavailable"}`;
+    }
+    renderTerminalLog();
+  } catch (err) {
+    termLiveText = `! ${err?.message || err}`;
+    renderTerminalLog();
+  }
+}
+
+async function runOpsCommand(id) {
+  if (opsBusy) return;
+  const hint = confirmHints.get(id);
+  if (hint && !window.confirm(hint)) return;
+  setOpsBusy(true, `running · ${id}`);
+  try {
+    const r = await window.avaDesktop.opsRun(id);
+    if (!r?.ok && r?.detail) terminalAppend(`! ${r.detail}`);
+  } catch (err) {
+    terminalAppend(`! ${err?.message || err}`);
+    setOpsBusy(false, "idle");
+    refreshTerminalLive().catch(() => {});
+  }
+}
+
+async function bootTerminal() {
+  const catalog = await window.avaDesktop.opsCatalog();
+  const host = $("terminal-commands");
+  host.innerHTML = "";
+  confirmHints.clear();
+  for (const group of catalog.groups || []) {
+    const section = document.createElement("section");
+    section.className = "cmd-group";
+    const h2 = document.createElement("h2");
+    h2.textContent = group.label;
+    section.appendChild(h2);
+    const grid = document.createElement("div");
+    grid.className = "cmd-grid";
+    for (const cmd of group.commands || []) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cmd-btn";
+      if (group.id === "danger") btn.classList.add("danger");
+      else if (cmd.confirm) btn.classList.add("warn");
+      btn.dataset.id = cmd.id;
+      btn.dataset.search = `${cmd.label} ${cmd.detail} ${cmd.id}`.toLowerCase();
+      btn.innerHTML = `<span class="cmd-label">${escapeHtml(cmd.label)}</span><span class="cmd-detail">${escapeHtml(cmd.detail || "")}</span>`;
+      if (cmd.confirm) confirmHints.set(cmd.id, String(cmd.confirm));
+      btn.addEventListener("click", () => runOpsCommand(cmd.id));
+      grid.appendChild(btn);
+    }
+    section.appendChild(grid);
+    host.appendChild(section);
+  }
+  window.avaDesktop.onOpsStart((p) => {
+    setOpsBusy(true, p?.label || p?.id || "running");
+    if (p?.detail) terminalAppend(`# ${p.detail}`);
+  });
+  window.avaDesktop.onOpsLine((p) => {
+    if (p?.line != null) terminalAppend(p.line);
+  });
+  window.avaDesktop.onOpsDone((p) => {
+    setOpsBusy(false, "idle");
+    terminalAppend(p?.code ? `# failed (${p.code})` : "# done");
+    refreshTerminalLive().catch(() => {});
+  });
+  $("terminal-clear").onclick = () => {
+    termOpsOverlay = [];
+    $("terminal-out").textContent = termLiveText || "";
+  };
+  $("terminal-cancel").onclick = async () => {
+    const r = await window.avaDesktop.opsCancel();
+    terminalAppend(r?.ok ? "# cancel signaled" : `# cancel failed`);
+  };
+  if ($("terminal-refresh")) {
+    $("terminal-refresh").onclick = () => refreshTerminalLive().catch(() => {});
+  }
+  $("terminal-cancel").disabled = true;
+  $("terminal-filter").oninput = () => {
+    const q = $("terminal-filter").value.trim().toLowerCase();
+    host.querySelectorAll(".cmd-group").forEach((group) => {
+      let any = false;
+      group.querySelectorAll(".cmd-btn").forEach((btn) => {
+        const show = !q || (btn.dataset.search || "").includes(q);
+        btn.classList.toggle("hidden", !show);
+        if (show) any = true;
+      });
+      group.classList.toggle("hidden", !any);
+    });
+  };
+  await refreshTerminalLive();
+  if (termTimer) clearInterval(termTimer);
+  termTimer = setInterval(() => {
+    if ($("page-terminal")?.classList.contains("active")) {
+      refreshTerminalLive().catch(() => {});
+    }
+  }, 2000);
+}
+
+let mcBusy = false;
+let mcLastSize = -1;
+let mcTimer = null;
+
+function mcSetMsg(text, err) {
+  const el = $("mc-msg");
+  if (!el) return;
+  el.textContent = text || "";
+  el.style.color = err ? "#fecaca" : "";
+}
+
+function renderMcStatus(s) {
+  const run = !!s?.running;
+  const pill = $("mc-pill");
+  if (pill) {
+    pill.textContent = run ? "Running" : "Stopped";
+    pill.className = "mc-pill " + (run ? "ok" : "bad");
+  }
+  const kpis = $("mc-kpis");
+  if (kpis) {
+    const rows = [
+      ["State", run ? "UP" : "DOWN", (s.pids || []).join(", ") || "no pid"],
+      ["Join", s.serverPort ? `:${s.serverPort}` : "—", String(s.motd || "").replace(/§./g, "").slice(0, 42) || "motd"],
+      ["RCON", s.rconPort || "—", (s.rconTargets || []).map((t) => `${t.id}:${t.port}`).join(" · ") || ""],
+      ["Plugins", String(s.plugins ?? "—"), s.jar || "jar"],
+    ];
+    kpis.innerHTML = rows
+      .map(
+        ([label, strong, hint]) =>
+          `<div class="mc-kpi"><label>${escapeHtml(label)}</label><strong>${escapeHtml(strong)}</strong><div class="hint">${escapeHtml(hint)}</div></div>`,
+      )
+      .join("");
+  }
+  const meta = $("mc-console-meta");
+  if (meta) {
+    meta.textContent = [s.logFile, s.logBytes != null ? `${s.logBytes} bytes` : ""]
+      .filter(Boolean)
+      .join(" · ");
+  }
+  if ($("mc-start")) $("mc-start").disabled = run || mcBusy;
+  if ($("mc-stop")) $("mc-stop").disabled = !run || mcBusy;
+  if ($("mc-restart")) $("mc-restart").disabled = mcBusy;
+}
+
+async function refreshMinecraftLog() {
+  const j = await window.avaDesktop.mcLog({ lines: 220, bytes: 200000 });
+  const consoleEl = $("mc-console");
+  if (!consoleEl) return;
+  const follow = $("mc-follow")?.checked;
+  const atBottom =
+    consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight < 80;
+  if (j.size !== mcLastSize || consoleEl.textContent !== (j.text || "")) {
+    consoleEl.textContent = j.text || "(empty log)";
+    mcLastSize = j.size;
+    if (follow || atBottom) consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+}
+
+async function refreshMinecraft() {
+  try {
+    const s = await window.avaDesktop.mcStatus();
+    renderMcStatus(s);
+    await refreshMinecraftLog();
+  } catch (err) {
+    mcSetMsg(String(err?.message || err), true);
+  }
+}
+
+async function mcControl(action) {
+  if (mcBusy) return;
+  mcBusy = true;
+  mcSetMsg(`${action}…`);
+  try {
+    const j = await window.avaDesktop.mcControl(action);
+    if (j?.ok === false) throw new Error(j.detail || j.message || "control failed");
+    mcSetMsg(j.message || `${action} ok`);
+    await refreshMinecraft();
+  } catch (err) {
+    mcSetMsg(String(err?.message || err), true);
+  } finally {
+    mcBusy = false;
+    refreshMinecraft().catch(() => {});
+  }
+}
+
+async function bootMinecraft() {
+  if (!$("page-minecraft")) return;
+  $("mc-start").onclick = () => mcControl("start");
+  $("mc-restart").onclick = () => mcControl("restart");
+  $("mc-stop").onclick = () => mcControl("stop");
+  $("mc-refresh").onclick = () => refreshMinecraft();
+  $("mc-console-clear").onclick = () => {
+    $("mc-console").textContent = "";
+    mcLastSize = -1;
+  };
+  $("mc-rcon-form").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const cmd = $("mc-rcon-cmd").value.trim();
+    if (!cmd) return;
+    mcSetMsg(`rcon › ${cmd}`);
+    try {
+      const j = await window.avaDesktop.mcRcon({ command: cmd, target: "test" });
+      const out = j.ok ? j.output || "(ok)" : `ERR ${j.reason || j.detail || "failed"}`;
+      const consoleEl = $("mc-console");
+      consoleEl.textContent = `${consoleEl.textContent || ""}\n> ${cmd}\n${out}\n`;
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+      if (!j.ok) mcSetMsg(j.reason || j.detail || "rcon failed", true);
+      else {
+        mcSetMsg("rcon ok");
+        $("mc-rcon-cmd").value = "";
+      }
+    } catch (err) {
+      mcSetMsg(String(err?.message || err), true);
+    }
+  };
+  await refreshMinecraft();
+  if (mcTimer) clearInterval(mcTimer);
+  mcTimer = setInterval(() => {
+    if ($("page-minecraft")?.classList.contains("active")) {
+      refreshMinecraft().catch(() => {});
+    }
+  }, 2500);
+}
+
+function streamSetMsg(text, isErr = false) {
+  const el = $("stream-msg");
+  if (!el) return;
+  el.textContent = text || "";
+  el.style.color = isErr ? "var(--danger, #ff6b6b)" : "";
+}
+
+function streamMetaBody() {
+  return {
+    title: $("stream-title")?.value || "",
+    description: $("stream-description")?.value || "",
+  };
+}
+
+async function refreshStreamOps() {
+  if (!$("page-stream") || !window.avaDesktop?.streamStatus) return;
+  try {
+    const pack = await window.avaDesktop.streamStatus();
+    const st = pack.status || {};
+    const watch = pack.watch || {};
+    const eta = pack.eta || {};
+    if (pack.detail && st.ok === false) {
+      streamSetMsg(pack.detail, true);
+    } else {
+      streamSetMsg(
+        st.streaming
+          ? `Live · scene ${st.scene || "?"} · kit ${st.kit?.health || "?"}`
+          : `Idle · scene ${st.scene || "?"} · kit ${st.kit?.health || "?"}`,
+      );
+    }
+    const live = $("stream-pill-live");
+    if (live) {
+      live.textContent = st.streaming ? "STREAM LIVE" : "STREAM OFF";
+      live.classList.toggle("on", Boolean(st.streaming));
+    }
+    const wb = $("stream-pill-watch");
+    if (wb) {
+      wb.textContent =
+        watch.erupting || watch.mode === "active"
+          ? "ACTIVE"
+          : watch.active
+            ? "VOLCANO WATCH"
+            : "WATCH OFF";
+      wb.classList.toggle("on", Boolean(watch.active));
+    }
+    const kit = st.kit?.health || "?";
+    const kb = $("stream-pill-kit");
+    if (kb) kb.textContent = `KIT ${String(kit).toUpperCase()}`;
+    const eb = $("stream-pill-eta");
+    if (eb) {
+      const band = eta.band || "quiet";
+      eb.textContent =
+        `ETA ${band}` + (eta.countdown?.display ? ` ${eta.countdown.display}` : "");
+    }
+    if (st.title != null && $("stream-title") && document.activeElement !== $("stream-title")) {
+      $("stream-title").value = st.title || "";
+    }
+    if (
+      st.description != null &&
+      $("stream-description") &&
+      document.activeElement !== $("stream-description")
+    ) {
+      $("stream-description").value = st.description || "";
+    }
+    $("stream-status").textContent = JSON.stringify(
+      { status: st, watch, eta },
+      null,
+      2,
+    );
+  } catch (err) {
+    streamSetMsg(String(err?.message || err), true);
+  }
+}
+
+async function streamAction(action, extra = {}) {
+  streamSetMsg(`${action}…`);
+  try {
+    const j = await window.avaDesktop.streamAction({
+      action,
+      ...streamMetaBody(),
+      ...extra,
+    });
+    if (j?.ok === false) {
+      streamSetMsg(j.detail || j.hint || "failed", true);
+    } else {
+      streamSetMsg(`${action} ok`);
+    }
+    $("stream-status").textContent = JSON.stringify(j, null, 2);
+    await refreshStreamOps();
+  } catch (err) {
+    streamSetMsg(String(err?.message || err), true);
+  }
+}
+
+async function bootStreamOps() {
+  if (!$("page-stream") || !window.avaDesktop?.streamStatus) return;
+  $("stream-refresh").onclick = () => refreshStreamOps();
+  $("stream-meta-apply").onclick = () => streamAction("metadata");
+  $("stream-meta-restart").onclick = () => streamAction("metadata-restart");
+  $("stream-watch-enter").onclick = () => streamAction("watch-enter");
+  $("stream-watch-exit").onclick = () => streamAction("watch-exit");
+  $("stream-toast").onclick = () => streamAction("toast");
+  $("stream-repair").onclick = () => streamAction("repair");
+  document.querySelectorAll("[data-stream-scene]").forEach((btn) => {
+    btn.onclick = () => streamAction("scene", { scene: btn.dataset.streamScene });
+  });
+  document.querySelectorAll("[data-stream-reaction]").forEach((btn) => {
+    btn.onclick = () =>
+      streamAction("reaction", {
+        reactionId: btn.dataset.streamReaction,
+        body: `Manual · ${btn.textContent.trim()}`,
+        comment: false,
+      });
+  });
+  await refreshStreamOps();
+  setInterval(() => {
+    if ($("page-stream")?.classList.contains("active")) {
+      refreshStreamOps().catch(() => {});
+    }
+  }, 8000);
+}
+
+let lastBrainUrl = "http://127.0.0.1:8787";
+let connectionPresets = null;
+
+function connFormValues() {
+  const mode = $("conn-mode-headless")?.checked ? "headless" : "local";
+  let via = "loopback";
+  if ($("conn-via-public")?.checked) via = "public";
+  else if ($("conn-via-lan")?.checked) via = "lan";
+  else if ($("conn-via-loopback")?.checked) via = "loopback";
+  if (mode === "headless" && via === "loopback") via = "lan";
+  if (mode === "local") via = "loopback";
+  return {
+    mode,
+    via,
+    brainUrl: $("conn-brain")?.value?.trim() || "",
+    localApiUrl: $("conn-local-api")?.value?.trim() || "",
+    ollamaUrl: $("conn-ollama")?.value?.trim() || "",
+    publicUrl: $("conn-public")?.value?.trim() || "",
+    operatorKey: $("conn-operator-key")?.value?.trim() || "",
+    workstationKey: $("conn-workstation-key")?.value?.trim() || "",
+  };
+}
+
+function fillConnectionForm(conn) {
+  if (!conn) return;
+  const local = $("conn-mode-local");
+  const headless = $("conn-mode-headless");
+  if (local) local.checked = conn.mode !== "headless";
+  if (headless) headless.checked = conn.mode === "headless";
+  const via = conn.via || (conn.mode === "headless" ? "lan" : "loopback");
+  if ($("conn-via-lan")) $("conn-via-lan").checked = via === "lan";
+  if ($("conn-via-public")) $("conn-via-public").checked = via === "public";
+  if ($("conn-via-loopback")) $("conn-via-loopback").checked = via === "loopback";
+  if ($("conn-brain")) $("conn-brain").value = conn.brainUrl || "";
+  if ($("conn-local-api")) $("conn-local-api").value = conn.localApiUrl || "";
+  if ($("conn-ollama")) $("conn-ollama").value = conn.ollamaUrl || "";
+  if ($("conn-public")) $("conn-public").value = conn.publicUrl || "";
+  if ($("conn-operator-key")) $("conn-operator-key").value = conn.operatorKey || "";
+  if ($("conn-workstation-key")) $("conn-workstation-key").value = conn.workstationKey || "";
+  syncConnViaVisibility();
+}
+
+function syncConnViaVisibility() {
+  const headless = $("conn-mode-headless")?.checked;
+  const row = $("conn-via-row");
+  if (row) row.style.display = headless ? "flex" : "none";
+  if ($("conn-via-loopback")?.parentElement) {
+    $("conn-via-loopback").parentElement.style.display = headless ? "none" : "";
+  }
+  const note = $("conn-note");
+  if (note) {
+    note.textContent = headless
+      ? "Headless: rewrite, core, crons, reports, Minecraft, and HTTP ops run on Ava-linux. Terminal script buttons still need Ava core on this disk."
+      : "Local: this machine’s :8787 / Ollama. Same box as Ava-linux is the usual OptiPlex desktop mode.";
+  }
+}
+
+function applyConnectionPreset() {
+  if (!connectionPresets) return;
+  const headless = $("conn-mode-headless")?.checked;
+  const viaPublic = $("conn-via-public")?.checked;
+  const preset = !headless
+    ? connectionPresets.local
+    : viaPublic
+      ? connectionPresets.headlessPublic
+      : connectionPresets.headlessLan;
+  fillConnectionForm(preset);
+}
+
+function setConnPill(view, testOk) {
+  const pill = $("conn-pill");
+  if (!pill) return;
+  const mode = view?.mode === "headless" ? "Headless" : "Local";
+  const url = String(view?.brainUrl || lastBrainUrl || "").replace(/^https?:\/\//, "");
+  pill.textContent = `${mode} · ${url || "?"}`;
+  pill.classList.remove("ok", "remote", "warn");
+  if (testOk === false) pill.classList.add("warn");
+  else if (view?.mode === "headless") pill.classList.add("remote");
+  else pill.classList.add("ok");
+}
+
+async function refreshConnectionForm() {
+  try {
+    const payload = await window.avaDesktop.connectionGet();
+    connectionPresets = payload?.presets || null;
+    const lan = payload?.server?.lanHost;
+    if (lan && $("conn-lan-label")) $("conn-lan-label").textContent = lan;
+    fillConnectionForm(payload?.current);
+    lastBrainUrl = payload?.current?.brainUrl || lastBrainUrl;
+    setConnPill(payload?.view || payload?.current);
+    return payload;
+  } catch (err) {
+    if ($("conn-test-out")) $("conn-test-out").textContent = String(err.message || err);
+    return null;
+  }
+}
+
+async function testConnectionForm() {
+  const out = $("conn-test-out");
+  if (out) out.textContent = "testing…";
+  try {
+    const r = await window.avaDesktop.connectionTest(connFormValues());
+    if (out) out.textContent = JSON.stringify(r, null, 2);
+    setConnPill({ mode: r.mode, brainUrl: r.brainUrl }, Boolean(r.ok));
+    return r;
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+    return null;
+  }
+}
+
+async function saveConnectionForm() {
+  const out = $("conn-test-out");
+  if (out) out.textContent = "saving…";
+  try {
+    const saved = await window.avaDesktop.connectionSave(connFormValues());
+    if (!saved?.ok) {
+      if (out) out.textContent = saved?.detail || "save failed";
+      return;
+    }
+    lastBrainUrl = saved.connection?.brainUrl || lastBrainUrl;
+    setConnPill(saved.connection);
+    const test = await window.avaDesktop.connectionTest();
+    if (out) {
+      out.textContent = JSON.stringify({ saved: saved.written, test }, null, 2);
+    }
+    setConnPill(saved.connection, Boolean(test?.ok));
+    const st = await window.avaDesktop.envStatus();
+    $("settings-status").textContent = JSON.stringify(st, null, 2);
+    refreshCoreStatus().catch(() => {});
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+  }
+}
+
+async function boot() {
+  await refreshConnectionForm();
+  const st = await window.avaDesktop.envStatus();
+  $("settings-status").textContent = JSON.stringify(st, null, 2);
+
+  const prov = await window.avaDesktop.rewriteProviders();
+  providers = prov.providers || [];
+  $("settings-providers").textContent = JSON.stringify(providers, null, 2);
+  renderProviders("discord-providers", "discord");
+  renderProviders("slack-providers", "slack");
+  renderProviders("telegram-providers", "telegram");
+  renderProviders("post-providers", "post");
+  renderProviders("feedback-providers", "feedback");
+  try {
+    const ft = await window.avaDesktop.feedbackTargets();
+    fillFeedbackTemplates(ft?.templates || []);
+    if (ft?.targets?.discordDevelopment?.id) {
+      feedbackState.targets.discord = ft.targets.discordDevelopment.id;
+    }
+    if (ft?.targets?.slackFeedback?.id) {
+      feedbackState.targets.slack = ft.targets.slackFeedback.id;
+    }
+  } catch {
+    fillFeedbackTemplates([]);
+  }
+  {
+    const prev = providers;
+    providers = (providers || []).filter((p) => !["exact", "ollama"].includes(p.id));
+    if (!providers.length) {
+      providers = [
+        { id: "dream", label: "Dream / Grok" },
+        { id: "cursor", label: "Cursor" },
+        { id: "google", label: "Google / Gemini" },
+      ];
+    }
+    if (!providerSel.core || providerSel.core === "ollama") providerSel.core = "dream";
+    renderProviders("core-providers", "core");
+    providers = prev;
+  }
+  renderCoreHistory();
+  refreshCoreStatus().catch(() => {});
+  for (const s of RESPONSE_LOG_SURFACES) renderResponseLog(s);
+  document.querySelectorAll("[data-log-clear]").forEach((btn) => {
+    btn.addEventListener("click", () => clearResponseLog(btn.dataset.logClear));
+  });
+  for (const id of [
+    "discord-draft",
+    "slack-draft",
+    "telegram-draft",
+    "post-draft",
+    "core-draft",
+    "feedback-draft",
+  ]) {
+    wireDraftAutosize(id);
+  }
+
+  await bootTerminal();
+  await bootMinecraft();
+  await bootStreamOps();
+  ensureBizTimer();
+  window.avaDesktop.earlyLogin?.().catch(() => {});
+
+  const presetRes = await window.avaDesktop.listPresets();
+  presets = presetRes.presets || [];
+  fillPresets($("post-surface").value);
+  const updates = presets.find((p) => p.key === "updates");
+  if (updates) {
+    $("post-surface").value = "discord";
+    fillPresets("discord");
+    $("post-preset").value = updates.id;
+    $("post-channel").value = updates.id;
+  }
+
+  const guild = await window.avaDesktop.listDiscordChannels();
+  fillSelect($("discord-channel"), guild.channels || [], {
+    nameFn: (c) => `#${c.name}`,
+  });
+  const priv = await window.avaDesktop.listDiscordPrivate();
+  fillSelect($("discord-private"), priv.channels || [], {
+    placeholder: "(none — use guild)",
+    nameFn: (c) => c.name,
+  });
+  const prefer = (guild.channels || []).find((c) =>
+    /development|admins|updates|general/i.test(c.name),
+  );
+  if (prefer) $("discord-channel").value = prefer.id;
+
+  const slack = await window.avaDesktop.listSlackChannels();
+  fillSelect($("slack-channel"), slack.channels || [], {
+    nameFn: (c) => `${c.private ? "🔒" : "#"}${c.name}`,
+  });
+
+  const tg = await window.avaDesktop.listTelegramChats();
+  fillSelect($("telegram-chat"), tg.channels || [], {
+    nameFn: (c) => c.name,
+  });
+
+  await refreshDiscord();
+  await refreshSlack();
+  await refreshTelegram();
+  await refreshCrons();
+  refreshPostAllMeta().catch(() => {});
+}
+
+async function refreshPostAllMeta() {
+  const el = $("post-all-meta");
+  if (!el || !window.avaDesktop.listAllPostTargets) return;
+  try {
+    const listed = await window.avaDesktop.listAllPostTargets();
+    const c = listed?.counts || {};
+    const total = Number(c.total || 0);
+    el.textContent = total
+      ? `${total} known · Discord ${c.discord || 0} + ${c.discordDm || 0} DMs · Slack ${c.slack || 0} + ${c.slackDm || 0} DMs · Telegram ${c.telegram || 0}`
+      : listed?.detail || "Every Discord channel + DM, Slack channel + DM, and Telegram chat Ava knows.";
+  } catch {
+    /* keep default hint */
+  }
+}
+
+/* bindings */
+$("discord-channel").onchange = () => {
+  $("discord-private").value = "";
+  refreshDiscord();
+};
+$("discord-private").onchange = () => refreshDiscord();
+$("discord-refresh").onclick = () => refreshDiscord();
+$("discord-reply-clear").onclick = () => setReplyBar("discord", null);
+$("discord-edit-load").onclick = () => loadDiscordEdit();
+$("discord-delete").onclick = () => deleteDiscordSelected();
+$("discord-save-edit").onclick = () => saveDiscordEdit();
+$("discord-cancel-edit").onclick = () => cancelDiscordEdit();
+$("discord-preview").onclick = () =>
+  previewRewrite("discord", "discord-draft", discordChannelId(), "discord-status", "discord-compare");
+$("discord-compare").onclick = () =>
+  previewRewrite("discord", "discord-draft", discordChannelId(), "discord-status", "discord-compare", true);
+$("discord-summarize").onclick = () =>
+  summarizeSurface("discord", discordChannelId(), "discord-draft", "discord-status");
+$("discord-send").onclick = () =>
+  sendSurface("discord", "discord-draft", discordChannelId(), "discord-status");
+
+$("slack-channel").onchange = () => refreshSlack();
+$("slack-refresh").onclick = () => refreshSlack();
+$("slack-reply-clear").onclick = () => setReplyBar("slack", null);
+$("slack-preview").onclick = () =>
+  previewRewrite("slack", "slack-draft", $("slack-channel").value, "slack-status", "slack-compare");
+$("slack-compare").onclick = () =>
+  previewRewrite("slack", "slack-draft", $("slack-channel").value, "slack-status", "slack-compare", true);
+$("slack-summarize").onclick = () =>
+  summarizeSurface("slack", $("slack-channel").value, "slack-draft", "slack-status");
+$("slack-send").onclick = () =>
+  sendSurface("slack", "slack-draft", $("slack-channel").value, "slack-status");
+
+$("telegram-chat").onchange = () => refreshTelegram();
+$("telegram-refresh").onclick = () => refreshTelegram();
+$("telegram-reply-clear").onclick = () => setReplyBar("telegram", null);
+$("telegram-preview").onclick = () =>
+  previewRewrite(
+    "telegram",
+    "telegram-draft",
+    $("telegram-chat").value,
+    "telegram-status",
+    "telegram-compare",
+  );
+$("telegram-compare").onclick = () =>
+  previewRewrite(
+    "telegram",
+    "telegram-draft",
+    $("telegram-chat").value,
+    "telegram-status",
+    "telegram-compare",
+    true,
+  );
+$("telegram-summarize").onclick = () =>
+  summarizeSurface("telegram", $("telegram-chat").value, "telegram-draft", "telegram-status");
+$("telegram-send").onclick = () =>
+  sendSurface("telegram", "telegram-draft", $("telegram-chat").value, "telegram-status");
+
+$("post-surface").onchange = () => {
+  fillPresets($("post-surface").value);
+  $("post-channel").value = "";
+  $("post-history").innerHTML = "";
+  $("post-history-meta").textContent = "";
+};
+$("post-preset").onchange = () => {
+  if ($("post-preset").value) $("post-channel").value = $("post-preset").value;
+  refreshPostHistory();
+};
+$("post-channel").onchange = () => refreshPostHistory();
+$("post-refresh-history").onclick = () => refreshPostHistory();
+$("post-clear").onclick = () => {
+  $("post-draft").value = "";
+  $("post-ref").value = "";
+  $("post-status").textContent = "";
+};
+$("post-preview").onclick = () =>
+  previewRewrite("post", "post-draft", $("post-channel").value, "post-status", "post-compare");
+$("post-compare").onclick = () =>
+  previewRewrite("post", "post-draft", $("post-channel").value, "post-status", "post-compare", true);
+if (typeof window.avaDesktop.onPostAllProgress === "function") {
+  window.avaDesktop.onPostAllProgress((p) => {
+    if (!$("page-post")?.classList.contains("active")) return;
+    if (!p?.total) return;
+    $("post-status").textContent = `posting to all ${p.i}/${p.total} · ${p.label || ""}`;
+  });
+}
+
+$("post-all").onclick = async () => {
+  const text = $("post-draft").value.trim();
+  if (!text) {
+    $("post-status").textContent = "Need a message.";
+    return;
+  }
+  if (surfaceBusy.post) {
+    $("post-status").textContent = "already posting — ignored double click";
+    return;
+  }
+  $("post-status").textContent = "listing every known channel + DM…";
+  let listed;
+  try {
+    listed = await window.avaDesktop.listAllPostTargets();
+  } catch (err) {
+    $("post-status").textContent = String(err.message || err);
+    return;
+  }
+  const counts = listed?.counts || {};
+  const total = Number(counts.total || (listed?.targets || []).length || 0);
+  if (!total) {
+    $("post-status").textContent = listed?.detail || "no known destinations";
+    return;
+  }
+  const summary = [
+    `${counts.discord || 0} Discord channels`,
+    `${counts.discordDm || 0} Discord DMs`,
+    `${counts.slack || 0} Slack channels`,
+    `${counts.slackDm || 0} Slack DMs`,
+    `${counts.telegram || 0} Telegram chats`,
+  ].join(", ");
+  if (
+    !confirm(
+      `Post this message to ALL ${total} known pages?\n\n${summary}\n\nThis goes to every DM and every channel Ava knows. Cannot be undone.`,
+    )
+  ) {
+    $("post-status").textContent = "cancelled";
+    return;
+  }
+  const provider = providerSel.post;
+  const rewrite = provider !== "exact" && !draftReadyExact.post;
+  surfaceBusy.post = true;
+  $("post-status").textContent = `posting to all ${total}…`;
+  try {
+    const r = await window.avaDesktop.postAll({
+      text,
+      rewrite,
+      provider: rewrite ? provider : "exact",
+    });
+    draftReadyExact.post = false;
+    const failed = r.results?.filter((x) => !x.ok) || [];
+    $("post-status").textContent = [
+      r.ok ? `posted ${r.posted}/${r.total || total}` : `failed · ${r.detail || ""}`,
+      r.failed ? `${r.failed} failed` : null,
+      r.provider || provider,
+      r.via || "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    if ($("post-all-meta")) {
+      $("post-all-meta").textContent = `Last fan-out: ${r.posted || 0} sent · ${r.failed || 0} failed · ${total} known`;
+    }
+    appendResponseLog("post", {
+      kind: "send",
+      text: r.text || text,
+      provider: r.provider || (rewrite ? provider : "exact"),
+      via: r.via || "all-pages",
+      meta: `all pages ${r.posted || 0}/${r.total || total}${
+        failed.length
+          ? ` · fail ${failed
+              .slice(0, 6)
+              .map((f) => f.label || f.channelId)
+              .join(", ")}`
+          : ""
+      }`,
+    });
+  } catch (err) {
+    $("post-status").textContent = String(err.message || err);
+  } finally {
+    surfaceBusy.post = false;
+  }
+};
+
+$("post-send").onclick = async () => {
+  let channelId = $("post-channel").value.trim();
+  const text = $("post-draft").value.trim();
+  const asPreset = presets.find(
+    (p) => p.key === channelId.toLowerCase() || p.id === channelId,
+  );
+  if (asPreset) {
+    channelId = asPreset.id;
+    $("post-surface").value = asPreset.surface;
+  }
+  if (!channelId || !text) {
+    $("post-status").textContent = "Need channel + message.";
+    return;
+  }
+  if (surfaceBusy.post) {
+    $("post-status").textContent = "already posting — ignored double click";
+    return;
+  }
+  const provider = providerSel.post;
+  const rewrite = provider !== "exact" && !draftReadyExact.post;
+  surfaceBusy.post = true;
+  $("post-status").textContent = rewrite
+    ? `posting via ${provider}…`
+    : draftReadyExact.post
+      ? "posting exact (already rewritten)…"
+      : "posting…";
+  try {
+    const r = await window.avaDesktop.post({
+      surface: $("post-surface").value,
+      channelId,
+      text,
+      refId: $("post-ref").value.trim() || undefined,
+      rewrite,
+      provider: rewrite ? provider : "exact",
+    });
+    draftReadyExact.post = false;
+    $("post-status").textContent = `sent · ${r.provider || provider} · ${r.via || ""} · ${r.id || ""}`;
+    appendResponseLog("post", {
+      kind: "send",
+      text: r.text || text,
+      provider: r.provider || (rewrite ? provider : "exact"),
+      via: r.via || "",
+      meta: r.id ? `id ${r.id}` : "",
+    });
+    await refreshPostHistory();
+  } catch (err) {
+    $("post-status").textContent = String(err.message || err);
+  } finally {
+    surfaceBusy.post = false;
+  }
+};
+
+$("cron-refresh").onclick = () => refreshCrons();
+$("cron-catchup").onclick = () => runOpsCommand("cron-catchup");
+if ($("reports-refresh")) $("reports-refresh").onclick = () => refreshReports();
+if ($("reports-open-reports")) {
+  $("reports-open-reports").onclick = () => window.avaDesktop.openFolder("reports");
+}
+if ($("reports-open-days")) $("reports-open-days").onclick = () => window.avaDesktop.openFolder("solarDays");
+if ($("reports-open-dumps")) $("reports-open-dumps").onclick = () => window.avaDesktop.openFolder("dumps");
+if ($("reports-open-data")) $("reports-open-data").onclick = () => window.avaDesktop.openFolder("data");
+if ($("wg-refresh")) $("wg-refresh").onclick = () => refreshWeatherGifsPage();
+if ($("wg-open-folder")) {
+  $("wg-open-folder").onclick = () => window.avaDesktop.openFolder("weatherGifs");
+}
+if ($("wg-open-collector")) {
+  $("wg-open-collector").onclick = () => window.avaDesktop.openFolder("weatherGifsCollector");
+}
+if ($("wg-open-board")) {
+  $("wg-open-board").onclick = () => {
+    const url = `${brainBaseUrl()}/weather/gifs`;
+    window.avaDesktop.openLink(url);
+  };
+}
+
+if ($("biz-refresh")) $("biz-refresh").onclick = () => refreshBiz();
+if ($("biz-clock-in")) {
+  $("biz-clock-in").onclick = () =>
+    runBizAction({
+      action: "clock-in",
+      personId: "alex",
+      projectId: $("biz-project")?.value || "proj-ava",
+      categoryId: $("biz-category")?.value || "cat-dev",
+      description: $("biz-note")?.value?.trim() || "",
+    });
+}
+if ($("biz-clock-out")) {
+  $("biz-clock-out").onclick = () =>
+    runBizAction({
+      action: "clock-out",
+      personId: "alex",
+      description: $("biz-note")?.value?.trim() || "",
+    });
+}
+if ($("biz-clock-form")) {
+  $("biz-clock-form").onsubmit = async (e) => {
+    e.preventDefault();
+    await runBizAction({
+      action: "clock-in",
+      personId: "alex",
+      projectId: $("biz-project")?.value || "proj-ava",
+      categoryId: $("biz-category")?.value || "cat-dev",
+      description: $("biz-note")?.value?.trim() || "",
+    });
+    if ($("biz-note")) $("biz-note").value = "";
+  };
+}
+if ($("biz-project-form")) {
+  $("biz-project-form").onsubmit = async (e) => {
+    e.preventDefault();
+    await runBizAction({
+      action: "add-project",
+      name: $("biz-new-project")?.value?.trim(),
+      note: $("biz-new-note")?.value?.trim() || "",
+    });
+    if ($("biz-new-project")) $("biz-new-project").value = "";
+    if ($("biz-new-note")) $("biz-new-note").value = "";
+  };
+}
+
+if ($("finance-refresh")) $("finance-refresh").onclick = () => refreshFinance();
+if ($("finance-stripe")) $("finance-stripe").onclick = () => refreshFinance({ refreshStripe: true });
+if ($("finance-pnl-txns")) {
+  $("finance-pnl-txns").addEventListener("change", async (e) => {
+    const sel = e.target.closest(".fin-venmo-cat");
+    if (!sel?.dataset.venmoId) return;
+    await runFinanceAction({
+      action: "update-venmo-txn",
+      id: sel.dataset.venmoId,
+      category: sel.value,
+    });
+  });
+}
+if ($("finance-review")) $("finance-review").onclick = () => runFinanceAction({ action: "review" });
+if ($("finance-notify")) {
+  $("finance-notify").onclick = () => {
+    if (!confirm("Send finance review to Telegram Alex?")) return;
+    runFinanceAction({ action: "notify" });
+  };
+}
+if ($("finance-optimal-form")) {
+  $("finance-optimal-form").onsubmit = async (e) => {
+    e.preventDefault();
+    await runFinanceAction({
+      action: "upsert-optimal",
+      label: $("fin-opt-label").value.trim(),
+      amountUsd: Number($("fin-opt-amount").value),
+      period: $("fin-opt-period")?.value || "month",
+      category: $("fin-opt-category")?.value || "ops",
+      note: $("fin-opt-note")?.value?.trim() || "",
+    });
+    $("fin-opt-label").value = "";
+    $("fin-opt-amount").value = "";
+    if ($("fin-opt-note")) $("fin-opt-note").value = "";
+  };
+}
+if ($("finance-optimal")) {
+  $("finance-optimal").addEventListener("submit", async (e) => {
+    const form = e.target.closest(".fin-opt-edit");
+    if (!form) return;
+    e.preventDefault();
+    await runFinanceAction({
+      action: "upsert-optimal",
+      id: form.dataset.id,
+      label: form.label.value.trim(),
+      amountUsd: Number(form.amount.value),
+      period: form.period.value,
+      category: form.category.value,
+      note: form.note.value.trim(),
+    });
+  });
+  $("finance-optimal").addEventListener("click", async (e) => {
+    const btn = e.target.closest(".fin-opt-del");
+    if (!btn) return;
+    const form = btn.closest(".fin-opt-edit");
+    if (!form?.dataset.id) return;
+    if (!confirm("Remove this optimal budget line?")) return;
+    await runFinanceAction({ action: "delete-optimal", id: form.dataset.id });
+  });
+}
+if ($("finance-add-form")) {
+  $("finance-add-form").onsubmit = async (e) => {
+    e.preventDefault();
+    await runFinanceAction({
+      action: "upsert-line",
+      kind: $("fin-kind").value,
+      label: $("fin-label").value.trim(),
+      amountUsd: Number($("fin-amount").value),
+      period: $("fin-period").value,
+      category: $("fin-category")?.value || "ops",
+      projectId: $("fin-project").value.trim() || ($("fin-kind").value === "debt" ? "ava" : "rootmc-ops"),
+      account: $("fin-account").value.trim() || ($("fin-kind").value === "debt" ? "debts" : "default"),
+    });
+    $("fin-label").value = "";
+    $("fin-amount").value = "";
+  };
+}
+if ($("finance-wishlist-form")) {
+  $("finance-wishlist-form").onsubmit = async (e) => {
+    e.preventDefault();
+    await runFinanceAction({
+      action: "add-wishlist",
+      name: $("fin-wl-name").value.trim(),
+      note: $("fin-wl-note")?.value.trim() || "",
+    });
+    $("fin-wl-name").value = "";
+    if ($("fin-wl-note")) $("fin-wl-note").value = "";
+  };
+}
+if ($("finance-acct-form")) {
+  $("finance-acct-form").onsubmit = async (e) => {
+    e.preventDefault();
+    await runFinanceAction({
+      action: "add-account",
+      name: $("fin-acct-name").value.trim(),
+      kind: $("fin-acct-kind").value,
+      balanceUsd: Number($("fin-acct-balance").value) || 0,
+      projectId: $("fin-acct-project").value.trim() || "ava",
+    });
+    $("fin-acct-name").value = "";
+    $("fin-acct-balance").value = "";
+  };
+}
+
+let releaseKind = "plugins";
+
+function fmtSize(n) {
+  const x = Number(n) || 0;
+  if (x < 1024) return `${x} B`;
+  if (x < 1024 * 1024) return `${(x / 1024).toFixed(1)} KB`;
+  return `${(x / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function selectedReleaseTargets() {
+  return [...document.querySelectorAll("#release-targets input[type=checkbox]:checked")].map(
+    (el) => el.value,
+  );
+}
+
+function setReleaseKind(kind) {
+  releaseKind = kind === "apps" ? "apps" : "plugins";
+  $("release-kind-plugins")?.classList.toggle("primary", releaseKind === "plugins");
+  $("release-kind-apps")?.classList.toggle("primary", releaseKind === "apps");
+  refreshRelease();
+}
+
+async function refreshRelease() {
+  const meta = $("release-meta");
+  const log = $("release-log");
+  const targetsEl = $("release-targets");
+  const artsEl = $("release-arts");
+  if (!meta || !targetsEl) return;
+  meta.textContent = `Loading ${releaseKind}…`;
+  try {
+    const data = await window.avaDesktop.releaseStatus(releaseKind);
+    if (!data?.ok) {
+      meta.textContent = data?.detail || "failed";
+      log.textContent = data?.hint || data?.detail || "Private API unreachable — is Ava :8787 up?";
+      return;
+    }
+    const s = data.status || {};
+    const busy = !!data.busy;
+    meta.textContent =
+      `${releaseKind} · ${busy ? "running" : s.state || "idle"}` +
+      (s.action ? ` · ${s.action}` : "") +
+      (data.javaReady ? " · JDK ok" : " · JDK missing") +
+      (data.sync?.copied != null ? ` · synced ${data.sync.copied}` : "");
+    const prev = new Set(selectedReleaseTargets());
+    targetsEl.innerHTML =
+      (data.targets || [])
+        .map((t) => {
+          const ver = t.version
+            ? escapeHtml(t.version)
+            : t.versionCode != null
+              ? `code ${t.versionCode}`
+              : "—";
+          const checked = prev.has(t.id) ? " checked" : "";
+          return `<label><input type="checkbox" value="${escapeHtml(t.id)}"${checked}/><span><div>${escapeHtml(t.label || t.id)}</div><div class="ver">${ver}</div></span></label>`;
+        })
+        .join("") || `<div class="hint-inline">No targets on disk.</div>`;
+    artsEl.innerHTML =
+      (data.artifacts || [])
+        .map((a) => {
+          const href = a.url || (data.public?.public ? `${data.public.public}${a.publicRel || ""}` : "");
+          const name = href
+            ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>`
+            : escapeHtml(a.name);
+          return `<div class="row"><span>${name}</span><span class="meta">${escapeHtml(fmtSize(a.size))}</span></div>`;
+        })
+        .join("") || `<div class="hint-inline">No artifacts yet — build or sync publicfiles.</div>`;
+    log.textContent = (s.logTail && s.logTail.trim()) || (busy ? "Running…" : "Idle.");
+    ["release-bump", "release-build", "release-release"].forEach((id) => {
+      if ($(id)) $(id).disabled = busy;
+    });
+  } catch (err) {
+    meta.textContent = String(err.message || err);
+  }
+}
+
+async function runRelease(action) {
+  const log = $("release-log");
+  ["release-bump", "release-build", "release-release"].forEach((id) => {
+    if ($(id)) $(id).disabled = true;
+  });
+  log.textContent = `Starting ${action}…`;
+  try {
+    const r = await window.avaDesktop.releaseAction(releaseKind, action, selectedReleaseTargets());
+    if (!r?.ok && !r?.accepted) {
+      log.textContent = r?.detail || r?.error || "request failed";
+    }
+  } catch (err) {
+    log.textContent = String(err.message || err);
+  }
+  refreshRelease();
+}
+
+$("release-kind-plugins")?.addEventListener("click", () => setReleaseKind("plugins"));
+$("release-kind-apps")?.addEventListener("click", () => setReleaseKind("apps"));
+$("release-refresh")?.addEventListener("click", () => refreshRelease());
+$("release-bump")?.addEventListener("click", () => runRelease("bump"));
+$("release-build")?.addEventListener("click", () => runRelease("build"));
+$("release-release")?.addEventListener("click", () => runRelease("release"));
+$("release-files-link")?.addEventListener("click", (ev) => {
+  ev.preventDefault();
+  window.avaDesktop.openLink("https://ava.rootmc.net/publicfiles/");
+});
+
+async function renderLinks() {
+  const host = $("links-catalog");
+  const status = $("links-status");
+  if (!host) return;
+  host.innerHTML = "";
+  status.textContent = "loading…";
+  try {
+    const data = await window.avaDesktop.listLinks();
+    if (!data?.ok) {
+      status.textContent = data?.detail || "failed to load links";
+      return;
+    }
+    for (const group of data.groups || []) {
+      const section = document.createElement("section");
+      section.className = "links-group";
+      const h3 = document.createElement("h3");
+      h3.textContent = group.label || group.id;
+      section.appendChild(h3);
+      const grid = document.createElement("div");
+      grid.className = "links-grid";
+      for (const link of group.links || []) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "link-card";
+        btn.innerHTML =
+          `<span class="title">${escapeHtml(link.title || "Link")}</span>` +
+          `<span class="url">${escapeHtml(link.url || "")}</span>` +
+          (link.note ? `<span class="note">${escapeHtml(link.note)}</span>` : "");
+        btn.onclick = async () => {
+          status.textContent = `opening ${link.url}…`;
+          const r = await window.avaDesktop.openLink(link.url);
+          status.textContent = r?.ok ? `opened · ${link.title}` : `open failed · ${r?.detail || "?"}`;
+        };
+        grid.appendChild(btn);
+      }
+      section.appendChild(grid);
+      host.appendChild(section);
+    }
+    const count = (data.groups || []).reduce((n, g) => n + (g.links?.length || 0), 0);
+    status.textContent = `${count} links · ${data.groups?.length || 0} groups`;
+  } catch (err) {
+    status.textContent = String(err.message || err);
+  }
+}
+
+$("links-refresh").onclick = () => renderLinks();
+
+function renderCoreHistory() {
+  const el = $("core-history");
+  if (!el) return;
+  if (!coreState.messages.length && !coreState.pending) {
+    el.innerHTML = "<div class='msg meta'>Start a 1:1 turn — replies train Ava core on this host.</div>";
+    return;
+  }
+  const rows = coreState.messages.map((m) => {
+    const role = m.role === "assistant" ? "ava" : "you";
+    const who = m.role === "assistant" ? "Ava" : "You";
+    return `<div class="msg ${role}"><span class="who">${who}</span>: ${escapeHtml(m.content || "")}</div>`;
+  });
+  if (coreState.pending) {
+    rows.push(
+      `<div class="msg ava typing" aria-live="polite"><span class="who">Ava</span>: <span class="typing-label">is typing</span><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="typing-elapsed">${escapeHtml(coreState.pendingLabel || "")}</span></div>`,
+    );
+  }
+  el.innerHTML = rows.join("");
+  el.scrollTop = el.scrollHeight;
+}
+
+function coreContextForEnhance() {
+  return coreState.messages.slice(-12).map((m) => ({
+    who: m.role === "assistant" ? "Ava" : "You",
+    text: m.content || "",
+  }));
+}
+
+let coreTick = null;
+
+function stopCoreTick() {
+  if (coreTick) {
+    clearInterval(coreTick);
+    coreTick = null;
+  }
+  coreState.pending = false;
+  coreState.pendingLabel = "";
+  const cancel = $("core-cancel");
+  if (cancel) cancel.disabled = true;
+}
+
+function setCoreBusy(busy, label) {
+  coreState.busy = Boolean(busy);
+  const send = $("core-send");
+  const enh = $("core-enhance");
+  const cancel = $("core-cancel");
+  if (send) send.disabled = coreState.busy;
+  if (enh) enh.disabled = coreState.busy;
+  if (cancel) cancel.disabled = !coreState.busy;
+  if (label) $("core-status").textContent = label;
+}
+
+async function refreshCoreStatus() {
+  const meta = $("core-meta");
+  const status = $("core-status");
+  try {
+    const st = await window.avaDesktop.coreStatus();
+    if (Array.isArray(st.providers) && st.providers.length) {
+      providers = [
+        ...providers.filter((p) => !st.providers.some((x) => x.id === p.id)),
+        ...st.providers,
+      ];
+      const enhanceList = (st.providers || []).filter((p) => p.id !== "ollama");
+      if (enhanceList.length) {
+        const host = $("core-providers");
+        if (host) {
+          const prev = providers;
+          providers = enhanceList;
+          renderProviders("core-providers", "core");
+          providers = prev;
+        }
+      }
+    } else {
+      renderProviders("core-providers", "core");
+    }
+    const sid = coreState.sessionId
+      ? ` · session ${coreState.sessionId.slice(0, 8)}…`
+      : "";
+    if (meta) {
+      if (st.remote) {
+        meta.textContent = st.ok
+          ? `Core via Ava-linux · ${st.model || "ava-ivy"} @ ${st.baseUrl || lastBrainUrl}${sid}`
+          : `Ava-linux core unreachable · ${st.detail || "down"} — check Settings → Connection`;
+      } else {
+        meta.textContent = st.ok
+          ? `Ollama ready · ${st.model || "ava-ivy"} @ ${st.baseUrl || "local"} (direct)${sid}`
+          : `Ollama down · ${st.detail || "unreachable"} — start ollama / ava-ivy`;
+      }
+    }
+    if (status && !coreState.busy) {
+      status.textContent = st.ok
+        ? `ready · ${st.model || "?"} · direct`
+        : `status · ${st.detail || "fail"}`;
+    }
+  } catch (err) {
+    if (meta) meta.textContent = String(err.message || err);
+  }
+}
+
+async function sendCoreChat() {
+  const draft = ($("core-draft").value || "").trim();
+  if (!draft) {
+    $("core-status").textContent = "type a message first";
+    return;
+  }
+  if (coreState.busy) return;
+
+  const prior = coreState.messages.slice();
+  coreState.messages = [...prior, { role: "user", content: draft }];
+  coreState.pending = true;
+  coreState.pendingLabel = "0s";
+  $("core-draft").value = "";
+  renderCoreHistory();
+
+  const started = Date.now();
+  stopCoreTick();
+  coreState.pending = true;
+  setCoreBusy(true, "Ava is typing…");
+  coreTick = setInterval(() => {
+    const sec = Math.round((Date.now() - started) / 1000);
+    coreState.pendingLabel = `${sec}s`;
+    $("core-status").textContent = `Ava is typing… ${sec}s`;
+    renderCoreHistory();
+  }, 1000);
+
+  try {
+    const res = await window.avaDesktop.coreChat({
+      text: draft,
+      messages: prior,
+      sessionId: coreState.sessionId,
+      save: true,
+    });
+    stopCoreTick();
+    if (!res?.ok) {
+      // keep the user message; show failure
+      coreState.messages = prior.concat([{ role: "user", content: draft }]);
+      renderCoreHistory();
+      $("core-status").textContent = `fail · ${res?.detail || "unknown"} · ${res?.ms ? `${res.ms}ms` : ""}`;
+      return;
+    }
+    coreState.sessionId = res.sessionId || coreState.sessionId;
+    coreState.lastQuestion = draft;
+    coreState.lastAnswer = res.reply || "";
+    coreState.messages = Array.isArray(res.messages)
+      ? res.messages
+      : [
+          ...prior,
+          { role: "user", content: draft },
+          { role: "assistant", content: res.reply || "" },
+        ];
+    renderCoreHistory();
+    appendResponseLog("core", {
+      kind: "core",
+      text: `You: ${draft}\n\nAva: ${res.reply || ""}`,
+      provider: res.model || "ollama",
+      via: res.direct ? "direct" : "ava",
+      meta: res.ms ? `${res.ms}ms` : "",
+    });
+    $("core-status").textContent = `ok · ${res.model || "ollama"} · ${res.ms || "?"}ms · ${res.saved ? "saved" : "unsaved"} · direct`;
+    refreshCoreStatus();
+  } catch (err) {
+    stopCoreTick();
+    coreState.messages = prior.concat([{ role: "user", content: draft }]);
+    renderCoreHistory();
+    $("core-status").textContent = String(err.message || err);
+  } finally {
+    stopCoreTick();
+    setCoreBusy(false);
+    renderCoreHistory();
+  }
+}
+
+async function cancelCoreChat() {
+  $("core-status").textContent = "cancelling…";
+  try {
+    await window.avaDesktop.coreCancel();
+  } catch {
+    /* ignore */
+  }
+}
+
+$("core-cancel")?.addEventListener("click", () => cancelCoreChat());
+
+async function enhanceCoreReply() {
+  if (!coreState.lastAnswer) {
+    $("core-status").textContent = "send a turn first — nothing to enhance";
+    return;
+  }
+  if (coreState.busy) return;
+  const provider = providerSel.core || "dream";
+  setCoreBusy(true, `enhancing via ${provider}…`);
+  $("core-enhance-out").classList.remove("show");
+  try {
+    const res = await window.avaDesktop.coreEnhance({
+      draft: coreState.lastAnswer,
+      context: coreContextForEnhance(),
+      provider,
+      sessionId: coreState.sessionId,
+      save: true,
+    });
+    if (!res?.ok) {
+      $("core-status").textContent = `enhance fail · ${res?.detail || "?"}`;
+      return;
+    }
+    coreState.enhanceText = res.text || "";
+    coreState.enhanceProvider = res.provider || provider;
+    const out = $("core-enhance-out");
+    out.classList.add("show");
+    out.textContent = `── ${res.provider || provider} · ${res.via || ""}\n${res.text || ""}`;
+    appendResponseLog("core", {
+      kind: "enhance",
+      text: res.text || "",
+      provider: res.provider || provider,
+      via: res.via || "",
+    });
+    $("core-status").textContent = `enhanced · ${res.provider || provider}`;
+  } catch (err) {
+    $("core-status").textContent = String(err.message || err);
+  } finally {
+    setCoreBusy(false);
+  }
+}
+
+function applyCoreEnhance() {
+  if (!coreState.enhanceText) {
+    $("core-status").textContent = "run Enhance first";
+    return;
+  }
+  // Replace last assistant message with enhanced text
+  for (let i = coreState.messages.length - 1; i >= 0; i--) {
+    if (coreState.messages[i].role === "assistant") {
+      coreState.messages[i] = {
+        role: "assistant",
+        content: coreState.enhanceText,
+      };
+      break;
+    }
+  }
+  coreState.lastAnswer = coreState.enhanceText;
+  renderCoreHistory();
+  $("core-status").textContent = `applied · ${coreState.enhanceProvider || "enhance"} as Ava reply (local view)`;
+}
+
+async function markCoreGold(useEnhance) {
+  const question = coreState.lastQuestion;
+  const answer = useEnhance && coreState.enhanceText
+    ? coreState.enhanceText
+    : coreState.lastAnswer;
+  if (!question || !answer) {
+    $("core-status").textContent = "need a completed turn to mark gold";
+    return;
+  }
+  try {
+    const res = await window.avaDesktop.coreGold({
+      question,
+      answer,
+      sessionId: coreState.sessionId,
+      provider: useEnhance ? coreState.enhanceProvider || "enhance" : "ollama",
+    });
+    $("core-status").textContent = res?.ok
+      ? `gold saved · ${useEnhance ? "enhance pair" : "last turn"}`
+      : `gold fail · ${res?.detail || "?"}`;
+  } catch (err) {
+    $("core-status").textContent = String(err.message || err);
+  }
+}
+
+function clearCoreChat() {
+  coreState.messages = [];
+  coreState.lastQuestion = "";
+  coreState.lastAnswer = "";
+  coreState.enhanceText = "";
+  coreState.enhanceProvider = "";
+  $("core-enhance-out").classList.remove("show");
+  $("core-enhance-out").textContent = "";
+  renderCoreHistory();
+  $("core-status").textContent = "cleared (session kept)";
+}
+
+function newCoreSession() {
+  coreState.sessionId = null;
+  clearCoreChat();
+  $("core-status").textContent = "new session";
+  refreshCoreStatus();
+}
+
+$("core-send")?.addEventListener("click", () => sendCoreChat());
+$("core-draft")?.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+    ev.preventDefault();
+    sendCoreChat();
+  }
+});
+$("core-refresh-status")?.addEventListener("click", () => refreshCoreStatus());
+$("core-clear")?.addEventListener("click", () => clearCoreChat());
+$("core-new-session")?.addEventListener("click", () => newCoreSession());
+$("core-enhance")?.addEventListener("click", () => enhanceCoreReply());
+$("core-enhance-apply")?.addEventListener("click", () => applyCoreEnhance());
+$("core-mark-gold")?.addEventListener("click", () => markCoreGold(false));
+$("core-enhance-gold")?.addEventListener("click", () => markCoreGold(true));
+
+function feedbackSelected() {
+  return (feedbackState.items || []).find(
+    (x) => String(x.id) === String(feedbackState.selectedId),
+  );
+}
+
+function feedbackProcessedStamp(elapsedSec = 0) {
+  const when = new Date().toLocaleString(undefined, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  return `Feedback was fully processed on ${when} ${elapsedSec} Seconds ago`;
+}
+
+function updateFeedbackSelMeta() {
+  const el = $("feedback-sel-meta");
+  if (!el) return;
+  const d = feedbackState.discordSel;
+  const s = feedbackState.slackSel;
+  const bits = [];
+  if (d?.id) bits.push(`Discord ${d.self ? "ava" : "msg"} …${String(d.id).slice(-6)}`);
+  if (s?.id) bits.push(`Slack ${s.self ? "ava" : "msg"} ${s.id}`);
+  el.textContent = bits.length ? bits.join(" · ") : "No message selected";
+}
+
+function renderFeedbackQueue() {
+  const host = $("feedback-queue");
+  if (!host) return;
+  const rows = feedbackState.items || [];
+  if (!rows.length) {
+    host.innerHTML = "<div class='msg meta'>(queue empty or unavailable)</div>";
+    return;
+  }
+  host.innerHTML = rows
+    .map((fb) => {
+      const id = String(fb.id || "");
+      const who = escapeHtml(fb.minecraft_username || fb.player || fb.author || "?");
+      const hostName = escapeHtml(fb.server_name || fb.server_id || "");
+      const st = escapeHtml(fb.status || "");
+      const msg = escapeHtml(String(fb.message || fb.body || "").slice(0, 500));
+      const active = id && id === String(feedbackState.selectedId) ? " active" : "";
+      return `<button type="button" class="feedback-item${active}" data-id="${escapeHtml(id)}"><div class="who">${who}</div><div class="meta">${hostName}${st ? ` · ${st}` : ""} · ${escapeHtml(id.slice(0, 8))}…</div><div class="body">${msg}</div></button>`;
+    })
+    .join("");
+  host.querySelectorAll(".feedback-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      feedbackState.selectedId = btn.dataset.id;
+      renderFeedbackQueue();
+      $("feedback-status").textContent = `selected ${btn.dataset.id}`;
+    });
+  });
+}
+
+function fillFeedbackTemplates(templates) {
+  const sel = $("feedback-template");
+  if (!sel) return;
+  feedbackState.templates = templates || [];
+  sel.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "(pick a template)";
+  sel.appendChild(blank);
+  for (const t of feedbackState.templates) {
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.label || t.id;
+    sel.appendChild(opt);
+  }
+  const quick = $("feedback-quick-templates");
+  if (quick) {
+    quick.innerHTML = (feedbackState.templates || [])
+      .map(
+        (t) =>
+          `<button type="button" data-fb-tpl="${escapeHtml(t.id)}">${escapeHtml(t.label || t.id)}</button>`,
+      )
+      .join("");
+    quick.querySelectorAll("button[data-fb-tpl]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const t = (feedbackState.templates || []).find((x) => x.id === btn.dataset.fbTpl);
+        if (!t?.text) return;
+        $("feedback-draft").value = t.text;
+        autosizeDraft($("feedback-draft"));
+        draftReadyExact.feedback = false;
+        if ($("feedback-template")) $("feedback-template").value = t.id;
+        $("feedback-status").textContent = `template · ${t.label}`;
+      });
+    });
+  }
+}
+
+async function refreshFeedbackQueue() {
+  const status = $("feedback-status-filter")?.value || "queued";
+  $("feedback-status").textContent = `loading ${status}…`;
+  try {
+    const data = await window.avaDesktop.feedbackList({ status, limit: 50 });
+    if (!data?.ok) {
+      feedbackState.items = [];
+      renderFeedbackQueue();
+      $("feedback-meta").textContent = data?.detail || "queue unavailable";
+      $("feedback-status").textContent = data?.detail || "fail";
+      return;
+    }
+    feedbackState.items = data.feedback || [];
+    renderFeedbackQueue();
+    $("feedback-meta").textContent = `${feedbackState.items.length} ${status} · dual post → Discord #development + Slack #feedback`;
+    $("feedback-status").textContent = `queue · ${feedbackState.items.length} ${status}`;
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+async function refreshFeedbackChannels() {
+  $("feedback-status").textContent = "loading channel peeks…";
+  try {
+    const [d, s] = await Promise.all([
+      window.avaDesktop.history({
+        surface: "discord",
+        channelId: feedbackState.targets.discord,
+        limit: 40,
+      }),
+      window.avaDesktop.history({
+        surface: "slack",
+        channelId: feedbackState.targets.slack,
+        limit: 40,
+      }),
+    ]);
+    feedbackState._discordMsgs = d.messages || [];
+    feedbackState._slackMsgs = s.messages || [];
+    bindFeedbackDiscordHist();
+    bindFeedbackSlackHist();
+    updateFeedbackSelMeta();
+    $("feedback-status").textContent = `channels · discord ${d.messages?.length || 0} · slack ${s.messages?.length || 0}`;
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+function bindFeedbackDiscordHist() {
+  renderHistory($("feedback-discord-hist"), feedbackState._discordMsgs || [], {
+    replyId: feedbackState.discordSel?.id || null,
+    surface: "feedback-discord",
+    onPick: (pick) => {
+      feedbackState.discordSel = pick;
+      updateFeedbackSelMeta();
+      bindFeedbackDiscordHist();
+      $("feedback-status").textContent = `discord sel · …${String(pick.id).slice(-6)}${pick.self ? " (ava)" : ""}`;
+    },
+  });
+}
+
+function bindFeedbackSlackHist() {
+  renderHistory($("feedback-slack-hist"), feedbackState._slackMsgs || [], {
+    replyId: feedbackState.slackSel?.id || null,
+    surface: "feedback-slack",
+    onPick: (pick) => {
+      feedbackState.slackSel = pick;
+      updateFeedbackSelMeta();
+      bindFeedbackSlackHist();
+      $("feedback-status").textContent = `slack sel · ${pick.id}${pick.self ? " (ava)" : ""}`;
+    },
+  });
+}
+
+async function refreshFeedbackPage() {
+  await refreshFeedbackQueue();
+  await refreshFeedbackChannels();
+}
+
+function loadFeedbackSelectedToDraft({ staffReply = false } = {}) {
+  const fb = feedbackSelected();
+  if (!fb) {
+    $("feedback-status").textContent = "select a queue item first";
+    return;
+  }
+  const who = fb.minecraft_username || fb.player || "?";
+  const msg = String(fb.message || fb.body || "").trim();
+  const body = staffReply
+    ? `**Feedback reply** — ${who}\n\n> ${msg.replace(/\n/g, "\n> ")}\n\n`
+    : `**Feedback** from **${who}** (${fb.server_name || fb.server_id || "server"})\n${msg}\n\n_id ${fb.id}_`;
+  $("feedback-draft").value = body;
+  autosizeDraft($("feedback-draft"));
+  draftReadyExact.feedback = true;
+  $("feedback-status").textContent = staffReply
+    ? `draft staff reply · ${who}`
+    : `loaded ${who} into draft`;
+}
+
+async function ackFeedbackSelected() {
+  const fb = feedbackSelected();
+  if (!fb?.id) {
+    $("feedback-status").textContent = "select a queue item to ack";
+    return;
+  }
+  const note = ($("feedback-draft").value || "").trim().slice(0, 500) ||
+    `Acked from Ava Ivy Feedback page`;
+  $("feedback-status").textContent = "acking…";
+  try {
+    const r = await window.avaDesktop.feedbackAck({ id: fb.id, note });
+    appendResponseLog("feedback", {
+      kind: "ack",
+      text: note,
+      provider: "exact",
+      via: "governance",
+      meta: `id ${fb.id}`,
+    });
+    $("feedback-status").textContent = r?.ok
+      ? `acked · ${fb.id}`
+      : `ack fail · ${r?.detail || "?"}`;
+    await refreshFeedbackQueue();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+async function ackAllVisibleFeedback() {
+  const rows = (feedbackState.items || []).filter((x) => x?.id);
+  if (!rows.length) {
+    $("feedback-status").textContent = "nothing to ack";
+    return;
+  }
+  if (!confirm(`Ack all ${rows.length} visible queue items?`)) return;
+  $("feedback-status").textContent = `acking ${rows.length}…`;
+  let ok = 0;
+  for (const fb of rows) {
+    try {
+      const r = await window.avaDesktop.feedbackAck({
+        id: fb.id,
+        note: "Bulk ack from Ava Ivy Feedback",
+      });
+      if (r?.ok) ok += 1;
+    } catch {
+      /* continue */
+    }
+  }
+  appendResponseLog("feedback", {
+    kind: "ack-all",
+    text: `Acked ${ok}/${rows.length}`,
+    provider: "exact",
+    via: "bulk",
+    meta: `${ok} ok`,
+  });
+  $("feedback-status").textContent = `acked ${ok}/${rows.length}`;
+  await refreshFeedbackQueue();
+}
+
+async function processFeedbackNextItem() {
+  if (feedbackState.busy) return;
+  feedbackState.busy = true;
+  $("feedback-status").textContent = "processing next…";
+  try {
+    const r = await window.avaDesktop.feedbackProcessNext();
+    if (r?.empty) {
+      $("feedback-status").textContent = "queue empty";
+      return;
+    }
+    if (!r?.ok) {
+      $("feedback-status").textContent = `process fail · ${r?.detail || "?"}`;
+      return;
+    }
+    const fb = r.feedback || r.item || null;
+    if (fb) {
+      feedbackState.selectedId = fb.id;
+      const who = fb.minecraft_username || "?";
+      const msg = String(fb.message || "").trim();
+      $("feedback-draft").value = `**Feedback** from **${who}**\n${msg}\n\n_id ${fb.id}_`;
+      autosizeDraft($("feedback-draft"));
+      draftReadyExact.feedback = true;
+      appendResponseLog("feedback", {
+        kind: "process",
+        text: $("feedback-draft").value,
+        provider: "exact",
+        via: "process-next",
+        meta: `id ${fb.id}`,
+      });
+    }
+    $("feedback-status").textContent = fb
+      ? `processed · ${fb.id} — review draft, then dual post or ack`
+      : "processed";
+    await refreshFeedbackQueue();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  } finally {
+    feedbackState.busy = false;
+  }
+}
+
+async function drainFeedbackQueue(times = 5) {
+  for (let i = 0; i < times; i++) {
+    await processFeedbackNextItem();
+    if (($("feedback-status").textContent || "").includes("queue empty")) break;
+  }
+}
+
+async function dualPostFeedbackDraft() {
+  const text = ($("feedback-draft").value || "").trim();
+  if (!text) {
+    $("feedback-status").textContent = "type a message first";
+    return;
+  }
+  if (surfaceBusy.feedback) {
+    $("feedback-status").textContent = "already posting";
+    return;
+  }
+  const provider = providerSel.feedback || "exact";
+  const rewrite = provider !== "exact" && !draftReadyExact.feedback;
+  surfaceBusy.feedback = true;
+  $("feedback-status").textContent = rewrite
+    ? `dual posting via ${provider}…`
+    : "dual posting exact → Discord #development + Slack #feedback…";
+  try {
+    const r = await window.avaDesktop.feedbackDualPost({
+      text,
+      rewrite,
+      provider: rewrite ? provider : "exact",
+      includeDevFeed: Boolean($("feedback-also-devfeed")?.checked),
+    });
+    draftReadyExact.feedback = false;
+    const lines = (r.results || [])
+      .map((x) => `${x.ok ? "ok" : "fail"} · ${x.label}${x.id ? ` · ${x.id}` : ""}${x.detail ? ` · ${x.detail}` : ""}`)
+      .join("\n");
+    appendResponseLog("feedback", {
+      kind: "dual-post",
+      text,
+      provider: rewrite ? provider : "exact",
+      via: "dual",
+      meta: `${r.posted || 0} posted`,
+    });
+    $("feedback-status").textContent = r?.ok
+      ? `posted ${r.posted}/${(r.results || []).length}\n${lines}`
+      : `dual post fail\n${lines || r?.detail || "?"}`;
+    await refreshFeedbackChannels();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  } finally {
+    surfaceBusy.feedback = false;
+  }
+}
+
+async function deleteFeedbackDiscordSelected() {
+  const pick = feedbackState.discordSel;
+  if (!pick?.id) {
+    $("feedback-status").textContent = "select a Discord message first";
+    return;
+  }
+  if (!confirm(`Delete Discord message …${String(pick.id).slice(-6)}?`)) return;
+  $("feedback-status").textContent = "deleting discord…";
+  try {
+    const r = await window.avaDesktop.feedbackDeleteDiscord({ messageId: pick.id });
+    appendResponseLog("feedback", {
+      kind: "delete",
+      text: pick.text || "",
+      provider: "exact",
+      via: "discord-delete",
+      meta: r?.ok ? `ok ${pick.id}` : r?.detail || "fail",
+    });
+    feedbackState.discordSel = null;
+    updateFeedbackSelMeta();
+    $("feedback-status").textContent = r?.ok ? `deleted discord · ${pick.id}` : `delete fail · ${r?.detail || "?"}`;
+    await refreshFeedbackChannels();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+async function deleteFeedbackSlackSelected() {
+  const pick = feedbackState.slackSel;
+  if (!pick?.id) {
+    $("feedback-status").textContent = "select a Slack message first";
+    return;
+  }
+  if (!confirm(`Delete Slack message ${pick.id}?`)) return;
+  $("feedback-status").textContent = "deleting slack…";
+  try {
+    const r = await window.avaDesktop.feedbackDeleteSlack({ messageTs: pick.id });
+    appendResponseLog("feedback", {
+      kind: "delete",
+      text: pick.text || "",
+      provider: "exact",
+      via: "slack-delete",
+      meta: r?.ok ? `ok ${pick.id}` : r?.detail || "fail",
+    });
+    feedbackState.slackSel = null;
+    updateFeedbackSelMeta();
+    $("feedback-status").textContent = r?.ok ? `deleted slack · ${pick.id}` : `delete fail · ${r?.detail || "?"}`;
+    await refreshFeedbackChannels();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+async function clearFeedbackDiscordOwn() {
+  if (!confirm("Delete Ava's own messages in Discord #development (capped)? This cannot be undone.")) return;
+  $("feedback-status").textContent = "clearing discord ava msgs…";
+  try {
+    const r = await window.avaDesktop.feedbackClearDiscord({});
+    appendResponseLog("feedback", {
+      kind: "clear",
+      text: `Cleared Discord Ava msgs: ${r?.deleted || 0}`,
+      provider: "exact",
+      via: "clear-discord",
+      meta: `deleted ${r?.deleted || 0} failed ${r?.failed || 0}`,
+    });
+    $("feedback-status").textContent = `discord clear · deleted ${r?.deleted || 0} · failed ${r?.failed || 0}`;
+    await refreshFeedbackChannels();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+async function clearFeedbackSlackOwn() {
+  if (!confirm("Delete Ava's own messages in Slack #feedback (capped)? This cannot be undone.")) return;
+  $("feedback-status").textContent = "clearing slack ava msgs…";
+  try {
+    const r = await window.avaDesktop.feedbackClearSlack({});
+    appendResponseLog("feedback", {
+      kind: "clear",
+      text: `Cleared Slack Ava msgs: ${r?.deleted || 0}`,
+      provider: "exact",
+      via: "clear-slack",
+      meta: `deleted ${r?.deleted || 0} failed ${r?.failed || 0}`,
+    });
+    $("feedback-status").textContent = `slack clear · deleted ${r?.deleted || 0} · failed ${r?.failed || 0}`;
+    await refreshFeedbackChannels();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  }
+}
+
+async function clearAllFeedbackAndStamp() {
+  const clearDiscord = Boolean($("feedback-clear-discord-opt")?.checked);
+  const clearSlack = Boolean($("feedback-clear-slack-opt")?.checked);
+  if (!clearDiscord && !clearSlack) {
+    $("feedback-status").textContent = "tick Discord and/or Slack to clear";
+    return;
+  }
+  const bits = [
+    clearDiscord ? "Discord #development Ava msgs" : null,
+    clearSlack ? "Slack #feedback Ava msgs" : null,
+  ]
+    .filter(Boolean)
+    .join(" + ");
+  if (
+    !confirm(
+      `Clear all (${bits}), then dual-post:\n“Feedback was fully processed on TIMESTAMP Seconds ago”?\n\nCannot be undone.`,
+    )
+  ) {
+    return;
+  }
+  if (surfaceBusy.feedback) {
+    $("feedback-status").textContent = "busy";
+    return;
+  }
+  surfaceBusy.feedback = true;
+  $("feedback-status").textContent = "clear all + stamp…";
+  try {
+    const r = await window.avaDesktop.feedbackClearAll({
+      clearDiscord,
+      clearSlack,
+      alsoDevFeed: Boolean($("feedback-also-devfeed")?.checked),
+    });
+    const dDel = r?.discord?.deleted ?? 0;
+    const sDel = r?.slack?.deleted ?? 0;
+    appendResponseLog("feedback", {
+      kind: "clear-all",
+      text: r?.text || feedbackProcessedStamp(r?.elapsedSec || 0),
+      provider: "exact",
+      via: "clear-all-stamp",
+      meta: `discord −${dDel} · slack −${sDel} · stamp ${r?.ok ? "ok" : "fail"}`,
+    });
+    $("feedback-draft").value = r?.text || feedbackProcessedStamp(0);
+    autosizeDraft($("feedback-draft"));
+    draftReadyExact.feedback = true;
+    $("feedback-status").textContent = [
+      `clear-all · discord −${dDel} · slack −${sDel}`,
+      r?.text || "",
+      r?.stamp?.ok ? "stamp posted" : `stamp · ${r?.stamp?.detail || r?.detail || "fail"}`,
+    ].join("\n");
+    await refreshFeedbackChannels();
+  } catch (err) {
+    $("feedback-status").textContent = String(err.message || err);
+  } finally {
+    surfaceBusy.feedback = false;
+  }
+}
+
+async function postFeedbackStampOnly() {
+  const text = feedbackProcessedStamp(0);
+  $("feedback-draft").value = text;
+  autosizeDraft($("feedback-draft"));
+  draftReadyExact.feedback = true;
+  await dualPostFeedbackDraft();
+}
+
+$("feedback-refresh-queue")?.addEventListener("click", () => refreshFeedbackQueue());
+$("feedback-refresh-channels")?.addEventListener("click", () => refreshFeedbackChannels());
+$("feedback-refresh-all")?.addEventListener("click", () => refreshFeedbackPage());
+$("feedback-process-next")?.addEventListener("click", () => processFeedbackNextItem());
+$("feedback-process-drain")?.addEventListener("click", () => drainFeedbackQueue(5));
+$("feedback-status-filter")?.addEventListener("change", () => refreshFeedbackQueue());
+$("feedback-load-selected")?.addEventListener("click", () => loadFeedbackSelectedToDraft());
+$("feedback-draft-from-item")?.addEventListener("click", () =>
+  loadFeedbackSelectedToDraft({ staffReply: true }),
+);
+$("feedback-ack-selected")?.addEventListener("click", () => ackFeedbackSelected());
+$("feedback-ack-all-queued")?.addEventListener("click", () => ackAllVisibleFeedback());
+$("feedback-select-first")?.addEventListener("click", () => {
+  const first = feedbackState.items?.[0];
+  if (!first?.id) {
+    $("feedback-status").textContent = "queue empty";
+    return;
+  }
+  feedbackState.selectedId = first.id;
+  renderFeedbackQueue();
+  $("feedback-status").textContent = `selected ${first.id}`;
+});
+$("feedback-deselect")?.addEventListener("click", () => {
+  feedbackState.selectedId = null;
+  renderFeedbackQueue();
+  $("feedback-status").textContent = "deselected";
+});
+$("feedback-copy-item")?.addEventListener("click", async () => {
+  const fb = feedbackSelected();
+  if (!fb) {
+    $("feedback-status").textContent = "select a queue item first";
+    return;
+  }
+  const text = `${fb.minecraft_username || "?"} · ${fb.message || fb.body || ""}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    $("feedback-status").textContent = "copied item";
+  } catch {
+    $("feedback-status").textContent = "clipboard failed";
+  }
+});
+$("feedback-delete-discord")?.addEventListener("click", () => deleteFeedbackDiscordSelected());
+$("feedback-delete-slack")?.addEventListener("click", () => deleteFeedbackSlackSelected());
+$("feedback-clear-discord")?.addEventListener("click", () => clearFeedbackDiscordOwn());
+$("feedback-clear-slack")?.addEventListener("click", () => clearFeedbackSlackOwn());
+$("feedback-clear-all")?.addEventListener("click", () => clearAllFeedbackAndStamp());
+$("feedback-clear-sel")?.addEventListener("click", () => {
+  feedbackState.discordSel = null;
+  feedbackState.slackSel = null;
+  updateFeedbackSelMeta();
+  bindFeedbackDiscordHist();
+  bindFeedbackSlackHist();
+  $("feedback-status").textContent = "selection cleared";
+});
+$("feedback-load-discord-sel")?.addEventListener("click", () => {
+  const p = feedbackState.discordSel;
+  if (!p?.id) {
+    $("feedback-status").textContent = "select a Discord message";
+    return;
+  }
+  $("feedback-draft").value = p.text || "";
+  autosizeDraft($("feedback-draft"));
+  draftReadyExact.feedback = true;
+  $("feedback-status").textContent = "loaded discord → draft";
+});
+$("feedback-load-slack-sel")?.addEventListener("click", () => {
+  const p = feedbackState.slackSel;
+  if (!p?.id) {
+    $("feedback-status").textContent = "select a Slack message";
+    return;
+  }
+  $("feedback-draft").value = p.text || "";
+  autosizeDraft($("feedback-draft"));
+  draftReadyExact.feedback = true;
+  $("feedback-status").textContent = "loaded slack → draft";
+});
+$("feedback-insert-stamp")?.addEventListener("click", () => {
+  $("feedback-draft").value = feedbackProcessedStamp(0);
+  autosizeDraft($("feedback-draft"));
+  draftReadyExact.feedback = true;
+  $("feedback-status").textContent = "inserted processed stamp";
+});
+$("feedback-insert-now")?.addEventListener("click", () => {
+  const ta = $("feedback-draft");
+  const stamp = new Date().toISOString();
+  ta.value = `${ta.value || ""}${ta.value ? "\n" : ""}${stamp}`;
+  autosizeDraft(ta);
+  $("feedback-status").textContent = "inserted ISO timestamp";
+});
+$("feedback-insert-triage")?.addEventListener("click", () => {
+  const t = (feedbackState.templates || []).find((x) => x.id === "triage");
+  if (!t?.text) return;
+  $("feedback-draft").value = t.text;
+  autosizeDraft($("feedback-draft"));
+  $("feedback-status").textContent = "inserted triage header";
+});
+$("feedback-insert-digest")?.addEventListener("click", () => {
+  const t = (feedbackState.templates || []).find((x) => x.id === "digest");
+  if (!t?.text) return;
+  $("feedback-draft").value = t.text;
+  autosizeDraft($("feedback-draft"));
+  $("feedback-status").textContent = "inserted digest header";
+});
+$("feedback-append-nl")?.addEventListener("click", () => {
+  const ta = $("feedback-draft");
+  ta.value = `${ta.value || ""}\n\n`;
+  autosizeDraft(ta);
+});
+$("feedback-uppercase")?.addEventListener("click", () => {
+  const ta = $("feedback-draft");
+  ta.value = String(ta.value || "").toUpperCase();
+  autosizeDraft(ta);
+});
+$("feedback-trim")?.addEventListener("click", () => {
+  const ta = $("feedback-draft");
+  ta.value = String(ta.value || "").trim();
+  autosizeDraft(ta);
+});
+$("feedback-copy-draft")?.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("feedback-draft").value || "");
+    $("feedback-status").textContent = "draft copied";
+  } catch {
+    $("feedback-status").textContent = "clipboard failed";
+  }
+});
+$("feedback-post-stamp")?.addEventListener("click", () => postFeedbackStampOnly());
+$("feedback-clear")?.addEventListener("click", () => {
+  $("feedback-draft").value = "";
+  draftReadyExact.feedback = false;
+  autosizeDraft($("feedback-draft"));
+  $("feedback-status").textContent = "cleared";
+});
+$("feedback-template")?.addEventListener("change", () => {
+  const id = $("feedback-template").value;
+  const t = (feedbackState.templates || []).find((x) => x.id === id);
+  if (!t?.text) return;
+  $("feedback-draft").value = t.text;
+  autosizeDraft($("feedback-draft"));
+  draftReadyExact.feedback = false;
+  $("feedback-status").textContent = `template · ${t.label}`;
+});
+$("feedback-preview")?.addEventListener("click", () =>
+  previewRewrite(
+    "feedback",
+    "feedback-draft",
+    feedbackState.targets.discord,
+    "feedback-status",
+    null,
+  ),
+);
+$("feedback-dual-post")?.addEventListener("click", () => dualPostFeedbackDraft());
+
+$("conn-pill")?.addEventListener("click", () => {
+  document.querySelector('.tab[data-page="settings"]')?.click();
+});
+$("conn-mode-local")?.addEventListener("change", () => applyConnectionPreset());
+$("conn-mode-headless")?.addEventListener("change", () => applyConnectionPreset());
+$("conn-via-lan")?.addEventListener("change", () => applyConnectionPreset());
+$("conn-via-public")?.addEventListener("change", () => applyConnectionPreset());
+$("conn-via-loopback")?.addEventListener("change", () => applyConnectionPreset());
+$("conn-show-keys")?.addEventListener("change", () => {
+  const show = Boolean($("conn-show-keys")?.checked);
+  if ($("conn-operator-key")) $("conn-operator-key").type = show ? "text" : "password";
+  if ($("conn-workstation-key")) $("conn-workstation-key").type = show ? "text" : "password";
+});
+$("conn-reset")?.addEventListener("click", () => applyConnectionPreset());
+$("conn-test")?.addEventListener("click", () => testConnectionForm());
+$("conn-save")?.addEventListener("click", () => saveConnectionForm());
+
+function brainBaseUrl() {
+  return String($("conn-brain")?.value || lastBrainUrl || "http://127.0.0.1:8787").replace(/\/$/, "");
+}
+function operatorHeaders() {
+  const key = String($("conn-operator-key")?.value || "").trim();
+  const h = { "Content-Type": "application/json" };
+  if (key) {
+    h["X-Ava-Operator-Key"] = key;
+    h["X-RootMC-Dev-Key"] = key;
+  }
+  return h;
+}
+let shutdownAtMs = null;
+function pad2(n) { return String(n).padStart(2, "0"); }
+function fmtLeft(ms) {
+  let s = Math.max(0, Math.floor(Number(ms) / 1000));
+  const h = Math.floor(s / 3600); s %= 3600;
+  const m = Math.floor(s / 60); const sec = s % 60;
+  return `${pad2(h)}:${pad2(m)}:${pad2(sec)}`;
+}
+function paintShutdownCountdown() {
+  const el = $("shutdown-countdown");
+  if (!el) return;
+  if (!shutdownAtMs) { el.value = "—"; return; }
+  el.value = fmtLeft(shutdownAtMs - Date.now());
+}
+async function refreshShutdownTimer() {
+  const st = $("shutdown-status");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/projected-shutdown`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      if (st) st.textContent = d?.detail || "unavailable";
+      return;
+    }
+    shutdownAtMs = Number(d.atMs) || null;
+    if ($("shutdown-time") && document.activeElement !== $("shutdown-time")) {
+      $("shutdown-time").value = d.timeHst || "";
+    }
+    paintShutdownCountdown();
+    if (st) st.textContent = `Target ${d.label} · next ${d.atIso}`;
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function saveShutdownTimer() {
+  const st = $("shutdown-status");
+  const time = $("shutdown-time")?.value;
+  if (!time) {
+    if (st) st.textContent = "pick a time first";
+    return;
+  }
+  if (st) st.textContent = "saving…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/projected-shutdown`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({ time, updatedBy: "desktop-panel" }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || d.hint || `HTTP ${res.status}`;
+      return;
+    }
+    shutdownAtMs = Number(d.atMs) || null;
+    paintShutdownCountdown();
+    if (st) st.textContent = `Saved ${d.label} · countdown live on status + solar`;
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+$("shutdown-refresh")?.addEventListener("click", () => refreshShutdownTimer());
+$("shutdown-save")?.addEventListener("click", () => saveShutdownTimer());
+setInterval(paintShutdownCountdown, 1000);
+
+async function refreshStartTimer() {
+  const st = $("start-status");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/projected-start`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      if (st) st.textContent = d?.detail || "unavailable";
+      return;
+    }
+    if ($("start-time") && document.activeElement !== $("start-time")) {
+      $("start-time").value = d.timeHst || "";
+    }
+    if ($("start-source")) {
+      $("start-source").value =
+        d.source === "manual"
+          ? "manual override"
+          : d.source === "average"
+            ? `average (${d.sampleDays || 0} days)`
+            : "default 10:00";
+    }
+    if (st) {
+      st.textContent = `${d.label} · ${d.note || d.source}` +
+        (d.averageLabel ? ` · rolling avg ${d.averageLabel}` : "");
+    }
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function saveStartTimer() {
+  const st = $("start-status");
+  const time = $("start-time")?.value;
+  if (!time) {
+    if (st) st.textContent = "pick a time first";
+    return;
+  }
+  if (st) st.textContent = "saving…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/projected-start`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({ time, updatedBy: "desktop-panel" }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || d.hint || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshStartTimer();
+    if (st) st.textContent = `Locked to ${d.label} (manual) · solar + status updated`;
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function useAverageStart() {
+  const st = $("start-status");
+  if (st) st.textContent = "switching to average…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/projected-start`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({ useAverage: true, updatedBy: "desktop-panel" }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshStartTimer();
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+$("start-refresh")?.addEventListener("click", () => refreshStartTimer());
+$("start-save")?.addEventListener("click", () => saveStartTimer());
+$("start-use-avg")?.addEventListener("click", () => useAverageStart());
+
+async function refreshDisruptionBanner() {
+  const st = $("disrupt-status");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/disruption-banner`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      if (st) st.textContent = d?.detail || "unavailable";
+      return;
+    }
+    if ($("disrupt-enabled")) $("disrupt-enabled").checked = Boolean(d.enabled);
+    if ($("disrupt-category") && document.activeElement !== $("disrupt-category")) {
+      $("disrupt-category").value = d.category || "weather";
+    }
+    if ($("disrupt-title") && document.activeElement !== $("disrupt-title")) {
+      $("disrupt-title").value = d.title || "";
+    }
+    if ($("disrupt-detail") && document.activeElement !== $("disrupt-detail")) {
+      $("disrupt-detail").value = d.detail || "";
+    }
+    if ($("disrupt-until-date") && document.activeElement !== $("disrupt-until-date")) {
+      $("disrupt-until-date").value = d.untilDate || "";
+    }
+    if ($("disrupt-until-time") && document.activeElement !== $("disrupt-until-time")) {
+      $("disrupt-until-time").value = d.untilTimeHst || (d.untilDate ? "10:00" : "");
+    }
+    if ($("disrupt-until-label")) $("disrupt-until-label").value = d.untilLabel || "—";
+    disruptionUntilMs = Number(d.untilMs) || null;
+    paintDisruptionCountdown();
+    if (st) {
+      const untilBit = d.untilLabel
+        ? (d.ended ? ` · window passed (${d.untilLabel})` : ` · until ${d.untilLabel}`)
+        : "";
+      st.textContent = d.show
+        ? `Live on status · ${d.categoryLabel || d.category}${untilBit}`
+        : d.enabled
+          ? "Enabled, but empty — add a title or details"
+          : "Off · status page will not show a banner";
+    }
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function saveDisruptionBanner() {
+  const st = $("disrupt-status");
+  if (st) st.textContent = "saving…";
+  try {
+    const untilDate = String($("disrupt-until-date")?.value || "").trim();
+    const untilTime = String($("disrupt-until-time")?.value || "").trim() || (untilDate ? "10:00" : "");
+    const res = await fetch(`${brainBaseUrl()}/api/disruption-banner`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({
+        enabled: Boolean($("disrupt-enabled")?.checked),
+        category: $("disrupt-category")?.value || "weather",
+        title: $("disrupt-title")?.value || "",
+        detail: $("disrupt-detail")?.value || "",
+        untilDate: untilDate || "",
+        untilTimeHst: untilTime,
+        updatedBy: "desktop-panel",
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || d.hint || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshDisruptionBanner();
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+let disruptionUntilMs = null;
+function paintDisruptionCountdown() {
+  const el = $("disrupt-countdown");
+  if (!el) return;
+  if (!disruptionUntilMs) {
+    el.value = "—";
+    return;
+  }
+  const left = disruptionUntilMs - Date.now();
+  el.value = left <= 0 ? "ended" : fmtLeft(left);
+}
+$("disrupt-refresh")?.addEventListener("click", () => refreshDisruptionBanner());
+$("disrupt-save")?.addEventListener("click", () => saveDisruptionBanner());
+setInterval(paintDisruptionCountdown, 1000);
+
+let lastGfsSunny = null;
+async function refreshGfsOutlook() {
+  const label = $("disrupt-gfs-label");
+  const note = $("disrupt-gfs-note");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/gfs`, { cache: "no-store" });
+    const d = await res.json();
+    lastGfsSunny = d?.nextSunny || null;
+    if (label) {
+      label.value = lastGfsSunny?.label || (d?.configured === false ? "GFS token missing" : "No GFS outlook yet");
+    }
+    if (note) {
+      if (d?.error) note.value = String(d.error).slice(0, 80);
+      else if (lastGfsSunny) {
+        const bits = [
+          lastGfsSunny.kind === "clear" ? "meets sunny thresholds" : "clearest in 16-day GFS",
+          lastGfsSunny.cloudPct != null ? `cloud ${lastGfsSunny.cloudPct}%` : null,
+          lastGfsSunny.dswrf != null ? `${lastGfsSunny.dswrf} W/m²` : null,
+        ].filter(Boolean);
+        note.value = bits.join(" · ");
+      } else note.value = d?.configured ? "Waiting for first collect" : "—";
+    }
+  } catch (err) {
+    lastGfsSunny = null;
+    if (label) label.value = "GFS unavailable";
+    if (note) note.value = String(err.message || err);
+  }
+}
+function useGfsSunnyDay() {
+  if (!lastGfsSunny?.date) {
+    const st = $("disrupt-status");
+    if (st) st.textContent = "no GFS sunny date yet — refresh GFS first";
+    return;
+  }
+  if ($("disrupt-until-date")) $("disrupt-until-date").value = lastGfsSunny.date;
+  if ($("disrupt-until-time")) $("disrupt-until-time").value = lastGfsSunny.timeHst || "10:00";
+  if ($("disrupt-category")) $("disrupt-category").value = "weather";
+  const st = $("disrupt-status");
+  if (st) st.textContent = `Filled ${lastGfsSunny.label} — save to publish the countdown`;
+}
+async function forceGfsRefresh() {
+  const note = $("disrupt-gfs-note");
+  if (note) note.value = "refreshing GFS…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/gfs/refresh`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({ updatedBy: "desktop-panel" }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      if (note) note.value = d.detail || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshGfsOutlook();
+  } catch (err) {
+    if (note) note.value = String(err.message || err);
+  }
+}
+$("disrupt-use-gfs")?.addEventListener("click", () => useGfsSunnyDay());
+$("disrupt-gfs-refresh")?.addEventListener("click", () => forceGfsRefresh());
+
+boot().catch((err) => {
+  $("settings-status").textContent = String(err.message || err);
+});
+refreshShutdownTimer().catch(() => {});
+refreshStartTimer().catch(() => {});
+refreshDisruptionBanner().catch(() => {});
+refreshGfsOutlook().catch(() => {});
