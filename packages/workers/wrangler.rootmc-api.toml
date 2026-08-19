@@ -14,3 +14,12 @@ database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"
 
 [triggers]
 crons = ["* * * * *", "45 8 * * *"]
+[[d1_databases]]
+binding = "ROOTMC_LIVE_DB"
+database_name = "rootmc-live"
+database_id = "489b5c16-022f-4533-9cae-0df17aaafd2f"
+
+[[hyperdrive]]
+binding = "LIVE_DB"
+id = "b243adce0a4c48a39b491612008fcf51"
+

@@ -1,28 +1,64 @@
 /**
- * rootmc-api Worker — serves rootmc.info
- * Minecraft API: player data, economy, RCON, server status.
- * Proxies to local origin when Ava is awake; uses CF fallback when offline.
+ * rootmc-api Worker — rootmc.info / api.rootmc.info
+ *
+ * Awake: proxy to the home origin (Ava).
+ * Offline: serve the D1 Minecraft cache the host keeps synced.
+ * Hyperdrive (LIVE_DB) is bound for live SQL when workers need it.
  */
 
 import { avaIsAwake } from "../shared/heartbeat";
 import { proxyToOrigin } from "../shared/proxy";
-import type { AvaEnv } from "../shared/types";
+import { statusJson, statusPage } from "../shared/statusPage";
+import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
 
+async function d1Cache(env: AvaEnv, table: string): Promise<Response> {
+  if (!env.ROOTMC_LIVE_DB) {
+    return Response.json({ ok: false, detail: "ROOTMC_LIVE_DB unbound" }, { status: 503 });
+  }
+  const allowed: Record<string, string> = {
+    balances: "SELECT uuid, name, balance, updated_at FROM player_balances ORDER BY balance DESC LIMIT 500",
+    status: "SELECT id, online, players, max_players, motd, updated_at, detail FROM server_status",
+    meta: "SELECT name, updated_at, row_count, ok, detail FROM sync_meta",
+  };
+  const sql = allowed[table];
+  if (!sql) {
+    return Response.json({ ok: false, detail: "unknown table" }, { status: 404 });
+  }
+  const { results } = await env.ROOTMC_LIVE_DB.prepare(sql).all();
+  return Response.json({ ok: true, source: "d1", table, results });
+}
+
 export default {
-  async fetch(request: Request, _env: AvaEnv): Promise<Response> {
+  async fetch(request: Request, env: AvaEnv): Promise<Response> {
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    if (path === "/status.json" || path === "/api/status.json") {
+      return statusJson(env);
+    }
+    if (path === "/status" || path === "/ava/status") {
+      return statusPage(env);
+    }
+    if (path.startsWith("/api/edge/")) {
+      return d1Cache(env, path.slice("/api/edge/".length).replace(/\/$/, "") || "meta");
+    }
+
     return proxyToOrigin(request, {
       originUrl: ORIGIN,
-      offlineFallback: () => new Response(
-        JSON.stringify({ error: "ava_offline", hint: "Minecraft API unavailable while server is off" }),
-        { status: 503, headers: { "Content-Type": "application/json" } }
-      ),
+      path: path.startsWith("/ava/") ? path.slice("/ava".length) : undefined,
+      offlineFallback: async () => {
+        if (path.startsWith("/api/minecraft") || path.startsWith("/api/edge")) {
+          return d1Cache(env, "status");
+        }
+        return statusPage(env, { degraded: true });
+      },
     });
   },
 
   async scheduled(_event: ScheduledEvent, env: AvaEnv): Promise<void> {
     if (await avaIsAwake(env)) return;
-    // Offline fallback cron work (economy sync, membership, etc.)
+    // Host is offline — edge keeps serving D1 cache. Host will catch up on boot.
   },
 };

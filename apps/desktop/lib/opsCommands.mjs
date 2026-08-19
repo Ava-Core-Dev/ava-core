@@ -15,6 +15,7 @@ const CRON_BUTTONS = [
   ["economy-brief", "Economy brief", "The 15:00 HST economy brief"],
   ["overnight-relay", "Late-night relay", "Late-night status check-in"],
   ["heartbeat", "Heartbeat write", "Force a Cloudflare D1 heartbeat write"],
+  ["d1-sync", "D1 sync (MySQL→edge)", "Push Minecraft cache to Cloudflare D1"],
 ];
 
 export const OPS_COMMAND_GROUPS = [

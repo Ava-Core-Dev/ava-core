@@ -92,6 +92,10 @@ class Scheduler:
                   CronTrigger(hour="22-23,0-5", minute=0),
                   id="overnight-relay", name="Late-night relay", misfire_grace_time=300)
 
+        # ── D1 ← host MySQL (every 5 min) ────────────────────────────────────
+        s.add_job(self._run("d1_sync"), IntervalTrigger(minutes=5),
+                  id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=120)
+
         log.info("Registered %d cron jobs (always-on, no sleep gate)",
                  len(s.get_jobs()))
 
