@@ -51,17 +51,67 @@ class AudioItem:
         }
 
 
-# Scene map — which OBS scene to show for each report type
+# ── OBS Scene Configuration ───────────────────────────────────────────────────
+# These must match scene names exactly as they appear in OBS Studio.
+# Update here first; OBS scene names should match these strings.
+
+# Scene shown when nothing specific is active
+DEFAULT_SCENE = "Main"
+
+# Scene shown during planned downtime / solar night
+BRB_SCENE = "Be right back"
+
+# Scene map — keyword → OBS scene name
+# Keywords are matched against AudioItem.name (lowercased).
+# First match wins. "default" is the fallback if no keyword matches.
 SCENE_MAP: dict[str, str] = {
-    "kilauea":    "Kilauea Watch",
-    "volcano":    "Kilauea Watch",
-    "earthquake": "Quake Overlay",
-    "solar":      "Solar Dashboard",
-    "weather":    "Solar Dashboard",
-    "economy":    "Economy Board",
-    "chime":      "Default",
-    "ambient":    "Ambient Playlist",
+    # Geologic / emergency alerts — switch immediately
+    "kilauea":       "Kilauea Watch",
+    "eruption":      "Kilauea Watch",
+    "volcano":       "Kilauea Watch",
+    "earthquake":    "Quake Overlay",
+    "quake":         "Quake Overlay",
+    "tsunami":       "Quake Overlay",
+    # Weather
+    "weather":       "Weather Board",
+    "noaa":          "Weather Board",
+    "tropical":      "Weather Board",
+    "hurricane":     "Weather Board",
+    "storm":         "Weather Board",
+    # Solar / power
+    "solar":         "Solar Dashboard",
+    "battery":       "Solar Dashboard",
+    "power":         "Solar Dashboard",
+    "ecoflow":       "Solar Dashboard",
+    # Economy / RootMC
+    "economy":       "Economy Board",
+    "finance":       "Economy Board",
+    "gold":          "Economy Board",
+    "rootmc":        "RootMC Live",
+    "minecraft":     "RootMC Live",
+    "server":        "RootMC Live",
+    # Reports / status
+    "morning":       "Main",
+    "report":        "Main",
+    "status":        "Main",
+    "overnight":     "Main",
+    # Hourly / ambient
+    "chime":         "Main",
+    "hourly":        "Main",
+    "ambient":       "Ambient Playlist",
+    # Fallback
+    "default":       DEFAULT_SCENE,
 }
+
+def scene_for(name: str) -> str:
+    """Return the OBS scene name for a given audio item name."""
+    name_lower = name.lower()
+    for keyword, scene in SCENE_MAP.items():
+        if keyword == "default":
+            continue
+        if keyword in name_lower:
+            return scene
+    return DEFAULT_SCENE
 
 
 class StreamDirector:
@@ -79,7 +129,8 @@ class StreamDirector:
     async def queue(self, path: Path, name: str = "", priority: int = Priority.REPORT,
                     scene: str | None = None) -> None:
         """Submit audio to the queue. Higher priority pauses current playback."""
-        item = AudioItem(priority=-(priority), path=path, name=name, scene=scene)
+        resolved_scene = scene if scene is not None else scene_for(name)
+        item = AudioItem(priority=-(priority), path=path, name=name, scene=resolved_scene)
         await self._queue.put(item)
         log.info("Queued: %s  priority=%s", name or path.name, priority)
 
