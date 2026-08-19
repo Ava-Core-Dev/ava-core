@@ -89,17 +89,27 @@ h1 {
 }
 .sub { color: var(--muted); margin: 0.25rem 0 0.85rem; font-size: 0.9rem; }
 .hint-inline { color: var(--muted); font-size: 0.8rem; margin: -0.35rem 0 0.5rem; }
-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+nav {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
 .tab {
   background: transparent;
   border: 1px solid var(--line);
-  color: var(--ink);
-  padding: 0.45rem 0.9rem;
+  color: var(--muted);
+  padding: 0.35rem 0.7rem;
   cursor: pointer;
   font: inherit;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  border-radius: 3px;
+  transition: color 0.15s, border-color 0.15s;
 }
+.tab:hover { color: var(--ink); border-color: rgba(232,242,234,0.3); }
 .tab.active { border-color: var(--accent); color: var(--accent); }
-main { padding: 1.25rem 1.5rem 2rem; max-width: 1100px; }
+main { padding: 1rem 1.25rem 2rem; max-width: 100%; overflow-x: hidden; }
 .page { display: none; }
 .page.active { display: block; }
 .page-terminal.active { display: flex; flex-direction: column; gap: 0.85rem; }

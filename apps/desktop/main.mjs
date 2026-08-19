@@ -146,6 +146,16 @@ function createWindow() {
     },
   });
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+
+  // Fire startup voice clip when GUI finishes loading
+  mainWindow.webContents.once("did-finish-load", () => {
+    fetch("http://127.0.0.1:8787/api/voice/play", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clip: "phrase_device_startup" }),
+    }).catch(() => {}); // silent if core not up yet
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

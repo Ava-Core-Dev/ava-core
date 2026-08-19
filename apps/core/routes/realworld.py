@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from .. import config
 
@@ -83,3 +84,28 @@ async def api_weather():
                               reports[0].stat().st_mtime, tz=timezone.utc
                           ).isoformat(),
     }
+
+
+class VoicePlayRequest(BaseModel):
+    clip: str = "phrase_device_startup"
+    priority: str = "critical"
+
+
+@router.post("/voice/play")
+async def api_voice_play(req: VoicePlayRequest):
+    """Trigger a named voice clip through the Stream Director."""
+    try:
+        from apps.voice.director import get_director, Priority
+        from apps.voice.clips import WORDS_DIR
+
+        clip_path = WORDS_DIR / f"{req.clip}.mp3"
+        if not clip_path.exists():
+            return JSONResponse({"error": f"clip not found: {req.clip}"}, status_code=404)
+
+        pri = getattr(Priority, req.priority.upper(), Priority.CRITICAL)
+        director = get_director()
+        import asyncio
+        asyncio.create_task(director.queue(clip_path, name=req.clip, priority=pri))
+        return {"ok": True, "clip": req.clip, "priority": req.priority}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
