@@ -51,3 +51,6 @@ apps/desktop/data/
 # OS
 .DS_Store
 Thumbs.db
+
+credentials.env
+credentials.env.*
