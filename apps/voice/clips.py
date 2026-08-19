@@ -70,8 +70,8 @@ def _number_to_clips(n: int) -> list[str]:
 
 
 def _find_clip(name: str) -> Path | None:
-    """Search for a clip by name in words/, numbers/, and assets root."""
-    for directory in (WORDS_DIR, NUMBERS_DIR, ASSETS_DIR):
+    """Search numbers/ first so 1.mp3 is the digit, not a word collision."""
+    for directory in (NUMBERS_DIR, WORDS_DIR, ASSETS_DIR):
         for ext in (".mp3", ".wav"):
             p = directory / (name + ext)
             if p.exists():
@@ -79,34 +79,65 @@ def _find_clip(name: str) -> Path | None:
     return None
 
 
-def _make_silence(ms: int = SILENCE_MS) -> Path:
-    """Generate a short silence file via ffmpeg."""
-    tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-    subprocess.run(
-        ["ffmpeg", "-y", "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=mono",
-         "-t", str(ms / 1000), "-q:a", "9", tmp.name],
-        capture_output=True, check=True,
-    )
-    return Path(tmp.name)
+def _escape_concat_path(path: Path) -> str:
+    return str(path.resolve()).replace("'", r"'\''")
 
 
 def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
-    """Concatenate MP3 clips with silence gaps using ffmpeg concat demuxer."""
-    silence = _make_silence(SILENCE_MS)
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-        list_file = Path(f.name)
-        for clip in clips:
-            f.write(f"file '{clip}'\n")
-            f.write(f"file '{silence}'\n")
+    """
+    Concatenate clips into one real MP3.
 
+    Must re-encode. `-c copy` glues separate MPEG bitstreams; Discord (and
+    many players) then only play the first clip — e.g. 1241414 starts with
+    1.mp3 so you only hear “one”.
+    """
+    if not clips:
+        raise ValueError("No clips to concatenate")
+
+    out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(list_file),
-         "-c", "copy", str(out_path)],
-        capture_output=True, check=True,
-    )
-    list_file.unlink(missing_ok=True)
-    silence.unlink(missing_ok=True)
+    gap = SILENCE_MS / 1000.0
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmpdir = Path(tmp)
+        list_file = tmpdir / "concat.txt"
+        with open(list_file, "w", encoding="utf-8") as f:
+            for i, clip in enumerate(clips):
+                f.write(f"file '{_escape_concat_path(Path(clip))}'\n")
+                if i < len(clips) - 1 and SILENCE_MS > 0:
+                    f.write(f"file '{_escape_concat_path(tmpdir / 'silence.mp3')}'\n")
+
+        if SILENCE_MS > 0 and len(clips) > 1:
+            silence = tmpdir / "silence.mp3"
+            subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
+                    "-t", f"{gap:.3f}",
+                    "-c:a", "libmp3lame", "-q:a", "9",
+                    str(silence),
+                ],
+                capture_output=True,
+                check=True,
+            )
+
+        result = subprocess.run(
+            [
+                "ffmpeg", "-y",
+                "-f", "concat", "-safe", "0",
+                "-i", str(list_file),
+                "-c:a", "libmp3lame",
+                "-ar", "44100",
+                "-ac", "1",
+                "-q:a", "2",
+                "-id3v2_version", "3",
+                str(out_path),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg concat failed:\n{result.stderr}")
     return out_path
 
 
