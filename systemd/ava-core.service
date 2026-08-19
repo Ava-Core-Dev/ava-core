@@ -3,17 +3,17 @@ Description=Ava Core — HI Pacific Solar Root Server
 Documentation=https://avaivy.cloud
 After=network-online.target ollama.service
 Wants=network-online.target
-StartLimitIntervalSec=60
-StartLimitBurst=3
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 Type=exec
 User=ava-core
 Group=ava-core
-WorkingDirectory=/home/ava-core/ava
+WorkingDirectory=/run/media/ava-core/6B6C97406BF24558/ava-core-v2
 Environment=PYTHONUNBUFFERED=1
-EnvironmentFile=-/home/ava-core/ava/.env
-ExecStart=/home/ava-core/ava/.venv/bin/uvicorn apps.core.main:app \
+EnvironmentFile=-/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.env
+ExecStart=/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.venv/bin/uvicorn apps.core.main:app \
   --host 0.0.0.0 \
   --port 8787 \
   --log-level info \
@@ -23,9 +23,8 @@ Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
 
-# Logging
-StandardOutput=append:/home/ava-core/ava/data/logs/ava-core.log
-StandardError=append:/home/ava-core/ava/data/logs/ava-core.log
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core.log
 
 [Install]
 WantedBy=multi-user.target

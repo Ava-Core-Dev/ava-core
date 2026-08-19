@@ -3,7 +3,7 @@ Description=Ava cloudflared Tunnel — ava-origin.rootmc.net
 Documentation=https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/
 After=network-online.target
 Wants=network-online.target
-# Independent of ava-core — tunnel restarts separately
+# Intentionally independent of ava-core — tunnel restarts on its own schedule
 StartLimitIntervalSec=60
 StartLimitBurst=5
 
@@ -11,14 +11,15 @@ StartLimitBurst=5
 Type=exec
 User=ava-core
 Group=ava-core
-ExecStart=/usr/local/bin/cloudflared tunnel --config /home/ava-core/ava/config/tunnel.yml run
+ExecStart=/usr/local/bin/cloudflared tunnel \
+  --config /run/media/ava-core/6B6C97406BF24558/ava-core-v2/config/tunnel.yml run
 
 Restart=always
 RestartSec=5
 TimeoutStopSec=15
 
-StandardOutput=append:/home/ava-core/ava/data/logs/tunnel.log
-StandardError=append:/home/ava-core/ava/data/logs/tunnel.log
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/tunnel.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/tunnel.log
 
 [Install]
 WantedBy=multi-user.target

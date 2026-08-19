@@ -1,25 +1,26 @@
 [Unit]
 Description=Ava Voice Pipeline + Stream Director
+Documentation=https://avaivy.cloud
 After=ava-core.service
 Wants=ava-core.service
-StartLimitIntervalSec=60
-StartLimitBurst=3
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 Type=exec
 User=ava-core
 Group=ava-core
-WorkingDirectory=/home/ava-core/ava
+WorkingDirectory=/run/media/ava-core/6B6C97406BF24558/ava-core-v2
 Environment=PYTHONUNBUFFERED=1
-EnvironmentFile=-/home/ava-core/ava/.env
-ExecStart=/home/ava-core/ava/.venv/bin/python -m apps.voice.director
+EnvironmentFile=-/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.env
+ExecStart=/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.venv/bin/python -m apps.voice.director
 
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
 
-StandardOutput=append:/home/ava-core/ava/data/logs/ava-voice.log
-StandardError=append:/home/ava-core/ava/data/logs/ava-voice.log
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-voice.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-voice.log
 
 [Install]
 WantedBy=multi-user.target
