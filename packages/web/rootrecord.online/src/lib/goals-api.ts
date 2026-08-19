@@ -1,3 +1,4 @@
+/** Resolve API base. On g.rootrecord.info this is same-origin so the session cookie sticks. */
 export function goalsApiBase(): string {
   if (typeof window !== "undefined") {
     const host = window.location.hostname.toLowerCase();
