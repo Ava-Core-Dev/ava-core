@@ -119,7 +119,7 @@ def ask(system: str, user: str) -> str | None:
         "cursor", "agent", "-p",
         "--mode", "ask",
         "--output-format", "text",
-        "--model", "composer-2.5",
+        "--model", "composer-2.5[fast=false]",
         prompt,
     ]
     env = os.environ.copy()
