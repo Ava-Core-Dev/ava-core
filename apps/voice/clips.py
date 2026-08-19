@@ -145,6 +145,21 @@ def speak_text(text: str, out_path: Path) -> Path | None:
     return concatenate_clips(clip_paths, out_path)
 
 
+def speak_number(n: int, out_path: Path) -> Path | None:
+    """Concatenate Ara number clips for one integer. No API."""
+    names = _number_to_clips(int(n))
+    clip_paths: list[Path] = []
+    for name in names:
+        p = _find_clip(name)
+        if p:
+            clip_paths.append(p)
+        else:
+            log.warning("No number clip: %s", name)
+    if not clip_paths:
+        return None
+    return concatenate_clips(clip_paths, Path(out_path))
+
+
 def speak_time(hour: int, minute: int, out_path: Path) -> Path | None:
     """Speak a time using pre-recorded time clips (time_HHMM.mp3)."""
     name = f"time_{hour:02d}{minute:02d}"
