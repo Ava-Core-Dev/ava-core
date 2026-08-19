@@ -36,7 +36,7 @@ def synthesize(text: str, out_path: Path | None = None, voice: str | None = None
         config.GENERATED_DIR / f"morning-report-{_stamp()}.mp3"
     )
     dest.parent.mkdir(parents=True, exist_ok=True)
-    xai_tts(spoken[:4500], dest, voice=voice or config.TTS_VOICE or "ara")
+    xai_tts(spoken[:4500], dest, voice=voice or config.TTS_VOICE or "ara", timeout=20)
     current = dest.parent / "morning-report-current.mp3"
     try:
         current.write_bytes(dest.read_bytes())
