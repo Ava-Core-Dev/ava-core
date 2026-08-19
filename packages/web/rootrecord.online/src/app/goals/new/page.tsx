@@ -77,8 +77,7 @@ export default function NewGoalPage() {
         <h1>Post a public goal</h1>
         <p>
           Upload the image that will mint as the token face. We create a custodial Solana wallet
-          for SOL/USDC and a Stripe payment link. Signed in as rootrecord@outlook.com → this is an
-          Ava server goal.
+          for SOL/USDC and a Stripe payment link. Ava&apos;s official posts show as Ava · server.
         </p>
       </section>
       <form className={styles.form} onSubmit={submit}>

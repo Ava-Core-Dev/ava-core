@@ -57,8 +57,7 @@ export default async function GoalsHome() {
         <p>
           Anyone with a Root Record account can post a goal. It gets its own page, a Solana
           token using the uploaded image, a custodial donate wallet (SOL / USDC), and a Stripe
-          payment link. Goals posted while <strong>rootrecord@outlook.com</strong> is signed in
-          are Ava&apos;s server goals.
+          payment link. Official Ava goals are marked Ava · server.
         </p>
       </section>
 
@@ -73,7 +72,7 @@ export default async function GoalsHome() {
           ))}
         </div>
       ) : (
-        <p className={styles.empty}>No server goals published yet. Sign in as the operator and post one.</p>
+        <p className={styles.empty}>No server goals published yet.</p>
       )}
 
       <div className={styles.sectionHead}>

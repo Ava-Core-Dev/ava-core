@@ -41,11 +41,7 @@ function LoginForm() {
       const token = String(res.json.access_token || res.json.token || "");
       if (!res.ok || !token) {
         const detail = String(res.json.detail || "Sign-in failed.");
-        setErr(
-          detail === "Incorrect email or password."
-            ? "Incorrect email or password. Use your Root Record site password (rootrecord.info), not your email mailbox password."
-            : detail,
-        );
+        setErr(detail);
         return;
       }
       writeToken(token);
@@ -62,11 +58,7 @@ function LoginForm() {
         <div className={styles.form} style={{ margin: "0 auto" }}>
           <section className={styles.hero}>
             <h1>{mode === "signup" ? "Create a Root Record account" : "Sign in"}</h1>
-            <p>
-              Use your <strong>Root Record site password</strong> (the one for rootrecord.info), not
-              your Outlook mailbox password. Operator{" "}
-              <strong>rootrecord@outlook.com</strong> publishes Ava&apos;s server goals.
-            </p>
+            <p>Email and password for your Root Record account. Anyone can join.</p>
           </section>
           <form onSubmit={submit} className={styles.form}>
             <label>
