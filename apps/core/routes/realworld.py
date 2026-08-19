@@ -109,3 +109,53 @@ async def api_voice_play(req: VoicePlayRequest):
         return {"ok": True, "clip": req.clip, "priority": req.priority}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.get("/activity")
+async def api_activity(limit: int = 220):
+    """
+    Terminal live activity feed — running crons, scheduler state, Ollama status.
+    Replaces the old Node.js /api/activity endpoint.
+    """
+    import time
+    from apps.core.main import _scheduler
+
+    running_crons: list[dict] = []
+    jobs: list[dict] = []
+    try:
+        if _scheduler:
+            jobs = _scheduler.get_jobs()
+    except Exception:
+        pass
+
+    # Read last N lines from core log as activity feed
+    logs: list[str] = []
+    try:
+        log_path = config.DATA_DIR / "logs" / "ava-core.log"
+        if log_path.exists():
+            lines = log_path.read_text(errors="replace").splitlines()
+            logs = lines[-limit:]
+    except Exception:
+        pass
+
+    # Quick Ollama ping
+    ollama_up = False
+    try:
+        import httpx
+        r = await httpx.AsyncClient().get("http://127.0.0.1:11434/api/tags", timeout=2)
+        ollama_up = r.status_code == 200
+    except Exception:
+        pass
+
+    return {
+        "ok": True,
+        "label": "idle",
+        "ollamaBusy": False,
+        "inflight": [],
+        "runningCrons": running_crons,
+        "ollama": {"up": ollama_up},
+        "jobs": jobs,
+        "logs": logs[-limit:],
+        "heartbeat": {"pid": None},
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }

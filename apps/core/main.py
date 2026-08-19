@@ -21,7 +21,7 @@ log = logging.getLogger("ava.core")
 
 # ── Startup / Shutdown ────────────────────────────────────────────────────────
 
-_scheduler: Scheduler | None = None
+_scheduler: Scheduler | None = None  # exposed for /api/activity
 
 
 @asynccontextmanager
