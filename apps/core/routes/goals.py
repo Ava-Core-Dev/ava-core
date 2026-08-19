@@ -1,24 +1,48 @@
-"""Goals routes."""
-from fastapi import APIRouter
+"""Goals routes — standalone rankable records + localhost helper append."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
+from ..services import goals as store
+
 router = APIRouter(prefix="/api")
 
-GOALS = [
-    {"id": "ops-record", "area": "Ops", "title": "Stay the system of record", "status": "active"},
-    {"id": "portfolio-audit", "area": "Portfolio", "title": "Director of Resources — Root Record audit", "status": "active"},
-    {"id": "kilauea-app", "area": "Product", "title": "Kīlauea Alerts = priority app", "status": "active"},
-    {"id": "local-brain", "area": "Ops", "title": "Stronger local brain on this host", "status": "active"},
-    {"id": "grow-rootmc", "area": "Product", "title": "Grow RootMC before crowdfunding", "status": "active"},
-    {"id": "telegram-surface", "area": "Income", "title": "Telegram bot surface", "status": "live"},
-]
+
+class HelperIn(BaseModel):
+    who: str = Field(min_length=1, max_length=120)
+    amount_usd: float = Field(ge=0)
+    note: str = Field(default="", max_length=500)
+
+
+def _allow_mutate(request: Request) -> bool:
+    # Cloudflare tunnel injects cf-ray; never accept mutations from the public origin.
+    if request.headers.get("cf-ray") or request.headers.get("cf-connecting-ip"):
+        return False
+    host = request.client.host if request.client else ""
+    return host in {"127.0.0.1", "::1"}
+
 
 @router.get("/goals")
 async def api_goals():
-    return GOALS
+    return store.list_goals()
+
 
 @router.get("/goals/{goal_id}")
 async def api_goal(goal_id: str):
-    g = next((g for g in GOALS if g["id"] == goal_id), None)
+    g = store.get_goal(goal_id)
+    if not g:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return g
+
+
+@router.post("/goals/{goal_id}/helpers")
+async def api_record_helper(goal_id: str, body: HelperIn, request: Request):
+    if not _allow_mutate(request):
+        return JSONResponse({"error": "helpers are recorded locally or via goals.json"}, status_code=403)
+    g = store.record_helper(goal_id, body.who, body.amount_usd, body.note)
     if not g:
         return JSONResponse({"error": "not found"}, status_code=404)
     return g

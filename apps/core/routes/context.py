@@ -12,23 +12,35 @@ from .. import config
 
 router = APIRouter()
 
-_CONTEXT_FILE = config.AVA_HOME / "unsorted" / "ava-core-context-updated.md"
-_FALLBACK_CONTEXT = config.AVA_HOME / "context.md"
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+_CONTEXT_CANDIDATES = (
+    _REPO_ROOT / "docs" / "ava-identity.md",
+    config.AVA_HOME / "unsorted" / "ava-core-context-updated.md",
+    config.AVA_HOME / "context.md",
+    _REPO_ROOT / "context.md",
+)
 
 
-def _load_context() -> str:
-    for p in (_CONTEXT_FILE, _FALLBACK_CONTEXT):
+def _context_path() -> Path | None:
+    for p in _CONTEXT_CANDIDATES:
         if p.exists():
-            return p.read_text(errors="replace")
-    return "# Ava Core Context\n\nContext file not found."
+            return p
+    return None
+
+
+def _load_context() -> tuple[str, str]:
+    path = _context_path()
+    if path is None:
+        return "# Ava Core Context\n\nContext file not found.\n", ""
+    return path.read_text(errors="replace"), str(path)
 
 
 @router.get("/api/context")
 async def api_context():
-    text = _load_context()
+    text, source = _load_context()
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
-        "source": str(_CONTEXT_FILE if _CONTEXT_FILE.exists() else _FALLBACK_CONTEXT),
+        "source": source,
         "content": text,
         "length": len(text),
     }
@@ -38,10 +50,11 @@ async def api_context():
 @router.get("/context")
 @router.get("/context.md")
 async def context_md(fmt: str = "json"):
-    text = _load_context()
+    text, source = _load_context()
     if fmt == "md":
-        return PlainTextResponse(text, media_type="text/markdown")
+        return PlainTextResponse(text, media_type="text/markdown; charset=utf-8")
     return {
         "ts": datetime.now(timezone.utc).isoformat(),
+        "source": source,
         "content": text,
     }
