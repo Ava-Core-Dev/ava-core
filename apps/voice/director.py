@@ -17,6 +17,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import shutil
+import subprocess
 import time
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -24,6 +26,19 @@ from pathlib import Path
 from typing import Any
 
 import websockets
+
+
+def _find_audio_player() -> list[str] | None:
+    """Return command prefix for the best available headless MP3 player."""
+    if shutil.which("mpg123"):
+        return ["mpg123", "-q"]
+    if shutil.which("mpv"):
+        return ["mpv", "--no-video", "--really-quiet"]
+    if shutil.which("ffplay"):
+        return ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
+    if shutil.which("cvlc"):
+        return ["cvlc", "--play-and-exit", "--quiet"]
+    return None
 
 log = logging.getLogger("ava.director")
 
@@ -244,7 +259,6 @@ class StreamDirector:
 
     async def _play(self, item: AudioItem) -> None:
         if self._current and item.priority > self._current.priority:
-            # Pause current
             self._paused = self._current
             log.info("Pausing %s for %s (higher priority)", self._current.name, item.name)
 
@@ -256,20 +270,42 @@ class StreamDirector:
         log.info("Playing: %s  priority=%s  file=%s",
                  item.name, item.priority, item.path.name if item.path else "?")
 
-        # Simulate playback duration by waiting on the queue for the duration
-        # In production, the OBS browser source signals 'ended' via SSE; here we
-        # approximate by sleeping for estimated audio length (MP3 bitrate ÷ size).
-        duration = self._estimate_duration(item.path)
-        await asyncio.sleep(duration)
+        # ── Local desktop audio (always fires) ───────────────────────────────
+        await self._play_local(item.path)
 
         self._current = None
 
-        # Resume paused track
         if self._paused:
             log.info("Resuming %s", self._paused.name)
             resumed = self._paused
             self._paused = None
             await self._play(resumed)
+
+    async def _play_local(self, path: Path | None) -> None:
+        """Play MP3 through desktop audio (PulseAudio/PipeWire) via subprocess."""
+        if not path or not path.exists():
+            await asyncio.sleep(2.0)
+            return
+
+        player_cmd = _find_audio_player()
+        if not player_cmd:
+            log.warning("No local audio player found (install mpg123) — skipping desktop audio")
+            duration = self._estimate_duration(path)
+            await asyncio.sleep(duration)
+            return
+
+        cmd = player_cmd + [str(path)]
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            await proc.wait()
+            log.debug("Local audio done: %s (exit %s)", path.name, proc.returncode)
+        except Exception as e:
+            log.warning("Local audio failed (%s): %s — falling back to sleep", cmd[0], e)
+            await asyncio.sleep(self._estimate_duration(path))
 
     @staticmethod
     def _estimate_duration(path: Path | None) -> float:
@@ -277,8 +313,7 @@ class StreamDirector:
             return 5.0
         try:
             size_bytes = path.stat().st_size
-            # Assume 128kbps MP3 → bytes/s ≈ 16000
-            return max(2.0, size_bytes / 16000)
+            return max(1.5, size_bytes / 16000)
         except Exception:
             return 5.0
 
