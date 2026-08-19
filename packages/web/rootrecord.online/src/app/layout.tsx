@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import SiteChrome from "@/components/SiteChrome";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,7 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <meta name="theme-color" content="#0a0e14" />
       </head>
-      <body>{children}</body>
+      <body>
+        <SiteChrome>{children}</SiteChrome>
+      </body>
     </html>
   );
 }

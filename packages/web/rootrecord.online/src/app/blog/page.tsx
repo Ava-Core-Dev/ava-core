@@ -22,21 +22,6 @@ const POSTS = [
 export default function BlogPage() {
   return (
     <div className={styles.wrap}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <a href="/" className={styles.brand}>
-            <span className={styles.logoMark} style={{ color: "var(--accent)", marginRight: 8 }}>◈</span>
-            Root Record
-            <span className={styles.brandSub}>Updates</span>
-          </a>
-          <nav className={styles.nav}>
-            <a href="/">Live</a>
-            <a href="/blog">Updates</a>
-            <a href="https://avaivy.cloud">Ava Ivy</a>
-            <a href="https://rootmc.net">RootMC</a>
-          </nav>
-        </div>
-      </header>
       <div className={styles.content}>
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Product · real world · business</h2>

@@ -48,23 +48,6 @@ export default function DashboardClient({ initial }: Props) {
 
   return (
     <div className={styles.wrap}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <a href="/" className={styles.brand}>
-            <span className={styles.logoMark}>◈</span>
-            Root Record
-            <span className={styles.brandSub}>Live</span>
-          </a>
-          <nav className={styles.nav}>
-            <a href="/goals">Goals</a>
-            <a href="/blog">Updates</a>
-            <a href="https://avaivy.cloud">Ava Ivy</a>
-            <a href="https://rootmc.net">RootMC</a>
-            <a href="https://rootrecord.info">Wiki</a>
-          </nav>
-        </div>
-      </header>
-
       <div className={styles.content}>
         {/* Status row */}
         <div className={styles.topRow}>
@@ -136,10 +119,6 @@ export default function DashboardClient({ initial }: Props) {
           <GuestChat />
         </div>
       </div>
-
-      <footer className={styles.footer}>
-        Root Record · <a href="https://avaivy.cloud">avaivy.cloud</a> · Powered by the sun · Big Island, Hawaiʻi
-      </footer>
     </div>
   );
 }

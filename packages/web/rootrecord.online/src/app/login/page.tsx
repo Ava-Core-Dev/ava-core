@@ -58,20 +58,7 @@ function LoginForm() {
   }
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <a href="/goals" className={styles.brand}>
-            <span style={{ color: "var(--accent)" }}>◈</span>
-            Root Record <em>Goals</em>
-          </a>
-          <nav className={styles.nav}>
-            <a href="/goals">Public</a>
-            <a href="/goals/new">Post a goal</a>
-          </nav>
-        </div>
-      </header>
-      <main className={styles.main}>
+    <main className={styles.main}>
         <div className={styles.form} style={{ margin: "0 auto" }}>
           <section className={styles.hero}>
             <h1>{mode === "signup" ? "Create a Root Record account" : "Sign in"}</h1>
@@ -109,7 +96,6 @@ function LoginForm() {
           </form>
         </div>
       </main>
-    </div>
   );
 }
 

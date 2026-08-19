@@ -24,9 +24,10 @@ export default function GuestChat() {
     <div className={styles.box}>
       <div className={styles.log}>
         {log.map((m, i) => (
-          <p key={i} className={m.who === "ava" ? styles.ava : styles.user}>
-            {m.text}
-          </p>
+          <div key={i} className={`${styles.msg} ${m.who === "ava" ? styles.ava : styles.user}`}>
+            {m.who === "ava" && <span className={styles.avaMark}>◈</span>}
+            <p>{m.text}</p>
+          </div>
         ))}
       </div>
       <div className={styles.chips}>
@@ -34,6 +35,7 @@ export default function GuestChat() {
           <button
             key={c.label}
             type="button"
+            className={styles.chip}
             onClick={() => {
               add("you", c.label);
               add("ava", c.reply);
