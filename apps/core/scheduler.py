@@ -144,6 +144,10 @@ class Scheduler:
             return
         self._apscheduler.start()
         log.info("Scheduler started  timezone=Pacific/Honolulu  mode=always-on")
+        try:
+            await write_heartbeat()
+        except Exception as e:
+            log.warning("Immediate heartbeat failed: %s", e)
 
     async def stop(self):
         if self._apscheduler.running:

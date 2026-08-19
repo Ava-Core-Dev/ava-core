@@ -30,15 +30,28 @@ CREATE TABLE IF NOT EXISTS {_HEARTBEAT_TABLE} (
 """
 
 
-def _auth_headers() -> dict[str, str]:
-    """Bearer for scoped API tokens, X-Auth-* for account API keys."""
-    headers = {"Content-Type": "application/json"}
+def _bearer_headers() -> dict[str, str]:
+    return {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {config.CF_API_TOKEN}",
+    }
+
+
+def _legacy_headers() -> dict[str, str]:
+    return {
+        "Content-Type": "application/json",
+        "X-Auth-Email": config.CF_EMAIL,
+        "X-Auth-Key": config.CF_GLOBAL_API_KEY,
+    }
+
+
+def _auth_modes() -> list[tuple[str, dict[str, str]]]:
+    modes: list[tuple[str, dict[str, str]]] = []
+    if config.CF_GLOBAL_API_KEY and config.CF_EMAIL:
+        modes.append(("legacy", _legacy_headers()))
     if config.CF_API_TOKEN:
-        headers["Authorization"] = f"Bearer {config.CF_API_TOKEN}"
-    else:
-        headers["X-Auth-Email"] = config.CF_EMAIL
-        headers["X-Auth-Key"] = config.CF_GLOBAL_API_KEY
-    return headers
+        modes.append(("bearer", _bearer_headers()))
+    return modes
 
 
 def _d1_url() -> str:
@@ -49,29 +62,27 @@ def _d1_url() -> str:
 
 
 async def _d1_query(client: httpx.AsyncClient, sql: str,
-                    params: list[str] | None = None) -> httpx.Response:
+                    params: list[str] | None = None,
+                    headers: dict[str, str] | None = None) -> httpx.Response:
     payload: dict = {"sql": sql}
     if params:
         payload["params"] = params
-    return await client.post(_d1_url(), json=payload, headers=_auth_headers())
+    return await client.post(_d1_url(), json=payload, headers=headers or {})
 
 
 async def write_heartbeat() -> bool:
     """POST a heartbeat row to Cloudflare D1. Returns True on success."""
     global _last_success, _warned_unconfigured
 
-    has_auth = bool(config.CF_API_TOKEN) or bool(
-        config.CF_GLOBAL_API_KEY and config.CF_EMAIL
-    )
-    missing = [
-        name for name, val in (
-            ("CF_API_TOKEN (or CLOUDFLARE_GLOBAL_API_KEY + CLOUDFLARE_EMAIL)", has_auth),
-            ("CF_ACCOUNT_ID", config.CF_ACCOUNT_ID),
-            ("CF_D1_HEARTBEAT_DB_ID", config.CF_D1_HEARTBEAT_DB_ID),
-        ) if not val
-    ]
-    if missing:
-        # Warn once: a silent skip here reads as "host offline" on the status page.
+    modes = _auth_modes()
+    if not modes or not config.CF_ACCOUNT_ID or not config.CF_D1_HEARTBEAT_DB_ID:
+        missing = []
+        if not modes:
+            missing.append("CF_API_TOKEN or CLOUDFLARE_API_KEY+CLOUDFLARE_EMAIL")
+        if not config.CF_ACCOUNT_ID:
+            missing.append("CF_ACCOUNT_ID")
+        if not config.CF_D1_HEARTBEAT_DB_ID:
+            missing.append("CF_D1_HEARTBEAT_DB_ID")
         if not _warned_unconfigured:
             _warned_unconfigured = True
             log.error("Heartbeat disabled — missing config: %s. "
@@ -88,22 +99,36 @@ async def write_heartbeat() -> bool:
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"])
+            r = None
+            used = ""
+            for name, headers in modes:
+                r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"], headers)
+                used = name
+                if r.status_code == 200:
+                    break
+                if r.status_code == 403:
+                    log.warning("Heartbeat D1 403 with %s auth — trying next credential", name)
+                    continue
+                break
+
+            if r is None:
+                return False
 
             # The workers own this schema, but they may not be deployed yet.
             if not _table_ready and _missing_table(r):
                 log.info("Creating %s table in D1", _HEARTBEAT_TABLE)
-                created = await _d1_query(client, _CREATE_TABLE_SQL)
+                created = await _d1_query(client, _CREATE_TABLE_SQL, headers=_auth_modes()[-1][1])
                 if created.status_code != 200:
                     log.warning("Could not create %s  status=%s  body=%s",
                                 _HEARTBEAT_TABLE, created.status_code, created.text[:300])
                     return False
-                r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"])
+                r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"], headers=_auth_modes()[-1][1])
+                used = "legacy"
 
         if r.status_code == 200:
             _table_ready = True
             _last_success = time.monotonic()
-            log.debug("Heartbeat written  ts=%s", now.isoformat())
+            log.info("Heartbeat written  auth=%s", used)
             return True
 
         log.warning("Heartbeat failed  status=%s  body=%s", r.status_code, r.text[:300])

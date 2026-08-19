@@ -20,13 +20,15 @@ log = logging.getLogger("ava.minecraft")
 
 async def _ping(host: str, port: int) -> dict:
     """Simple TCP ping to check if a Minecraft server is accepting connections."""
+    started = asyncio.get_event_loop().time()
     try:
         _, writer = await asyncio.wait_for(
             asyncio.open_connection(host, port), timeout=5
         )
         writer.close()
         await writer.wait_closed()
-        return {"online": True, "host": host, "port": port}
+        ms = int((asyncio.get_event_loop().time() - started) * 1000)
+        return {"online": True, "host": host, "port": port, "latency_ms": ms}
     except Exception as e:
         return {"online": False, "host": host, "port": port, "error": str(e)}
 
@@ -41,6 +43,11 @@ async def minecraft_status():
         "ok": True,
         "live": live,
         "test": test,
+        "online": bool(live.get("online")),
+        "players": {"online": live.get("players_online"), "max": live.get("players_max")},
+        "latency_ms": live.get("latency_ms"),
+        "version": live.get("version"),
+        "motd": live.get("motd"),
         "dir": str(config.MC_TEST_DIR),
         "dirPresent": config.MC_TEST_DIR.is_dir(),
         "unit": config.MC_UNIT,

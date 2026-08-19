@@ -95,6 +95,63 @@ def _extract_battery(data: dict, label: str) -> str:
     return "  ".join(parts) if len(parts) > 1 else f"{label}: no data"
 
 
+def _num(data: dict, *keys: str):
+    for k in keys:
+        v = data.get(k)
+        if v is not None and v != "":
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+async def live_snapshot() -> dict:
+    """Dashboard-shaped EcoFlow snapshot. Empty dict if keys/devices missing."""
+    access_key = os.getenv("AVA_ECOFLOW_ACCESS_KEY", "")
+    secret_key = os.getenv("AVA_ECOFLOW_SECRET_KEY", "")
+    base_url = os.getenv("AVA_ECOFLOW_BASE_URL", "https://api-a.ecoflow.com")
+    serial_nos = [s.strip() for s in os.getenv("AVA_ECOFLOW_SN", "").split(",") if s.strip()]
+    if not (access_key and secret_key and serial_nos):
+        return {}
+
+    banks: list[float] = []
+    watts_in = 0.0
+    watts_out = 0.0
+    devices: list[dict] = []
+    labels = ["Delta 2", "River 2 Pro"]
+    async with httpx.AsyncClient() as client:
+        for i, sn in enumerate(serial_nos):
+            label = labels[i] if i < len(labels) else f"Device {i + 1}"
+            data = await _fetch_ecoflow_device(client, base_url, access_key, secret_key, sn)
+            soc = _num(data, "bmsMaster.soc", "pd.soc")
+            inn = _num(data, "mppt.inWatts", "pd.inputWatts") or 0
+            out = _num(data, "pd.outputWatts") or 0
+            if soc is not None:
+                banks.append(soc)
+            watts_in += inn
+            watts_out += out
+            devices.append({"label": label, "soc": soc, "watts_in": inn, "watts_out": out, "online": bool(data)})
+
+    battery = round(sum(banks) / len(banks), 1) if banks else None
+    state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
+    return {
+        "voltage": None,
+        "current": None,
+        "power_w": round(watts_in, 1),
+        "battery_pct": battery,
+        "state": state if devices else "offline",
+        "kwh_today": None,
+        "kwh_total": None,
+        "panel_temp_c": None,
+        "bank_pct": battery,
+        "solar_in_w": round(watts_in, 1),
+        "devices": devices,
+        "source": "ecoflow_live",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ── Main cron ─────────────────────────────────────────────────────────────────
 
 _last_hash: str = ""
