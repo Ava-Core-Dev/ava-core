@@ -6,13 +6,19 @@ set -euo pipefail
 
 export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
 
-AVA_ROOT="/run/media/ava-core/6B6C97406BF24558/ava-core-v2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AVA_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 AVA_HOME="${AVA_ROOT}"
 AVA_DESKTOP="${AVA_ROOT}/apps/desktop"
 LOG_DIR="${AVA_ROOT}/data/logs"
-mkdir -p "${LOG_DIR}" "${AVA_ROOT}/data"
+SSD_LOG="${HOME}/ava/logs"
+mkdir -p "${LOG_DIR}" "${AVA_ROOT}/data" "${SSD_LOG}" || true
+# Prefer repo logs; if the USB path is missing, still log on the SSD.
+if ! touch "${LOG_DIR}/ava-desktop.log" 2>/dev/null; then
+  LOG_DIR="${SSD_LOG}"
+fi
 exec >>"${LOG_DIR}/ava-desktop.log" 2>&1
-echo "---- $(date -Iseconds) start-ava-desktop ----"
+echo "---- $(date -Iseconds) start-ava-desktop root=${AVA_ROOT} ----"
 
 export AVA_HOME
 export AVA_HANDOFF="${AVA_ROOT}"
