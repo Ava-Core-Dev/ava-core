@@ -1,5 +1,12 @@
-export const GOALS_API =
-  process.env.NEXT_PUBLIC_GOALS_API || "https://api-goals.rootrecord.info";
+export function goalsApiBase(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname.toLowerCase();
+    if (host === "g.rootrecord.info" || host === "www.g.rootrecord.info") return "";
+  }
+  return process.env.NEXT_PUBLIC_GOALS_API || "https://api-goals.rootrecord.info";
+}
+
+export const GOALS_API = goalsApiBase();
 
 export const TOKEN_KEY = "rr_goals_token";
 export const DEVICE_KEY = "rr_goals_device";
@@ -53,8 +60,10 @@ export async function goalsFetch(path: string, init: RequestInit = {}) {
   if (tok && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${tok}`);
   if (!headers.has("X-Guest-Id")) headers.set("X-Guest-Id", deviceId());
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const res = await fetch(`${GOALS_API}${path}`, { ...init, headers });
-  const json = await res.json().catch(() => ({}));
+  const res = await fetch(`${goalsApiBase()}${path}`, { ...init, headers, credentials: "include" });
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  const token = String(json.access_token || json.token || "");
+  if (token) writeToken(token);
   return { ok: res.ok, status: res.status, json };
 }
 
