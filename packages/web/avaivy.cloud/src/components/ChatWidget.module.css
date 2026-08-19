@@ -20,6 +20,9 @@
   max-width: 88%;
 }
 .msg p { font-size: 14px; line-height: 1.55; }
+.bubble { white-space: pre-wrap; word-break: break-word; }
+.bubble a { color: var(--accent2); }
+.bubble a:hover { text-decoration: underline; }
 .ava { align-self: flex-start; }
 .user {
   align-self: flex-end;

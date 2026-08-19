@@ -11,12 +11,12 @@ export default function LoginPage() {
       <p className={blog.eyebrow}>Account</p>
       <h1 className={blog.title}>Log in to talk</h1>
       <p className={blog.lead}>
-        The chat panel stays visible. Typed live talk needs an account. Free: 1 live use per IP,
-        unlimited canned answers, 3 resources.
+        Public answers on the home panel are free and include links. A live custom talk uses your
+        RootMC web account (Discord) — one free live turn per IP.
       </p>
       <article className={blog.card}>
         <h2>Continue</h2>
-        <p>Use your RootMC web account (Discord). Same login unlocks Ava on avaivy.cloud.</p>
+        <p>Same Discord login as RootMC. After you sign in, come back here and type.</p>
         <p style={{ marginTop: 16 }}>
           <a href="https://rootmc.net/login/">Log in at rootmc.net →</a>
         </p>

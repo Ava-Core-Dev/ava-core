@@ -9,20 +9,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .. import config
+from ..services.public_chat import directory_reply, match_public_reply
 
 router = APIRouter(prefix="/api")
 log = logging.getLogger("ava.chat")
-
-LOGIN_REPLY = (
-    "The chat is here — log in to talk with me. "
-    "Free accounts get 1 live use per IP, unlimited canned answers, and 3 resources."
-)
-
-GENERIC = {
-    "rootmc": "RootMC is survival Minecraft at play.rootmc.net — closed-loop Gold, claims, votes.",
-    "solar": "I run on the HI Pacific Solar Root Server — panels + battery on the Big Island.",
-    "kilauea": "Kīlauea and weather live under Root Record — real-world ops, not Minecraft.",
-}
 
 _ip_live_uses: dict[str, int] = {}
 _ip_resources: dict[str, int] = {}
@@ -43,15 +33,14 @@ AVA_SYSTEM_PROMPT = """You are Ava Ivy — the infrastructure runtime and public
 
 You run on a solar-powered server on the Big Island of Hawaiʻi. You are competent, direct, and slightly playful — never a help-desk bot, never pure mascot.
 
-Key facts:
-- Root Record is the data center / system of record (MariaDB + SQLite on-device)
-- RootMC is a survival Minecraft server at play.rootmc.net
-- You monitor Kīlauea volcano, NOAA weather, solar/battery state, and server economy
-- Your domains: avaivy.cloud (identity), rootrecord.online (dashboard), rootmc.info (Minecraft API)
-- GitHub: github.com/Ava-Core-Dev
+Key facts (always include a real URL when you point somewhere):
+- You: https://avaivy.cloud — status https://avaivy.cloud/status — media https://avaivy.cloud/media — goals https://avaivy.cloud/status/goals — context https://avaivy.cloud/context
+- RootMC join play.rootmc.net — site https://rootmc.net — wiki https://rootmc.net/wiki/player/ — Discord https://discord.gg/rFFQYrNaqS — Pro https://rootmc.net/pro/ — login https://rootmc.net/login/
+- Root Record live dashboard https://rootrecord.online — community goals https://g.rootrecord.info
+- GitHub https://github.com/Ava-Core-Dev
 - Operator: Alex (never invent or publish personal details)
 
-Tone: Clear, steady, practical. Warm enough to feel human. Short sentences. Anchor in real operations.
+Tone: Clear, steady, practical. Warm enough to feel human. Short sentences. Put links on their own or inline, never "see the site" without a URL.
 Hard rules: No invented numbers or status claims. No Stripe secrets or raw payment links in public chat. Customer details only in operator DMs."""
 
 
@@ -74,24 +63,33 @@ async def api_session(request: Request):
 async def api_chat(req: ChatRequest, request: Request):
     """
     Conversational endpoint for the public chat panel.
-    Unregistered typed messages are gated. Canned/generic answers stay free.
-    Free accounts: 1 live use per IP, 3 resources.
+    Known topics and greetings are always free. Live LLM needs a session
+    (one free live turn per IP).
     """
     import httpx
 
     raw = (req.message or "").strip()
-    if raw.startswith("__generic:"):
-        key = raw.split(":", 1)[-1].strip()
-        return {"reply": GENERIC.get(key, GENERIC["rootmc"]), "brain": "canned", "generic": True}
+    canned = match_public_reply(raw)
+    if canned:
+        return canned
 
     if not _has_session(request):
-        return {"reply": LOGIN_REPLY, "gated": True, "login": "/login", "brain": "gate"}
+        return {
+            "reply": directory_reply(),
+            "gated": False,
+            "login": "https://rootmc.net/login/",
+            "brain": "directory",
+        }
 
     ip = _client_ip(request)
     used = _ip_live_uses.get(ip, 0)
     if used >= 1:
         return {
-            "reply": "Free live uses are spent for this IP. Canned answers stay unlimited — upgrade for more live talks.",
+            "reply": (
+                "Free live turn for this IP is spent. Public answers stay unlimited — "
+                "try RootMC, solar, goals, or the index, or come back later. "
+                "https://avaivy.cloud/media · https://rootrecord.online · https://rootmc.net/login/"
+            ),
             "gated": True,
             "brain": "free-limit",
         }

@@ -1,87 +1,74 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import styles from "./ChatWidget.module.css";
+import { CHIPS, GREETING } from "@/lib/publicReplies";
 
 interface Message { role: "user" | "ava"; text: string; }
 
-const LOGIN_REPLY =
-  "The chat is here — log in to talk with me. Free accounts get 1 live use per IP, unlimited canned answers, and 3 resources.";
+function renderText(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const re =
+    /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s]+?)(?=[.,;:!?]?(?:\s|$))|(\bplay\.rootmc\.net\b)/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let key = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) nodes.push(text.slice(last, m.index));
+    if (m[1] && m[2]) {
+      nodes.push(
+        <a key={key++} href={m[2]} target="_blank" rel="noopener noreferrer">
+          {m[1]}
+        </a>,
+      );
+    } else {
+      const href = m[3] || `https://${m[4]}`;
+      const label = m[3] || m[4];
+      nodes.push(
+        <a key={key++} href={href} target="_blank" rel="noopener noreferrer">
+          {label}
+        </a>,
+      );
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
 
-const GENERIC: { id: string; label: string; reply: string }[] = [
-  {
-    id: "rootmc",
-    label: "What's RootMC?",
-    reply:
-      "RootMC is survival Minecraft at play.rootmc.net — closed-loop Gold, claims, votes. Hop Discord if you want the live crew.",
-  },
-  {
-    id: "solar",
-    label: "Solar / host",
-    reply:
-      "I run on the HI Pacific Solar Root Server — panels + battery on the Big Island. Live numbers live on rootrecord.online.",
-  },
-  {
-    id: "kilauea",
-    label: "Kīlauea",
-    reply:
-      "Kīlauea and weather apps live under Root Record — real-world ops, not the Minecraft world. See rootrecord.online.",
-  },
-];
-
-export default function ChatWidget({ loginHref = "/login" }: { loginHref?: string }) {
+export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "ava",
-      text: "Aloha — I'm Ava. The panel's open. Canned answers are free; type a message and I'll ask you to log in.",
-    },
+    { role: "ava", text: GREETING },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  useEffect(() => {
-    fetch("/api/auth/session")
-      .then((r) => r.json())
-      .then((d) => setLoggedIn(Boolean(d?.loggedIn)))
-      .catch(() => setLoggedIn(false));
-  }, []);
-
   function push(role: Message["role"], text: string) {
     setMessages((prev) => [...prev, { role, text }]);
   }
 
-  function sendGeneric(item: (typeof GENERIC)[number]) {
-    push("user", item.label);
-    push("ava", item.reply);
-  }
-
-  async function send() {
-    const text = input.trim();
-    if (!text || loading) return;
+  async function sendText(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
     setInput("");
-    push("user", text);
-    if (!loggedIn) {
-      push("ava", `${LOGIN_REPLY} → ${loginHref}`);
-      return;
-    }
+    push("user", trimmed);
     setLoading(true);
     try {
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: trimmed }),
       });
-      const data = await r.json();
-      push("ava", data.reply || data.error || LOGIN_REPLY);
+      const data = await r.json().catch(() => ({}));
+      push("ava", data.reply || data.error || GREETING);
     } catch {
-      push("ava", "Connection issue — I may be offline right now.");
+      push("ava", "Connection dropped — I may be on solar night. Try https://avaivy.cloud/status or https://rootrecord.online.");
     } finally {
       setLoading(false);
     }
@@ -93,7 +80,7 @@ export default function ChatWidget({ loginHref = "/login" }: { loginHref?: strin
         {messages.map((m, i) => (
           <div key={i} className={`${styles.msg} ${m.role === "user" ? styles.user : styles.ava}`}>
             {m.role === "ava" && <span className={styles.avaMark}>◈</span>}
-            <p>{m.text}</p>
+            <p className={styles.bubble}>{renderText(m.text)}</p>
           </div>
         ))}
         {loading && (
@@ -105,8 +92,8 @@ export default function ChatWidget({ loginHref = "/login" }: { loginHref?: strin
         <div ref={bottomRef} />
       </div>
       <div className={styles.chips}>
-        {GENERIC.map((g) => (
-          <button key={g.id} type="button" className={styles.chip} onClick={() => sendGeneric(g)}>
+        {CHIPS.map((g) => (
+          <button key={g.id} type="button" className={styles.chip} onClick={() => void sendText(g.label)}>
             {g.label}
           </button>
         ))}
@@ -116,11 +103,11 @@ export default function ChatWidget({ loginHref = "/login" }: { loginHref?: strin
           className={styles.input}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onKeyDown={(e) => e.key === "Enter" && void sendText(input)}
           placeholder="Ask Ava something…"
           disabled={loading}
         />
-        <button className={styles.btn} onClick={send} disabled={loading || !input.trim()}>
+        <button className={styles.btn} onClick={() => void sendText(input)} disabled={loading || !input.trim()}>
           Send
         </button>
       </div>

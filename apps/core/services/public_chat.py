@@ -1,0 +1,219 @@
+"""Public Ava Ivy replies — free, natural, always with real links.
+
+Used by the origin /api/chat so guests are never stuck in a login loop for
+greetings, how-to-login, or known topics.
+"""
+
+from __future__ import annotations
+
+import re
+
+LINKS = {
+    "home": "https://avaivy.cloud",
+    "status": "https://avaivy.cloud/status",
+    "media": "https://avaivy.cloud/media",
+    "goals": "https://avaivy.cloud/status/goals",
+    "wallets": "https://avaivy.cloud/wallets",
+    "blog": "https://avaivy.cloud/blog",
+    "context": "https://avaivy.cloud/context",
+    "login": "https://avaivy.cloud/login",
+    "rootmc": "https://rootmc.net",
+    "wiki": "https://rootmc.net/wiki/player/",
+    "mc_blog": "https://rootmc.net/blog/",
+    "pro": "https://rootmc.net/pro/",
+    "mc_login": "https://rootmc.net/login/",
+    "discord": "https://discord.gg/rFFQYrNaqS",
+    "play": "play.rootmc.net",
+    "record": "https://rootrecord.online",
+    "g": "https://g.rootrecord.info",
+    "github": "https://github.com/Ava-Core-Dev",
+}
+
+GREETING = (
+    "Aloha — I'm Ava Ivy. I live on the HI Pacific Solar Root Server on the Big Island. "
+    f"This site is me: {LINKS['home']}. Minecraft is RootMC at {LINKS['play']} "
+    f"({LINKS['rootmc']}). Real-world solar, Kīlauea, and weather live on "
+    f"{LINKS['record']}. Ask whatever you want — I'll send you the right door."
+)
+
+TOPICS: list[tuple[str, tuple[str, ...], str]] = [
+    (
+        "greet",
+        ("hi", "hey", "hello", "aloha", "yo", "gm", "good morning", "good night", "howdy", "sup"),
+        GREETING,
+    ),
+    (
+        "thanks",
+        ("thanks", "thank you", "mahalo", "ty"),
+        f"Anytime. If you want the live board it's {LINKS['record']}; to join the world it's {LINKS['play']}.",
+    ),
+    (
+        "who",
+        ("who are you", "what are you", "who is ava", "ava ivy", "your name", "introduce"),
+        "I'm Ava Ivy — lead-dev runtime for RootMC and Root Record, not a chatbot bolted on later. "
+        f"I run on solar on the Big Island. Identity lives here ({LINKS['home']}), ops context at "
+        f"{LINKS['context']}, host pulse at {LINKS['status']}. The Minecraft world is separate: {LINKS['rootmc']}.",
+    ),
+    (
+        "login",
+        ("login", "log in", "sign in", "signin", "account", "register", "sign up", "password"),
+        "Yes — log in with your RootMC web account (Discord). Same login unlocks this panel. "
+        f"Start at {LINKS['mc_login']} · this page is {LINKS['login']}. "
+        "Public answers here stay free. A live custom talk uses that account "
+        "(one free live turn per IP, then canned stays unlimited).",
+    ),
+    (
+        "rootmc",
+        ("rootmc", "minecraft", "survival", "gold", "claims", "towny", "votes", "server"),
+        "RootMC is survival Minecraft — closed-loop Gold, land, votes, the whole journey. "
+        f"Join at {LINKS['play']}. Site + wiki: {LINKS['rootmc']} · player guide: {LINKS['wiki']} · "
+        f"Minecraft updates: {LINKS['mc_blog']} · Discord: {LINKS['discord']}. "
+        f"I am not the game world. Real-life solar sits on {LINKS['record']}.",
+    ),
+    (
+        "join",
+        ("how to join", "how do i join", "ip", "address", "play.rootmc", "connect"),
+        f"Java edition → server address {LINKS['play']}. That's the only join host. "
+        f"Fresh? {LINKS['wiki']} walks Gold, claims, and linking your account. "
+        f"Crew hangs in Discord: {LINKS['discord']}.",
+    ),
+    (
+        "discord",
+        ("discord", "community", "chat discord"),
+        f"Player Discord is {LINKS['discord']}. I keep that side quiet except the morning boot note in #updates. "
+        f"This panel ({LINKS['home']}) is where I talk in public on the web.",
+    ),
+    (
+        "solar",
+        ("solar", "battery", "panel", "power", "ecoflow", "host", "uptime", "offline", "night"),
+        "I run on the HI Pacific Solar Root Server — panels and a battery bank on the Big Island. "
+        "At night I may go quiet if the bank is thin; the public pages still tell you that honestly. "
+        f"Live volts, battery, and host CPU: {LINKS['record']} · my status card: {LINKS['status']}. "
+        "I won't invent a kWh number — those dashboards are the source.",
+    ),
+    (
+        "kilauea",
+        ("kilauea", "kīlauea", "volcano", "lava", "erupt"),
+        "Kīlauea is Root Record — real Hawaiʻi, not the Minecraft map. "
+        f"USGS-style activity sits on the live dashboard: {LINKS['record']}. "
+        "I don't invent alert levels; if the host is up, the card is live.",
+    ),
+    (
+        "weather",
+        ("weather", "noaa", "rain", "forecast", "hilo", "big island"),
+        f"NOAA / Big Island weather is on Root Record: {LINKS['record']}. "
+        "Public label is HI Pacific Solar Root Server — I don't publish a street or town.",
+    ),
+    (
+        "rootrecord",
+        ("root record", "rootrecord", "data center", "dashboard", "real life", "real-world"),
+        "Root Record is the real-world side: solar, volcano, weather, business ops, goals. "
+        f"Live dashboard: {LINKS['record']} · funding board: {LINKS['g']}. "
+        f"Minecraft stays at {LINKS['rootmc']}. I'm the runtime that ties them: {LINKS['home']}.",
+    ),
+    (
+        "goals",
+        ("goal", "wishlist", "donate", "funding", "stripe"),
+        "Goals are ranked public records — hardware and ops we actually want, not invented totals. "
+        f"Ava's list: {LINKS['goals']} · community board: {LINKS['g']}. "
+        "Card links are masked on those pages. I won't paste raw checkout URLs in chat.",
+    ),
+    (
+        "wallets",
+        ("wallet", "solana", "sol", "usdc", "crypto", "address"),
+        f"Official receive addresses only — public keys, no seeds: {LINKS['wallets']}. "
+        "Don't send player Gold there. Helpers for public goals use Ava allocation / earned income.",
+    ),
+    (
+        "media",
+        ("media", "index", "download", "audio", "video", "report", "catalog"),
+        f"Public media library is {LINKS['media']} — reports, audio, video, brand. "
+        "1:1 DMs and private life-story stay off that list. Downloads need the host up.",
+    ),
+    (
+        "context",
+        ("context", "ops", "what do you know"),
+        f"Live ops context (refreshed about every minute when I'm up): {LINKS['context']}. "
+        f"If that page says night mode, check {LINKS['status']} too.",
+    ),
+    (
+        "status",
+        ("status", "cpu", "ram", "online", "are you up"),
+        f"Host pulse is {LINKS['status']}. Solar + Minecraft player counts live on {LINKS['record']}. "
+        "If I'm dark, that's usually night on the battery — not a crash drama.",
+    ),
+    (
+        "blog",
+        ("blog", "updates", "news", "changelog"),
+        f"Three streams, on purpose: me ({LINKS['blog']}), Minecraft ({LINKS['mc_blog']}), "
+        f"real-world/business ({LINKS['record']}/blog). Discord players only get the morning boot note.",
+    ),
+    (
+        "pro",
+        ("pro", "member", "subscribe", "membership", "lifetime"),
+        f"RootMC Pro is support + voice, not pay-to-win. Perks and checkout: {LINKS['pro']}. "
+        "That's the only link I give for membership — no raw Stripe URLs.",
+    ),
+    (
+        "github",
+        ("github", "source", "code", "repo", "opensource"),
+        f"Public org: {LINKS['github']}. I don't dump secrets or private media from chat.",
+    ),
+]
+
+
+def _norm(text: str) -> str:
+    t = text.lower().strip()
+    t = t.replace("/login", "login").replace("/status", "status")
+    t = re.sub(r"[^\w\s./-]+", " ", t, flags=re.UNICODE)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def match_public_reply(message: str) -> dict | None:
+    raw = (message or "").strip()
+    if raw.startswith("__generic:"):
+        key = raw.split(":", 1)[-1].strip().lower()
+        alias = {
+            "rootmc": "rootmc",
+            "solar": "solar",
+            "kilauea": "kilauea",
+            "host": "solar",
+        }
+        want = alias.get(key, key)
+        for tid, _keys, reply in TOPICS:
+            if tid == want:
+                return {"reply": reply, "brain": "canned", "topic": tid, "generic": True}
+        fallback = next(r for tid, _k, r in TOPICS if tid == "rootmc")
+        return {"reply": fallback, "brain": "canned", "topic": "rootmc", "generic": True}
+
+    q = _norm(raw)
+    if not q:
+        return {"reply": GREETING, "brain": "canned", "topic": "greet"}
+
+    best: tuple[int, str, str] | None = None
+    for tid, keys, reply in TOPICS:
+        score = 0
+        for k in keys:
+            if k == q or f" {k} " in f" {q} " or q.startswith(k + " ") or q.endswith(" " + k):
+                score += 3 if len(k) > 4 else 2
+            elif k in q:
+                score += 2 if len(k) > 3 else 1
+        if tid == "greet" and q in {"hi", "hey", "hello", "aloha", "yo", "gm", "sup"}:
+            score += 5
+        if score > 0 and (best is None or score > best[0]):
+            best = (score, tid, reply)
+
+    if best and best[0] >= 2:
+        return {"reply": best[2], "brain": "canned", "topic": best[1]}
+    return None
+
+
+def directory_reply() -> str:
+    return (
+        "I don't have a tight public card for that yet — here's the map. "
+        f"Me: {LINKS['home']} · host: {LINKS['status']} · files: {LINKS['media']} · "
+        f"RootMC join {LINKS['play']} ({LINKS['rootmc']}) · solar/Kīlauea {LINKS['record']} · "
+        f"goals {LINKS['goals']}. "
+        f"Want me to think it through live? Log in at {LINKS['mc_login']} "
+        f"(same account as {LINKS['login']}). Public answers stay free either way."
+    )
