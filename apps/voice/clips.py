@@ -170,3 +170,25 @@ def speak_time(hour: int, minute: int, out_path: Path) -> Path | None:
     import shutil
     shutil.copy2(p, out_path)
     return out_path
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+    import sys
+
+    p = argparse.ArgumentParser(description="Ara number clips → MP3")
+    p.add_argument("--number", required=True, help="Integer only")
+    p.add_argument("--out", required=True)
+    args = p.parse_args()
+    raw = str(args.number).strip()
+    if not re.fullmatch(r"-?\d+", raw):
+        print(json.dumps({"ok": False, "reason": "numbers_only"}))
+        sys.exit(1)
+    dest = Path(args.out)
+    got = speak_number(int(raw, 10), dest)
+    if not got or not got.exists():
+        print(json.dumps({"ok": False, "reason": "no_clips"}))
+        sys.exit(1)
+    print(json.dumps({"ok": True, "mp3": str(got.resolve())}))
+    sys.exit(0)
