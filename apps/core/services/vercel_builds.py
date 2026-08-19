@@ -147,10 +147,8 @@ async def fetch_build_log(client: httpx.AsyncClient, uid: str) -> str:
     for ev in rows:
         if not isinstance(ev, dict):
             continue
-        text = ev.get("text") or ev.get("payload", {}).get("text") if isinstance(ev.get("payload"), dict) else ev.get("text")
-        if not text:
-            info = ev.get("payload") if isinstance(ev.get("payload"), dict) else {}
-            text = info.get("message") or info.get("serial") or ""
+        payload = ev.get("payload") if isinstance(ev.get("payload"), dict) else {}
+        text = ev.get("text") or payload.get("text") or payload.get("message") or payload.get("serial") or ""
         if text:
             lines.append(str(text).rstrip())
     return _redact("\n".join(lines))[:MAX_LOG_CHARS]

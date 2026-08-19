@@ -109,7 +109,7 @@ app.add_middleware(
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld, crons, reports, media  # noqa: E402
+from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld, crons, reports, media, vercel_builds  # noqa: E402
 
 app.include_router(crons.router)
 app.include_router(reports.router)
@@ -123,6 +123,7 @@ app.include_router(chat.router)
 app.include_router(plugins.router)
 app.include_router(realworld.router)
 app.include_router(media.router)
+app.include_router(vercel_builds.router)
 
 
 @app.get("/health")

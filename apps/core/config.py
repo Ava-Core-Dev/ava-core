@@ -28,6 +28,20 @@ for _p in _ENV_CANDIDATES:
 
 # Re-resolve after env load
 AVA_HOME = Path(os.getenv("AVA_HOME", str(AVA_HOME))).expanduser().resolve()
+for _p in (
+    AVA_HOME / "credentials.env",
+    Path.home() / "ava" / "credentials.env",
+    Path(__file__).resolve().parent.parent.parent / "credentials.env",
+):
+    if _p.exists():
+        load_dotenv(_p, override=False)
+for _p in (
+    AVA_HOME / "credentials.env",
+    Path.home() / "ava" / "credentials.env",
+    Path(__file__).resolve().parent.parent.parent / "credentials.env",
+):
+    if _p.exists():
+        load_dotenv(_p, override=False)
 
 # ── Runtime paths ──────────────────────────────────────────────────────────────
 # One media library: $AVA_HOME/media  (audio, video, images, documents).
@@ -96,8 +110,7 @@ MEDIA_SUBDIRS = (
     "images/direct messages/discord", "images/direct messages/slack",
     "images/direct messages/telegram",
     "documents/discord", "documents/reports", "documents/slack", "documents/telegram",
-    "documents/persona", "documents/notes", "documents/plans", "documents/docs",
-    "documents/docs/vercel-builds",
+    "documents/persona", "documents/notes", "documents/plans",     "documents/docs",
     "documents/docs/vercel-builds",
     "documents/context", "documents/logs",
     "stream/overlays", "stream/obs-cams",
@@ -142,18 +155,6 @@ CURSOR_FALLBACK = _env_str("AVA_CURSOR_FALLBACK", "1") not in {"0", "false", "no
 CURSOR_MAX_PER_DAY = _env_int("AVA_CURSOR_MAX_PER_DAY", 2)
 CURSOR_MIN_HOURS = _env_int("AVA_CURSOR_MIN_HOURS", 6)
 GROK_DOWN_HOURS = _env_int("AVA_GROK_DOWN_HOURS", 12)
-
-
-def vercel_token() -> str:
-    return _first_env("VERCEL_TOKEN", "VERCEL_API_TOKEN")
-
-
-def vercel_team_id() -> str:
-    return _first_env("VERCEL_TEAM_ID", "VERCEL_ORG_ID")
-
-
-def vercel_webhook_secret() -> str:
-    return _first_env("VERCEL_WEBHOOK_SECRET")
 
 
 def vercel_token() -> str:

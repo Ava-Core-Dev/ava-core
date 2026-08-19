@@ -101,6 +101,9 @@ class Scheduler:
         s.add_job(self._run("d1_sync"), IntervalTrigger(minutes=5),
                   id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=120)
 
+        s.add_job(self._run("vercel_builds"), IntervalTrigger(minutes=5),
+                  id="vercel-builds", name="Vercel build logs → docs", misfire_grace_time=120)
+
         log.info("Registered %d cron jobs (always-on, no sleep gate)",
                  len(s.get_jobs()))
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import logging
 
 from fastapi import APIRouter, Request
@@ -27,20 +28,26 @@ def _valid_signature(raw: bytes, header: str, secret: str) -> bool:
 async def vercel_webhook(request: Request):
     raw = await request.body()
     secret = config.vercel_webhook_secret()
+    if not secret:
+        return JSONResponse({"ok": False, "detail": "webhook_not_configured"}, status_code=503)
     sig = request.headers.get("x-vercel-signature") or request.headers.get("X-Vercel-Signature") or ""
-    if secret and not _valid_signature(raw, sig, secret):
+    if sig.lower().startswith("sha1="):
+        sig = sig.split("=", 1)[1]
+    if not _valid_signature(raw, sig, secret):
         return JSONResponse({"ok": False, "detail": "bad_signature"}, status_code=401)
 
     try:
-        payload = await request.json()
+        payload = json.loads(raw.decode("utf-8") or "{}")
     except Exception:
         return JSONResponse({"ok": False, "detail": "invalid_json"}, status_code=400)
 
     body = payload if isinstance(payload, dict) else {}
     event = str(body.get("type") or body.get("event") or "")
-    dep = body.get("payload") if isinstance(body.get("payload"), dict) else body
+    inner = body.get("payload") if isinstance(body.get("payload"), dict) else body
+    dep = dict(inner) if isinstance(inner, dict) else {}
     if isinstance(dep.get("deployment"), dict):
-        dep = dep["deployment"]
+        nested = dep["deployment"]
+        dep = {**dep, **nested}
 
     ready = str(dep.get("readyState") or "").upper()
     if event.endswith("succeeded") or event.endswith(".ready"):
