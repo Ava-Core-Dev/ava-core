@@ -1,0 +1,21 @@
+[Unit]
+Description=RootMC Test Server — Paper 1.21 (user session)
+Documentation=https://rootmc.net
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ava-core/ava/workstations/minecraft-test-live
+ExecStartPre=/bin/bash -c '! ss -tlnp | grep -q :24945'
+ExecStart=/home/ava-core/ava/workstations/minecraft-test-live/start.sh
+ExecStop=/bin/bash -c 'kill -TERM $MAINPID; sleep 10'
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=30
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/minecraft-test-session.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/minecraft-test-session.log
+
+[Install]
+WantedBy=default.target

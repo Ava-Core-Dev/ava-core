@@ -64,6 +64,31 @@ async def _mysql_rows(sql: str) -> list[dict]:
     return []
 
 
+def _map_balance(row: dict) -> tuple[str, str, float] | None:
+    uuid = str(
+        row.get("uuid") or row.get("player_uuid") or row.get("player") or ""
+    ).strip()
+    if not uuid:
+        return None
+    name = str(
+        row.get("name")
+        or row.get("username")
+        or row.get("display_name")
+        or row.get("player_name")
+        or ""
+    )
+    raw = row.get("balance")
+    if raw is None:
+        raw = row.get("money")
+    if raw is None:
+        raw = row.get("gold")
+    try:
+        bal = float(raw or 0)
+    except (TypeError, ValueError):
+        bal = 0.0
+    return uuid, name, bal
+
+
 async def _ensure_schema(db_id: str) -> None:
     path = _schema_file()
     if not path.is_file():
@@ -105,28 +130,30 @@ async def run() -> None:
         ["live", live_on, now, str(status.get("live", {}))[:500]],
     )
 
-    balances = await _mysql_rows(
-        "SELECT uuid, name, balance FROM rootstat_player_balances LIMIT 5000"
-    )
-    if not balances:
-        # older / local schema variants
-        balances = await _mysql_rows(
-            "SELECT player_uuid AS uuid, username AS name, balance "
-            "FROM player_balances LIMIT 5000"
-        )
+    balances: list[dict] = []
+    for sql in (
+        "SELECT * FROM root_economy_balances LIMIT 5000",
+        "SELECT * FROM rootstat_player_balances LIMIT 5000",
+        "SELECT * FROM player_balances LIMIT 5000",
+    ):
+        balances = await _mysql_rows(sql)
+        if balances:
+            log.info("D1 sync reading %d rows via %s", len(balances), sql.split()[3])
+            break
 
     n = 0
     for row in balances:
-        uuid = str(row.get("uuid") or "")
-        if not uuid:
+        mapped = _map_balance(row)
+        if not mapped:
             continue
+        uuid, name, bal = mapped
         await d1.query(
             db_id,
             """INSERT INTO player_balances (uuid, name, balance, updated_at)
                VALUES (?, ?, ?, ?)
                ON CONFLICT(uuid) DO UPDATE SET
                  name=excluded.name, balance=excluded.balance, updated_at=excluded.updated_at""",
-            [uuid, str(row.get("name") or ""), float(row.get("balance") or 0), now],
+            [uuid, name, bal, now],
         )
         n += 1
 

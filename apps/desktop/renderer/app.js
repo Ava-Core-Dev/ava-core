@@ -2251,7 +2251,7 @@ async function bootTerminal() {
     if ($("page-terminal")?.classList.contains("active")) {
       refreshTerminalLive().catch(() => {});
     }
-  }, 2000);
+  }, 8000);
 }
 
 let mcBusy = false;

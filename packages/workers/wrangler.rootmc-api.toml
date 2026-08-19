@@ -1,10 +1,12 @@
 name = "rootmc-api"
 main = "src/rootmc-api/worker.ts"
 compatibility_date = "2024-11-01"
+account_id = "d2daf26398a805b29e12ddba2b2228cf"
 
+# rootmc.info is still on the old CF account — attach the worker to the
+# zone we actually own, then add .info routes after that zone is transferred.
 routes = [
-  { pattern = "rootmc.info/*", zone_name = "rootmc.info" },
-  { pattern = "api.rootmc.info/*", zone_name = "rootmc.info" },
+  { pattern = "api.rootmc.net/*", zone_name = "rootmc.net" },
 ]
 
 [[d1_databases]]
@@ -12,8 +14,6 @@ binding = "AVA_HEARTBEAT_DB"
 database_name = "ava-heartbeat"
 database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"
 
-[triggers]
-crons = ["* * * * *", "45 8 * * *"]
 [[d1_databases]]
 binding = "ROOTMC_LIVE_DB"
 database_name = "rootmc-live"
@@ -22,4 +22,7 @@ database_id = "489b5c16-022f-4533-9cae-0df17aaafd2f"
 [[hyperdrive]]
 binding = "LIVE_DB"
 id = "b243adce0a4c48a39b491612008fcf51"
+
+[triggers]
+crons = ["* * * * *", "45 8 * * *"]
 

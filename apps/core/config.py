@@ -53,6 +53,12 @@ MP4_DIR       = Path(os.getenv("MP4_DIR", str(MEDIA_DIR / "video" / "current")))
 VIDEO_REPORTS_DIR = Path(
     os.getenv("VIDEO_REPORTS_DIR", str(MEDIA_DIR / "video" / "reports"))
 ).expanduser().resolve()
+YOUTUBE_AUDIO_DIR = Path(
+    os.getenv("YOUTUBE_AUDIO_DIR", str(MEDIA_DIR / "audio" / "youtube"))
+).expanduser().resolve()
+YOUTUBE_VIDEO_DIR = Path(
+    os.getenv("YOUTUBE_VIDEO_DIR", str(MEDIA_DIR / "video" / "youtube"))
+).expanduser().resolve()
 
 _THUMB_CANDIDATES = [
     MEDIA_DIR / "images" / "thumbnails" / "DEFAULT.jpg",
@@ -78,7 +84,9 @@ ICON_1024      = MEDIA_DIR / "images" / "brand" / "ava-icon-1024.png"
 MEDIA_SUBDIRS = (
     "audio/station", "audio/reports", "audio/crons", "audio/words", "audio/numbers",
     "audio/time_clips", "audio/sounds", "audio/voice", "audio/voice/generated",
+    "audio/youtube",
     "video/clips", "video/reports", "video/current", "video/appearance",
+    "video/youtube",
     "images/channels", "images/character", "images/thumbnails",
     "images/discord", "images/slack", "images/telegram", "images/brand",
     "images/emojis/discord",

@@ -136,7 +136,6 @@ async def api_activity(limit: int = 220):
     Terminal live activity feed — running crons, scheduler state, Ollama status.
     Replaces the old Node.js /api/activity endpoint.
     """
-    import time
     from apps.core.main import _scheduler
 
     running_crons: list[dict] = []
@@ -162,21 +161,10 @@ async def api_activity(limit: int = 220):
     except Exception:
         pass
 
-    # Quick Ollama ping + model list
-    ollama_up = False
-    ollama_models: list[str] = []
-    try:
-        import httpx
-        async with httpx.AsyncClient(timeout=2.0) as client:
-            r = await client.get("http://127.0.0.1:11434/api/tags")
-            ollama_up = r.status_code == 200
-            if ollama_up:
-                for m in (r.json() or {}).get("models") or []:
-                    name = str(m.get("name") or "")
-                    if name:
-                        ollama_models.append(name)
-    except Exception:
-        pass
+    # Cached Ollama ping — GUI polls this every few seconds
+    from ..services.ollama import tags as ollama_tags
+
+    ollama_up, ollama_models = await ollama_tags()
 
     return {
         "ok": True,
