@@ -14,12 +14,32 @@ echo ""
 # ── Voice assets ──────────────────────────────────────────────────────────────
 echo "Migrating voice assets..."
 ASSETS="$NEW/apps/voice/assets"
+mkdir -p "$ASSETS/numbers" "$ASSETS/words" "$ASSETS/time_clips" "$ASSETS/sounds"
 
+# Primary source: Ara zip files on Desktop (includes all new clips)
+DESKTOP="/home/ava-core/Desktop"
+if [ -f "$DESKTOP/ara_voice_bits.zip" ]; then
+  echo "  Extracting ara_voice_bits.zip..."
+  tmpdir=$(mktemp -d)
+  unzip -q "$DESKTOP/ara_voice_bits.zip" -d "$tmpdir"
+  cp -n "$tmpdir/data/voice/words/"*.mp3    "$ASSETS/words/"    2>/dev/null && echo "    words/ from zip"
+  cp -n "$tmpdir/data/voice/numbers/"*.mp3  "$ASSETS/numbers/"  2>/dev/null && echo "    numbers/ from zip"
+  rm -rf "$tmpdir"
+fi
+if [ -f "$DESKTOP/ara_numbers_extra.zip" ]; then
+  echo "  Extracting ara_numbers_extra.zip..."
+  tmpdir=$(mktemp -d)
+  unzip -q "$DESKTOP/ara_numbers_extra.zip" -d "$tmpdir"
+  cp -n "$tmpdir/data/voice/numbers/"*.mp3  "$ASSETS/numbers/"  2>/dev/null && echo "    extra numbers/ from zip"
+  rm -rf "$tmpdir"
+fi
+
+# Fallback: old voice tree (fills any remaining gaps)
 if [ -d "$OLD/voice/numbers" ]; then
-  cp -rn "$OLD/voice/numbers/." "$ASSETS/numbers/" && echo "  numbers/ copied"
+  cp -rn "$OLD/voice/numbers/." "$ASSETS/numbers/" && echo "  numbers/ from old tree"
 fi
 if [ -d "$OLD/voice/words" ]; then
-  cp -rn "$OLD/voice/words/." "$ASSETS/words/" && echo "  words/ copied"
+  cp -rn "$OLD/voice/words/." "$ASSETS/words/" && echo "  words/ from old tree"
 fi
 if [ -d "$OLD/voice/time_clips" ]; then
   cp -rn "$OLD/voice/time_clips/." "$ASSETS/time_clips/" && echo "  time_clips/ copied"

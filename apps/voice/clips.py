@@ -25,28 +25,46 @@ SILENCE_MS  = 90  # gap between clips in ms
 
 
 def _number_to_clips(n: int) -> list[str]:
-    """Decompose integer n into clip filenames."""
+    """
+    Decompose integer n into clip filenames.
+    Prefers a direct clip file (e.g. '1000000.mp3') over decomposing into
+    sub-words, so large number clips recorded by Ara play naturally.
+    """
     if n < 0:
         return ["negative"] + _number_to_clips(-n)
     if n == 0:
         return ["0"]
-    clips = []
+
+    # If there's a direct clip for this exact number, use it
+    if (NUMBERS_DIR / f"{n}.mp3").exists():
+        return [str(n)]
+
+    clips: list[str] = []
     if n >= 1_000_000_000:
         clips += _number_to_clips(n // 1_000_000_000) + ["billion"]
         n %= 1_000_000_000
+        if n:
+            clips += _number_to_clips(n)
+        return clips
     if n >= 1_000_000:
         clips += _number_to_clips(n // 1_000_000) + ["million"]
         n %= 1_000_000
+        if n:
+            clips += _number_to_clips(n)
+        return clips
     if n >= 1_000:
         clips += _number_to_clips(n // 1_000) + ["thousand"]
         n %= 1_000
+        if n:
+            clips += _number_to_clips(n)
+        return clips
     if n >= 100:
         clips += _number_to_clips(n // 100) + ["hundred"]
         n %= 100
         if n:
-            clips += ["and"]
-    if n > 0:
-        clips.append(str(n))
+            clips += ["and"] + _number_to_clips(n)
+        return clips
+    clips.append(str(n))
     return clips
 
 
