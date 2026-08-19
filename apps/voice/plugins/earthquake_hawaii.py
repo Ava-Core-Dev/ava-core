@@ -53,7 +53,11 @@ class EarthquakeHawaiiPlugin(Plugin):
     def on_hour(self) -> None:
         log.info("Hourly Hawaii earthquake update")
         self._pull()
-        self._make_voice(force=True)
+        from apps.core.services import xai
+        if xai.grok_is_down():
+            log.info("Grok down — skip Hawaii quake voice this hour (facts already stored)")
+            return
+        self._make_voice(force=False)
 
     def on_new_report(self, path: Path) -> None:
         pass

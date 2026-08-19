@@ -136,39 +136,31 @@ class KilaueaReportPlugin(Plugin):
         return notice_id, text
 
     def _summarize_with_grok(self, raw: str) -> str | None:
-        from ava_core.xai_client import chat, XAIError
+        from apps.core.services import synth
 
+        now = datetime.now().strftime("%-I %M %p").replace(" 0", " ")
         system = """You are Ara, a calm clear voice for Hawaii volcano status.
 Turn the official HVO Kīlauea notice into ONE short spoken report (45–60 seconds, about 120–150 words).
 
 Rules:
 - Plain spoken English only. No markdown, bullets, or stage directions.
 - ALWAYS begin with exactly: "Kilauea Report at <time>."
-  Example: "Kilauea Report at 12 34 AM."
 - Then cover: current alert level / aviation code, whether it is erupting or paused, last episode if relevant, and the most important next forecast or hazard note.
 - Skip instrument noise, long hazard lists, and links.
-- Near the end, add one short natural sentence advertising the Kilauea Alerts app, for example:
-  "For real-time alerts on your phone, get the Kilauea Alerts app."
-  Keep it brief and conversational — do not make it sound like a hard sales pitch.
+- Near the end, add one short natural sentence advertising the Kilauea Alerts app.
 - End cleanly after that.
 """
-
-        from datetime import datetime
-        now = datetime.now().strftime("%-I %M %p").replace(" 0", " ")
-        user = f"Current local time for the title: {now}\n\nOfficial notice text:\n\n{raw[:4500]}\n\nStart with: \"Kilauea Report at {now}.\" Then continue with the spoken content only."
-
-        try:
-            return chat(
-                [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-                temperature=0.3,
-                max_tokens=340,
-            )
-        except XAIError as e:
-            log.error("%s", e)
-            return None
+        user = (
+            f"Current local time for the title: {now}\n\n"
+            f"Official notice text:\n\n{raw[:4500]}\n\n"
+            f"Start with: \"Kilauea Report at {now}.\" Then continue with the spoken content only."
+        )
+        factual = (
+            f"Kilauea Report at {now}. "
+            "Here is the latest Hawaiian Volcano Observatory notice, unedited for honesty. "
+            + " ".join(raw.split())[:900]
+        )
+        return synth.polish("kilauea", system, user, factual=factual, channel="kilauea")
 
     def _tts(self, text: str, out_path: Path) -> None:
         from ava_core.xai_client import tts

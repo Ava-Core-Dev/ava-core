@@ -47,7 +47,7 @@ class Scheduler:
         s.add_job(write_heartbeat, IntervalTrigger(seconds=60),
                   id="heartbeat", name="CF heartbeat writer", misfire_grace_time=30)
 
-        # ── NOAA / NWS weather (every 15 min, all hours) ──────────────────────
+        # ── NOAA / NWS weather (hourly) ───────────────────────────────────────
         s.add_job(self._run("noaa"), IntervalTrigger(minutes=60),
                   id="rr-noaa", name="NOAA weather", misfire_grace_time=180)
 
@@ -69,7 +69,7 @@ class Scheduler:
         s.add_job(self._run("system_perf"), CronTrigger(minute=0),
                   id="system-performance", name="System performance", misfire_grace_time=120)
 
-        # ── Player economy + Kīlauea multiplier (every 10 min) ───────────────
+        # ── Player economy + Kīlauea multiplier (every 30 min) ───────────────
         s.add_job(self._run("player_economy"), IntervalTrigger(minutes=30),
                   id="player-economy-report", name="Player economy", misfire_grace_time=180)
 

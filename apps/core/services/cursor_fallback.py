@@ -149,6 +149,8 @@ def ask(system: str, user: str) -> str | None:
 
 def drain_one() -> dict[str, Any] | None:
     """Run at most one queued job. Prefer kilauea, then morning/summary."""
+    if not config.CURSOR_FALLBACK or not config.CURSOR_API_KEY or not _budget_ok():
+        return None
     jobs = pending()
     if not jobs:
         return None
@@ -156,7 +158,7 @@ def drain_one() -> dict[str, Any] | None:
     jobs.sort(key=lambda j: order.get(j.get("kind") or "", 9))
     job = jobs[0]
     text = ask(job.get("system") or "", job.get("user") or "")
-    _pop(job.get("kind") or "", job.get("hash") or "")
     if not text:
         return None
+    _pop(job.get("kind") or "", job.get("hash") or "")
     return {**job, "text": text}

@@ -1,12 +1,13 @@
 """
 NOAA / NWS weather cron — real local driver (replaces CF proxy).
 Fetches point forecast + active HI alerts from api.weather.gov.
-Runs every 15 minutes.
+Runs hourly. Hash ignores the clock so unchanged forecasts do not republish.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 from datetime import datetime, timezone
 
@@ -64,7 +65,7 @@ async def run():
             # ── Build report ─────────────────────────────────────────────────
             from apps.core import config
 
-            lines = [f"# NWS Weather — {datetime.now(timezone.utc).isoformat()}\n"]
+            lines = ["# NWS Weather\n"]
 
             if alerts:
                 lines.append(f"## ⚠️ Active HI Alerts ({len(alerts)})\n")
@@ -95,7 +96,18 @@ async def run():
                     )
 
             content = "\n".join(lines)
-            content_hash = hashlib.md5(content.encode()).hexdigest()
+            # Hash the facts only — a clock stamp in the body used to republish every run.
+            fingerprint = json.dumps(
+                {
+                    "alerts": [(a.get("event"), a.get("headline")) for a in alerts[:8]],
+                    "forecast": [
+                        (p.get("name"), p.get("temperature"), p.get("shortForecast"))
+                        for p in periods[:4]
+                    ],
+                },
+                sort_keys=True,
+            )
+            content_hash = hashlib.md5(fingerprint.encode()).hexdigest()
             if content_hash == _last_hash:
                 log.debug("NOAA: no change since last run")
                 return

@@ -46,7 +46,11 @@ class EarthquakeGlobalPlugin(Plugin):
     def on_hour(self) -> None:
         log.info("Hourly global earthquake + volcano update")
         self._pull_quakes()
-        self._make_voice(force=True)
+        from apps.core.services import xai
+        if xai.grok_is_down():
+            log.info("Grok down — skip global quake voice this hour")
+            return
+        self._make_voice(force=False)
 
     def on_new_report(self, path: Path) -> None:
         pass
