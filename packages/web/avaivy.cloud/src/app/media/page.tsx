@@ -72,6 +72,5 @@ export default async function PublicMediaPage() {
           </div>
         ))}
       </section>
-    </>
   );
 }

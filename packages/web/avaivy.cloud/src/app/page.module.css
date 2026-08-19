@@ -25,7 +25,7 @@
 .logo { display: flex; align-items: center; gap: 8px; }
 .logoMark { color: var(--accent); font-size: 18px; }
 .logoName { font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
-.nav { display: flex; gap: 24px; }
+.nav { display: flex; gap: 24px; flex-wrap: wrap; justify-content: flex-end; }
 .nav a { font-size: 13px; color: var(--muted); transition: color .15s; }
 .nav a:hover { color: var(--text); text-decoration: none; }
 

@@ -62,6 +62,7 @@ function LoginForm() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <a href="/goals" className={styles.brand}>
+            <span style={{ color: "var(--accent)" }}>◈</span>
             Root Record <em>Goals</em>
           </a>
           <nav className={styles.nav}>

@@ -13,10 +13,6 @@ export default async function StatusPage() {
   const status = await getHostStatus(0);
   const online = !!status;
 
-export default async function StatusPage() {
-  const status = await getHostStatus(0);
-  const online = !!status;
-
   return (
     <div className={styles.wrap}>
       <div className={styles.card}>

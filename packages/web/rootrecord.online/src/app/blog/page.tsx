@@ -24,10 +24,11 @@ export default function BlogPage() {
     <div className={styles.wrap}>
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <div>
-            <a className={styles.brand} href="/">Root Record</a>
+          <a href="/" className={styles.brand}>
+            <span className={styles.logoMark} style={{ color: "var(--accent)", marginRight: 8 }}>◈</span>
+            Root Record
             <span className={styles.brandSub}>Updates</span>
-          </div>
+          </a>
           <nav className={styles.nav}>
             <a href="/">Live</a>
             <a href="/blog">Updates</a>

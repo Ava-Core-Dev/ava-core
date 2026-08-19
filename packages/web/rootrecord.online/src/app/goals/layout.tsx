@@ -7,6 +7,7 @@ export default function GoalsLayout({ children }: { children: React.ReactNode })
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link href="/goals" className={styles.brand}>
+            <span style={{ color: "var(--accent)" }}>◈</span>
             Root Record <em>Goals</em>
           </Link>
           <nav className={styles.nav}>
