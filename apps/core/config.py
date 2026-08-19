@@ -33,19 +33,26 @@ AVA_HOME = Path(os.getenv("AVA_HOME", str(AVA_HOME))).expanduser().resolve()
 # One media library: $AVA_HOME/media  (audio, video, images, documents).
 # Everything Ava plays, posts, or cites lives there — no bleed into data/ or apps/.
 _REPO_ROOT    = Path(__file__).resolve().parent.parent.parent
-VOICE_DIR     = _REPO_ROOT / "apps" / "voice"
+VOICE_DIR     = Path(
+    os.getenv("VOICE_DIR", str(_REPO_ROOT / "apps" / "voice"))
+).expanduser().resolve()
 MEDIA_DIR     = Path(
     os.getenv("AVA_MEDIA_DIR", str(AVA_HOME / "media"))
 ).expanduser().resolve()
 
 DATA_DIR      = Path(os.getenv("DATA_DIR",      str(AVA_HOME / "data"))).expanduser().resolve()
 REPORTS_DIR   = Path(os.getenv("REPORTS_DIR",   str(MEDIA_DIR / "documents" / "reports"))).expanduser().resolve()
-GENERATED_DIR = Path(os.getenv("GENERATED_DIR", str(MEDIA_DIR / "audio" / "generated"))).expanduser().resolve()
+GENERATED_DIR = Path(
+    os.getenv("GENERATED_DIR", str(MEDIA_DIR / "audio" / "voice" / "generated"))
+).expanduser().resolve()
 LOG_DIR       = Path(os.getenv("LOG_DIR",       str(MEDIA_DIR / "documents" / "logs"))).expanduser().resolve()
 DB_DIR        = Path(os.getenv("DB_DIR",        str(DATA_DIR / "db"))).expanduser().resolve()
 PLUGIN_DIR    = Path(os.getenv("PLUGIN_DIR",    str(AVA_HOME / "plugins"))).expanduser().resolve()
 ASSETS_DIR    = MEDIA_DIR / "audio"   # words / numbers / time_clips / sounds / station / reports
 MP4_DIR       = Path(os.getenv("MP4_DIR", str(MEDIA_DIR / "video" / "current"))).expanduser().resolve()
+VIDEO_REPORTS_DIR = Path(
+    os.getenv("VIDEO_REPORTS_DIR", str(MEDIA_DIR / "video" / "reports"))
+).expanduser().resolve()
 
 _THUMB_CANDIDATES = [
     MEDIA_DIR / "images" / "thumbnails" / "DEFAULT.jpg",
@@ -55,13 +62,22 @@ _THUMB_CANDIDATES = [
     ASSETS_DIR / "thumbnail.jpg",
 ]
 THUMBNAIL_PATH = next((p for p in _THUMB_CANDIDATES if p.exists()), _THUMB_CANDIDATES[0])
+_DAILY_THUMB_CANDIDATES = [
+    MEDIA_DIR / "images" / "thumbnails" / "thumb-daily-broadcast.jpg",
+    MEDIA_DIR / "thumbnails" / "thumb-daily-broadcast.jpg",
+    THUMBNAIL_PATH,
+]
+DAILY_BROADCAST_THUMB = next(
+    (p for p in _DAILY_THUMB_CANDIDATES if p and Path(p).exists()),
+    _DAILY_THUMB_CANDIDATES[0],
+)
 PORTRAIT_OPS   = MEDIA_DIR / "images" / "character" / "ava-desk-ops.png"
 PORTRAIT_WAVE  = MEDIA_DIR / "images" / "character" / "ava-hologram-wave.png"
 ICON_1024      = MEDIA_DIR / "images" / "brand" / "ava-icon-1024.png"
 
 MEDIA_SUBDIRS = (
     "audio/station", "audio/reports", "audio/crons", "audio/words", "audio/numbers",
-    "audio/time_clips", "audio/sounds", "audio/generated",
+    "audio/time_clips", "audio/sounds", "audio/voice", "audio/voice/generated",
     "video/clips", "video/reports", "video/current", "video/appearance",
     "images/channels", "images/character", "images/thumbnails",
     "images/discord", "images/slack", "images/telegram", "images/brand",
@@ -287,10 +303,21 @@ YOUTUBE_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "").strip()
 
 
 def ensure_dirs() -> None:
-    for d in (DATA_DIR, REPORTS_DIR, GENERATED_DIR, LOG_DIR, DB_DIR, PLUGIN_DIR, MP4_DIR, MEDIA_DIR):
+    for d in (
+        DATA_DIR, REPORTS_DIR, GENERATED_DIR, LOG_DIR, DB_DIR, PLUGIN_DIR,
+        MP4_DIR, VIDEO_REPORTS_DIR, MEDIA_DIR,
+    ):
         d.mkdir(parents=True, exist_ok=True)
     for sub in MEDIA_SUBDIRS:
         (MEDIA_DIR / sub).mkdir(parents=True, exist_ok=True)
+    # Older code writes audio/generated — keep that as an alias of voice/generated.
+    compat = MEDIA_DIR / "audio" / "generated"
+    if compat.is_symlink() or compat.exists():
+        return
+    try:
+        compat.symlink_to("voice/generated")
+    except OSError:
+        compat.mkdir(parents=True, exist_ok=True)
 
 
 def as_dict() -> dict[str, Any]:
