@@ -10,13 +10,13 @@ StartLimitBurst=5
 Type=exec
 User=ava-core
 Group=ava-core
-WorkingDirectory=/run/media/ava-core/6B6C97406BF24558/ava-core-v2
+WorkingDirectory=/home/ava-core/ava/ava-core-v2
 Environment=PYTHONUNBUFFERED=1
 Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=DISPLAY=:0
-EnvironmentFile=-/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.env
-ExecStart=/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.venv/bin/uvicorn apps.core.main:app \
+EnvironmentFile=-/home/ava-core/ava/ava-core-v2/.env
+ExecStart=/home/ava-core/ava/ava-core-v2/.venv/bin/uvicorn apps.core.main:app \
   --host 0.0.0.0 \
   --port 8787 \
   --log-level info \
@@ -26,8 +26,8 @@ Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
 
-StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core-systemd.log
-StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core-systemd.log
+StandardOutput=append:/home/ava-core/ava/logs/ava-core.log
+StandardError=append:/home/ava-core/ava/logs/ava-core.log
 
 [Install]
 WantedBy=multi-user.target

@@ -167,7 +167,7 @@ and restart on the machine.
 To apply changes on the machine:
 
 ```bash
-cd /run/media/ava-core/6B6C97406BF24558/ava-core-v2
+cd /home/ava-core/ava/ava-core-v2
 git pull
 pkill -f '[a]pps.core.main:app'
 .venv/bin/python -m uvicorn apps.core.main:app --host 127.0.0.1 --port 8787 &

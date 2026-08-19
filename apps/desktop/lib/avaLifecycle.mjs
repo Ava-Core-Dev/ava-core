@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AVA_ROOT =
   process.env.AVA_HANDOFF ||
   process.env.AVA_HOME ||
-  "/run/media/ava-core/6B6C97406BF24558/ava-core-v2";
+  "/home/ava-core/ava/ava-core-v2";
 const RUN_DIR = path.join(AVA_ROOT, "data", "run");
 const LOG_DIR = path.join(AVA_ROOT, "data", "logs");
 const VENV_PY = path.join(AVA_ROOT, ".venv", "bin", "python");

@@ -42,6 +42,9 @@ select = ["E", "F", "I", "UP"]
 python_version = "3.11"
 ignore_missing_imports = true
 
+[tool.setuptools.packages.find]
+include = ["apps*", "ava_core*"]
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"

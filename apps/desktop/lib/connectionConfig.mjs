@@ -67,7 +67,7 @@ export function discoverEnvFile() {
   const candidates = [
     process.env.AVA_ENV_FILE,
     process.env.ROOTMC_ENV_FILE,
-    "/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.env",
+    "/home/ava-core/ava/ava-core-v2/.env",
     path.join(os.homedir(), "ava", ".env"),
     path.resolve(__dirname, "../../.env"),
   ];

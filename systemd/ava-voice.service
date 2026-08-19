@@ -10,20 +10,20 @@ StartLimitBurst=5
 Type=exec
 User=ava-core
 Group=ava-core
-WorkingDirectory=/run/media/ava-core/6B6C97406BF24558/ava-core-v2
+WorkingDirectory=/home/ava-core/ava/ava-core-v2
 Environment=PYTHONUNBUFFERED=1
 Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 Environment=DISPLAY=:0
-EnvironmentFile=-/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.env
-ExecStart=/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.venv/bin/python -m apps.voice.director
+EnvironmentFile=-/home/ava-core/ava/ava-core-v2/.env
+ExecStart=/home/ava-core/ava/ava-core-v2/.venv/bin/python -m apps.voice.director
 
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
 
-StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-voice-systemd.log
-StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-voice-systemd.log
+StandardOutput=append:/home/ava-core/ava/logs/ava-voice.log
+StandardError=append:/home/ava-core/ava/logs/ava-voice.log
 
 [Install]
 WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { goalsFetch, writeToken } from "@/lib/goals-api";
 import styles from "../goals/goals.module.css";
 
@@ -13,6 +13,20 @@ function LoginForm() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const me = await goalsFetch("/v1/me");
+      if (cancelled || !me.ok) return;
+      const tok = String(me.json.access_token || me.json.token || "");
+      if (tok) writeToken(tok);
+      router.replace(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [next, router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +40,12 @@ function LoginForm() {
       });
       const token = String(res.json.access_token || res.json.token || "");
       if (!res.ok || !token) {
-        setErr(String(res.json.detail || "Sign-in failed."));
+        const detail = String(res.json.detail || "Sign-in failed.");
+        setErr(
+          detail === "Incorrect email or password."
+            ? "Incorrect email or password. Use your Root Record site password (rootrecord.info), not your email mailbox password."
+            : detail,
+        );
         return;
       }
       writeToken(token);
@@ -56,35 +75,36 @@ function LoginForm() {
           <section className={styles.hero}>
             <h1>{mode === "signup" ? "Create a Root Record account" : "Sign in"}</h1>
             <p>
-              Same account as rootrecord.info. Operator login{" "}
+              Use your <strong>Root Record site password</strong> (the one for rootrecord.info), not
+              your Outlook mailbox password. Operator{" "}
               <strong>rootrecord@outlook.com</strong> publishes Ava&apos;s server goals.
             </p>
           </section>
           <form onSubmit={submit} className={styles.form}>
-        <label>
-          Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        {err ? <p className={styles.err}>{err}</p> : null}
-        <button className={`${styles.btn} ${styles.btnGold}`} disabled={busy} type="submit">
-          {busy ? "Working…" : mode === "signup" ? "Create account" : "Sign in"}
-        </button>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.btnGhost}`}
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-        >
-          {mode === "login" ? "Need an account?" : "Have an account?"}
-        </button>
+            <label>
+              Email
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </label>
+            {err ? <p className={styles.err}>{err}</p> : null}
+            <button className={`${styles.btn} ${styles.btnGold}`} disabled={busy} type="submit">
+              {busy ? "Working…" : mode === "signup" ? "Create account" : "Sign in"}
+            </button>
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnGhost}`}
+              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+            >
+              {mode === "login" ? "Need an account?" : "Have an account?"}
+            </button>
           </form>
         </div>
       </main>

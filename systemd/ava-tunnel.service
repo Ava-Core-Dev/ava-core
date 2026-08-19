@@ -18,8 +18,8 @@ Restart=always
 RestartSec=5
 TimeoutStopSec=15
 
-StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/tunnel.log
-StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/tunnel.log
+StandardOutput=append:/home/ava-core/ava/logs/ava-tunnel.log
+StandardError=append:/home/ava-core/ava/logs/ava-tunnel.log
 
 [Install]
 WantedBy=multi-user.target

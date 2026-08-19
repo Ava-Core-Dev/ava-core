@@ -7,9 +7,9 @@ set -euo pipefail
 MEDIA="${AVA_MEDIA_DIR:-/home/ava-core/ava/media}"
 OLD="/home/ava-core/ava-old-20260819"
 LIVE="/home/ava-core/ava"
-STAGED="/run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/media"
-VOICE_ASSETS="/run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/voice/assets"
-V2="/run/media/ava-core/6B6C97406BF24558/ava-core-v2"
+STAGED="/home/ava-core/ava/ava-core-v2/apps/media"
+VOICE_ASSETS="/home/ava-core/ava/ava-core-v2/apps/voice/assets"
+V2="/home/ava-core/ava/ava-core-v2"
 LOG="/tmp/ava-media-consolidate.log"
 
 rsync_copy() {

@@ -64,7 +64,7 @@ def _ava_root() -> Path:
     candidates = [
         os.environ.get("AVA_HOME"),
         os.environ.get("AVA_HANDOFF"),
-        "/run/media/ava-core/6B6C97406BF24558/ava-core-v2",
+        "/home/ava-core/ava/ava-core-v2",
         str(Path.home() / "ava"),
     ]
     for candidate in candidates:

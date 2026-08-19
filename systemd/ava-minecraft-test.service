@@ -20,8 +20,8 @@ Restart=on-failure
 RestartSec=15
 TimeoutStopSec=30
 
-StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/minecraft-test.log
-StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/minecraft-test.log
+StandardOutput=append:/home/ava-core/ava/logs/ava-minecraft-test.log
+StandardError=append:/home/ava-core/ava/logs/ava-minecraft-test.log
 
 [Install]
 WantedBy=multi-user.target
