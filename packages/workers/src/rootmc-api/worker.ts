@@ -12,7 +12,7 @@ import { statusJson, statusPage } from "../shared/statusPage";
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
-const SITE_FRONTEND = "https://rootmc-web.pages.dev";
+const SITE_FRONTEND = "https://rootmc-web-egm.pages.dev";
 const API_PREFIXES = ["/api/", "/ava/"];
 
 async function d1Cache(env: AvaEnv, table: string): Promise<Response> {
