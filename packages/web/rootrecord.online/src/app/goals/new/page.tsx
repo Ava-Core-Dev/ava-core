@@ -3,16 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { goalsFetch } from "@/lib/goals-api";
+import { resizeGoalImage } from "@/lib/resize-goal-image";
 import styles from "../goals.module.css";
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result || ""));
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
-}
 
 export default function NewGoalPage() {
   const router = useRouter();
@@ -22,18 +14,24 @@ export default function NewGoalPage() {
   const [symbol, setSymbol] = useState("");
   const [preview, setPreview] = useState("");
   const [image, setImage] = useState("");
+  const [info, setInfo] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function onFile(f: File | undefined) {
     if (!f) return;
-    if (f.size > 400_000) {
-      setErr("Image must be under 400KB.");
-      return;
+    setErr("");
+    setInfo("");
+    setImage("");
+    setPreview("");
+    try {
+      const out = await resizeGoalImage(f);
+      setImage(out.dataUrl);
+      setPreview(out.dataUrl);
+      setInfo(`Ready: ${out.dim}×${out.dim} JPEG, ${out.kb} KB.`);
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Could not resize image.");
     }
-    const data = await fileToDataUrl(f);
-    setImage(data);
-    setPreview(data);
   }
 
   async function submit(e: React.FormEvent) {
@@ -120,10 +118,15 @@ export default function NewGoalPage() {
             required
           />
         </label>
+        <p className={styles.meta} style={{ marginTop: 0 }}>
+          Large photos are auto-cropped square and compressed for the token. GIFs become a still
+          frame.
+        </p>
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img className={styles.preview} src={preview} alt="Token artwork preview" />
         ) : null}
+        {info ? <p className={styles.ok}>{info}</p> : null}
         {err ? <p className={styles.err}>{err}</p> : null}
         <button className={`${styles.btn} ${styles.btnGold}`} disabled={busy || !title || !image} type="submit">
           {busy ? "Minting page…" : "Publish goal"}

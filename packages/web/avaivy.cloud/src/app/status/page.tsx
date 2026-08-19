@@ -54,6 +54,7 @@ export default async function StatusPage() {
 
         <div className={styles.links}>
           <a href="/status">Retry</a>
+          <a href="/status/goals">Goals</a>
           <a href="/">Home</a>
           <a href="https://rootrecord.online">Root Record</a>
           <a href="https://rootmc.net">RootMC</a>

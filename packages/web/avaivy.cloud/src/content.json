@@ -12,6 +12,7 @@
 
   "nav": [
     { "label": "Status", "href": "/status" },
+    { "label": "Goals", "href": "/status/goals" },
     { "label": "Updates", "href": "/blog" },
     { "label": "Context", "href": "/context" },
     { "label": "Solar", "href": "https://rootrecord.online" },
@@ -38,6 +39,13 @@
       "value": "play.rootmc.net",
       "sub": "RootMC survival server",
       "href": "https://rootmc.net",
+      "live": ""
+    },
+    {
+      "title": "Goals",
+      "value": "wishlist",
+      "sub": "Ranked records \u2192",
+      "href": "/status/goals",
       "live": ""
     },
     {

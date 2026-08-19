@@ -63,6 +63,16 @@ JSON, so the only rules are:
 - Every item except the last in a list needs a comma after it.
 - Don't delete the `{` `}` `[` `]` brackets.
 
+The goals board is the same idea, different file:
+
+```
+packages/web/avaivy.cloud/src/goals.json
+```
+
+Each goal is one object. Do not type in a raised total unless a real helper
+paid it. Do not add player Gold or ops-buffer as a funding source.
+
+
 If you paste this file into a free ChatGPT and say *"change the tagline to X and
 give me the whole file back"*, it will do it safely. Then paste the result back
 into GitHub and commit.
@@ -78,6 +88,7 @@ Layout and styling live next to each page:
 | Home page structure | `packages/web/avaivy.cloud/src/app/page.tsx` |
 | Home page styling | `packages/web/avaivy.cloud/src/app/page.module.css` |
 | Status page | `packages/web/avaivy.cloud/src/app/status/page.tsx` |
+| Goals board | `packages/web/avaivy.cloud/src/goals.json` |
 | Colors + global styles | `packages/web/avaivy.cloud/src/app/globals.css` |
 | Root Record dashboard | `packages/web/rootrecord.online/src/app/page.tsx` |
 

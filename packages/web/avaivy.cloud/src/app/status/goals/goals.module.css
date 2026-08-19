@@ -1,0 +1,137 @@
+.wrap {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 3rem 1.4rem 4rem;
+}
+
+.kicker {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 1.2rem;
+}
+
+.wrap h1 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+
+.blurb {
+  color: var(--text);
+  margin-bottom: 0.6rem;
+}
+
+.weights {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-bottom: 2rem;
+}
+
+.list {
+  list-style: none;
+  display: grid;
+  gap: 1.2rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem 1.3rem 1.3rem;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.status,
+.cat,
+.score {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  color: var(--muted);
+}
+
+.status {
+  color: var(--green);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.card h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.15rem;
+}
+
+.id {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.7rem;
+}
+
+.hw {
+  margin: 0.7rem 0 0.4rem 1.1rem;
+  color: var(--text);
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin-top: 0.4rem;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.7rem;
+  margin: 1rem 0 0.8rem;
+}
+
+.meta dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.meta dd {
+  margin: 0.15rem 0 0;
+}
+
+.meter {
+  height: 6px;
+  background: #0f172a;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.helpers {
+  margin-top: 0.9rem;
+}
+
+.helpers h3 {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 2.2rem;
+}

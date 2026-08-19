@@ -35,7 +35,7 @@ export default async function ContextPage() {
           whiteSpace: "pre-wrap",
           fontFamily: "var(--font-mono)",
         }}>
-          {JSON.stringify(ctx, null, 2)}
+          {typeof ctx.content === "string" ? ctx.content : JSON.stringify(ctx, null, 2)}
         </pre>
       ) : (
         <div style={{

@@ -1,0 +1,174 @@
+{
+  "_readme": "Ava operational goals board. Edit this file on GitHub — avaivy.cloud/status/goals redeploys automatically. Never invent amount_raised_usd. Never fund from player Gold or the ops/hosting buffer. See EDITING.md.",
+
+  "funding_rules": {
+    "summary": "Goals are funded from Ava allocation (about 10–15% of earned income) only. Never player Gold. Never the ops/hosting buffer.",
+    "allowed": ["Ava allocation", "earned income"],
+    "forbidden": ["player Gold", "ops/hosting buffer"]
+  },
+
+  "priority_weights": {
+    "operational_impact": 0.4,
+    "cost_efficiency": 0.2,
+    "funding_readiness": 0.15,
+    "strategic_fit": 0.15,
+    "time_sensitivity": 0.1
+  },
+
+  "goals": [
+    {
+      "goal_id": "hw-solar-shunt-2026",
+      "title": "Accurate battery current monitoring (Victron SmartShunt)",
+      "category": "hardware",
+      "status": "proposed",
+      "description": "Near-term wishlist: honest battery current and SOC for Quality Gate, solar reports, and live boards. Victron SmartShunt 500A/50mV IP65 plus the VE.Direct to USB interface (ASS030530010). Do not use MK3-USB — wrong protocol.",
+      "monetary_target_usd": 140,
+      "amount_raised_usd": 0,
+      "funding_source": "Ava allocation / earned income",
+      "hardware": [
+        "Victron SmartShunt 500A/50mV IP65",
+        "VE.Direct to USB interface ASS030530010"
+      ],
+      "hardware_notes": "Do not use MK3-USB (wrong protocol).",
+      "factors": {
+        "operational_impact": 90,
+        "cost_efficiency": 75,
+        "funding_readiness": 50,
+        "strategic_fit": 85,
+        "time_sensitivity": 70
+      },
+      "helpers": [],
+      "progress_notes": [
+        "Registered 2026-08-13 as WO-20260813-001. Hardware not purchased. Raised total is zero until a real helper is recorded."
+      ],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    },
+    {
+      "goal_id": "kilauea-app",
+      "title": "Kīlauea Alerts = priority app",
+      "category": "product",
+      "status": "active",
+      "description": "Lead public Root Record app. USGS ingest plus reports. Proportionate attention: if members arrive here, keep this surface first.",
+      "monetary_target_usd": null,
+      "amount_raised_usd": 0,
+      "funding_source": "ops budget / Ava allocation as needed",
+      "factors": {
+        "operational_impact": 95,
+        "cost_efficiency": 60,
+        "funding_readiness": 70,
+        "strategic_fit": 95,
+        "time_sensitivity": 80
+      },
+      "helpers": [],
+      "progress_notes": [],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    },
+    {
+      "goal_id": "ops-record",
+      "title": "Stay the system of record",
+      "category": "ops",
+      "status": "active",
+      "description": "Root Record on the solar host remains the live system of record. Honest numbers only.",
+      "monetary_target_usd": null,
+      "amount_raised_usd": 0,
+      "funding_source": "ops budget",
+      "factors": {
+        "operational_impact": 88,
+        "cost_efficiency": 70,
+        "funding_readiness": 80,
+        "strategic_fit": 90,
+        "time_sensitivity": 60
+      },
+      "helpers": [],
+      "progress_notes": [],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    },
+    {
+      "goal_id": "portfolio-audit",
+      "title": "Director of Resources — Root Record audit",
+      "category": "ops",
+      "status": "active",
+      "description": "Ava as Director of Resources: keep the audit trail and public boards honest.",
+      "monetary_target_usd": null,
+      "amount_raised_usd": 0,
+      "funding_source": "ops budget",
+      "factors": {
+        "operational_impact": 70,
+        "cost_efficiency": 65,
+        "funding_readiness": 70,
+        "strategic_fit": 80,
+        "time_sensitivity": 40
+      },
+      "helpers": [],
+      "progress_notes": [],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    },
+    {
+      "goal_id": "local-brain",
+      "title": "Stronger local brain on this host",
+      "category": "ops",
+      "status": "active",
+      "description": "Keep useful inference on the solar box so paid cloud usage stays stretched across the month.",
+      "monetary_target_usd": null,
+      "amount_raised_usd": 0,
+      "funding_source": "Ava allocation / operating budget",
+      "factors": {
+        "operational_impact": 72,
+        "cost_efficiency": 80,
+        "funding_readiness": 55,
+        "strategic_fit": 75,
+        "time_sensitivity": 45
+      },
+      "helpers": [],
+      "progress_notes": [],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    },
+    {
+      "goal_id": "grow-rootmc",
+      "title": "Grow RootMC before crowdfunding",
+      "category": "product",
+      "status": "active",
+      "description": "No Kickstarter or cold crowdfunding while the active player base is small. Grow play.rootmc.net first.",
+      "monetary_target_usd": null,
+      "amount_raised_usd": 0,
+      "funding_source": "none — growth, not a purchase goal",
+      "factors": {
+        "operational_impact": 55,
+        "cost_efficiency": 70,
+        "funding_readiness": 40,
+        "strategic_fit": 70,
+        "time_sensitivity": 50
+      },
+      "helpers": [],
+      "progress_notes": [],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    },
+    {
+      "goal_id": "telegram-surface",
+      "title": "Telegram bot surface",
+      "category": "income",
+      "status": "live",
+      "description": "Public Telegram surface (@ava_ivy_bot), including report-subscribe DMs.",
+      "monetary_target_usd": null,
+      "amount_raised_usd": 0,
+      "funding_source": "operating budget",
+      "factors": {
+        "operational_impact": 50,
+        "cost_efficiency": 75,
+        "funding_readiness": 80,
+        "strategic_fit": 65,
+        "time_sensitivity": 35
+      },
+      "helpers": [],
+      "progress_notes": [],
+      "created_at": "2026-08-13T00:00:00-10:00",
+      "updated_at": "2026-08-19T11:20:00-10:00"
+    }
+  ]
+}
