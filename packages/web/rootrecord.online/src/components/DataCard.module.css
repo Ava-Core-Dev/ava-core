@@ -1,0 +1,30 @@
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+.table { width: 100%; border-collapse: collapse; }
+.table tr + tr td { border-top: 1px solid var(--border); }
+.key {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  padding: 6px 0;
+  width: 40%;
+}
+.val {
+  font-size: 13px;
+  font-family: var(--font-mono);
+  padding: 6px 0;
+  color: var(--text);
+}
+.placeholder { font-size: 13px; color: var(--muted); font-style: italic; }
