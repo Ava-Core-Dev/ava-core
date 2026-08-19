@@ -24,5 +24,7 @@ binding = "LIVE_DB"
 id = "b243adce0a4c48a39b491612008fcf51"
 
 [triggers]
-crons = ["* * * * *", "45 8 * * *"]
+# Host scheduler owns crons. Edge triggers need a workers.dev subdomain
+# (dashboard error 10063) and would duplicate work while Ava is awake.
+# crons = ["* * * * *", "45 8 * * *"]
 
