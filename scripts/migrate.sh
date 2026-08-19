@@ -16,43 +16,38 @@ echo "Migrating voice assets..."
 ASSETS="$NEW/apps/voice/assets"
 mkdir -p "$ASSETS/numbers" "$ASSETS/words" "$ASSETS/time_clips" "$ASSETS/sounds"
 
-# Primary source: Ara zip files on Desktop (includes all new clips)
-DESKTOP="/home/ava-core/Desktop"
-if [ -f "$DESKTOP/ara_voice_bits.zip" ]; then
-  echo "  Extracting ara_voice_bits.zip..."
-  tmpdir=$(mktemp -d)
-  unzip -q "$DESKTOP/ara_voice_bits.zip" -d "$tmpdir"
-  cp -n "$tmpdir/data/voice/words/"*.mp3    "$ASSETS/words/"    2>/dev/null && echo "    words/ from zip"
-  cp -n "$tmpdir/data/voice/numbers/"*.mp3  "$ASSETS/numbers/"  2>/dev/null && echo "    numbers/ from zip"
-  rm -rf "$tmpdir"
-fi
-if [ -f "$DESKTOP/ara_numbers_extra.zip" ]; then
-  echo "  Extracting ara_numbers_extra.zip..."
-  tmpdir=$(mktemp -d)
-  unzip -q "$DESKTOP/ara_numbers_extra.zip" -d "$tmpdir"
-  cp -n "$tmpdir/data/voice/numbers/"*.mp3  "$ASSETS/numbers/"  2>/dev/null && echo "    extra numbers/ from zip"
-  rm -rf "$tmpdir"
+# Primary: assets already live in the repo checkout (extracted from Ara zips at build time)
+# They are gitignored (binary/large) but present on disk in any fresh clone that ran
+# scripts/migrate.sh previously, or in the canonical SSD build at ava-core-v2.
+CANONICAL="/run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/voice/assets"
+if [ -d "$CANONICAL/words" ] && [ "$CANONICAL" != "$ASSETS" ]; then
+  cp -rn "$CANONICAL/words/."      "$ASSETS/words/"      2>/dev/null && echo "  words/ from canonical build"
+  cp -rn "$CANONICAL/numbers/."    "$ASSETS/numbers/"    2>/dev/null && echo "  numbers/ from canonical build"
+  cp -rn "$CANONICAL/time_clips/." "$ASSETS/time_clips/" 2>/dev/null && echo "  time_clips/ from canonical build"
+  cp -rn "$CANONICAL/sounds/."     "$ASSETS/sounds/"     2>/dev/null && echo "  sounds/ from canonical build"
 fi
 
-# Fallback: old voice tree (fills any remaining gaps)
+# Gap-filler: old ava voice tree (anything not already present)
 if [ -d "$OLD/voice/numbers" ]; then
-  cp -rn "$OLD/voice/numbers/." "$ASSETS/numbers/" && echo "  numbers/ from old tree"
+  cp -rn "$OLD/voice/numbers/."  "$ASSETS/numbers/"  2>/dev/null && echo "  numbers/ gap-fill from old tree"
 fi
 if [ -d "$OLD/voice/words" ]; then
-  cp -rn "$OLD/voice/words/." "$ASSETS/words/" && echo "  words/ from old tree"
+  cp -rn "$OLD/voice/words/."    "$ASSETS/words/"    2>/dev/null && echo "  words/ gap-fill from old tree"
 fi
 if [ -d "$OLD/voice/time_clips" ]; then
-  cp -rn "$OLD/voice/time_clips/." "$ASSETS/time_clips/" && echo "  time_clips/ copied"
+  cp -rn "$OLD/voice/time_clips/." "$ASSETS/time_clips/" 2>/dev/null && echo "  time_clips/ gap-fill from old tree"
 fi
 if [ -d "$OLD/python version/ava-core/voice/time_clips" ]; then
-  cp -rn "$OLD/python version/ava-core/voice/time_clips/." "$ASSETS/time_clips/" && echo "  time_clips (python ver) copied"
+  cp -rn "$OLD/python version/ava-core/voice/time_clips/." "$ASSETS/time_clips/" 2>/dev/null && echo "  time_clips (python ver) gap-fill"
 fi
 if [ -f "$OLD/python version/ava-core/sounds/futuristic_bell.mp3" ]; then
-  cp "$OLD/python version/ava-core/sounds/futuristic_bell.mp3" "$ASSETS/sounds/" && echo "  futuristic_bell.mp3 copied"
+  cp -n "$OLD/python version/ava-core/sounds/futuristic_bell.mp3" "$ASSETS/sounds/" 2>/dev/null && echo "  futuristic_bell.mp3 copied"
 fi
 if [ -f "$OLD/python version/ava-core/thumbnail.jpg" ]; then
-  cp "$OLD/python version/ava-core/thumbnail.jpg" "$ASSETS/" && echo "  thumbnail.jpg copied"
+  cp -n "$OLD/python version/ava-core/thumbnail.jpg" "$ASSETS/" 2>/dev/null && echo "  thumbnail.jpg copied"
 fi
+
+echo "  Voice totals: words=$(ls "$ASSETS/words/" 2>/dev/null | wc -l)  numbers=$(ls "$ASSETS/numbers/" 2>/dev/null | wc -l)  time=$(ls "$ASSETS/time_clips/" 2>/dev/null | wc -l)"
 
 # ── Generated audio (current outputs) ─────────────────────────────────────────
 echo "Migrating generated audio..."

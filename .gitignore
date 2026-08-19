@@ -32,8 +32,8 @@ data/db/
 data/reports/
 
 # Audio assets — not tracked in git (binary, large).
-# Source: ara_voice_bits.zip + ara_numbers_extra.zip on /home/ava-core/Desktop
-# Deploy: scripts/migrate.sh copies them into apps/voice/assets/
+# Source: canonical build at /run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/voice/assets/
+# Deploy: scripts/migrate.sh copies them into apps/voice/assets/ on fresh installs
 apps/voice/assets/numbers/
 apps/voice/assets/words/
 apps/voice/assets/time_clips/
