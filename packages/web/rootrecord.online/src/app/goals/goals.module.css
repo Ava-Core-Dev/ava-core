@@ -100,3 +100,21 @@
 .err { color: var(--red); font-size: 13px; }
 .ok { color: var(--green); font-size: 13px; }
 .empty { color: var(--muted); padding: 24px 0; }
+
+.modalScrim {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(4, 7, 12, 0.78); backdrop-filter: blur(8px);
+  display: flex; align-items: flex-end; justify-content: center; padding: 20px;
+}
+@media (min-width: 720px) { .modalScrim { align-items: center; } }
+.modalCard {
+  width: min(560px, 100%); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px 22px 18px; box-shadow: 0 24px 80px rgba(0,0,0,.45);
+}
+.modalCard h2 { font-size: 22px; letter-spacing: -0.03em; margin: 0 0 8px; }
+.modalCard p { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 12px; }
+.modalCard ul { margin: 0 0 16px; padding-left: 1.15rem; color: var(--text); font-size: 14px; }
+.modalCard li { margin: 0 0 6px; }
+.modalActions { display: flex; flex-direction: column; gap: 8px; }
+.modalActions .btn { margin-top: 0; }

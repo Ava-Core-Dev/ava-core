@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { goalsFetch } from "@/lib/goals-api";
 import { resizeGoalImage } from "@/lib/resize-goal-image";
 import styles from "../goals.module.css";
@@ -17,6 +17,18 @@ export default function NewGoalPage() {
   const [info, setInfo] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showMemberGate, setShowMemberGate] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const res = await goalsFetch("/api/profile");
+      if (res.status === 401) {
+        router.push("/login?next=/goals/new");
+        return;
+      }
+      if (!res.ok || !res.json.can_post_goals) setShowMemberGate(true);
+    })();
+  }, [router]);
 
   async function onFile(f: File | undefined) {
     if (!f) return;
@@ -128,10 +140,36 @@ export default function NewGoalPage() {
         ) : null}
         {info ? <p className={styles.ok}>{info}</p> : null}
         {err ? <p className={styles.err}>{err}</p> : null}
-        <button className={`${styles.btn} ${styles.btnGold}`} disabled={busy || !title || !image} type="submit">
+        <button className={`${styles.btn} ${styles.btnGold}`} disabled={busy || !title || !image || showMemberGate} type="submit">
           {busy ? "Minting page…" : "Publish goal"}
         </button>
       </form>
+      {showMemberGate ? (
+        <div className={styles.modalScrim}>
+          <div className={styles.modalCard} role="dialog" aria-labelledby="gateTitle">
+            <h2 id="gateTitle">Members post public goals</h2>
+            <p>
+              This page is how Root Record turns a real project into a public goal: title, purpose,
+              artwork, optional USD target, and a token face. Donors send SOL, USDC, or card. You
+              withdraw only after the target is met.
+            </p>
+            <ul>
+              <li>Artwork becomes the goal token image</li>
+              <li>A donate wallet is created with the post</li>
+              <li>100 tokens = 100% of the USD target</li>
+              <li>Only members can create goals. Anyone can donate.</li>
+            </ul>
+            <div className={styles.modalActions}>
+              <a className={`${styles.btn} ${styles.btnGold}`} href="https://g.rootrecord.info/memberships">
+                Get membership to create goals
+              </a>
+              <a className={`${styles.btn} ${styles.btnGhost}`} href="/goals">
+                Browse public goals
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
