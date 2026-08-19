@@ -35,6 +35,8 @@ async def run():
     pub_kind = kind if kind in reports.PUBLIC_KINDS else "summary"
     channel = job.get("channel") or ("kilauea" if kind == "kilauea" else "updates")
     await reports.publish(pub_kind, body, channel=channel)
+    if pub_kind in {"morning", "summary"}:
+        reports.write_current(body, kind=pub_kind, source="cursor")
 
     report_path = config.REPORTS_DIR / f"{kind}-cursor-{datetime.now(HST).strftime('%Y-%m-%dT%H')}.md"
     report_path.write_text(body)

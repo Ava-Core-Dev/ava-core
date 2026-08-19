@@ -12,12 +12,13 @@
  */
 
 import { avaIsAwake } from "../shared/heartbeat";
-import { proxyToOrigin } from "../shared/proxy";
+import { fetchFrontend, proxyToOrigin } from "../shared/proxy";
 import { statusJson, statusPage } from "../shared/statusPage";
 import type { AvaEnv } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
-const VERCEL_FRONTEND = "https://avaivy-cloud.vercel.app"; // update when deployed
+// Production avaivy-cloud.vercel.app is stale (no /blog). Branch alias tracks master.
+const VERCEL_FRONTEND = "https://avaivy-cloud-git-master-root-record.vercel.app";
 
 const PROXIED_PREFIXES = ["/api/", "/obs/", "/status", "/context", "/solar", "/goals", "/health"];
 
@@ -57,7 +58,7 @@ export default {
     }
 
     // Fallthrough to Vercel frontend for public site
-    return fetch(VERCEL_FRONTEND + path + url.search, { headers: request.headers });
+    return fetchFrontend(request, VERCEL_FRONTEND);
   },
 
   async scheduled(_event: ScheduledEvent, env: AvaEnv): Promise<void> {

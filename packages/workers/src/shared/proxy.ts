@@ -12,6 +12,23 @@ export interface ProxyOptions {
   path?: string;
 }
 
+/** Fetch a Vercel/Pages frontend without forwarding the visitor Host header. */
+export async function fetchFrontend(
+  request: Request,
+  frontendBase: string,
+): Promise<Response> {
+  const url = new URL(request.url);
+  const target = frontendBase.replace(/\/$/, "") + url.pathname + url.search;
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  return fetch(target, {
+    method: request.method,
+    headers,
+    body: request.method !== "GET" && request.method !== "HEAD" ? request.body : undefined,
+    redirect: "follow",
+  });
+}
+
 export async function proxyToOrigin(
   request: Request,
   opts: ProxyOptions

@@ -34,6 +34,8 @@ async def run():
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Ava morning report** — {now_hst}\n\n{summary}"
     await discord.post_message(config.DISCORD_CHANNELS["automations"], content)
+    from apps.core.services import reports as report_store
+    report_store.write_current(content, kind="morning", source="cron")
     log.info("Morning report posted")
 
 
@@ -55,4 +57,5 @@ async def run_merged():
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
     await reports.publish("summary", content, channel="updates")
+    reports.write_current(content, kind="summary", source="cron")
     log.info("Merged morning summary posted to #updates + report DMs")

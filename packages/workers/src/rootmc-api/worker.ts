@@ -7,11 +7,13 @@
  */
 
 import { avaIsAwake } from "../shared/heartbeat";
-import { proxyToOrigin } from "../shared/proxy";
+import { fetchFrontend, proxyToOrigin } from "../shared/proxy";
 import { statusJson, statusPage } from "../shared/statusPage";
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
+const SITE_FRONTEND = "https://rootmc-web.pages.dev";
+const API_PREFIXES = ["/api/", "/ava/"];
 
 async function d1Cache(env: AvaEnv, table: string): Promise<Response> {
   if (!env.ROOTMC_LIVE_DB) {
@@ -45,16 +47,22 @@ export default {
       return d1Cache(env, path.slice("/api/edge/".length).replace(/\/$/, "") || "meta");
     }
 
-    return proxyToOrigin(request, {
-      originUrl: ORIGIN,
-      path: path.startsWith("/ava/") ? path.slice("/ava".length) : undefined,
-      offlineFallback: async () => {
-        if (path.startsWith("/api/minecraft") || path.startsWith("/api/edge")) {
-          return d1Cache(env, "status");
-        }
-        return statusPage(env, { degraded: true });
-      },
-    });
+    const host = url.hostname;
+    const isApiHost = host === "api.rootmc.net" || API_PREFIXES.some((p) => path.startsWith(p));
+    if (isApiHost) {
+      return proxyToOrigin(request, {
+        originUrl: ORIGIN,
+        path: path.startsWith("/ava/") ? path.slice("/ava".length) : undefined,
+        offlineFallback: async () => {
+          if (path.startsWith("/api/minecraft") || path.startsWith("/api/edge")) {
+            return d1Cache(env, "status");
+          }
+          return statusPage(env, { degraded: true });
+        },
+      });
+    }
+
+    return fetchFrontend(request, SITE_FRONTEND);
   },
 
   async scheduled(_event: ScheduledEvent, env: AvaEnv): Promise<void> {

@@ -1,6 +1,7 @@
 name = "rootrecord-api"
 main = "src/rootrecord-api/worker.ts"
 compatibility_date = "2024-11-01"
+account_id = "d2daf26398a805b29e12ddba2b2228cf"
 
 routes = [
   { pattern = "rootrecord.online/*", zone_name = "rootrecord.online" },

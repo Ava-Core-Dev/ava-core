@@ -1,7 +1,8 @@
-"""Public report subscriptions — not the operator/dev feed."""
+"""Public report subscriptions + operator current-report submit."""
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from ..services import reports, subscribers
@@ -19,6 +20,32 @@ class PublishIn(BaseModel):
     kind: str = Field(default="summary")
     text: str
     channel: str | None = None
+
+
+class ManualIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)
+    kind: str = Field(default="summary")
+    post: bool = True
+
+
+def _allow_mutate(request: Request) -> bool:
+    # Cloudflare tunnel injects cf-ray; never accept mutations from the public origin.
+    if request.headers.get("cf-ray") or request.headers.get("cf-connecting-ip"):
+        return False
+    host = request.client.host if request.client else ""
+    return host in {"127.0.0.1", "::1"}
+
+
+@router.get("")
+@router.get("/")
+async def reports_board():
+    """Desktop Reports page: current file, due jobs, generated markdown."""
+    return reports.status_board()
+
+
+@router.get("/current")
+async def current_report():
+    return reports.read_current()
 
 
 @router.get("/subscribers")
@@ -41,6 +68,14 @@ async def remove_subscriber(surface: str, sid: str):
 async def publish_report(body: PublishIn):
     """Send a public report to the channel + subscribers. Rejects non-public kinds."""
     return await reports.publish(body.kind, body.text, channel=body.channel)
+
+
+@router.post("/manual")
+async def manual_report(body: ManualIn, request: Request):
+    """Paste a written daily report. Updates morning-report-current.md. No Grok/Cursor."""
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    return await reports.submit_manual(body.text, kind=body.kind, post=body.post)
 
 
 @router.post("/test")

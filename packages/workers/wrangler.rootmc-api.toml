@@ -7,6 +7,8 @@ account_id = "d2daf26398a805b29e12ddba2b2228cf"
 # zone we actually own, then add .info routes after that zone is transferred.
 routes = [
   { pattern = "api.rootmc.net/*", zone_name = "rootmc.net" },
+  { pattern = "rootmc.net/*", zone_name = "rootmc.net" },
+  { pattern = "www.rootmc.net/*", zone_name = "rootmc.net" },
 ]
 
 [[d1_databases]]

@@ -525,6 +525,32 @@
           <button type="button" id="reports-open-data">Data</button>
         </div>
       </div>
+      <div class="reports-manual">
+        <h3 class="cron-title">Manual daily report</h3>
+        <p class="hint-inline">Same idea as Discord <code>/yt</code> — paste the written report when Grok and Cursor are both down. Updates <code>morning-report-current.md</code> and posts as-is (no model rewrite). Ara TTS / MP4 stays skipped until credits return.</p>
+        <p id="reports-current-meta" class="hint-inline">No current report yet.</p>
+        <pre id="reports-current-preview" class="status reports-current-preview"></pre>
+        <div class="grid-2" style="margin-top:0.5rem">
+          <label>Kind
+            <select id="reports-kind">
+              <option value="summary">Morning summary → #updates + DMs</option>
+              <option value="morning">Morning report → #automations + DMs</option>
+            </select>
+          </label>
+          <label class="check" style="align-self:end">
+            <input id="reports-post" type="checkbox" checked />
+            Post to Discord / subscribers
+          </label>
+        </div>
+        <label>Written report
+          <textarea id="reports-manual-draft" class="draft-tall" rows="10" placeholder="Paste today’s written daily report…"></textarea>
+        </label>
+        <div class="row wrap" style="margin-top:0.5rem">
+          <button type="button" id="reports-load-current">Load current</button>
+          <button type="button" id="reports-clear-draft">Clear draft</button>
+          <button type="button" id="reports-submit-manual" class="primary">Submit current report</button>
+        </div>
+      </div>
       <h3 class="cron-title">Due today</h3>
       <div id="reports-due" class="cron-table"></div>
       <h3 class="cron-title">Recurring</h3>

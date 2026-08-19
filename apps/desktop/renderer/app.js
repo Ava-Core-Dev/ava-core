@@ -886,6 +886,21 @@ function reportStatusPill(status) {
   return `<span class="report-pill ${escapeHtml(s)}">${escapeHtml(s)}</span>`;
 }
 
+function paintCurrentReport(st) {
+  const cur = st?.current || {};
+  const meta = $("reports-current-meta");
+  const preview = $("reports-current-preview");
+  if (meta) {
+    meta.textContent = cur.exists
+      ? `${cur.current ? "Current" : "Latest"} ${cur.name || "morning-report-current.md"} · ${fmtHst(cur.mtimeMs)} · ${Math.max(1, Math.round((cur.bytes || 0) / 1024))} KB`
+      : "No current report yet — paste one below.";
+  }
+  if (preview) {
+    const text = String(cur.text || "").trim();
+    preview.textContent = text ? text.slice(0, 1200) : "(empty)";
+  }
+}
+
 async function refreshReports() {
   const meta = $("reports-meta");
   const dueHost = $("reports-due");
@@ -900,9 +915,11 @@ async function refreshReports() {
       dueHost.innerHTML = "";
       recHost.innerHTML = "";
       genHost.innerHTML = "";
+      paintCurrentReport(null);
       $("reports-status").textContent = JSON.stringify(st, null, 2);
       return;
     }
+    paintCurrentReport(st);
     meta.textContent = [
       `HST ${st.hstDay || "?"}`,
       `${(st.dueToday || []).filter((r) => r.status !== "done").length} due/upcoming today`,
@@ -2979,6 +2996,76 @@ $("post-send").onclick = async () => {
 $("cron-refresh").onclick = () => refreshCrons();
 $("cron-catchup").onclick = () => runOpsCommand("cron-catchup");
 if ($("reports-refresh")) $("reports-refresh").onclick = () => refreshReports();
+if ($("reports-load-current")) {
+  $("reports-load-current").onclick = async () => {
+    const st = $("reports-status");
+    try {
+      const res = await fetch(`${brainBaseUrl()}/api/reports/current`, {
+        cache: "no-store",
+        headers: operatorHeaders(),
+      });
+      const d = await res.json();
+      if (!d?.exists) {
+        if (st) st.textContent = "No current report on disk yet.";
+        return;
+      }
+      $("reports-manual-draft").value = d.text || "";
+      if (st) st.textContent = `Loaded ${d.name || "current"}`;
+    } catch (err) {
+      if (st) st.textContent = String(err.message || err);
+    }
+  };
+}
+if ($("reports-clear-draft")) {
+  $("reports-clear-draft").onclick = () => {
+    $("reports-manual-draft").value = "";
+    $("reports-status").textContent = "";
+  };
+}
+if ($("reports-submit-manual")) {
+  $("reports-submit-manual").onclick = async () => {
+    const draft = $("reports-manual-draft")?.value?.trim() || "";
+    const st = $("reports-status");
+    if (!draft) {
+      if (st) st.textContent = "Paste the written daily report first.";
+      return;
+    }
+    const post = Boolean($("reports-post")?.checked);
+    const kind = $("reports-kind")?.value || "summary";
+    const dest = kind === "morning" ? "#automations" : "#updates";
+    const ok = confirm(
+      post
+        ? `Replace the current daily report and post to ${dest} + subscribers?\n\nDoes not call Grok or Cursor.`
+        : "Replace the current daily report on disk only (no Discord post)?",
+    );
+    if (!ok) return;
+    if (st) st.textContent = "Submitting current report…";
+    try {
+      const res = await fetch(`${brainBaseUrl()}/api/reports/manual`, {
+        method: "POST",
+        headers: operatorHeaders(),
+        body: JSON.stringify({ text: draft, kind, post }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok || !d?.ok) {
+        if (st) st.textContent = d?.detail || `http_${res.status}`;
+        return;
+      }
+      const posted = d.posted || {};
+      if (st) {
+        st.textContent = [
+          `Current updated: ${d.current || d.dated || "ok"}`,
+          post
+            ? `posted ${posted.channel ? "channel" : "no channel"} · DMs ${posted.dms || 0}`
+            : "disk only",
+        ].join("\n");
+      }
+      await refreshReports();
+    } catch (err) {
+      if (st) st.textContent = String(err.message || err);
+    }
+  };
+}
 if ($("reports-open-reports")) {
   $("reports-open-reports").onclick = () => window.avaDesktop.openFolder("reports");
 }
