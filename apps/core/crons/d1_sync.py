@@ -57,6 +57,7 @@ async def _mysql_rows(sql: str) -> list[dict]:
                 conn.close()
         except Exception as e:
             last = e
+            log.info("MySQL %s/%s: %s", cfg["host"], cfg["db"], e)
             continue
     if last:
         log.warning("MySQL read failed: %s", last)

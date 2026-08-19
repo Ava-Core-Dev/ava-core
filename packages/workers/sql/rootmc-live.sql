@@ -1,6 +1,7 @@
--- RootMC live cache on D1 (edge copy of host MySQL).
--- Host cron apps.core.crons.d1_sync upserts these rows.
--- Workers read them when Ava is offline; Hyperdrive is the live SQL path.
+-- RootMC live cache on D1 (edge copy of host MySQL)
+-- Host cron d1_sync upserts these rows
+-- Workers read them when Ava is offline
+-- Hyperdrive is the live SQL path for workers
 
 CREATE TABLE IF NOT EXISTS sync_meta (
   name       TEXT PRIMARY KEY,

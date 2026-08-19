@@ -50,9 +50,15 @@ async def exec_script(db_id: str, statements: list[str]) -> bool:
     ok = True
     for sql in statements:
         sql = sql.strip()
-        if not sql or sql.startswith("--"):
+        # Drop full-line comments so a semicolon inside a comment cannot leak
+        lines = [
+            ln for ln in sql.splitlines()
+            if ln.strip() and not ln.strip().startswith("--")
+        ]
+        sql = "\n".join(lines).strip()
+        if not sql:
             continue
-        body = await query(db_id, sql)
+        body = await d1.query(db_id, sql)
         if not body.get("success"):
             ok = False
             log.warning("D1 exec failed: %s", body.get("errors"))
