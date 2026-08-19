@@ -48,6 +48,7 @@ export function ensureMediaDirs() {
     "audio/sounds",
     "audio/voice",
     "audio/voice/generated",
+    "audio/current",
     "video/clips",
     "video/reports",
     "video/current",

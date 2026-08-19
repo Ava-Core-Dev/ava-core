@@ -55,6 +55,7 @@ export default function DashboardClient({ initial }: Props) {
             <span className={styles.brandSub}>Live</span>
           </div>
           <nav className={styles.nav}>
+            <a href="/goals">Goals</a>
             <a href="/blog">Updates</a>
             <a href="https://avaivy.cloud">Ava Ivy</a>
             <a href="https://rootmc.net">RootMC</a>

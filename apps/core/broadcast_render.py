@@ -42,6 +42,12 @@ def synthesize(text: str, out_path: Path | None = None, voice: str | None = None
         current.write_bytes(dest.read_bytes())
     except OSError:
         current = dest
+    library = Path(config.AUDIO_CURRENT_DIR) / "morning-report-current.mp3"
+    try:
+        library.parent.mkdir(parents=True, exist_ok=True)
+        library.write_bytes(dest.read_bytes())
+    except OSError:
+        pass
     return dest
 
 
@@ -68,7 +74,8 @@ def _cmd_tts(args: argparse.Namespace) -> dict:
     if args.text_file:
         text = Path(args.text_file).read_text(encoding="utf-8")
     dest = synthesize(text, Path(args.out) if args.out else None, voice=args.voice or None)
-    current = dest.parent / "morning-report-current.mp3"
+    library = Path(config.AUDIO_CURRENT_DIR) / "morning-report-current.mp3"
+    current = library if library.exists() else dest.parent / "morning-report-current.mp3"
     return {
         "ok": True,
         "mp3": str(dest),

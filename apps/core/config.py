@@ -50,6 +50,9 @@ DB_DIR        = Path(os.getenv("DB_DIR",        str(DATA_DIR / "db"))).expanduse
 PLUGIN_DIR    = Path(os.getenv("PLUGIN_DIR",    str(AVA_HOME / "plugins"))).expanduser().resolve()
 ASSETS_DIR    = MEDIA_DIR / "audio"   # words / numbers / time_clips / sounds / station / reports
 MP4_DIR       = Path(os.getenv("MP4_DIR", str(MEDIA_DIR / "video" / "current"))).expanduser().resolve()
+AUDIO_CURRENT_DIR = Path(
+    os.getenv("AUDIO_CURRENT_DIR", str(MEDIA_DIR / "audio" / "current"))
+).expanduser().resolve()
 VIDEO_REPORTS_DIR = Path(
     os.getenv("VIDEO_REPORTS_DIR", str(MEDIA_DIR / "video" / "reports"))
 ).expanduser().resolve()
@@ -84,7 +87,7 @@ ICON_1024      = MEDIA_DIR / "images" / "brand" / "ava-icon-1024.png"
 MEDIA_SUBDIRS = (
     "audio/station", "audio/reports", "audio/crons", "audio/words", "audio/numbers",
     "audio/time_clips", "audio/sounds", "audio/voice", "audio/voice/generated",
-    "audio/youtube",
+    "audio/current", "audio/youtube",
     "video/clips", "video/reports", "video/current", "video/appearance",
     "video/youtube",
     "images/channels", "images/character", "images/thumbnails",
@@ -313,7 +316,7 @@ YOUTUBE_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "").strip()
 def ensure_dirs() -> None:
     for d in (
         DATA_DIR, REPORTS_DIR, GENERATED_DIR, LOG_DIR, DB_DIR, PLUGIN_DIR,
-        MP4_DIR, VIDEO_REPORTS_DIR, MEDIA_DIR,
+        MP4_DIR, AUDIO_CURRENT_DIR, VIDEO_REPORTS_DIR, MEDIA_DIR,
     ):
         d.mkdir(parents=True, exist_ok=True)
     for sub in MEDIA_SUBDIRS:

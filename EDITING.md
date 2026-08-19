@@ -9,6 +9,25 @@ and the site is live in about a minute.
 
 Repo: <https://github.com/Ava-Core-Dev/ava-core>
 
+## First-time Vercel import (two Next.js sites, not FastAPI)
+
+The GitHub repo is a Python monorepo. **Do not** import the repo root as FastAPI.
+Ava Core stays on the home machine. Vercel only builds the websites.
+
+Create **two** projects from the same repo (`Ava-Core-Dev/ava-core`, branch `master`):
+
+| Project name | Framework | Root Directory | Domain later |
+|---|---|---|---|
+| `avaivy-cloud` | Next.js | `packages/web/avaivy.cloud` | avaivy.cloud |
+| `rootrecord-online` | Next.js | `packages/web/rootrecord.online` | rootrecord.online |
+
+On the import screen:
+
+1. Click **Edit** next to Root Directory and pick the folder above — not `./`.
+2. Framework should switch to **Next.js**. If it still says FastAPI, you are on the wrong folder.
+3. **Skip the 36 detected environment variables.** Those are home-box secrets (MySQL, Discord, Cloudflare). Vercel pages only need `AVA_ORIGIN_URL=https://ava-origin.rootmc.net` if you set anything at all.
+4. If a project named `ava-core` already failed as FastAPI, delete it or ignore it and create the two projects above.
+
 On the Ava machine, **you do not have to remember to push.** A timer checks
 every 2 minutes: if anything changed, it commits and uploads to GitHub.
 Closing a Cursor agent session also kicks a push. `.env` is never included.

@@ -85,6 +85,12 @@ def convert_if_needed(
             shutil.copy2(dest, current)
         except OSError as e:
             log.warning("mp4 current copy failed: %s", e)
+        mp3_current = Path(config.AUDIO_CURRENT_DIR) / current.with_suffix(".mp3").name
+        try:
+            mp3_current.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, mp3_current)
+        except OSError as e:
+            log.warning("mp3 current copy failed: %s", e)
     return dest
 
 
