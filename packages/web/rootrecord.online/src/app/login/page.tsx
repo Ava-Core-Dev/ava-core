@@ -39,15 +39,28 @@ function LoginForm() {
   }
 
   return (
-    <div className={styles.form} style={{ margin: "0 auto" }}>
-      <section className={styles.hero}>
-        <h1>{mode === "signup" ? "Create a Root Record account" : "Sign in"}</h1>
-        <p>
-          Same account as rootrecord.info. Operator login{" "}
-          <strong>rootrecord@outlook.com</strong> publishes Ava&apos;s server goals.
-        </p>
-      </section>
-      <form onSubmit={submit} className={styles.form}>
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <a href="/goals" className={styles.brand}>
+            Root Record <em>Goals</em>
+          </a>
+          <nav className={styles.nav}>
+            <a href="/goals">Public</a>
+            <a href="/goals/new">Post a goal</a>
+          </nav>
+        </div>
+      </header>
+      <main className={styles.main}>
+        <div className={styles.form} style={{ margin: "0 auto" }}>
+          <section className={styles.hero}>
+            <h1>{mode === "signup" ? "Create a Root Record account" : "Sign in"}</h1>
+            <p>
+              Same account as rootrecord.info. Operator login{" "}
+              <strong>rootrecord@outlook.com</strong> publishes Ava&apos;s server goals.
+            </p>
+          </section>
+          <form onSubmit={submit} className={styles.form}>
         <label>
           Email
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -72,7 +85,9 @@ function LoginForm() {
         >
           {mode === "login" ? "Need an account?" : "Have an account?"}
         </button>
-      </form>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }
