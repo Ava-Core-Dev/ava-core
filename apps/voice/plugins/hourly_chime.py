@@ -32,9 +32,9 @@ _DEFAULT_SOUND = Path(__file__).resolve().parent.parent.parent / "sounds" / "fut
 
 # Candidate locations for the 48 time clips (time_HHMM.mp3)
 _DEFAULT_TIME_DIRS = [
+    Path(__file__).resolve().parent.parent / "assets" / "time_clips",  # apps/voice/assets/time_clips
     Path.home() / "ava" / "voice" / "time_clips",
     Path(__file__).resolve().parent.parent.parent / "voice" / "time_clips",
-    Path(__file__).resolve().parent.parent.parent.parent / "voice" / "time_clips",
 ]
 
 
@@ -116,15 +116,19 @@ class HourlyChimePlugin(Plugin):
         return self.sound_path
 
     def _resolve_time_clip(self) -> Path | None:
-        """Return path to time_HH00.mp3 for the current hour (HST / local)."""
+        """Return path to time_HHMM.mp3 for the current :00 or :30 slot (HST)."""
         now = datetime.now()
-        # Always use the on-the-hour clip (HH00) for the hourly chime
-        name = f"time_{now.hour:02d}00.mp3"
+        minute = 0 if now.minute < 15 else (30 if now.minute < 45 else 0)
+        hour = now.hour
+        if now.minute >= 45:
+            hour = (hour + 1) % 24
+        if now.minute in (0, 30):
+            hour, minute = now.hour, now.minute
+        name = f"time_{hour:02d}{minute:02d}.mp3"
         candidate = self.time_clips_dir / name
         if candidate.exists():
             return candidate
-        # Fallback: try a couple of alternate naming styles just in case
-        for alt in (f"time_{now.hour:02d}00.mp3", f"{now.hour:02d}00.mp3"):
+        for alt in (f"time_{hour:02d}{minute:02d}.mp3", f"{hour:02d}{minute:02d}.mp3"):
             p = self.time_clips_dir / alt
             if p.exists():
                 return p

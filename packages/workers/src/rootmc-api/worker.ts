@@ -11,7 +11,7 @@ import type { AvaEnv } from "../shared/types";
 const ORIGIN = "https://ava-origin.rootmc.net";
 
 export default {
-  async fetch(request: Request, env: AvaEnv): Promise<Response> {
+  async fetch(request: Request, _env: AvaEnv): Promise<Response> {
     return proxyToOrigin(request, {
       originUrl: ORIGIN,
       offlineFallback: () => new Response(
@@ -21,7 +21,7 @@ export default {
     });
   },
 
-  async scheduled(event: ScheduledEvent, env: AvaEnv): Promise<void> {
+  async scheduled(_event: ScheduledEvent, env: AvaEnv): Promise<void> {
     if (await avaIsAwake(env)) return;
     // Offline fallback cron work (economy sync, membership, etc.)
   },

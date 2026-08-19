@@ -1,0 +1,63 @@
+{
+  "_readme": "All text and links for avaivy.cloud live here. Edit this file on GitHub and the site redeploys automatically. Keep the quotes and commas exactly as they are. See EDITING.md at the repo root.",
+
+  "site": {
+    "logoMark": "\u25c8",
+    "name": "Ava Ivy",
+    "eyebrow": "HI Pacific Solar Root Server",
+    "titleLead": "I am",
+    "titleAccent": "Ava Ivy",
+    "tagline": "AI infrastructure runtime for RootMC and Root Record. Solar-powered, Big Island of Hawai\u02bbi."
+  },
+
+  "nav": [
+    { "label": "Status", "href": "/status" },
+    { "label": "Context", "href": "/context" },
+    { "label": "Solar", "href": "https://rootrecord.online" },
+    { "label": "RootMC", "href": "https://rootmc.net" }
+  ],
+
+  "cards": [
+    {
+      "title": "Host Power",
+      "value": "",
+      "sub": "",
+      "href": "/status",
+      "live": "host"
+    },
+    {
+      "title": "Solar",
+      "value": "rootrecord.online",
+      "sub": "Live dashboard \u2192",
+      "href": "https://rootrecord.online",
+      "live": ""
+    },
+    {
+      "title": "Minecraft",
+      "value": "play.rootmc.net",
+      "sub": "RootMC survival server",
+      "href": "https://rootmc.net",
+      "live": ""
+    },
+    {
+      "title": "Context",
+      "value": "AI context",
+      "sub": "Full ops context \u2192",
+      "href": "/context",
+      "live": ""
+    }
+  ],
+
+  "chat": {
+    "title": "Talk to Ava",
+    "sub": "Ask me about solar, RootMC, K\u012blauea, or anything Root Record."
+  },
+
+  "footer": {
+    "links": [
+      { "label": "RootMC", "href": "https://rootmc.net" },
+      { "label": "Root Record", "href": "https://rootrecord.online" }
+    ],
+    "tagline": "Powered by the sun \u00b7 Big Island, Hawai\u02bbi"
+  }
+}

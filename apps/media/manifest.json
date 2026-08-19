@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "rating": "PG-13",
+  "note": "Canonical Ava media for ava-core-v2. Staged so archive disk is not required at runtime.",
+  "defaults": {
+    "broadcast_thumbnail": "thumbnails/DEFAULT.jpg",
+    "voice_thumbnail": "thumbnails/thumb-daily-broadcast.jpg",
+    "desktop_icon": "brand/ava-icon-1024.png",
+    "welcome_portrait": "portraits/ava-hologram-wave.png",
+    "ops_portrait": "portraits/ava-desk-ops.png"
+  },
+  "usage": {
+    "thumbnails/thumb-daily-broadcast.jpg": "YouTube / MP4 converter default (AVA Daily Broadcast)",
+    "thumbnails/thumb-goals-report.jpg": "Goals / full statement video thumbnail",
+    "thumbnails/thumb-goals-report-live.jpg": "Goals report LIVE variant",
+    "thumbnails/thumb-dev-update-dashboard.jpg": "Dev update · account dashboard",
+    "thumbnails/thumb-kilauea-live.jpg": "Kīlauea live stream thumbnail",
+    "thumbnails/thumb-kilauea-classic.jpg": "Older Kīlauea thumb",
+    "thumbnails/thumb-storm-lala-*.jpg": "Storm Lala report thumbs (historical)",
+    "portraits/ava-desk-ops.png": "Primary ops / Root Server desk look",
+    "portraits/ava-hologram-wave.png": "Welcome / site hologram wave",
+    "portraits/ava-tactical-rootmc.jpg": "RootMC tactical promo (PG-13)",
+    "portraits/ava-minecraft-skin.png": "Minecraft skin reference",
+    "videos/clips/ava-good-morning.mp4": "Morning greeting clip",
+    "videos/clips/ava-peak-activity.mp4": "Peak activity reaction",
+    "videos/clips/ava-going-to-bed.mp4": "Late / wind-down clip",
+    "videos/mp4-current/*": "Latest auto-generated report MP4s for OBS",
+    "audio/station/ava-station-id.mp3": "Station ID sting",
+    "emojis/discord/*": "Discord custom emoji pack",
+    "stream/overlays/*": "OBS browser-source overlays",
+    "stream/obs-cams/*": "OBS cam HUD frames"
+  },
+  "skipped_from_archive": [
+    "All Lala Media/ (5.1GB storm dump — event archive only)",
+    "AIConversations image dumps",
+    "weather GIF collector archives",
+    "ElevenLabs raw exports with long vendor filenames"
+  ]
+}

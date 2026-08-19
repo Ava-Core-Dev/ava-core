@@ -1,58 +1,53 @@
 import styles from "./page.module.css";
 import StatusCard from "@/components/StatusCard";
 import ChatWidget from "@/components/ChatWidget";
+import content from "@/content.json";
+import { getHostStatus } from "@/lib/status";
 
 export const revalidate = 30; // ISR — refresh every 30s
 
-async function getStatus() {
-  try {
-    const r = await fetch(
-      `${process.env.AVA_ORIGIN_URL || "https://ava-origin.rootmc.net"}/api/status`,
-      { next: { revalidate: 30 }, signal: AbortSignal.timeout(5000) }
-    );
-    if (r.ok) return r.json();
-  } catch {}
-  return null;
-}
-
 export default async function Home() {
-  const status = await getStatus();
+  const status = await getHostStatus();
   const online = !!status;
+  const { site, nav, cards, chat, footer } = content;
+
+  // Cards marked `live: "host"` take their text from the origin instead of JSON.
+  const hostCard = {
+    value: online ? "Online" : "Offline",
+    sub: status
+      ? `Uptime ${Math.floor(status.uptime_s / 3600)}h · CPU ${status.cpu_pct}%`
+      : "Host is powered down or unreachable",
+  };
 
   return (
     <main className={styles.main}>
-      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.logo}>
-            <span className={styles.logoMark}>◈</span>
-            <span className={styles.logoName}>Ava Ivy</span>
+            <span className={styles.logoMark}>{site.logoMark}</span>
+            <span className={styles.logoName}>{site.name}</span>
           </div>
           <nav className={styles.nav}>
-            <a href="/context">Context</a>
-            <a href="/solar">Solar</a>
-            <a href="https://rootmc.net">RootMC</a>
-            <a href="https://rootrecord.online">Root Record</a>
+            {nav.map((item) => (
+              <a key={item.href} href={item.href}>{item.label}</a>
+            ))}
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
       <section className={styles.hero}>
         <div className={styles.heroGlow} />
-        <p className={styles.heroEyebrow}>HI Pacific Solar Root Server</p>
+        <p className={styles.heroEyebrow}>{site.eyebrow}</p>
         <h1 className={styles.heroTitle}>
-          I am <span className={styles.heroAccent}>Ava Ivy</span>
+          {site.titleLead} <span className={styles.heroAccent}>{site.titleAccent}</span>
         </h1>
-        <p className={styles.heroSub}>
-          AI infrastructure runtime for{" "}
-          <a href="https://rootmc.net">RootMC</a> and{" "}
-          <a href="https://rootrecord.info">Root Record</a>.
-          Solar-powered, Big Island of Hawaiʻi.
-        </p>
+        <p className={styles.heroSub}>{site.tagline}</p>
         <div className={styles.heroBadges}>
           <span className={`badge ${online ? "badge-online" : "badge-offline"}`}>
-            <span className={styles.dot} style={{ background: online ? "var(--green)" : "var(--red)" }} />
+            <span
+              className={styles.dot}
+              style={{ background: online ? "var(--green)" : "var(--red)" }}
+            />
             {online ? "Online" : "Offline"}
           </span>
           {status?.cpu_pct != null && (
@@ -61,56 +56,33 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Cards */}
       <section className={styles.cards}>
-        <StatusCard
-          title="Host Power"
-          value={online ? "Online" : "Offline (solar night)"}
-          sub={status ? `Uptime ${Math.floor(status.uptime_s / 3600)}h` : "Returns at sunrise"}
-          accent={online}
-        />
-        <StatusCard
-          title="Solar"
-          value="rootrecord.online"
-          sub="Live dashboard →"
-          href="https://rootrecord.online"
-          accent={false}
-        />
-        <StatusCard
-          title="Minecraft"
-          value="play.rootmc.net"
-          sub="RootMC survival server"
-          href="https://rootmc.net"
-          accent={false}
-        />
-        <StatusCard
-          title="Context"
-          value="AI context"
-          sub="Full ops context →"
-          href="/context"
-          accent={false}
-        />
+        {cards.map((card) => (
+          <StatusCard
+            key={card.title}
+            title={card.title}
+            value={card.live === "host" ? hostCard.value : card.value}
+            sub={card.live === "host" ? hostCard.sub : card.sub}
+            href={card.href}
+            accent={card.live === "host" ? online : false}
+          />
+        ))}
       </section>
 
-      {/* Chat */}
       <section className={styles.chatSection}>
-        <h2 className={styles.sectionTitle}>Talk to Ava</h2>
-        <p className={styles.sectionSub}>
-          Ask me about solar, RootMC, Kīlauea, or anything Root Record.
-        </p>
+        <h2 className={styles.sectionTitle}>{chat.title}</h2>
+        <p className={styles.sectionSub}>{chat.sub}</p>
         <ChatWidget />
       </section>
 
-      {/* Footer */}
       <footer className={styles.footer}>
         <p>
-          Ava Ivy · <a href="https://rootmc.net">RootMC</a> ·{" "}
-          <a href="https://rootrecord.info">Root Record</a> ·{" "}
-          <a href="https://rootrecord.online">rootrecord.online</a>
+          {site.name}
+          {footer.links.map((link) => (
+            <span key={link.href}> · <a href={link.href}>{link.label}</a></span>
+          ))}
         </p>
-        <p className={styles.footerSub}>
-          Powered by the sun · Big Island, Hawaiʻi
-        </p>
+        <p className={styles.footerSub}>{footer.tagline}</p>
       </footer>
     </main>
   );

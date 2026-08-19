@@ -57,6 +57,10 @@ import {
 import { listOpsCatalog, opsCommandById } from "./lib/opsCommands.mjs";
 import { listAvaLinks } from "./lib/avaLinks.mjs";
 import {
+  startAvaSession,
+  stopAvaSession,
+} from "./lib/avaLifecycle.mjs";
+import {
   loadConnectionConfig,
   connectionFormPayload,
   saveConnectionConfig,
@@ -147,13 +151,22 @@ function createWindow() {
   });
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
 
-  // Fire startup voice clip when GUI finishes loading
+  // Fire startup voice clip when GUI finishes loading (core started with session)
   mainWindow.webContents.once("did-finish-load", () => {
-    fetch("http://127.0.0.1:8787/api/voice/play", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clip: "phrase_device_startup" }),
-    }).catch(() => {}); // silent if core not up yet
+    const fire = () =>
+      fetch("http://127.0.0.1:8787/api/voice/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clip: "phrase_device_startup" }),
+      }).catch(() => {});
+    // Retry briefly if core is still binding
+    fire();
+    setTimeout(fire, 2500);
+  });
+
+  // Closing the window with X ends the whole Ava session
+  mainWindow.on("close", () => {
+    stopAvaSession();
   });
 
   mainWindow.on("closed", () => {
@@ -171,10 +184,19 @@ function appendLine(line) {
   sendOps("ava:ops-line", { line: String(line).replace(/\r?\n$/, "") });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Start Ava Core + Voice with the GUI (stops again when window closes)
+  try {
+    await startAvaSession();
+  } catch (err) {
+    console.error("Ava session start failed:", err?.message || err);
+  }
+
   createWindow();
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      startAvaSession().finally(() => createWindow());
+    }
   });
   loadDesktopEnv()
     .then((env) => tickEarlyLoginDesktop(env))
@@ -188,8 +210,22 @@ app.on("window-all-closed", () => {
     } catch {
       /* ignore */
     }
+    runningOps = null;
   }
+  stopAvaSession();
   if (process.platform !== "darwin") app.quit();
+});
+
+app.on("before-quit", () => {
+  if (runningOps) {
+    try {
+      runningOps.kill("SIGTERM");
+    } catch {
+      /* ignore */
+    }
+    runningOps = null;
+  }
+  stopAvaSession();
 });
 
 ipcMain.handle("ava:env-status", async () => {
@@ -837,6 +873,14 @@ ipcMain.handle("ava:ops-run", async (_e, { id }) => {
   const cmd = opsCommandById(String(id || ""));
   if (!cmd) return { ok: false, detail: "unknown_command" };
   if (runningOps) return { ok: false, detail: `busy:${runningOpsId}` };
+
+  // URL launcher — open in system browser
+  if (cmd.kind === "url" && cmd.url) {
+    const { shell } = require("electron");
+    shell.openExternal(cmd.url);
+    appendLine(`↗ opened ${cmd.url}`);
+    return { ok: true, detail: `opened:${cmd.url}` };
+  }
 
   // New-style: endpoint + body (POST to Python core)
   if (cmd.endpoint) {

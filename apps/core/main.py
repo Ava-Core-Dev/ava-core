@@ -42,10 +42,16 @@ async def lifespan(app: FastAPI):
     _scheduler = Scheduler()
     await _scheduler.start()
 
+    # Drain the audio queue in this process — crons and /api/voice/* enqueue here
+    try:
+        from apps.voice.director import ensure_running
+        ensure_running()
+    except Exception as e:
+        log.warning("Stream Director loop failed to start: %s", e)
+
     # Fire startup voice clip (non-blocking — best effort)
     try:
         import asyncio
-        from apps.voice.tts import synthesize
         from apps.voice.director import get_director
 
         async def _startup_voice():
@@ -68,6 +74,11 @@ async def lifespan(app: FastAPI):
     log.info("Ava Core shutting down")
     if _scheduler:
         await _scheduler.stop()
+    try:
+        from apps.voice.director import get_director
+        await get_director().stop()
+    except Exception:
+        pass
 
 
 # ── App ───────────────────────────────────────────────────────────────────────

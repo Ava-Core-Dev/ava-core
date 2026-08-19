@@ -17,6 +17,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
+import pwd
 import shutil
 import subprocess
 import time
@@ -295,11 +297,22 @@ class StreamDirector:
             return
 
         cmd = player_cmd + [str(path)]
+        # Ensure PulseAudio/PipeWire user socket is reachable from system service context
+        env = dict(os.environ)
+        try:
+            uid = pwd.getpwnam("ava-core").pw_uid
+        except KeyError:
+            uid = os.getuid()
+        pulse_sock = f"/run/user/{uid}/pulse/native"
+        if os.path.exists(pulse_sock):
+            env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
+        env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
+                env=env,
             )
             await proc.wait()
             log.debug("Local audio done: %s (exit %s)", path.name, proc.returncode)
@@ -332,6 +345,23 @@ def get_director() -> StreamDirector:
     if _director is None:
         _director = StreamDirector()
     return _director
+
+
+_director_task: asyncio.Task | None = None
+
+
+def ensure_running() -> asyncio.Task:
+    """Start the consumer loop in this process if it is not already going.
+
+    The queue lives on the singleton, so it is per-process: whichever process
+    enqueues audio has to drain it too. Without this, callers queue clips into
+    a queue nobody reads and playback is silently dropped.
+    """
+    global _director_task
+    if _director_task is None or _director_task.done():
+        _director_task = asyncio.create_task(get_director().run())
+        log.info("Stream Director loop started in-process")
+    return _director_task
 
 
 def cli():

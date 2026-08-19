@@ -13,6 +13,7 @@
 
 import { avaIsAwake } from "../shared/heartbeat";
 import { proxyToOrigin } from "../shared/proxy";
+import { statusJson, statusPage } from "../shared/statusPage";
 import type { AvaEnv } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
@@ -25,12 +26,32 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Host presence, answered from D1 — works even when the origin is down.
+    // The core has no /status route of its own, so serve it here rather than
+    // proxying it into a 404.
+    if (path === "/ava/status" || path === "/ava" || path === "/ava/" || path === "/status") {
+      return statusPage(env);
+    }
+    if (path === "/ava/status.json" || path === "/status.json") {
+      return statusJson(env);
+    }
+
+    // /ava/* is a public alias for the origin's own paths: strip the prefix.
+    if (path.startsWith("/ava/")) {
+      return proxyToOrigin(request, {
+        originUrl: ORIGIN,
+        path: path.slice("/ava".length),
+        offlineFallback: () => statusPage(env, { degraded: true }),
+        timeoutMs: 8000,
+      });
+    }
+
     // Proxy dynamic paths to local origin
     const shouldProxy = PROXIED_PREFIXES.some(p => path.startsWith(p));
     if (shouldProxy) {
       return proxyToOrigin(request, {
         originUrl: ORIGIN,
-        offlineFallback: () => offlinePage(),
+        offlineFallback: () => statusPage(env, { degraded: true }),
         timeoutMs: 8000,
       });
     }
@@ -39,26 +60,10 @@ export default {
     return fetch(VERCEL_FRONTEND + path + url.search, { headers: request.headers });
   },
 
-  async scheduled(event: ScheduledEvent, env: AvaEnv): Promise<void> {
+  async scheduled(_event: ScheduledEvent, env: AvaEnv): Promise<void> {
     // All scheduling runs on device. CF crons stand down when Ava is awake.
     if (await avaIsAwake(env)) return;
     // Ava is offline — CF can handle fallback jobs here if needed
   },
 };
 
-function offlinePage(): Response {
-  return new Response(
-    `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-    <title>Ava Ivy — Offline</title>
-    <style>body{font-family:system-ui;max-width:600px;margin:4rem auto;padding:1rem}
-    .badge{display:inline-block;background:#f59e0b;color:#000;padding:2px 8px;border-radius:4px}</style>
-    </head><body>
-    <h1>Ava Ivy <span class="badge">Offline</span></h1>
-    <p>The Root Server (HI Pacific Solar) is powered down for the evening.</p>
-    <p>Expected return: next solar morning (~6–8 AM HST).</p>
-    <p>Static pages, economy board, and public wiki remain available.</p>
-    <p><a href="https://rootrecord.info">rootrecord.info</a> · <a href="https://rootmc.net">rootmc.net</a></p>
-    </body></html>`,
-    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "3600" } }
-  );
-}

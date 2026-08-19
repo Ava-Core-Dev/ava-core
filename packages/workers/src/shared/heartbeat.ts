@@ -14,20 +14,31 @@ export interface HeartbeatEnv {
 
 const STALE_MS = 2 * 60 * 1000; // 2 minutes
 
-export async function avaIsAwake(env: HeartbeatEnv): Promise<boolean> {
+export interface Heartbeat {
+  ts: string;
+  ageMs: number;
+  fresh: boolean;
+}
+
+/** Read Ava's last heartbeat, or null if never written / D1 unavailable. */
+export async function getHeartbeat(env: HeartbeatEnv): Promise<Heartbeat | null> {
   try {
     const row = await env.AVA_HEARTBEAT_DB
       .prepare("SELECT ts FROM ava_heartbeat WHERE host = 'ava-core' LIMIT 1")
       .first<{ ts: string }>();
 
-    if (!row?.ts) return false;
+    if (!row?.ts) return null;
 
-    const age = Date.now() - new Date(row.ts).getTime();
-    return age < STALE_MS;
+    const ageMs = Date.now() - new Date(row.ts).getTime();
+    return { ts: row.ts, ageMs, fresh: ageMs < STALE_MS };
   } catch {
-    // If D1 is unavailable, assume Ava is offline → run
-    return false;
+    return null;
   }
+}
+
+export async function avaIsAwake(env: HeartbeatEnv): Promise<boolean> {
+  // If D1 is unavailable, assume Ava is offline → run
+  return (await getHeartbeat(env))?.fresh ?? false;
 }
 
 /** Initialize the heartbeat table if it doesn't exist. */

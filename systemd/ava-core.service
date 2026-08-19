@@ -1,8 +1,8 @@
 [Unit]
 Description=Ava Core — HI Pacific Solar Root Server
 Documentation=https://avaivy.cloud
-After=network-online.target ollama.service
-Wants=network-online.target
+After=network-online.target mariadb.service
+Wants=network-online.target mariadb.service
 StartLimitIntervalSec=120
 StartLimitBurst=5
 
@@ -12,6 +12,9 @@ User=ava-core
 Group=ava-core
 WorkingDirectory=/run/media/ava-core/6B6C97406BF24558/ava-core-v2
 Environment=PYTHONUNBUFFERED=1
+Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=DISPLAY=:0
 EnvironmentFile=-/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.env
 ExecStart=/run/media/ava-core/6B6C97406BF24558/ava-core-v2/.venv/bin/uvicorn apps.core.main:app \
   --host 0.0.0.0 \
@@ -23,8 +26,8 @@ Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
 
-StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core.log
-StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core.log
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core-systemd.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/ava-core-systemd.log
 
 [Install]
 WantedBy=multi-user.target

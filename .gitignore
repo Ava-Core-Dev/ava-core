@@ -20,6 +20,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Next.js / Vercel build output — regenerated on every build
+.next/
+next-env.d.ts
+.vercel/
+
 # Secrets — never commit
 .env
 .env.*
@@ -38,6 +43,18 @@ apps/voice/assets/numbers/
 apps/voice/assets/words/
 apps/voice/assets/time_clips/
 apps/voice/assets/sounds/
+
+# Media library binaries (staged on SSD; too large for git)
+apps/media/videos/
+apps/media/audio/
+apps/media/portraits/
+apps/media/thumbnails/
+apps/media/brand/
+apps/media/emojis/
+apps/media/stream/
+# Keep README + manifest tracked
+!apps/media/README.md
+!apps/media/manifest.json
 
 # OS
 .DS_Store

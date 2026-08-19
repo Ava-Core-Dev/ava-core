@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Ava Ivy desktop launcher — opens the Electron client.
-# Systemd (ava-core + ava-voice) handles the Python brain; this just
-# waits for :8787 to be ready and then opens the GUI.
+# Ava Core + Voice start/stop with the GUI (see lib/avaLifecycle.mjs).
+# Systemd units ava-core / ava-voice should be disabled so they don't fight the GUI.
 set -euo pipefail
 
 export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
@@ -26,31 +26,17 @@ if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
   export DISPLAY="${DISPLAY:-:0}"
 fi
 
-# ── Clear stale power-off flag ─────────────────────────────────────────────────
+# Clear stale power-off flag
 if [[ -f "${AVA_ROOT}/data/power-off.json" ]]; then
   rm -f "${AVA_ROOT}/data/power-off.json"
   echo "cleared power-off.json"
 fi
 
-# ── Wait for Python core on :8787 (systemd started it) ───────────────────────
-wait_http() {
-  local i
-  for i in $(seq 1 60); do
-    if curl -fsS "http://127.0.0.1:${AVA_PORT}/health" >/dev/null 2>&1; then
-      return 0
-    fi
-    sleep 0.5
-  done
-  return 1
-}
+# PulseAudio / PipeWire for voice clips from Electron-spawned children
+UID_NUM="$(id -u)"
+export PULSE_SERVER="${PULSE_SERVER:-unix:/run/user/${UID_NUM}/pulse/native}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${UID_NUM}}"
 
-if wait_http; then
-  echo "Ava Core ready → http://127.0.0.1:${AVA_PORT}/"
-else
-  echo "Ava Core not responding on :${AVA_PORT} — opening desktop anyway" >&2
-fi
-
-# ── Start Electron ────────────────────────────────────────────────────────────
 cd "${AVA_DESKTOP}"
 
 if [[ ! -d node_modules/electron ]]; then
@@ -69,7 +55,7 @@ fi
 unset ELECTRON_RUN_AS_NODE || true
 export ELECTRON_DISABLE_SANDBOX="${ELECTRON_DISABLE_SANDBOX:-1}"
 
-echo "Starting Ava Ivy desktop client"
+echo "Starting Ava Ivy desktop client (core+voice managed by GUI)"
 if [[ -x "${ELECTRON_DIST}" ]]; then
   exec "${ELECTRON_DIST}" --no-sandbox .
 fi

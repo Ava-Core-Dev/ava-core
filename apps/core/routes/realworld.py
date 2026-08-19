@@ -93,20 +93,41 @@ class VoicePlayRequest(BaseModel):
 
 @router.post("/voice/play")
 async def api_voice_play(req: VoicePlayRequest):
-    """Trigger a named voice clip through the Stream Director."""
+    """Trigger a named voice clip through the Stream Director.
+    Looks in words/, time_clips/, and sounds/ under assets.
+    """
     try:
         from apps.voice.director import get_director, Priority
-        from apps.voice.clips import WORDS_DIR
+        from apps.voice.clips import WORDS_DIR, TIME_DIR
 
-        clip_path = WORDS_DIR / f"{req.clip}.mp3"
-        if not clip_path.exists():
+        assets = config.VOICE_DIR / "assets"
+        candidates = [
+            WORDS_DIR / f"{req.clip}.mp3",
+            TIME_DIR / f"{req.clip}.mp3",
+            assets / "sounds" / f"{req.clip}.mp3",
+            assets / "words" / f"{req.clip}.mp3",
+            assets / "time_clips" / f"{req.clip}.mp3",
+        ]
+        clip_path = next((p for p in candidates if p.exists()), None)
+        if not clip_path:
             return JSONResponse({"error": f"clip not found: {req.clip}"}, status_code=404)
 
         pri = getattr(Priority, req.priority.upper(), Priority.CRITICAL)
         director = get_director()
         import asyncio
         asyncio.create_task(director.queue(clip_path, name=req.clip, priority=pri))
-        return {"ok": True, "clip": req.clip, "priority": req.priority}
+        return {"ok": True, "clip": req.clip, "path": clip_path.name, "priority": req.priority}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/voice/chime")
+async def api_voice_chime():
+    """Fire the half-hourly chime now (bell + current time_HHMM slot)."""
+    try:
+        from apps.core.crons.hourly_chime import run
+        await run()
+        return {"ok": True, "job": "hourly_chime"}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -128,22 +149,34 @@ async def api_activity(limit: int = 220):
     except Exception:
         pass
 
-    # Read last N lines from core log as activity feed
+    # Read last N lines from core log as activity feed (session or systemd)
     logs: list[str] = []
     try:
-        log_path = config.DATA_DIR / "logs" / "ava-core.log"
-        if log_path.exists():
-            lines = log_path.read_text(errors="replace").splitlines()
-            logs = lines[-limit:]
+        for name in ("ava-core-session.log", "ava-core.log", "ava-core-systemd.log"):
+            log_path = config.DATA_DIR / "logs" / name
+            if log_path.exists():
+                try:
+                    lines = log_path.read_text(errors="replace").splitlines()
+                    logs = lines[-limit:]
+                    break
+                except Exception:
+                    continue
     except Exception:
         pass
 
-    # Quick Ollama ping
+    # Quick Ollama ping + model list
     ollama_up = False
+    ollama_models: list[str] = []
     try:
         import httpx
-        r = await httpx.AsyncClient().get("http://127.0.0.1:11434/api/tags", timeout=2)
-        ollama_up = r.status_code == 200
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            r = await client.get("http://127.0.0.1:11434/api/tags")
+            ollama_up = r.status_code == 200
+            if ollama_up:
+                for m in (r.json() or {}).get("models") or []:
+                    name = str(m.get("name") or "")
+                    if name:
+                        ollama_models.append(name)
     except Exception:
         pass
 
@@ -153,7 +186,13 @@ async def api_activity(limit: int = 220):
         "ollamaBusy": False,
         "inflight": [],
         "runningCrons": running_crons,
-        "ollama": {"up": ollama_up},
+        "ollama": {
+            "up": ollama_up,
+            "model": ollama_models[0] if ollama_models else None,
+            "models": ollama_models,
+            "baseUrl": "http://127.0.0.1:11434",
+            "ps": [{"name": n} for n in ollama_models[:4]],
+        },
         "jobs": jobs,
         "logs": logs[-limit:],
         "heartbeat": {"pid": None},

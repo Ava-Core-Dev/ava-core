@@ -2177,9 +2177,20 @@ async function bootTerminal() {
   for (const group of catalog.groups || []) {
     const section = document.createElement("section");
     section.className = "cmd-group";
+    section.dataset.groupId = group.id;
+
+    // Header row: label + count
+    const header = document.createElement("div");
+    header.className = "cmd-group-header";
     const h2 = document.createElement("h2");
     h2.textContent = group.label;
-    section.appendChild(h2);
+    const count = document.createElement("span");
+    count.className = "cmd-group-count";
+    count.textContent = `${(group.commands || []).length}`;
+    header.appendChild(h2);
+    header.appendChild(count);
+    section.appendChild(header);
+
     const grid = document.createElement("div");
     grid.className = "cmd-grid";
     for (const cmd of group.commands || []) {
@@ -2189,7 +2200,7 @@ async function bootTerminal() {
       if (group.id === "danger") btn.classList.add("danger");
       else if (cmd.confirm) btn.classList.add("warn");
       btn.dataset.id = cmd.id;
-      btn.dataset.search = `${cmd.label} ${cmd.detail} ${cmd.id}`.toLowerCase();
+      btn.dataset.search = `${cmd.label} ${cmd.detail} ${cmd.id} ${group.label}`.toLowerCase();
       btn.innerHTML = `<span class="cmd-label">${escapeHtml(cmd.label)}</span><span class="cmd-detail">${escapeHtml(cmd.detail || "")}</span>`;
       if (cmd.confirm) confirmHints.set(cmd.id, String(cmd.confirm));
       btn.addEventListener("click", () => runOpsCommand(cmd.id));
@@ -2231,7 +2242,7 @@ async function bootTerminal() {
         btn.classList.toggle("hidden", !show);
         if (show) any = true;
       });
-      group.classList.toggle("hidden", !any);
+      group.classList.toggle("hidden", q ? !any : false);
     });
   };
   await refreshTerminalLive();

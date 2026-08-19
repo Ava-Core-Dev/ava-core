@@ -1,0 +1,27 @@
+[Unit]
+Description=RootMC Test Server — Paper 1.21 (OptiPlex local)
+Documentation=https://rootmc.net
+After=network.target mariadb.service
+Wants=mariadb.service
+StartLimitIntervalSec=120
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ava-core
+Group=ava-core
+WorkingDirectory=/home/ava-core/ava-old-20260819/workstations/minecraft-test
+# Only start if port 24945 isn't already bound (prevents double-start)
+ExecStartPre=/bin/bash -c '! ss -tlnp | grep -q :24945'
+ExecStart=/home/ava-core/ava-old-20260819/workstations/minecraft-test/start.sh
+ExecStop=/bin/bash -c 'kill -TERM $MAINPID; sleep 10'
+
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=30
+
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/minecraft-test.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/minecraft-test.log
+
+[Install]
+WantedBy=multi-user.target

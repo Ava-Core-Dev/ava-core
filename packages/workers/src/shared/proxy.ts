@@ -6,17 +6,19 @@
 
 export interface ProxyOptions {
   originUrl: string;         // e.g. https://ava-origin.rootmc.net
-  offlineFallback?: () => Response;
+  offlineFallback?: () => Response | Promise<Response>;
   timeoutMs?: number;
+  /** Override the origin path. Used to strip public prefixes like /ava. */
+  path?: string;
 }
 
 export async function proxyToOrigin(
   request: Request,
   opts: ProxyOptions
 ): Promise<Response> {
-  const { originUrl, offlineFallback, timeoutMs = 8000 } = opts;
+  const { originUrl, offlineFallback, timeoutMs = 8000, path } = opts;
   const url = new URL(request.url);
-  const target = originUrl.replace(/\/$/, "") + url.pathname + url.search;
+  const target = originUrl.replace(/\/$/, "") + (path ?? url.pathname) + url.search;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -32,12 +34,12 @@ export async function proxyToOrigin(
     clearTimeout(timer);
 
     if ([502, 503, 522, 523, 524].includes(res.status)) {
-      return offlineFallback?.() ?? offlineResponse();
+      return (await offlineFallback?.()) ?? offlineResponse();
     }
     return res;
   } catch {
     clearTimeout(timer);
-    return offlineFallback?.() ?? offlineResponse();
+    return (await offlineFallback?.()) ?? offlineResponse();
   }
 }
 

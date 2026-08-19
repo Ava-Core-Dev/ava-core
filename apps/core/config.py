@@ -39,15 +39,35 @@ PLUGIN_DIR    = Path(os.getenv("PLUGIN_DIR",    str(AVA_HOME / "plugins"))).expa
 
 _REPO_ROOT    = Path(__file__).resolve().parent.parent.parent
 VOICE_DIR     = _REPO_ROOT / "apps" / "voice"
+MEDIA_DIR     = _REPO_ROOT / "apps" / "media"
 ASSETS_DIR    = VOICE_DIR / "assets"
 MP4_DIR       = Path(os.getenv("MP4_DIR", str(DATA_DIR / "generated" / "mp4"))).expanduser().resolve()
-THUMBNAIL_PATH = _REPO_ROOT / "apps" / "voice" / "assets" / "thumbnail.jpg"
+# Prefer staged media library thumbnail; fall back to voice/assets copy
+_THUMB_CANDIDATES = [
+    MEDIA_DIR / "thumbnails" / "DEFAULT.jpg",
+    MEDIA_DIR / "thumbnails" / "thumb-daily-broadcast.jpg",
+    ASSETS_DIR / "thumbnail.jpg",
+]
+THUMBNAIL_PATH = next((p for p in _THUMB_CANDIDATES if p.exists()), _THUMB_CANDIDATES[-1])
+PORTRAIT_OPS   = MEDIA_DIR / "portraits" / "ava-desk-ops.png"
+PORTRAIT_WAVE  = MEDIA_DIR / "portraits" / "ava-hologram-wave.png"
+ICON_1024      = MEDIA_DIR / "brand" / "ava-icon-1024.png"
 
 # ── Server ─────────────────────────────────────────────────────────────────────
 def _env_int(key: str, default: int) -> int:
     raw = os.getenv(key, "")
     val = raw.split("#")[0].strip()  # strip inline comments
     return int(val) if val else default
+
+
+def _first_env(*keys: str, default: str = "") -> str:
+    """First non-empty value among aliases. systemd EnvironmentFile keeps inline
+    comments in the value, so strip them here too."""
+    for key in keys:
+        val = os.getenv(key, "").split("#")[0].strip()
+        if val:
+            return val
+    return default
 
 AVA_PORT = _env_int("AVA_PORT", 8787)
 def _env_str(key: str, default: str) -> str:
@@ -168,9 +188,20 @@ OBS_WS_URL      = os.getenv("OBS_WS_URL",      "ws://localhost:4455").strip()
 OBS_WS_PASSWORD = os.getenv("OBS_WS_PASSWORD", "").strip()
 
 # ── Cloudflare ────────────────────────────────────────────────────────────────
-CF_API_TOKEN             = os.getenv("CF_API_TOKEN", "").strip()
-CF_ACCOUNT_ID            = os.getenv("CF_ACCOUNT_ID", "").strip()
-CF_D1_HEARTBEAT_DB_ID    = os.getenv("CF_D1_HEARTBEAT_DB_ID", "").strip()
+# CF_* is the canonical name here; CLOUDFLARE_* is what wrangler and the .env
+# use, so accept either rather than silently running without credentials.
+CF_API_TOKEN             = _first_env("CF_API_TOKEN", "CLOUDFLARE_API_TOKEN")
+# A cfk_-prefixed value is an account API key, not a scoped token: it only
+# authenticates via X-Auth-Email/X-Auth-Key. Letting one through as a Bearer
+# token yields a 401 that looks like a revoked credential.
+if CF_API_TOKEN.startswith("cfk_"):
+    CF_API_TOKEN = ""
+CF_ACCOUNT_ID            = _first_env("CF_ACCOUNT_ID", "CLOUDFLARE_ACCOUNT_ID")
+CF_D1_HEARTBEAT_DB_ID    = _first_env("CF_D1_HEARTBEAT_DB_ID")
+CF_EMAIL                 = _first_env("CLOUDFLARE_EMAIL", "CF_EMAIL")
+CF_GLOBAL_API_KEY        = _first_env(
+    "CLOUDFLARE_API_KEY", "CLOUDFLARE_GLOBAL_API_KEY", "CF_GLOBAL_API_KEY"
+)
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 POLL_INTERVAL    = int(os.getenv("POLL_INTERVAL", "30"))

@@ -1,0 +1,23 @@
+[Unit]
+Description=phpMyAdmin — local DB admin UI on :8890
+After=mariadb.service network.target
+Wants=mariadb.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ava-core
+Group=ava-core
+# phpMyAdmin served via PHP built-in web server (no Apache/nginx required)
+# Access at http://localhost:8890/
+ExecStart=/usr/bin/php -S 127.0.0.1:8890 -t /usr/share/phpmyadmin
+
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/phpmyadmin.log
+StandardError=append:/run/media/ava-core/6B6C97406BF24558/ava-core-v2/data/logs/phpmyadmin.log
+
+[Install]
+WantedBy=multi-user.target

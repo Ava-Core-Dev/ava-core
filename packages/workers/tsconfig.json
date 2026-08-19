@@ -13,5 +13,8 @@
     }
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules"]
+  // ava-cron-kick.ts imports nine rootmc-api modules that were never migrated
+  // from the old tree. Excluded so it cannot block deploys of the other
+  // workers; restore it once those modules exist.
+  "exclude": ["node_modules", "src/rootmc-api/ava-cron-kick.ts"]
 }

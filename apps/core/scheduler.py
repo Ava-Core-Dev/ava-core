@@ -44,6 +44,11 @@ class Scheduler:
         s.add_job(self._run("kilauea"), IntervalTrigger(minutes=10),
                   id="rr-kilauea", name="Kīlauea", misfire_grace_time=120)
 
+        # ── Time chime (:00 and :30 HST) — bell + time_HHMM.mp3 ───────────────
+        # Uses all 48 clips (time_0000 … time_2330) via Stream Director → desktop + OBS
+        s.add_job(self._run("hourly_chime"), CronTrigger(minute="0,30"),
+                  id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=90)
+
         # ── Hourly solar + weather (top of every hour) ────────────────────────
         s.add_job(self._run("solar_weather"), CronTrigger(minute=0),
                   id="hourly-solar-weather", name="Hourly solar+weather", misfire_grace_time=120)
@@ -81,17 +86,35 @@ class Scheduler:
 
     @staticmethod
     def _run(name: str):
-        """Return an async callable that imports and runs a cron module by name."""
+        """Return an async callable that imports and runs a cron module by name.
+        Writes start/finish records to ava_cron MySQL tables (matching old Node.js schema)."""
         async def _job():
+            import importlib
+            import time
+            from apps.core.services.mysql import log_cron_run
+
+            started_at = int(time.time() * 1000)
+            ok = False
+            detail = ""
+            error = ""
             try:
-                import importlib
                 mod = importlib.import_module(f"apps.core.crons.{name}")
                 if hasattr(mod, "run"):
                     await mod.run()
+                    ok = True
+                    detail = "ok"
                 else:
                     log.warning("Cron %s has no run() function", name)
-            except Exception:
+                    detail = "no_run_fn"
+            except Exception as exc:
                 log.exception("Cron %s failed", name)
+                error = str(exc)[:500]
+            finally:
+                finished_at = int(time.time() * 1000)
+                try:
+                    await log_cron_run(name, started_at, finished_at, ok, detail, error)
+                except Exception:
+                    pass  # never let DB logging kill the scheduler
         _job.__name__ = name
         return _job
 

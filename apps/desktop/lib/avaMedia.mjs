@@ -1,6 +1,6 @@
 /**
  * Central Ava media directory helpers for the desktop control app.
- * Default: $AVA_HANDOFF/media (override AVA_MEDIA_DIR).
+ * Default: $AVA_HANDOFF/apps/media (override AVA_MEDIA_DIR).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -18,22 +18,37 @@ const IMAGE_EXT = new Set([
 ]);
 
 export function handoffRoot() {
-  return process.env.AVA_HANDOFF || "/home/ava-core/ava";
+  return (
+    process.env.AVA_HANDOFF ||
+    process.env.AVA_HOME ||
+    "/run/media/ava-core/6B6C97406BF24558/ava-core-v2"
+  );
 }
 
 export function mediaRoot() {
   const fromEnv = String(process.env.AVA_MEDIA_DIR || "").trim();
-  return fromEnv || path.join(handoffRoot(), "media");
+  if (fromEnv) return fromEnv;
+  const staged = path.join(handoffRoot(), "apps", "media");
+  if (fs.existsSync(staged)) return staged;
+  return path.join(handoffRoot(), "media");
 }
 
 export function ensureMediaDirs() {
   const root = mediaRoot();
   for (const sub of [
+    "brand",
+    "portraits",
+    "thumbnails",
+    "emojis/discord",
+    "videos/clips",
+    "videos/mp4-current",
+    "audio/station",
+    "audio/reports",
+    "stream/overlays",
+    "stream/obs-cams",
     "library",
     "outbound",
     "imports",
-    "weather/gifs/current",
-    "weather/gifs/archive",
   ]) {
     fs.mkdirSync(path.join(root, sub), { recursive: true });
   }

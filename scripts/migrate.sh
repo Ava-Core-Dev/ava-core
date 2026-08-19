@@ -49,6 +49,23 @@ fi
 
 echo "  Voice totals: words=$(ls "$ASSETS/words/" 2>/dev/null | wc -l)  numbers=$(ls "$ASSETS/numbers/" 2>/dev/null | wc -l)  time=$(ls "$ASSETS/time_clips/" 2>/dev/null | wc -l)"
 
+# ── Staged media library (portraits, thumbs, clips) ───────────────────────────
+echo "Ensuring apps/media library..."
+MEDIA="$NEW/apps/media"
+CANON_MEDIA="/run/media/ava-core/6B6C97406BF24558/ava-core-v2/apps/media"
+if [ -d "$CANON_MEDIA/thumbnails" ] && [ "$CANON_MEDIA" != "$MEDIA" ]; then
+  mkdir -p "$MEDIA"
+  cp -rn "$CANON_MEDIA/." "$MEDIA/" 2>/dev/null && echo "  apps/media/ from canonical SSD build"
+fi
+# Keep voice thumbnail in sync with DEFAULT broadcast thumb
+if [ -f "$MEDIA/thumbnails/DEFAULT.jpg" ]; then
+  cp -f "$MEDIA/thumbnails/DEFAULT.jpg" "$ASSETS/thumbnail.jpg"
+  echo "  voice thumbnail ← apps/media/thumbnails/DEFAULT.jpg"
+elif [ -f "$MEDIA/thumbnails/thumb-daily-broadcast.jpg" ]; then
+  cp -f "$MEDIA/thumbnails/thumb-daily-broadcast.jpg" "$ASSETS/thumbnail.jpg"
+fi
+echo "  Media files: $(find "$MEDIA" -type f 2>/dev/null | wc -l)"
+
 # ── Generated audio (current outputs) ─────────────────────────────────────────
 echo "Migrating generated audio..."
 if [ -d "$OLD/voice/generated" ]; then
