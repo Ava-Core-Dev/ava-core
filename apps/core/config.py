@@ -97,6 +97,8 @@ MEDIA_SUBDIRS = (
     "images/direct messages/telegram",
     "documents/discord", "documents/reports", "documents/slack", "documents/telegram",
     "documents/persona", "documents/notes", "documents/plans", "documents/docs",
+    "documents/docs/vercel-builds",
+    "documents/docs/vercel-builds",
     "documents/context", "documents/logs",
     "stream/overlays", "stream/obs-cams",
     "public",
@@ -140,6 +142,30 @@ CURSOR_FALLBACK = _env_str("AVA_CURSOR_FALLBACK", "1") not in {"0", "false", "no
 CURSOR_MAX_PER_DAY = _env_int("AVA_CURSOR_MAX_PER_DAY", 2)
 CURSOR_MIN_HOURS = _env_int("AVA_CURSOR_MIN_HOURS", 6)
 GROK_DOWN_HOURS = _env_int("AVA_GROK_DOWN_HOURS", 12)
+
+
+def vercel_token() -> str:
+    return _first_env("VERCEL_TOKEN", "VERCEL_API_TOKEN")
+
+
+def vercel_team_id() -> str:
+    return _first_env("VERCEL_TEAM_ID", "VERCEL_ORG_ID")
+
+
+def vercel_webhook_secret() -> str:
+    return _first_env("VERCEL_WEBHOOK_SECRET")
+
+
+def vercel_token() -> str:
+    return _first_env("VERCEL_TOKEN", "VERCEL_API_TOKEN")
+
+
+def vercel_team_id() -> str:
+    return _first_env("VERCEL_TEAM_ID", "VERCEL_ORG_ID")
+
+
+def vercel_webhook_secret() -> str:
+    return _first_env("VERCEL_WEBHOOK_SECRET")
 
 # ── Discord ───────────────────────────────────────────────────────────────────
 DISCORD_API     = "https://discord.com/api/v10"

@@ -19,6 +19,7 @@ PRIVATE_PREFIXES = (
     "images/direct messages/",
     "documents/persona/known-people-",
     "documents/docs/known-people-",
+    "documents/docs/vercel-builds/",
     "documents/reports/conversation-summaries/",
     "documents/logs/",
     "documents/notes/AVA-FINANCE-",
