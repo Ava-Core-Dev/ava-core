@@ -109,13 +109,14 @@ async def run():
             # Post high-severity alerts to #automations immediately
             critical = [a for a in alerts if a["severity"].lower() in {"extreme", "severe"}]
             if critical:
-                from apps.core.services import discord
+                from apps.core.services import reports
                 alert_lines = [f"⚠️ **NWS ALERT** — {a['event']}: {a['headline']}" for a in critical[:3]]
-                await discord.post_message(
-                    config.DISCORD_CHANNELS.get("automations", ""),
+                await reports.publish(
+                    "weather",
                     "\n".join(alert_lines),
+                    channel="automations",
                 )
-                log.info("Posted %d critical NWS alerts to #automations", len(critical))
+                log.info("Posted %d critical NWS alerts to #automations + report DMs", len(critical))
 
     except Exception:
         log.exception("NOAA cron failed")

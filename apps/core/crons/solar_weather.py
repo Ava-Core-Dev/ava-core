@@ -160,9 +160,6 @@ async def run():
         return
     _last_hash = content_hash
 
-    from apps.core.services import discord
-    await discord.post_message(
-        config.DISCORD_CHANNELS.get("automations", ""),
-        content[:1900],
-    )
-    log.info("Solar+weather posted to #automations")
+    from apps.core.services import reports
+    await reports.publish("solar", content[:1900], channel="automations")
+    log.info("Solar+weather posted to #automations + report DMs")

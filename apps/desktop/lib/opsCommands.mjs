@@ -49,6 +49,29 @@ export const OPS_COMMAND_GROUPS = [
     ]),
   },
   {
+    id: "report-subs",
+    label: "Report DMs · public subscribers",
+    commands: [
+      {
+        id: "report-subs-list",
+        label: "List subscribers",
+        kind: "http",
+        method: "GET",
+        path: "/api/reports/subscribers",
+        detail: "People who asked for Ava's public reports in DMs (not dev feed)",
+      },
+      {
+        id: "report-subs-test",
+        label: "Test report DM",
+        kind: "http",
+        method: "POST",
+        path: "/api/reports/test",
+        detail: "Send a one-line public-report ping to subscribers only",
+        confirm: "DM a test report to every subscriber?",
+      },
+    ],
+  },
+  {
     id: "reports",
     label: "Reports · issue now / early (legacy Node scripts)",
     commands: [

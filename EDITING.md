@@ -184,5 +184,24 @@ commit again.
 **Site loads but says HOST OFFLINE.** Ava's machine is off, or the tunnel is
 down. Check `https://ava-origin.rootmc.net/api/status` directly.
 
+---
+
+## Subscribe to Ava's report DMs
+
+Anyone can get the public reports in a private message. This is **not** the
+developer/operator feed (no overnight status, no D1, no #development).
+
+**Telegram:** DM Ava's bot, then send `/subscribe`. `/unsubscribe` to stop.
+
+**Discord:** DM Ava, or type `!subscribe` in a RootMC channel she watches.
+`!unsubscribe` to stop.
+
+What they receive:
+
+- Morning summary (10:05 HST)
+- Solar + weather when it changes
+- Kīlauea when it changes
+- Severe/extreme NWS alerts
+
 **Changed a file but nothing happened.** Confirm you committed to `master`, and
 that the file is under the project's root directory (`packages/web/<site>/`).

@@ -73,6 +73,9 @@ async def run():
             report_path.write_text(content)
             log.info("Kīlauea report written: %s", report_path.name)
 
+            from apps.core.services import reports
+            await reports.publish("kilauea", content[:1900], channel="kilauea")
+
             # Derive alert level from highest-magnitude event type
             alert_level = _infer_alert_level(features)
             _write_alert_state(config, alert_level)

@@ -94,3 +94,26 @@ async def send_dm(user_id: str, content: str) -> dict | None:
         return None
     ch = r.json()
     return await post_message(ch["id"], content)
+
+
+async def get_me() -> dict | None:
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(f"{config.DISCORD_API}/users/@me", headers=_auth_headers())
+    if r.status_code != 200:
+        log.warning("Discord /users/@me failed: %s", r.status_code)
+        return None
+    return r.json()
+
+
+async def list_private_channels() -> list[dict]:
+    """DM / group-DM channels the bot already has open."""
+    async with httpx.AsyncClient(timeout=15) as client:
+        r = await client.get(
+            f"{config.DISCORD_API}/users/@me/channels",
+            headers=_auth_headers(),
+        )
+    if r.status_code != 200:
+        log.debug("Discord private channels: %s", r.status_code)
+        return []
+    data = r.json()
+    return data if isinstance(data, list) else []

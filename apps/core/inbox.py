@@ -17,6 +17,13 @@ from .services import discord, subscribers, telegram
 
 log = logging.getLogger("ava.inbox")
 
+def _snowflake(value: str) -> int:
+    try:
+        return int(str(value or "0"))
+    except (TypeError, ValueError):
+        return 0
+
+
 HELP = (
     "Ava report DMs — the same public reports, delivered to you.\n"
     "Not operator/dev messages. Just morning, solar/weather, Kīlauea, and alerts.\n\n"
@@ -163,7 +170,7 @@ async def _discord_tick() -> None:
         pending = []
         for msg in msgs:
             mid = str(msg.get("id") or "")
-            if not mid or int(mid) <= int(prev):
+            if not mid or _snowflake(mid) <= _snowflake(prev):
                 break
             pending.append(msg)
         for msg in reversed(pending):

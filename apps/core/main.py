@@ -35,6 +35,7 @@ async def lifespan(app: FastAPI):
     )
 
     config.ensure_dirs()
+    import asyncio
     log.info("Ava Core starting  port=%s  env=%s", config.AVA_PORT, config.AVA_ENV)
     log.info("Config: %s", config.as_dict())
 
@@ -69,6 +70,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.debug("Startup voice skipped: %s", e)
 
+    try:
+        from apps.core.inbox import run_inbox
+        asyncio.create_task(run_inbox())
+        log.info("Report-subscribe inbox started")
+    except Exception as e:
+        log.warning("Report inbox failed to start: %s", e)
+
     yield
 
     log.info("Ava Core shutting down")
@@ -101,9 +109,10 @@ app.add_middleware(
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
-from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld, crons  # noqa: E402
+from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld, crons, reports  # noqa: E402
 
 app.include_router(crons.router)
+app.include_router(reports.router)
 app.include_router(status.router)
 app.include_router(context.router)
 app.include_router(goals.router)

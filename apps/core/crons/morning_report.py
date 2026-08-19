@@ -42,7 +42,7 @@ async def run():
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Ava morning report** — {now_hst}\n\n{summary}"
 
-    # Post to #automations only — merged summary posts to #updates at 10:05
+    # Post to #automations only — merged summary is the public DM at 10:05
     await discord.post_message(config.DISCORD_CHANNELS["automations"], content)
     log.info("Morning report posted")
 
@@ -79,6 +79,6 @@ async def run_merged():
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
 
-    # #updates only — no individual relays here
-    await discord.post_message(config.DISCORD_CHANNELS["updates"], content)
-    log.info("Merged morning summary posted to #updates")
+    from apps.core.services import reports
+    await reports.publish("summary", content, channel="updates")
+    log.info("Merged morning summary posted to #updates + report DMs")

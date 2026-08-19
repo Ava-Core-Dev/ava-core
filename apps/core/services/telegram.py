@@ -42,15 +42,15 @@ async def send_message(chat_id: str | int, text: str) -> dict | None:
 async def get_updates(offset: int | None = None, timeout: int = 20) -> list[dict[str, Any]]:
     if not _base():
         return []
-    params: dict[str, Any] = {
+    payload: dict[str, Any] = {
         "timeout": timeout,
-        "allowed_updates": json_list(["message"]),
+        "allowed_updates": ["message"],
     }
     if offset:
-        params["offset"] = offset
+        payload["offset"] = offset
     try:
         async with httpx.AsyncClient(timeout=timeout + 10) as client:
-            r = await client.get(f"{_base()}/getUpdates", params=params)
+            r = await client.post(f"{_base()}/getUpdates", json=payload)
         body = r.json()
         if body.get("ok"):
             return list(body.get("result") or [])
@@ -58,10 +58,3 @@ async def get_updates(offset: int | None = None, timeout: int = 20) -> list[dict
     except Exception as e:
         log.debug("Telegram getUpdates: %s", e)
     return []
-
-
-def json_list(values: list[str]) -> str:
-    # Telegram wants allowed_updates as a JSON array in the query string.
-    import json
-
-    return json.dumps(values)
