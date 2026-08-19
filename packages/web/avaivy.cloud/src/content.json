@@ -13,6 +13,7 @@
   "nav": [
     { "label": "Status", "href": "/status" },
     { "label": "Goals", "href": "/status/goals" },
+    { "label": "Wallets", "href": "/wallets" },
     { "label": "Updates", "href": "/blog" },
     { "label": "Context", "href": "/context" },
     { "label": "Solar", "href": "https://rootrecord.online" },

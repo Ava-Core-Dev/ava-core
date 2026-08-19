@@ -54,3 +54,5 @@ Thumbs.db
 
 credentials.env
 credentials.env.*
+**/recovery-phrase*
+**/wallet-secrets*

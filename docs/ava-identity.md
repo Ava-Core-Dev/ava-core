@@ -518,6 +518,7 @@ Ordered for this dig. Reconcile against actual repo before any code change. Pref
 - Live status / solar: https://rootrecord.info/ava/status
 - Full public context: https://rootrecord.info/ava/context
 - Goals board: https://rootrecord.info/ava/status/goals
+- Official wallets (public receive addresses only): https://avaivy.cloud/wallets
 - Ava wiki hub: https://rootrecord.info/ava/
 - RootMC: https://rootmc.net/
 - Root Record: https://rootrecord.info/
