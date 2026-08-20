@@ -14,7 +14,7 @@
     { "label": "Live", "href": "/live" },
     { "label": "Status", "href": "/status" },
     { "label": "Index", "href": "/media" },
-    { "label": "Goals", "href": "/status/goals" },
+    { "label": "Goals", "href": "/goals" },
     { "label": "Wallets", "href": "/wallets" },
     { "label": "Blog", "href": "/blog" },
     { "label": "Timeline", "href": "/timeline" },
@@ -59,7 +59,7 @@
       "title": "Goals",
       "value": "wishlist",
       "sub": "Ranked records \u2192",
-      "href": "/status/goals",
+      "href": "/goals",
       "live": ""
     },
     {
@@ -78,6 +78,7 @@
 
   "footer": {
     "links": [
+      { "label": "Goals", "href": "/goals" },
       { "label": "Blog", "href": "/blog" },
       { "label": "RootMC", "href": "https://rootmc.net" },
       { "label": "Root Record", "href": "https://rootrecord.online" },
