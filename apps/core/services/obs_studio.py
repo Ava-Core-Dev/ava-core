@@ -1317,9 +1317,9 @@ def _remap_media_path(old: str) -> str | None:
         "ava_intro_what_she_does_ara.mp3": media / "audio" / "reports" / "ava_intro_what_she_does_ara.mp3",
         "ava_test_intro.mp3": media / "audio" / "reports" / "ava_test_intro.mp3",
         "kilaueaappoverlay.html": media / "stream" / "overlays" / "obs-kilauea.html",
-        "last lala.mp4": media / "video" / "current" / "nws-hawaii-current.mp4",
-        "Ava_Lala_1600_Final_Complete.mp3": media / "audio" / "current" / "nws-hawaii-current.mp3",
-        "Ava_Lala_Closing.mp3": media / "audio" / "current" / "nws-hawaii-current.mp3",
+        "last lala.mp4": media / "video" / "current" / "ava-daily-broadcast-promo.mp4",
+        "Ava_Lala_1600_Final_Complete.mp3": media / "audio" / "current" / "Morning_Broadcast_Current.mp3",
+        "Ava_Lala_Closing.mp3": media / "audio" / "current" / "Morning_Broadcast_Current.mp3",
         "ava_5min_report_2026-08-17_1435.mp3": media / "audio" / "current" / "Morning_Broadcast_Current.mp3",
         "ava_account_promo_1min.mp3": media / "audio" / "reports" / "ava_intro_what_she_does_ara.mp3",
     }
