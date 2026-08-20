@@ -33,21 +33,89 @@ async def _ping(host: str, port: int) -> dict:
         return {"online": False, "host": host, "port": port, "error": str(e)}
 
 
+async def _unit_state(unit: str) -> dict:
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "systemctl",
+            "show",
+            unit,
+            "-p",
+            "ActiveState",
+            "-p",
+            "SubState",
+            "-p",
+            "MainPID",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        out, _ = await asyncio.wait_for(proc.communicate(), timeout=3)
+    except Exception as e:
+        return {"active": False, "pid": 0, "detail": str(e)}
+    fields = {}
+    for line in out.decode("utf-8", errors="replace").splitlines():
+        if "=" in line:
+            k, v = line.split("=", 1)
+            fields[k.strip()] = v.strip()
+    pid = 0
+    try:
+        pid = int(fields.get("MainPID") or 0)
+    except ValueError:
+        pid = 0
+    return {
+        "active": fields.get("ActiveState") == "active",
+        "sub": fields.get("SubState") or "",
+        "pid": pid,
+    }
+
+
+def _paper_meta() -> dict:
+    d = config.MC_TEST_DIR
+    jars = sorted(d.glob("paper*.jar")) + sorted(d.glob("server.jar"))
+    plugins = list((d / "plugins").glob("*.jar")) if (d / "plugins").is_dir() else []
+    log_path = d / "logs" / "latest.log"
+    return {
+        "jar": jars[0].name if jars else None,
+        "plugins": len(plugins),
+        "logFile": str(log_path) if log_path.is_file() else None,
+        "logBytes": log_path.stat().st_size if log_path.is_file() else 0,
+    }
+
+
 @router.get("/status")
 async def minecraft_status():
-    live, test = await asyncio.gather(
+    live, test, unit = await asyncio.gather(
         _ping(config.MC_LIVE_HOST, config.MC_LIVE_PORT),
         _ping(config.MC_TEST_HOST, config.MC_TEST_PORT),
+        _unit_state(config.MC_UNIT),
     )
+    running = bool(unit.get("active") or test.get("online"))
+    test_rcon = config.RCON_TARGETS.get("test") or ("127.0.0.1", 25575, "")
+    rcon_targets = [
+        {"id": name, "host": host, "port": port}
+        for name, (host, port, _pw) in config.RCON_TARGETS.items()
+        if host
+    ]
+    meta = _paper_meta()
+    pid = unit.get("pid") or 0
     return {
         "ok": True,
+        "running": running,
+        "pids": [pid] if pid else [],
+        "serverPort": config.MC_TEST_PORT,
+        "rconPort": test_rcon[1],
+        "rconTargets": rcon_targets,
+        "motd": test.get("motd") or ("Paper test up" if running else ""),
+        "plugins": meta["plugins"],
+        "jar": meta["jar"],
+        "logFile": meta["logFile"],
+        "logBytes": meta["logBytes"],
         "live": live,
         "test": test,
-        "online": bool(live.get("online")),
+        "unitState": unit,
+        "online": running,
         "players": {"online": live.get("players_online"), "max": live.get("players_max")},
-        "latency_ms": live.get("latency_ms"),
+        "latency_ms": test.get("latency_ms") if running else live.get("latency_ms"),
         "version": live.get("version"),
-        "motd": live.get("motd"),
         "dir": str(config.MC_TEST_DIR),
         "dirPresent": config.MC_TEST_DIR.is_dir(),
         "unit": config.MC_UNIT,
@@ -76,7 +144,13 @@ async def minecraft_log(bytes: int = 200_000, lines: int = 220):
                 fh.readline()  # discard the partial first line
             tail = fh.read().decode("utf-8", errors="replace")
         out = tail.splitlines()[-max(1, min(int(lines), 5000)):]
-        return {"ok": True, "path": str(path), "size": size, "lines": out}
+        return {
+            "ok": True,
+            "path": str(path),
+            "size": size,
+            "lines": out,
+            "text": "\n".join(out),
+        }
     except Exception as e:
         log.warning("log tail failed: %s", e)
         return {"ok": False, "detail": str(e), "path": str(path), "lines": []}

@@ -158,14 +158,32 @@ class Scheduler:
             log.info("Scheduler stopped")
 
     def get_jobs(self) -> list[dict]:
-        return [
-            {
-                "id": j.id,
-                "name": j.name,
-                "next_run": j.next_run_time.isoformat() if j.next_run_time else None,
-            }
-            for j in self._apscheduler.get_jobs()
-        ]
+        out = []
+        for j in self._apscheduler.get_jobs():
+            next_run = j.next_run_time.isoformat() if j.next_run_time else None
+            next_at = int(j.next_run_time.timestamp() * 1000) if j.next_run_time else 0
+            every_ms = 0
+            trig = j.trigger
+            interval = getattr(trig, "interval", None)
+            if interval is not None:
+                try:
+                    every_ms = int(interval.total_seconds() * 1000)
+                except Exception:
+                    every_ms = 0
+            out.append(
+                {
+                    "id": j.id,
+                    "name": j.name,
+                    "next_run": next_run,
+                    "nextAt": next_at,
+                    "everyMs": every_ms or 3_600_000,
+                    "cronHint": j.name or str(trig),
+                    "running": False,
+                    "disabled": False,
+                    "lastFiredAt": None,
+                }
+            )
+        return out
 
     async def run_job_now(self, job_id: str) -> dict:
         """Run a registered job immediately, out of band from its schedule.

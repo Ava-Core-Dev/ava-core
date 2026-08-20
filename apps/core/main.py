@@ -129,6 +129,10 @@ for _route in (
     try:
         _mod = importlib.import_module(f".routes.{_route}", __package__)
         app.include_router(_mod.router)
+        for _extra_name in ("api_router", "legacy_router"):
+            _extra = getattr(_mod, _extra_name, None)
+            if _extra is not None:
+                app.include_router(_extra)
     except Exception as _exc:
         log.warning("route %s not loaded: %s", _route, _exc)
 
