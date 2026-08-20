@@ -719,6 +719,13 @@ async def obs_solana_qr():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 
+@router.get("/support-ava", response_class=HTMLResponse)
+async def obs_support_ava():
+    """Scene 10 Support Overlay — same board as /obs/solana-qr."""
+    path = Path(__file__).resolve().parent.parent / "templates" / "obs-solana.html"
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
 @router.get("/solar", response_class=HTMLResponse)
 async def obs_solar_public():
     path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
