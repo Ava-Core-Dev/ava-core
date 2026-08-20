@@ -1,7 +1,7 @@
 {
   "_readme": "Ava operational goals board. Edit this file on GitHub — avaivy.cloud/goals redeploys automatically. Never invent amount_raised_usd. Never fund from player Gold or the ops/hosting buffer. See EDITING.md.",
   "funding_rules": {
-    "summary": "Goals are funded from Ava allocation (about 10–15% of earned income) only. Never player Gold. Never the ops/hosting buffer. Official receive addresses: Solana 3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL · EVM 0x983704ec4a39526b3f574050132b6659bb0474c5 · full list at /wallets.",
+    "summary": "Goals are funded from Ava allocation (about 10–15% of earned income) only. Never player Gold. Never the ops/hosting buffer. Live Root Goals pages (each with an isolated donate wallet) are at /goals — official receive addresses also at /wallets.",
     "allowed": [
       "Ava allocation",
       "earned income"
@@ -48,7 +48,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 0,
-      "completion_date_est": null
+      "completion_date_est": null,
+      "root_goal_id": "49d57861-d33d-4539-ad69-803b7d072f02",
+      "donate_wallet": "DvUjqA8mw7Bx5Bh2oTYQtMGHeQoiE3f59TCgwFwvSirw"
     },
     {
       "goal_id": "kilauea-app",
@@ -71,7 +73,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 55,
-      "completion_date_est": "2026-12-31"
+      "completion_date_est": "2026-12-31",
+      "root_goal_id": "f69e790d-4d6f-4d86-a6b2-209e6d2e39bc",
+      "donate_wallet": "GdaR9TZNSjUHx36u9dURCPqcbhGNVoMqsvEzDb6ofXXr"
     },
     {
       "goal_id": "ops-record",
@@ -94,7 +98,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 70,
-      "completion_date_est": "2026-12-31"
+      "completion_date_est": "2026-12-31",
+      "root_goal_id": "c6bd46e0-e96b-40be-96eb-ba4d49acfdff",
+      "donate_wallet": "4RLJAGp66PoTA5iJZMXgPQqmP6PhQ9JZnN9y3WtVTQ4w"
     },
     {
       "goal_id": "portfolio-audit",
@@ -117,7 +123,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 40,
-      "completion_date_est": "2026-10-31"
+      "completion_date_est": "2026-10-31",
+      "root_goal_id": "b2d6fc83-0c51-46bb-adf1-1dff4b23d645",
+      "donate_wallet": "CmLuNcjCk3pQJUQUAXkv8gZXvofE6vJ4qEHwFQGaGyhc"
     },
     {
       "goal_id": "local-brain",
@@ -140,7 +148,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 35,
-      "completion_date_est": "2026-11-30"
+      "completion_date_est": "2026-11-30",
+      "root_goal_id": "dfc52e28-c27b-4948-af38-2f115b1fde75",
+      "donate_wallet": "5awwuRahkxAoJHLW1A5wgko3WFMyBTxgdyirpXrYX3Ug"
     },
     {
       "goal_id": "grow-rootmc",
@@ -163,7 +173,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 25,
-      "completion_date_est": "2027-03-31"
+      "completion_date_est": "2027-03-31",
+      "root_goal_id": "a88988af-58ca-45a8-acba-baec00b1d4ef",
+      "donate_wallet": "3XjauyYa3CvTk3okgmvwYaZdfrCrwPoCbTVhjWE6NXJB"
     },
     {
       "goal_id": "telegram-surface",
@@ -186,7 +198,9 @@
       "created_at": "2026-08-13T00:00:00-10:00",
       "updated_at": "2026-08-19T11:20:00-10:00",
       "percent_complete": 90,
-      "completion_date_est": "2026-09-30"
+      "completion_date_est": "2026-09-30",
+      "root_goal_id": "b76dc2f2-a2e5-424b-b51b-a0579e877e46",
+      "donate_wallet": "4PtvpG8bqPuFuUhF9tamsYgWsmMmVxYW3dbr1N1HaKAh"
     }
   ]
 }
