@@ -62,24 +62,29 @@ else
   fi
 
   echo "Installing systemd units..."
-  for unit in ava-core ava-tunnel ava-voice ava-minecraft-test ava-phpmyadmin; do
+  for unit in ava-core ava-tunnel ava-voice ava-minecraft-test ava-phpmyadmin ava-runtime-watchdog; do
     if [ -f "$AVA_ROOT/systemd/$unit.service" ]; then
       sudo cp "$AVA_ROOT/systemd/$unit.service" "$SYSTEMD_SYS_DIR/"
       echo "  Installed /etc/systemd/system/$unit.service"
     fi
   done
+  if [ -f "$AVA_ROOT/systemd/ava-runtime-watchdog.timer" ]; then
+    sudo cp "$AVA_ROOT/systemd/ava-runtime-watchdog.timer" "$SYSTEMD_SYS_DIR/"
+    echo "  Installed /etc/systemd/system/ava-runtime-watchdog.timer"
+  fi
 
   sudo systemctl daemon-reload
   echo ""
 
-  # Enable for autostart — tunnel stays system-managed; core/voice are GUI-managed
+  # Enable for autostart
   echo "Enabling services for autostart on boot..."
-  sudo systemctl enable ava-tunnel.service ava-phpmyadmin.service
-  # Core + voice follow the Electron GUI (start on open, stop on close) — do not enable at boot
-  sudo systemctl disable ava-core.service ava-voice.service 2>/dev/null || true
-  sudo systemctl stop ava-core.service ava-voice.service 2>/dev/null || true
+  sudo systemctl enable ava-core.service ava-tunnel.service ava-phpmyadmin.service
+  sudo systemctl enable ava-runtime-watchdog.timer 2>/dev/null || true
+  # Voice can stay desktop-managed.
+  sudo systemctl disable ava-voice.service 2>/dev/null || true
+  sudo chmod +x "$AVA_ROOT/scripts/ensure-ava-runtime.sh" 2>/dev/null || true
   sudo systemctl enable ava-minecraft-test.service 2>/dev/null && true
-  echo "  Enabled: ava-tunnel  ava-phpmyadmin  (ava-core/voice = GUI lifecycle)"
+  echo "  Enabled: ava-core  ava-tunnel  ava-phpmyadmin  ava-runtime-watchdog.timer"
   echo ""
 
   # Ask before starting now
@@ -87,7 +92,8 @@ else
   read -r START_NOW
   START_NOW="${START_NOW:-Y}"
   if [[ "$START_NOW" =~ ^[Yy]$ ]]; then
-    echo "Starting ava-tunnel..."
+    echo "Starting ava-core + ava-tunnel..."
+    sudo systemctl start ava-core.service
     sudo systemctl start ava-tunnel.service
     sleep 2
 
@@ -98,14 +104,16 @@ else
     sudo systemctl start ava-minecraft-test.service 2>/dev/null || true
 
     echo ""
-    echo "Note: ava-core + ava-voice start when you open the Ava Ivy GUI."
+    echo "Ava Core is now a background service and auto-heals every minute."
     echo "Status:"
+    sudo systemctl status ava-core.service        --no-pager -l | head -5
     sudo systemctl status ava-tunnel.service      --no-pager -l | head -5
     sudo systemctl status ava-phpmyadmin.service  --no-pager -l | head -5
+    sudo systemctl status ava-runtime-watchdog.timer --no-pager -l | head -5
     sudo systemctl status ava-minecraft-test.service --no-pager -l | head -5
   else
     echo "Skipped. Start manually with:"
-    echo "  sudo systemctl start ava-tunnel ava-core ava-voice ava-phpmyadmin ava-minecraft-test"
+    echo "  sudo systemctl start ava-core ava-tunnel ava-phpmyadmin ava-runtime-watchdog.timer ava-minecraft-test"
   fi
 fi
 

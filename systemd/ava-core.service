@@ -22,7 +22,7 @@ ExecStart=/home/ava-core/ava/ava-core-v2/.venv/bin/uvicorn apps.core.main:app \
   --log-level info \
   --no-access-log
 
-Restart=on-failure
+Restart=always
 RestartSec=10
 TimeoutStopSec=30
 

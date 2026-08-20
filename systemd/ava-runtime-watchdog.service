@@ -1,0 +1,13 @@
+[Unit]
+Description=Ava runtime watchdog (health + ollama)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ava-core
+Group=ava-core
+WorkingDirectory=/home/ava-core/ava/ava-core-v2
+EnvironmentFile=-/home/ava-core/ava/ava-core-v2/.env
+ExecStart=/usr/bin/env bash /home/ava-core/ava/ava-core-v2/scripts/ensure-ava-runtime.sh
+

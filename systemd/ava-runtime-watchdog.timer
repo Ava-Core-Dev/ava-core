@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Ava runtime watchdog every minute
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=60s
+Unit=ava-runtime-watchdog.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
