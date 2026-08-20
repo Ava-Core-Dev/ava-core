@@ -26,7 +26,7 @@
                 <tr><td>Cloudflare DNS</td><td>Names + tunnel hostnames</td></tr>
                 <tr><td>Tunnel</td><td><code>ava.rootmc.net</code> · <code>api-ava</code> · <code>api-local</code> → OptiPlex</td></tr>
                 <tr><td>cloudflared</td><td>systemd unit <code>cloudflared</code> (token file, <code>enabled</code>, <code>Restart=always</code>)</td></tr>
-                <tr><td>This wiki Worker</td><td><code>avaivy.cloud/wiki*</code> → static wiki + status proxy</td></tr>
+                <tr><td>This wiki Worker</td><td><code>avaivy.cloud/wiki*</code> (canonical) · legacy <code>rootrecord.info/ava*</code> 301 → wiki; status still proxied on Worker</td></tr>
                 <tr><td>Ava OptiPlex</td><td>Brain, schedules, databases, live status HTML</td></tr>
               </table>
             </section>
@@ -36,7 +36,7 @@
               <p class="lead">Schedules moved to Ava <code>cronRunner</code>; Cloudflare Worker cron triggers are empty but HTTP routes stay live during soft-ack.</p>
               <ul class="dense">
                 <li><strong>Earliest API Worker undeploy:</strong> ~<strong>2026-08-13</strong> (day 7) — operator OK required</li>
-                <li><strong>Canonical public home:</strong> <a href="https://avaivy.cloud/wiki/">wiki</a> · <a href="https://rootrecord.info/ava/status">live status</a></li>
+                <li><strong>Canonical public home:</strong> <a href="https://avaivy.cloud/wiki/">wiki</a> · <a href="https://avaivy.cloud/">live desk</a></li>
                 <li><strong>Legacy tunnel:</strong> <code>ava.rootmc.net</code> — APIs (<code>/api/status</code>, <code>/api/solar</code>) and <code>/solar</code> board stay on origin</li>
               </ul>
             </section>

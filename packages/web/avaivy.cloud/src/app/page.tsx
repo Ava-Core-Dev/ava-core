@@ -12,7 +12,7 @@ export default function Home() {
     <iframe
       id="solar-desk"
       title="Ava Ivy solar status desk"
-      src="/desk"
+      src="/solar"
       style={{
         position: "fixed",
         inset: 0,

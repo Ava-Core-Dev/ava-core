@@ -7,7 +7,15 @@ import styles from "@/app/page.module.css";
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   // Full-bleed boards: home (solar desk), solar iframe origin, live embed
-  if (path === "/" || path === "/live/embed" || path === "/solar" || path === "/status") {
+  // Full-bleed boards + static wiki HTML (public/wiki) if ever routed through app
+  if (
+    path === "/" ||
+    path === "/live/embed" ||
+    path === "/solar" ||
+    path === "/status" ||
+    path === "/wiki" ||
+    path.startsWith("/wiki/")
+  ) {
     return <>{children}</>;
   }
   const { site, nav, footer } = content;
