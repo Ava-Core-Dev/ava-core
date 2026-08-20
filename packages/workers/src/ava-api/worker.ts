@@ -53,6 +53,14 @@ export default {
       });
     }
 
+    if (path === "/solar" || path === "/solar/") {
+      return proxyToOrigin(request, {
+        originUrl: ORIGIN,
+        timeoutMs: 8000,
+        offlineFallback: () => fetchFrontend(request, VERCEL_FRONTEND),
+      });
+    }
+
     if (isOriginApi(path)) {
       return proxyToOrigin(request, {
         originUrl: ORIGIN,

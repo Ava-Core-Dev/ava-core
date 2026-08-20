@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Ava Ivy — Solar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --surface: rgba(17,24,39,.82);
+    --border: #1f2937;
+    --accent: #f59e0b;
+    --cyan: #06b6d4;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --green: #10b981;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--text);
+    font-family: Inter, system-ui, sans-serif; }
+  .bg {
+    position: fixed; inset: 0; background: #0a0e14 center/cover no-repeat;
+    transition: opacity .8s ease; z-index: 0;
+  }
+  .bg.dim { opacity: 0; }
+  .veil {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      linear-gradient(90deg, rgba(10,14,20,.78) 0%, rgba(10,14,20,.22) 42%, rgba(10,14,20,.22) 58%, rgba(10,14,20,.78) 100%),
+      linear-gradient(180deg, rgba(10,14,20,.55) 0%, transparent 18%, transparent 78%, rgba(10,14,20,.7) 100%);
+  }
+  .top {
+    position: relative; z-index: 3;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    padding: 14px 22px;
+    background: rgba(10,14,20,.88);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); text-decoration: none; }
+  .mark { color: var(--accent); }
+  .nav { display: flex; gap: 18px; flex-wrap: wrap; }
+  .nav a { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .nav a:hover, .nav a.on { color: var(--text); }
+  .clock { text-align: right; font-variant-numeric: tabular-nums; }
+  .clock .d { font-size: 11px; color: var(--muted); }
+  .clock .t { font-size: 18px; font-weight: 700; letter-spacing: .04em; }
+  .stage { position: relative; z-index: 2; min-height: calc(100dvh - 56px); }
+  .rail {
+    position: absolute; top: 18px; width: min(420px, 34vw);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .left { left: 18px; }
+  .right { right: 18px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    backdrop-filter: blur(10px);
+  }
+  .k {
+    font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+  }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 5px 0; }
+  .row span:first-child { color: var(--muted); font-size: 13px; }
+  .v { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 18px; font-weight: 600; }
+  .solar { color: var(--accent); }
+  .cyan { color: var(--cyan); }
+  .ok { color: var(--green); }
+  .warn { color: var(--accent); }
+  .ringwrap { display: flex; gap: 8px; justify-content: space-between; }
+  .ring { flex: 1; text-align: center; }
+  .gauge {
+    width: 108px; height: 108px; margin: 0 auto 6px; border-radius: 50%;
+    background: conic-gradient(var(--cyan) var(--p), rgba(255,255,255,.08) 0);
+    display: grid; place-items: center;
+  }
+  .gauge > div {
+    width: 78px; height: 78px; border-radius: 50%; background: rgba(10,14,20,.94);
+    display: grid; place-items: center; font-size: 22px; font-weight: 800;
+  }
+  .lab { font-size: 13px; font-weight: 650; }
+  .sub { opacity: .7; font-size: 11px; line-height: 1.3; margin-top: 4px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tile { background: rgba(255,255,255,.04); border-radius: 10px; padding: 8px 10px; }
+  .tile .n { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .tile .x { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .bottom {
+    position: absolute; left: 18px; right: 18px; bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px;
+    font-size: 13px; color: var(--muted);
+  }
+  .flow { display: flex; gap: 16px; color: var(--text); }
+  .flow b { color: var(--accent); }
+  @media (max-width: 900px) {
+    .rail { position: relative; width: auto; left: auto; right: auto; top: auto; margin: 12px 12px 0; }
+    .stage { display: flex; flex-direction: column; padding-bottom: 80px; }
+    .bottom { position: relative; margin: 12px; left: auto; right: auto; bottom: auto; }
+    .veil { background: linear-gradient(180deg, rgba(10,14,20,.45), rgba(10,14,20,.72)); }
+  }
+</style>
+</head>
+<body>
+  <div class="bg" id="bgA"></div>
+  <div class="bg dim" id="bgB"></div>
+  <div class="veil"></div>
+  <header class="top">
+    <a class="logo" href="/"><span class="mark">◈</span> Ava Ivy</a>
+    <nav class="nav">
+      <a href="/live">Live</a>
+      <a href="/status">Status</a>
+      <a class="on" href="/solar">Solar</a>
+      <a href="/status/goals">Goals</a>
+      <a href="https://rootmc.net">RootMC</a>
+    </nav>
+    <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
+  </header>
+  <div class="stage">
+    <div class="rail left">
+      <div class="card">
+        <div class="k">Battery bank</div>
+        <div class="ringwrap" id="rings"></div>
+      </div>
+      <div class="card">
+        <div class="k">Totals now</div>
+        <div class="split">
+          <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
+          <div class="tile"><div class="n">DC load</div><div class="x" id="load">—</div></div>
+          <div class="tile"><div class="n">Transfer</div><div class="x cyan" id="xfer">—</div></div>
+          <div class="tile"><div class="n">Generator</div><div class="x cyan" id="gen">—</div></div>
+          <div class="tile"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
+          <div class="tile"><div class="n">Bank avg</div><div class="x" id="bankAvg">—</div></div>
+        </div>
+        <div class="row" style="margin-top:10px"><span>State</span><span class="v cyan" id="state" style="font-size:14px;text-align:right;max-width:250px">—</span></div>
+      </div>
+    </div>
+    <div class="rail right">
+      <div class="card">
+        <div class="k" id="hostK">Root server</div>
+        <div class="row"><span>CPU</span><span class="v" id="cpu">—</span></div>
+        <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
+        <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div>
+      </div>
+      <div class="card">
+        <div class="k">Site + volcano</div>
+        <div class="row"><span>Weather</span><span class="v" id="wx" style="font-size:15px">—</span></div>
+        <div class="row"><span>Kīlauea</span><span class="v warn" id="kila">—</span></div>
+      </div>
+    </div>
+    <div class="bottom">
+      <div>Ava Ivy · ground PV · avaivy.cloud/solar</div>
+      <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
+      <div id="src">source —</div>
+    </div>
+  </div>
+<script>
+const BGS = [
+  "/api/media/public/file?path=images/character/ava-05-desk-root-server.png",
+  "/api/media/public/file?path=images/character/ava-01-meadow-holograms.png",
+  "/api/media/public/file?path=images/character/ava-hologram-wave.png",
+  "/api/media/public/file?path=images/character/ava-desk-ops.png",
+  "/api/media/public/file?path=images/character/background%20home.jpg",
+];
+let bi = 0, showA = true;
+function setBg(el, url){ el.style.backgroundImage = `url("${url}")`; }
+function cycleBg(){
+  bi = (bi + 1) % BGS.length;
+  const next = BGS[bi];
+  const a = document.getElementById("bgA"), b = document.getElementById("bgB");
+  if (showA) { setBg(b, next); b.classList.remove("dim"); a.classList.add("dim"); }
+  else { setBg(a, next); a.classList.remove("dim"); b.classList.add("dim"); }
+  showA = !showA;
+}
+setBg(document.getElementById("bgA"), BGS[0]);
+setInterval(cycleBg, 18000);
+
+function tick(){
+  const n = new Date();
+  document.getElementById("date").textContent = n.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric",timeZone:"Pacific/Honolulu"});
+  document.getElementById("time").textContent = n.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"Pacific/Honolulu"})+" HST";
+}
+function ring(d){
+  const p = Math.max(0, Math.min(100, Number(d.soc)||0));
+  const bits = [];
+  if (d.online === false) bits.push("last known");
+  else {
+    if (d.pv_w > 2) bits.push(Math.round(d.pv_w)+" W PV");
+    const role = d.ac_role;
+    if (role === "appliances") bits.push(Math.round(d.ac_out_w)+" W appliances");
+    else if (role === "generator") bits.push(Math.round(d.ac_in_w)+" W generator");
+    else if (role === "transfer_out") bits.push(Math.round(d.transfer_w||d.ac_out_w||d.discharge_w)+" W transfer out");
+    else if (role === "transfer_in") bits.push(Math.round(d.transfer_w||d.ac_in_w||d.ac_charge_w)+" W transfer in");
+    if (d.dc_out_w > 2) bits.push(Math.round(d.dc_out_w)+" W DC");
+  }
+  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div class="lab">${d.label||"pack"}</div>${bits.length?`<div class="sub">${bits.join("<br>")}</div>`:""}</div>`;
+}
+function watts(v){ if(v==null||v==="") return "—"; return Math.round(Number(v))+" W"; }
+function pct(v){ if(v==null||v==="") return "—"; return Number(v).toFixed(0)+"%"; }
+function dur(s){ s=Number(s)||0; if(!s) return "—"; const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60); return d? d+"d "+h+"h" : h+"h "+m+"m"; }
+async function paint(){
+  try {
+    const s = await (await fetch("/api/obs/solar-desk",{cache:"no-store"})).json();
+    const solar = s.solar||{};
+    const tot = solar.totals||{};
+    const host = s.host||{};
+    const wx = s.weather||{};
+    const k = s.kilauea||{};
+    const devices = solar.devices||[];
+    document.getElementById("rings").innerHTML = devices.length ? devices.map(ring).join("") : ring({label:"Bank", soc:solar.battery_pct, online:true});
+    const pv = tot.solar_in_w ?? solar.solar_in_w ?? solar.power_w;
+    const load = tot.dc_load_w ?? tot.load_w ?? solar.load_w;
+    document.getElementById("solar").textContent = watts(pv);
+    document.getElementById("load").textContent = watts(load);
+    document.getElementById("xfer").textContent = watts(tot.transfer_w);
+    document.getElementById("gen").textContent = watts(tot.generator_w);
+    document.getElementById("appl").textContent = watts(tot.appliance_w);
+    document.getElementById("bankAvg").textContent = pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById("state").textContent = solar.state || "—";
+    document.getElementById("hostK").textContent = "Root server · "+(host.host||"ava-core");
+    document.getElementById("cpu").textContent = host.cpu_pct!=null ? host.cpu_pct.toFixed(0)+"%" : "—";
+    document.getElementById("ram").textContent = host.mem_pct!=null ? host.mem_pct.toFixed(0)+"%" : "—";
+    document.getElementById("up").textContent = dur(host.boot_uptime_s||host.uptime_s);
+    const temp = wx.temperature_f!=null ? wx.temperature_f+"°" : "";
+    const fc = (wx.forecast||wx.conditions||"").replace(/\s+/g," ").trim().slice(0,32);
+    document.getElementById("wx").textContent = [temp, fc].filter(Boolean).join(" · ") || "—";
+    const lvl = (k.alert_level||"advisory").replace(/^./,c=>c.toUpperCase());
+    document.getElementById("kila").textContent = lvl+" · "+(k.erupting?"erupting":"not erupting");
+    document.getElementById("flowIn").textContent = watts(pv);
+    document.getElementById("flowBank").textContent = pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById("flowOut").textContent = watts(load);
+    document.getElementById("src").textContent = (solar.source||"ground PV")+(solar.updated_at?(" · "+String(solar.updated_at).slice(11,19)+"Z"):"");
+  } catch(e) {}
+}
+tick(); setInterval(tick, 1000);
+paint(); setInterval(paint, 8000);
+</script>
+</body>
+</html>

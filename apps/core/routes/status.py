@@ -5,6 +5,7 @@ from __future__ import annotations
 import platform
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import psutil
 from fastapi import APIRouter
@@ -21,7 +22,14 @@ _start_time = time.time()
 
 @router.get("/")
 async def root():
-    return JSONResponse({"redirect": "https://rootrecord.online/status", "ava": "online"})
+    return JSONResponse({"redirect": "https://avaivy.cloud/solar", "ava": "online"})
+
+
+@router.get("/solar")
+async def solar_page():
+    path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
+    html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar desk missing</p>"
+    return HTMLResponse(html)
 
 
 @router.get("/health")

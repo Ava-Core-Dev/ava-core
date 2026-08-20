@@ -18,7 +18,7 @@
     { "label": "Wallets", "href": "/wallets" },
     { "label": "Updates", "href": "/blog" },
     { "label": "Context", "href": "/context" },
-    { "label": "Solar", "href": "https://rootrecord.online" },
+    { "label": "Solar", "href": "/solar" },
     { "label": "RootMC", "href": "https://rootmc.net" }
   ],
 
@@ -32,9 +32,9 @@
     },
     {
       "title": "Solar",
-      "value": "rootrecord.online",
-      "sub": "Live dashboard \u2192",
-      "href": "https://rootrecord.online",
+      "value": "avaivy.cloud/solar",
+      "sub": "Ground PV + EcoFlow \u2192",
+      "href": "/solar",
       "live": ""
     },
     {

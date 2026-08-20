@@ -6,7 +6,7 @@ import styles from "@/app/page.module.css";
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  if (path === "/live/embed") {
+  if (path === "/live/embed" || path === "/solar") {
     return <>{children}</>;
   }
   const { site, nav, footer } = content;

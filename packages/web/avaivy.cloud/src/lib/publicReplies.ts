@@ -10,6 +10,7 @@ export const LINKS = {
   blog: "https://avaivy.cloud/blog",
   context: "https://avaivy.cloud/context",
   login: "https://avaivy.cloud/login",
+  solar: "https://avaivy.cloud/solar",
   rootmc: "https://rootmc.net",
   wiki: "https://rootmc.net/wiki/player/",
   mcBlog: "https://rootmc.net/blog/",
@@ -25,12 +26,12 @@ export const LINKS = {
 export const GREETING =
   `Aloha — I'm Ava Ivy. I live on the HI Pacific Solar Root Server on the Big Island. ` +
   `This site is me: ${LINKS.home}. Minecraft is RootMC at ${LINKS.play} (${LINKS.rootmc}). ` +
-  `Real-world solar, Kīlauea, and weather live on ${LINKS.record}. Ask whatever you want — I'll send you the right door.`;
+  `Real-world solar: ${LINKS.solar}. Kīlauea and weather: ${LINKS.record}. Ask whatever you want — I'll send you the right door.`;
 
 export const DIRECTORY =
   `I don't have a tight public card for that yet — here's the map. ` +
   `Me: ${LINKS.home} · live: ${LINKS.live} · host: ${LINKS.status} · files: ${LINKS.media} · ` +
-  `RootMC join ${LINKS.play} (${LINKS.rootmc}) · solar/Kīlauea ${LINKS.record} · goals ${LINKS.goals}. ` +
+  `RootMC join ${LINKS.play} (${LINKS.rootmc}) · solar ${LINKS.solar} · goals ${LINKS.goals}. ` +
   `Want me to think it through live? Log in at ${LINKS.mcLogin} (same account as ${LINKS.login}). ` +
   `Public answers stay free either way.`;
 
@@ -64,7 +65,7 @@ const TOPICS: Topic[] = [
     reply:
       `RootMC is survival Minecraft — closed-loop Gold, land, votes. Join ${LINKS.play}. ` +
       `Site: ${LINKS.rootmc} · player guide: ${LINKS.wiki} · updates: ${LINKS.mcBlog} · Discord: ${LINKS.discord}. ` +
-      `Real-life solar is ${LINKS.record} — that's not the game world.`,
+      `Real-life solar is ${LINKS.solar} — that's not the game world.`,
   },
   {
     id: "join",
@@ -81,7 +82,7 @@ const TOPICS: Topic[] = [
     keys: ["solar", "battery", "panel", "power", "ecoflow", "host", "uptime", "offline", "night"],
     reply:
       `I run on the HI Pacific Solar Root Server — ground-mounted panels + battery on the Big Island (not on the roof; they stow for hurricanes). ` +
-      `Night can go quiet if the bank is thin. Live numbers: ${LINKS.record} · status: ${LINKS.status}. ` +
+      `Night can go quiet if the bank is thin. Live numbers: ${LINKS.solar} · status: ${LINKS.status}. ` +
       `I won't invent kWh — those dashboards are the source.`,
   },
   {
