@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Weather · Current</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .card{position:fixed;top:110px;left:28px;width:520px;background:rgba(4,14,22,.88);
+    border:1px solid rgba(56,189,248,.28);border-radius:16px;padding:16px 18px;}
+  .cond{font-size:28px;font-weight:800;margin:0 0 8px}
+  
+</style>
+</head>
+<body>
+<div class="card"><div class="k">Current</div><div class="cond" id="cond">—</div>
+  <div class="row"><span>Temp</span><span id="temp">—</span></div>
+  <div class="row"><span>Wind</span><span id="wind">—</span></div>
+  <div class="row"><span>Hazards</span><span id="haz">—</span></div>
+  <div class="row"><span>Next desk</span><span id="next">Storm Desk</span></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function pull(){
+  try{
+    const w=await avaFetch('/api/obs/weather-desk');
+    document.getElementById('cond').textContent=w.conditions||'—';
+    document.getElementById('temp').textContent=w.temp_f!=null?w.temp_f+'°F':'—';
+    document.getElementById('wind').textContent=w.wind||'—';
+    document.getElementById('haz').textContent=w.hazards||'none';
+  }catch(e){}
+}
+avaEvery(pull,12000);
+
+</script>
+</body>
+</html>

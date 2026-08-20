@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Weather · Top bar</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .top{position:fixed;top:22px;left:28px;right:28px;display:flex;justify-content:space-between;
+    background:rgba(4,18,32,.88);border:1px solid rgba(56,189,248,.35);border-radius:16px;padding:12px 22px;}
+  .brand{font-size:24px;font-weight:800}.brand span{color:#38bdf8}
+  
+</style>
+</head>
+<body>
+<div class="top"><div class="brand"><span>WEATHER BOARD</span> · NWS Hawaiʻi</div><div id="clock">—</div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+avaEvery(()=>avaHstClock(document.getElementById('clock')),1000);
+</script>
+</body>
+</html>

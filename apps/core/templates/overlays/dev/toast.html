@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Dev · Toast</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+.toast{position:fixed;top:48px;right:48px;background:rgba(129,140,248,.92);padding:14px 20px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .3s;color:#fff}.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="toast" id="toast">Latest update</div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+let lastSlug='';
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/dev-updates-desk');
+    const slug=(d.slug||'')+(d.date||'');
+    if(slug && slug!==lastSlug){ lastSlug=slug; const t=document.getElementById('toast'); t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),3500); }
+  }catch(e){}
+}
+avaEvery(tick,15000);
+
+</script>
+</body>
+</html>

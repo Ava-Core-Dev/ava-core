@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Kīlauea · Bottom</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .bottom{position:fixed;left:28px;right:28px;bottom:22px;background:rgba(14,8,6,.86);
+    border:1px solid rgba(245,158,11,.28);border-radius:16px;padding:12px 20px;
+    display:flex;justify-content:space-between;font-size:16px;}
+  
+</style>
+</head>
+<body>
+<div class="bottom"><div>Official USGS · not an Ava forecast</div><div id="foot">embed refreshes on the origin</div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+const cam=new URLSearchParams(location.search).get('cam')||'usgs_v1';
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/kilauea-desk?cam='+encodeURIComponent(cam));
+    const c=d.cam||{};
+    document.getElementById('foot').textContent=(c.youtube_video_id||'')+' · '+(d.ts||'');
+  }catch(e){}
+}
+avaEvery(tick,15000);
+
+</script>
+</body>
+</html>

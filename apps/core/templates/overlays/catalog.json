@@ -1,0 +1,188 @@
+{
+  "ok": true,
+  "count": 26,
+  "cards": [
+    {
+      "board": "chrome",
+      "card": "brand-chip",
+      "url": "/obs/card/chrome/brand-chip",
+      "file": "templates/overlays/chrome/brand-chip.html",
+      "media": "media/stream/overlays/cards/chrome/brand-chip.html"
+    },
+    {
+      "board": "chrome",
+      "card": "clock",
+      "url": "/obs/card/chrome/clock",
+      "file": "templates/overlays/chrome/clock.html",
+      "media": "media/stream/overlays/cards/chrome/clock.html"
+    },
+    {
+      "board": "dev",
+      "card": "panel",
+      "url": "/obs/card/dev/panel",
+      "file": "templates/overlays/dev/panel.html",
+      "media": "media/stream/overlays/cards/dev/panel.html"
+    },
+    {
+      "board": "dev",
+      "card": "toast",
+      "url": "/obs/card/dev/toast",
+      "file": "templates/overlays/dev/toast.html",
+      "media": "media/stream/overlays/cards/dev/toast.html"
+    },
+    {
+      "board": "economy",
+      "card": "foot",
+      "url": "/obs/card/economy/foot",
+      "file": "templates/overlays/economy/foot.html",
+      "media": "media/stream/overlays/cards/economy/foot.html"
+    },
+    {
+      "board": "economy",
+      "card": "panel",
+      "url": "/obs/card/economy/panel",
+      "file": "templates/overlays/economy/panel.html",
+      "media": "media/stream/overlays/cards/economy/panel.html"
+    },
+    {
+      "board": "goals",
+      "card": "list",
+      "url": "/obs/card/goals/list",
+      "file": "templates/overlays/goals/list.html",
+      "media": "media/stream/overlays/cards/goals/list.html"
+    },
+    {
+      "board": "goals",
+      "card": "top-bar",
+      "url": "/obs/card/goals/top-bar",
+      "file": "templates/overlays/goals/top-bar.html",
+      "media": "media/stream/overlays/cards/goals/top-bar.html"
+    },
+    {
+      "board": "kilauea",
+      "card": "bottom",
+      "url": "/obs/card/kilauea/bottom",
+      "file": "templates/overlays/kilauea/bottom.html",
+      "media": "media/stream/overlays/cards/kilauea/bottom.html"
+    },
+    {
+      "board": "kilauea",
+      "card": "feed-card",
+      "url": "/obs/card/kilauea/feed-card",
+      "file": "templates/overlays/kilauea/feed-card.html",
+      "media": "media/stream/overlays/cards/kilauea/feed-card.html"
+    },
+    {
+      "board": "kilauea",
+      "card": "top-bar",
+      "url": "/obs/card/kilauea/top-bar",
+      "file": "templates/overlays/kilauea/top-bar.html",
+      "media": "media/stream/overlays/cards/kilauea/top-bar.html"
+    },
+    {
+      "board": "quake",
+      "card": "alert",
+      "url": "/obs/card/quake/alert",
+      "file": "templates/overlays/quake/alert.html",
+      "media": "media/stream/overlays/cards/quake/alert.html"
+    },
+    {
+      "board": "quake",
+      "card": "global-list",
+      "url": "/obs/card/quake/global-list",
+      "file": "templates/overlays/quake/global-list.html",
+      "media": "media/stream/overlays/cards/quake/global-list.html"
+    },
+    {
+      "board": "quake",
+      "card": "island-list",
+      "url": "/obs/card/quake/island-list",
+      "file": "templates/overlays/quake/island-list.html",
+      "media": "media/stream/overlays/cards/quake/island-list.html"
+    },
+    {
+      "board": "solar",
+      "card": "averages",
+      "url": "/obs/card/solar/averages",
+      "file": "templates/overlays/solar/averages.html",
+      "media": "media/stream/overlays/cards/solar/averages.html"
+    },
+    {
+      "board": "solar",
+      "card": "battery-bank",
+      "url": "/obs/card/solar/battery-bank",
+      "file": "templates/overlays/solar/battery-bank.html",
+      "media": "media/stream/overlays/cards/solar/battery-bank.html"
+    },
+    {
+      "board": "solar",
+      "card": "bottom-flow",
+      "url": "/obs/card/solar/bottom-flow",
+      "file": "templates/overlays/solar/bottom-flow.html",
+      "media": "media/stream/overlays/cards/solar/bottom-flow.html"
+    },
+    {
+      "board": "solar",
+      "card": "root-server",
+      "url": "/obs/card/solar/root-server",
+      "file": "templates/overlays/solar/root-server.html",
+      "media": "media/stream/overlays/cards/solar/root-server.html"
+    },
+    {
+      "board": "solar",
+      "card": "site-volcano",
+      "url": "/obs/card/solar/site-volcano",
+      "file": "templates/overlays/solar/site-volcano.html",
+      "media": "media/stream/overlays/cards/solar/site-volcano.html"
+    },
+    {
+      "board": "solar",
+      "card": "top-bar",
+      "url": "/obs/card/solar/top-bar",
+      "file": "templates/overlays/solar/top-bar.html",
+      "media": "media/stream/overlays/cards/solar/top-bar.html"
+    },
+    {
+      "board": "solar",
+      "card": "totals-now",
+      "url": "/obs/card/solar/totals-now",
+      "file": "templates/overlays/solar/totals-now.html",
+      "media": "media/stream/overlays/cards/solar/totals-now.html"
+    },
+    {
+      "board": "support",
+      "card": "copy-panel",
+      "url": "/obs/card/support/copy-panel",
+      "file": "templates/overlays/support/copy-panel.html",
+      "media": "media/stream/overlays/cards/support/copy-panel.html"
+    },
+    {
+      "board": "support",
+      "card": "foot",
+      "url": "/obs/card/support/foot",
+      "file": "templates/overlays/support/foot.html",
+      "media": "media/stream/overlays/cards/support/foot.html"
+    },
+    {
+      "board": "weather",
+      "card": "bottom",
+      "url": "/obs/card/weather/bottom",
+      "file": "templates/overlays/weather/bottom.html",
+      "media": "media/stream/overlays/cards/weather/bottom.html"
+    },
+    {
+      "board": "weather",
+      "card": "current",
+      "url": "/obs/card/weather/current",
+      "file": "templates/overlays/weather/current.html",
+      "media": "media/stream/overlays/cards/weather/current.html"
+    },
+    {
+      "board": "weather",
+      "card": "top-bar",
+      "url": "/obs/card/weather/top-bar",
+      "file": "templates/overlays/weather/top-bar.html",
+      "media": "media/stream/overlays/cards/weather/top-bar.html"
+    }
+  ]
+}

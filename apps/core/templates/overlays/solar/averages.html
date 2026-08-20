@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Solar · Averages</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+.wrap{position:fixed;top:620px;left:28px;width:448px;}
+</style>
+</head>
+<body>
+<div class="wrap card"><div class="k">Averages</div>
+  <div class="row"><span>Load 12h</span><span class="v" id="avgLoad">—</span></div>
+  <div class="row"><span>PV 12h</span><span class="v solar" id="avgPv">—</span></div>
+  <div class="row"><span>PV morning</span><span class="v solar" id="avgMorn">—</span></div>
+  <div class="row"><span>Bank avg</span><span class="v" id="avgSoc">—</span></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function paint(){
+  try{
+    const s=await avaFetch('/api/obs/solar-desk');
+    const solar=s.solar||{}, tot=solar.totals||{}, avg=solar.averages||{};
+    document.getElementById('avgLoad').textContent=avaWatts(avg.load_1h_w);
+    document.getElementById('avgPv').textContent=avaWatts(avg.solar_1h_w);
+    document.getElementById('avgMorn').textContent=avaWatts(avg.solar_morning_w);
+    document.getElementById('avgSoc').textContent=avaPct(tot.bank_avg_pct??avg.soc_1h_pct);
+  }catch(e){}
+}
+avaEvery(paint,8000);
+
+</script>
+</body>
+</html>

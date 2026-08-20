@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Economy · Panel</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .panel{position:fixed;left:48px;top:140px;width:780px;background:rgba(8,18,12,.88);border:1px solid rgba(74,222,128,.35);border-radius:20px;padding:24px 28px;color:#f4f1ea}
+  .k{letter-spacing:.16em;text-transform:uppercase;color:#4ade80;font-size:13px;margin-bottom:10px}
+  h1{margin:0 0 14px;font-size:38px}
+  .row{display:flex;justify-content:space-between;margin:10px 0;font-size:22px}
+  .row span:first-child{opacity:.75}
+  
+</style>
+</head>
+<body>
+<div class="panel"><div class="k">RootMC · Root-Economy</div><h1 id="server">Economy Board</h1>
+  <div class="row"><span>Players online</span><span id="players">—</span></div>
+  <div class="row"><span>Total wallet (G)</span><span id="gold">—</span></div>
+  <div class="row"><span>Kīlauea alert</span><span id="alert">—</span></div>
+  <div class="row"><span>Economy multiplier</span><span id="mult">—</span></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/economy-desk');
+    document.getElementById('server').textContent=d.server||'RootMC';
+    document.getElementById('players').textContent=d.players_online??'—';
+    document.getElementById('gold').textContent=d.wallet_g!=null?Math.round(d.wallet_g).toLocaleString()+' G':'—';
+    document.getElementById('alert').textContent=(d.kilauea_alert||'normal').toUpperCase();
+    document.getElementById('mult').textContent='×'+(d.economy_multiplier||1);
+  }catch(e){}
+}
+avaEvery(tick,15000);
+
+</script>
+</body>
+</html>

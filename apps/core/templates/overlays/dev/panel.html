@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Dev · Panel</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .panel{position:fixed;left:48px;top:120px;width:860px;background:rgba(10,14,28,.9);border:1px solid rgba(129,140,248,.4);border-radius:20px;padding:28px 32px}
+  .k{letter-spacing:.16em;text-transform:uppercase;color:#818cf8;font-size:13px}
+  h1{margin:8px 0 12px;font-size:36px}
+  .site{font-size:18px;color:#a5b4fc;margin-bottom:16px}
+  p{font-size:22px;line-height:1.45;margin:0;opacity:.9}
+  .date{margin-top:18px;font-size:16px;opacity:.7}
+  
+</style>
+</head>
+<body>
+<div class="panel"><div class="k">Latest across all sites</div><div class="site" id="site">—</div>
+  <h1 id="title">Loading…</h1><p id="teaser">—</p><div class="date" id="date">—</div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/dev-updates-desk');
+    document.getElementById('site').textContent=d.site_label||'—';
+    document.getElementById('title').textContent=d.title||'—';
+    document.getElementById('teaser').textContent=d.teaser||'';
+    document.getElementById('date').textContent=d.date||'';
+  }catch(e){}
+}
+avaEvery(tick,15000);
+
+</script>
+</body>
+</html>

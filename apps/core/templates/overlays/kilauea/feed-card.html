@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Kīlauea · Feed card</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .card{position:fixed;top:110px;left:28px;width:440px;background:rgba(14,8,6,.88);
+    border:1px solid rgba(251,113,133,.28);border-radius:16px;padding:16px 18px;}
+  .name{font-size:28px;font-weight:800;margin:0 0 8px;}
+  
+</style>
+</head>
+<body>
+<div class="card"><div class="k" id="camk">feed</div><div class="name" id="name">V1cam</div>
+  <div class="row"><span>Alert</span><span id="alert">—</span></div>
+  <div class="row"><span>Status</span><span id="status">—</span></div>
+  <div class="row"><span>Kind</span><span id="kind">—</span></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+const cam=new URLSearchParams(location.search).get('cam')||'usgs_v1';
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/kilauea-desk?cam='+encodeURIComponent(cam));
+    const c=d.cam||{}, w=d.watch||{};
+    document.getElementById('camk').textContent=(c.id||cam).toUpperCase();
+    document.getElementById('name').textContent=c.title||'Kīlauea';
+    document.getElementById('alert').textContent=(w.alert_level||'normal').toUpperCase();
+    document.getElementById('status').textContent=w.erupting?'erupting':'not a live fountain';
+    document.getElementById('kind').textContent=(c.kind||'—')+(c.live?' · live':'');
+  }catch(e){}
+}
+avaEvery(tick,15000);
+
+</script>
+</body>
+</html>

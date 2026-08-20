@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Kīlauea · Top bar</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .top{position:fixed;top:22px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(90deg,rgba(28,12,8,.9),rgba(44,18,12,.72));
+    border:1px solid rgba(245,158,11,.4);border-radius:16px;padding:12px 22px;}
+  .brand{font-size:24px;font-weight:800;letter-spacing:.04em;} .brand span{color:#fb7185;}
+  .live{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#fecaca;}
+  
+</style>
+</head>
+<body>
+<div class="top"><div class="brand"><span>KĪLAUEA MODE</span> · V1 / V2 / V3 + radar</div>
+  <div class="live" id="head">USGS CAMS</div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+const cam=new URLSearchParams(location.search).get('cam')||'usgs_v1';
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/kilauea-desk?cam='+encodeURIComponent(cam));
+    const c=d.cam||{};
+    document.getElementById('head').textContent=c.live?'LIVE EMBED':'STILL / RESOLVING';
+  }catch(e){}
+}
+avaEvery(tick,15000);
+
+</script>
+</body>
+</html>

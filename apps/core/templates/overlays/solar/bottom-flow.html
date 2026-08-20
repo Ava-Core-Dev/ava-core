@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Solar · Bottom flow</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .bottom{position:fixed;left:28px;right:28px;bottom:22px;display:flex;justify-content:space-between;align-items:center;
+    background:rgba(4,14,22,.86);border:1px solid rgba(0,229,255,.22);border-radius:16px;padding:12px 20px;}
+  .flow{display:flex;gap:20px;font-size:17px;} .flow b{color:#ffd54a;}
+  
+</style>
+</head>
+<body>
+<div class="bottom">
+  <div>Ava Ivy · ground PV · HI Pacific Root Server · play.rootmc.net</div>
+  <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
+  <div id="src" style="opacity:.7">source —</div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function paint(){
+  try{
+    const s=await avaFetch('/api/obs/solar-desk');
+    const solar=s.solar||{}, tot=solar.totals||{};
+    const pv=tot.solar_in_w??solar.solar_in_w??solar.power_w;
+    const load=tot.dc_load_w??tot.load_w??solar.load_w;
+    document.getElementById('flowIn').textContent=avaWatts(pv);
+    document.getElementById('flowBank').textContent=avaPct(tot.bank_avg_pct??solar.battery_pct);
+    document.getElementById('flowOut').textContent=avaWatts(load);
+    document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV')+(solar.updated_at?(' · '+String(solar.updated_at).slice(11,19)+'Z'):'');
+  }catch(e){}
+}
+avaEvery(paint,8000);
+
+</script>
+</body>
+</html>
