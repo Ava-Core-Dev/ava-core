@@ -477,6 +477,12 @@ async def api_obs_solar_desk():
     }
 
 
+@router.get("/solana-qr", response_class=HTMLResponse)
+async def obs_solana_qr():
+    path = Path(__file__).resolve().parent.parent / "templates" / "obs-solana.html"
+    return HTMLResponse(path.read_text(encoding="utf-8"))
+
+
 @router.get("/solar-dashboard", response_class=HTMLResponse)
 async def obs_solar_dashboard():
     origin = f"http://127.0.0.1:{config.AVA_PORT}"

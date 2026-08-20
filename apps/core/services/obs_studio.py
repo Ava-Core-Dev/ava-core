@@ -29,6 +29,7 @@ AMBIENT_SCENES = [
     "Economy Board",
     "Goals Report",
     "Dev Updates",
+    "Support Ava",
 ]
 LOOP_SCENES = [
     *AMBIENT_SCENES,
@@ -45,12 +46,14 @@ SCENE_MEDIA = {
     "Economy Board": ("Economy Audio", "ffmpeg"),
     "Goals Report": ("Goals Video", "ffmpeg"),
     "Dev Updates": ("Dev Audio", "ffmpeg"),
+    "Support Ava": ("Solana QR", "image"),
     "Quake Overlay": ("Quake Loop", "ffmpeg"),
 }
 # Ambient VLC can be on Morning_Broadcast_Current (~7 min); wait at least that long
 # unless GetMediaInputStatus reports the current item has ended.
 VLC_MIN_DWELL_S = 420
 MIN_DWELL_S = 12
+IMAGE_DWELL_S = 28
 MAX_DWELL_S = 900
 
 
@@ -283,6 +286,75 @@ async def _enable_item(obs: ObsClient, scene: str, source: str, on: bool) -> boo
     return False
 
 
+async def apply_solana_qr_scene(
+    obs: ObsClient | None = None,
+    *,
+    origin: str | None = None,
+    thumb: Path | None = None,
+) -> dict:
+    """OBS scene: Ava’s official Solana QR on the right, copy on the left."""
+    from apps.core.services.user_qrcodes import write_ava_main_qr
+
+    qr = write_ava_main_qr()
+    own = obs is None
+    if own:
+        obs = ObsClient()
+        if not await obs.connect():
+            return {"ok": False, "detail": "obs_unreachable", "qr": str(qr)}
+    origin = origin or f"http://127.0.0.1:{config.AVA_PORT}"
+    still = thumb if thumb and thumb.is_file() else Path(config.DAILY_BROADCAST_THUMB)
+    try:
+        scenes = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
+        if "Support Ava" not in scenes:
+            await obs.try_req("CreateScene", {"sceneName": "Support Ava"})
+        if still.is_file():
+            await _ensure_input(
+                obs, "Support Ava", "Support Still", "image_source", {"file": str(still)}
+            )
+            await _fit(obs, "Support Ava", "Support Still")
+        await _ensure_input(
+            obs,
+            "Support Ava",
+            "Solana Copy",
+            "browser_source",
+            {
+                "url": f"{origin}/obs/solana-qr",
+                "width": 1920,
+                "height": 1080,
+                "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
+                "reroute_audio": False,
+            },
+        )
+        await _fit(obs, "Support Ava", "Solana Copy")
+        await _ensure_input(
+            obs, "Support Ava", "Solana QR", "image_source", {"file": str(qr)}
+        )
+        items = await obs.try_req("GetSceneItemList", {"sceneName": "Support Ava"}) or {}
+        for it in items.get("sceneItems") or []:
+            if it.get("sourceName") != "Solana QR":
+                continue
+            await obs.try_req(
+                "SetSceneItemTransform",
+                {
+                    "sceneName": "Support Ava",
+                    "sceneItemId": it["sceneItemId"],
+                    "sceneItemTransform": {
+                        "boundsType": "OBS_BOUNDS_SCALE_INNER",
+                        "boundsAlignment": 0,
+                        "boundsWidth": 640.0,
+                        "boundsHeight": 640.0,
+                        "alignment": 5,
+                        "positionX": 1180.0,
+                        "positionY": 220.0,
+                    },
+                },
+            )
+        return {"ok": True, "scene": "Support Ava", "qr": str(qr)}
+    finally:
+        if own:
+            await obs.close()
+
+
 async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
     """Create/switch the Ava Daily Broadcast collection and wire sources."""
     media = config.MEDIA_DIR
@@ -326,6 +398,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         for scene in [
             *LOOP_SCENES,
             "Quake Overlay",
+            "Support Ava",
             "Be right back",
             "Ambient Playlist",
         ]:
@@ -648,6 +721,8 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
 
             await _fit(obs, "Ambient Playlist", "Daily Loop")
 
+        await apply_solana_qr_scene(obs, origin=origin, thumb=thumb if thumb.is_file() else bg)
+
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})
 
         # Mute desktop/mic so only program audio goes out
@@ -908,6 +983,15 @@ async def rotate_loop_scene() -> dict:
                         "held": "vlc_dwell",
                         "elapsed_s": round(elapsed, 1),
                         "need_s": VLC_MIN_DWELL_S,
+                    }
+            elif kind == "image":
+                if elapsed < IMAGE_DWELL_S:
+                    return {
+                        "ok": True,
+                        "scene": cur,
+                        "held": "image_dwell",
+                        "elapsed_s": round(elapsed, 1),
+                        "need_s": IMAGE_DWELL_S,
                     }
             elif left is None:
                 if elapsed < 45:

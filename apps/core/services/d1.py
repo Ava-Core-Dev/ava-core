@@ -21,6 +21,22 @@ def auth_headers() -> dict[str, str]:
     return headers
 
 
+def _auth_modes() -> list[dict[str, str]]:
+    modes: list[dict[str, str]] = []
+    if config.CF_EMAIL and config.CF_GLOBAL_API_KEY:
+        modes.append({
+            "Content-Type": "application/json",
+            "X-Auth-Email": config.CF_EMAIL,
+            "X-Auth-Key": config.CF_GLOBAL_API_KEY,
+        })
+    if config.CF_API_TOKEN:
+        modes.append({
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {config.CF_API_TOKEN}",
+        })
+    return modes or [auth_headers()]
+
+
 def _url(db_id: str) -> str:
     return (
         f"https://api.cloudflare.com/client/v4/accounts/{config.CF_ACCOUNT_ID}"
@@ -35,15 +51,24 @@ async def query(db_id: str, sql: str, params: list | None = None) -> dict:
     payload: dict = {"sql": sql}
     if params:
         payload["params"] = params
+    last: dict = {"success": False, "errors": [{"message": "d1 not configured"}]}
     async with httpx.AsyncClient(timeout=30) as client:
-        res = await client.post(_url(db_id), json=payload, headers=auth_headers())
-        try:
-            body = res.json()
-        except Exception:
-            body = {"success": False, "errors": [{"message": res.text[:400]}]}
-        if res.status_code >= 400:
-            log.warning("D1 %s HTTP %s: %s", db_id[:8], res.status_code, body)
-        return body
+        for headers in _auth_modes():
+            res = await client.post(_url(db_id), json=payload, headers=headers)
+            try:
+                body = res.json()
+            except Exception:
+                body = {"success": False, "errors": [{"message": res.text[:400]}]}
+            last = body
+            if res.status_code < 400 and body.get("success"):
+                return body
+            if res.status_code not in {401, 403}:
+                if res.status_code >= 400:
+                    log.warning("D1 %s HTTP %s: %s", db_id[:8], res.status_code, body)
+                return body
+        if last.get("errors"):
+            log.warning("D1 %s unauthorized on all auth modes", db_id[:8])
+        return last
 
 
 async def exec_script(db_id: str, statements: list[str]) -> bool:

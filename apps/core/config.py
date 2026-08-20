@@ -342,6 +342,7 @@ if CF_API_TOKEN.startswith("cfk_"):
 CF_ACCOUNT_ID            = _first_env("CF_ACCOUNT_ID", "CLOUDFLARE_ACCOUNT_ID")
 CF_D1_HEARTBEAT_DB_ID    = _first_env("CF_D1_HEARTBEAT_DB_ID")
 CF_D1_ROOTMC_DB_ID       = _first_env("CF_D1_ROOTMC_DB_ID", "D1_ROOTMC_LIVE_ID")
+CF_D1_ACCOUNT_DB_ID      = _first_env("CF_D1_ACCOUNT_DB_ID", "D1_DATABASE_ID")
 CF_HYPERDRIVE_ROOTMC_ID  = _first_env("CF_HYPERDRIVE_ROOTMC_ID", "HYPERDRIVE_ROOTMC_ID")
 CF_EMAIL                 = _first_env("CLOUDFLARE_EMAIL", "CF_EMAIL")
 CF_GLOBAL_API_KEY        = _first_env(
