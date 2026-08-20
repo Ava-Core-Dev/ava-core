@@ -47,6 +47,11 @@ if command -v obs-studio >/dev/null 2>&1; then
   fi
 fi
 
+# Snap-proof copy of layouts / profiles / overlays (non-blocking).
+if [[ -x "${HOME}/ava/ava-core-v2/scripts/backup-obs.sh" ]]; then
+  nohup "${HOME}/ava/ava-core-v2/scripts/backup-obs.sh" >/dev/null 2>&1 &
+fi
+
 # Local-edge gateway :8791 if the Node tree is installed
 GW="${HOME}/ava/workstations/rootmc-scripts/local-edge/gateway"
 if [[ -f "${GW}/server.mjs" ]] && [[ -d "${GW}/node_modules" ]]; then
