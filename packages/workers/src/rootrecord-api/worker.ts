@@ -29,11 +29,23 @@ export default {
       return Response.redirect(target.toString(), 301);
     }
 
-    if (path === "/ava/status" || path === "/ava" || path === "/ava/") {
-      return statusPage(env);
-    }
     if (path === "/ava/status.json") {
       return statusJson(env);
+    }
+    if (
+      path === "/status" ||
+      path === "/status/" ||
+      path === "/ava/status" ||
+      path === "/ava/status/" ||
+      path === "/ava" ||
+      path === "/ava/"
+    ) {
+      return proxyToOrigin(request, {
+        originUrl: ORIGIN,
+        path: "/status",
+        timeoutMs: 8000,
+        offlineFallback: () => statusPage(env, { degraded: true }),
+      });
     }
 
     const shouldProxy = PROXIED_PREFIXES.some((p) => path.startsWith(p));

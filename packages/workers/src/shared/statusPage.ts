@@ -109,9 +109,12 @@ function render(hb: Heartbeat | null, degraded: boolean): string {
   <p class="meta">Last heartbeat: ${lastSeen}</p>
   <div class="links">
     <a href="">Retry</a>
+    <a href="https://avaivy.cloud/status">Full status desk</a>
+    <a href="https://avaivy.cloud/solar">Solar</a>
     <a href="/ava/status.json">Status JSON</a>
     <a href="https://rootmc.net">RootMC</a>
-    <a href="https://rootrecord.online">RootRecord</a>
+    <a href="https://rootrecord.online">Root Record</a>
+    <a href="https://alexrs94.site">alexrs94</a>
   </div>
 </div></body></html>`;
 }

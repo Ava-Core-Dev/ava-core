@@ -7,17 +7,21 @@ export const metadata: Metadata = {
   description: "Ground-mounted PV and EcoFlow bank on the HI Pacific Solar Root Server.",
 };
 
+/** Fallback when origin /solar is unreachable — same desk as /status. */
 export default function SolarPage() {
-  // Served when origin is down; live avaivy.cloud/solar is proxied to origin HTML.
   return (
-    <div style={{ padding: 24, maxWidth: 720, margin: "40px auto", color: "#e5e7eb" }}>
-      <h1 style={{ color: "#f59e0b" }}>Ava Ivy · Solar</h1>
-      <p>Live desk is on the solar host. Retry this page when she is awake.</p>
-      <p>
-        <a href="/solar">Retry</a>
-        {" · "}
-        <a href="/status">Status</a>
-      </p>
-    </div>
+    <iframe
+      src="https://avaivy.cloud/status"
+      title="Ava Ivy solar desk"
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        border: 0,
+        background: "#0a0e14",
+        zIndex: 9999,
+      }}
+    />
   );
 }

@@ -20,7 +20,10 @@
     { "label": "Timeline", "href": "/timeline" },
     { "label": "Context", "href": "/context" },
     { "label": "Solar", "href": "/solar" },
-    { "label": "RootMC", "href": "https://rootmc.net" }
+    { "label": "RootMC", "href": "https://rootmc.net" },
+    { "label": "Root Record", "href": "https://rootrecord.online" },
+    { "label": "alexrs94", "href": "https://alexrs94.site" },
+    { "label": "Wiki", "href": "https://rootrecord.info/ava/" }
   ],
 
   "cards": [

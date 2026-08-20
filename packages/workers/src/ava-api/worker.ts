@@ -39,11 +39,27 @@ export default {
     if (path === "/ava/status.json") {
       return statusJson(env);
     }
-    if (path === "/ava/status" || path === "/ava" || path === "/ava/") {
-      return statusPage(env);
-    }
 
     const origin = env.AVA_ORIGIN_URL || ORIGIN;
+
+    // Full solar desk for every public status URL (same board as /solar).
+    if (
+      path === "/status" ||
+      path === "/status/" ||
+      path === "/solar" ||
+      path === "/solar/" ||
+      path === "/ava/status" ||
+      path === "/ava/status/" ||
+      path === "/ava" ||
+      path === "/ava/"
+    ) {
+      return proxyToOrigin(request, {
+        originUrl: origin,
+        path: path.startsWith("/ava") ? "/status" : path,
+        timeoutMs: 8000,
+        offlineFallback: () => statusPage(env, { degraded: true }),
+      });
+    }
 
     if (path.startsWith("/ava/")) {
       return proxyToOrigin(request, {
@@ -51,14 +67,6 @@ export default {
         path: path.slice("/ava".length),
         offlineFallback: () => statusPage(env, { degraded: true }),
         timeoutMs: 8000,
-      });
-    }
-
-    if (path === "/solar" || path === "/solar/") {
-      return proxyToOrigin(request, {
-        originUrl: origin,
-        timeoutMs: 8000,
-        offlineFallback: () => fetchFrontend(request, VERCEL_FRONTEND),
       });
     }
 

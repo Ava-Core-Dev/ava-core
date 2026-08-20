@@ -60,8 +60,13 @@ export default {
     if (path === "/status.json" || path === "/api/status.json") {
       return statusJson(env);
     }
-    if (path === "/status" || path === "/ava/status") {
-      return statusPage(env);
+    if (path === "/status" || path === "/status/" || path === "/ava/status" || path === "/ava/status/") {
+      return proxyToOrigin(request, {
+        originUrl: ORIGIN,
+        path: "/status",
+        timeoutMs: 8000,
+        offlineFallback: () => statusPage(env, { degraded: true }),
+      });
     }
     if (path.startsWith("/api/edge/")) {
       return d1Cache(env, path.slice("/api/edge/".length).replace(/\/$/, "") || "meta");

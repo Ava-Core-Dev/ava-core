@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Status — Root Record",
+  title: "Status — alexrs94.site",
   description: "Full solar desk and host status for the HI Pacific Solar Root Server.",
 };
 

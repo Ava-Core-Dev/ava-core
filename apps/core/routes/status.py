@@ -25,11 +25,15 @@ async def root():
     return JSONResponse({"redirect": "https://avaivy.cloud/solar", "ava": "online"})
 
 
-@router.get("/solar")
-async def solar_page():
+def _solar_html() -> str:
     path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
-    html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar desk missing</p>"
-    return HTMLResponse(html)
+    return path.read_text(encoding="utf-8") if path.is_file() else "<p>solar desk missing</p>"
+
+
+@router.get("/solar")
+@router.get("/solar/")
+async def solar_page():
+    return HTMLResponse(_solar_html())
 
 
 @router.get("/health")
@@ -125,40 +129,13 @@ async def api_solar():
 
 @router.get("/status")
 @router.get("/status/")
-@router.get("/status")
-@router.get("/status/")
 @router.get("/ava")
 @router.get("/ava/")
 @router.get("/ava/status")
+@router.get("/ava/status/")
 async def ava_status_page():
-    """Origin copy of the edge /ava page so rootrecord.info and the tunnel don't 404."""
-    age = last_success_age_s()
-    online = True
-    last = "this process is up"
-    if age is not None:
-        last = f"D1 write {int(age)}s ago"
-    html = f"""<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ava Ivy — online</title>
-<meta name="theme-color" content="#0a0e14">
-<style>
-  :root {{ color-scheme: dark; }}
-  body {{ margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-         background:#0a0e14; color:#e5e7eb; font-family:Inter,system-ui,sans-serif; padding:2rem; }}
-  .card {{ max-width:34rem; text-align:center; }}
-  .badge {{ display:inline-block; border:1px solid #10b981; color:#10b981;
-           border-radius:999px; padding:.25rem .9rem; font-size:.72rem; letter-spacing:.14em; font-weight:600; }}
-  h1 {{ margin:1.1rem 0 .4rem; font-size:2.1rem; }}
-  p {{ color:#6b7280; line-height:1.6; }}
-  a {{ color:#06b6d4; }}
-</style></head><body><div class="card">
-  <span class="badge">HOST ONLINE</span>
-  <h1>Ava Ivy</h1>
-  <p>Solar Root Server is powered on. This is the origin status page.</p>
-  <p style="font-size:13px">{last}</p>
-  <p><a href="/ava/status.json">Status JSON</a> · <a href="https://rootrecord.online">Root Record</a></p>
-</div></body></html>"""
-    return HTMLResponse(html)
+    """Full solar desk — same board as /solar — for every /status surface."""
+    return HTMLResponse(_solar_html())
 
 
 @router.get("/ava/status.json")

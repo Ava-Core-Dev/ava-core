@@ -2,6 +2,7 @@ import styles from "@/app/page.module.css";
 
 const NAV = [
   { href: "/", label: "Live" },
+  { href: "/status", label: "Status" },
   { href: "/goals", label: "Goals" },
   { href: "/blog", label: "Blog" },
   { href: "/reports", label: "Auto Reports" },
