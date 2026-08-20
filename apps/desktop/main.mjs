@@ -70,7 +70,10 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONTEXT_LIMIT = 150;
-const AVA_HOME = process.env.AVA_HANDOFF || "/home/ava-core/ava";
+const AVA_HOME =
+  process.env.AVA_HANDOFF ||
+  process.env.AVA_HOME ||
+  "/home/ava-core/ava/ava-core-v2";
 // Legacy Node ops scripts (scripts/*.mjs) were never ported to the Python core.
 // Until they are, resolve them wherever they still exist: the archive tree is
 // the fallback, so those buttons keep working before the disk is retired.
@@ -752,9 +755,9 @@ ipcMain.handle("ava:finance-receipt", async (_e, opts = {}) => {
 
 function safeAvaPath(target) {
   const folders = {
-    reports: path.join(AVA_HOME, "reports"),
-    dumps: path.join(AVA_HOME, "reports", "channel-dumps", "incremental"),
-    solarDays: path.join(AVA_HOME, "data", "ecoflow", "days"),
+    reports: path.join(AVA_HOME, "media", "documents", "reports"),
+    dumps: path.join(AVA_HOME, "media", "documents", "reports"),
+    solarDays: path.join(AVA_HOME, "data", "state", "solar-history"),
     data: path.join(AVA_HOME, "data"),
     weatherGifs: path.join(AVA_HOME, "media", "weather", "gifs"),
     weatherGifsCollector:

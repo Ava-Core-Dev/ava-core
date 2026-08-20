@@ -7,6 +7,7 @@ instantly with no upstream API calls.
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -166,6 +167,31 @@ async def api_activity(limit: int = 220):
 
     ollama_up, ollama_models = await ollama_tags()
 
+    processes = []
+    try:
+        import psutil
+        for p in psutil.process_iter(["pid", "name", "cmdline", "cpu_percent"]):
+            cmd = " ".join(p.info.get("cmdline") or [])
+            name = p.info.get("name") or ""
+            kind = None
+            if "ollama" in name.lower() or "/ollama" in cmd:
+                kind = "ollama"
+            elif "uvicorn" in cmd or "apps.core.main" in cmd:
+                kind = "ava"
+            if kind:
+                processes.append(
+                    {
+                        "kind": kind,
+                        "pid": p.info["pid"],
+                        "comm": name,
+                        "cpu": round(float(p.info.get("cpu_percent") or 0), 1),
+                        "etime": "",
+                        "args": cmd[:80],
+                    }
+                )
+    except Exception:
+        processes = []
+
     return {
         "ok": True,
         "label": "idle",
@@ -181,6 +207,7 @@ async def api_activity(limit: int = 220):
         },
         "jobs": jobs,
         "logs": logs[-limit:],
-        "heartbeat": {"pid": None},
+        "processes": [],
+        "heartbeat": {"pid": os.getpid()},
         "ts": datetime.now(timezone.utc).isoformat(),
     }

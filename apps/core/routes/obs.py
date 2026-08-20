@@ -232,8 +232,22 @@ async def api_volcano_watch_post(body: WatchBody):
 @api_router.get("/eruption-eta")
 async def api_eruption_eta():
     watch = _watch_from_state(_kilauea_state())
-    band = "active" if watch.get("erupting") else "quiet"
-    return {"ok": True, "band": band, "countdown": {"display": ""}, "watch": watch}
+    stored = {}
+    path = config.DATA_DIR / "state" / "eruption-eta.json"
+    if path.is_file():
+        try:
+            stored = json.loads(path.read_text())
+        except Exception:
+            stored = {}
+    band = stored.get("band") or ("active" if watch.get("erupting") else "quiet")
+    return {
+        "ok": True,
+        "band": band,
+        "label": stored.get("label"),
+        "countdown": {"display": stored.get("window") or ""},
+        "watch": watch,
+        **{k: v for k, v in stored.items() if k not in {"history"}},
+    }
 
 
 @api_router.post("/scene")

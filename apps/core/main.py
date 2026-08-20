@@ -120,6 +120,7 @@ for _route in (
     "obs",
     "minecraft",
     "economy",
+    "desktop",
     "chat",
     "plugins",
     "realworld",

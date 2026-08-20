@@ -225,7 +225,7 @@ NEVER_MENTION: set[str] = {
 
 # Default channels Ava watches for incoming messages
 DEFAULT_WATCH_CHANNELS: list[str] = [
-    "1526664180491358419",  # proposals
+    # #proposals 1526664180491358419 404s — skip until the channel exists again
     "1516121832493678612",  # admins
     "1516108586307158088",  # general
     "1522406451413385317",  # governance

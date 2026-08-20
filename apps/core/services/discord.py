@@ -110,14 +110,24 @@ async def forward_message(
     return r.json()
 
 
+_missing_channels: set[str] = set()
+
+
 async def get_messages(channel_id: str, limit: int = 50) -> list[dict]:
+    cid = str(channel_id or "")
+    if not cid or cid in _missing_channels:
+        return []
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(
-            f"{config.DISCORD_API}/channels/{channel_id}/messages?limit={limit}",
+            f"{config.DISCORD_API}/channels/{cid}/messages?limit={limit}",
             headers=_auth_headers(),
         )
+    if r.status_code == 404:
+        _missing_channels.add(cid)
+        log.warning("Discord channel missing — skipping further polls  ch=%s", cid)
+        return []
     if r.status_code != 200:
-        log.error("Discord fetch failed  ch=%s  status=%s", channel_id, r.status_code)
+        log.error("Discord fetch failed  ch=%s  status=%s", cid, r.status_code)
         return []
     return r.json()
 

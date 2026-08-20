@@ -1,5 +1,8 @@
 """Plugin status route."""
 from fastapi import APIRouter
+
+from .. import config
+
 router = APIRouter(prefix="/api")
 
 @router.get("/plugins")
@@ -14,12 +17,34 @@ async def api_plugins():
     }
 
 
+def _release_status(kind: str) -> dict:
+    root = config.PLUGIN_DIR if kind == "plugins" else (config.AVA_HOME / "apps")
+    targets = []
+    if root.is_dir():
+        for child in sorted(root.iterdir()):
+            if child.is_dir() and not child.name.startswith("."):
+                targets.append({"id": child.name, "label": child.name, "version": None})
+    import shutil
+
+    return {
+        "ok": True,
+        "kind": kind,
+        "busy": False,
+        "javaReady": bool(shutil.which("javac") or shutil.which("java")),
+        "targets": targets,
+        "artifacts": [],
+        "status": {"state": "idle", "logTail": "Idle — Python origin does not run the JDK release pipeline."},
+        "public": {"public": ""},
+        "sync": {},
+    }
+
+
 @router.get("/plugins/status")
 async def api_plugins_status():
     body = await api_plugins()
-    return {**body, "jobs": []}
+    return {**body, **_release_status("plugins")}
 
 
 @router.get("/apps/status")
 async def api_apps_status():
-    return {"ok": True, "apps": [], "detail": "managed_on_origin"}
+    return _release_status("apps")
