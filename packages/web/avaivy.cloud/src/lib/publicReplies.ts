@@ -110,7 +110,7 @@ const TOPICS: Topic[] = [
   {
     id: "wallets",
     keys: ["wallet", "solana", "sol", "usdc", "crypto", "address"],
-    reply: `Official receive addresses (public keys only): ${LINKS.wallets}. Don't send player Gold there.`,
+    reply: `Official Ava Core Wallets — public receive keys plus a QR for each network: ${LINKS.wallets}. Don't send player Gold there. Goals use Ava allocation / earned income.`,
   },
   {
     id: "media",

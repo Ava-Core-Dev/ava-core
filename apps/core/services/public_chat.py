@@ -121,7 +121,7 @@ TOPICS: list[tuple[str, tuple[str, ...], str]] = [
     (
         "wallets",
         ("wallet", "solana", "sol", "usdc", "crypto", "address"),
-        f"Official receive addresses only — public keys, no seeds: {LINKS['wallets']}. "
+        f"Official Ava Core Wallets — a QR for each network, public keys only, no seeds: {LINKS['wallets']}. "
         "Don't send player Gold there. Helpers for public goals use Ava allocation / earned income.",
     ),
     (
