@@ -5,7 +5,7 @@ export const LINKS = {
   live: "https://avaivy.cloud/live",
   status: "https://avaivy.cloud/status",
   media: "https://avaivy.cloud/media",
-  goals: "https://avaivy.cloud/status/goals",
+  goals: "https://avaivy.cloud/goals",
   wallets: "https://avaivy.cloud/wallets",
   blog: "https://avaivy.cloud/blog",
   context: "https://avaivy.cloud/context",

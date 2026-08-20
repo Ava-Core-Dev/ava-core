@@ -1,5 +1,5 @@
 {
-  "_readme": "Ava operational goals board. Edit this file on GitHub — avaivy.cloud/status/goals redeploys automatically. Never invent amount_raised_usd. Never fund from player Gold or the ops/hosting buffer. See EDITING.md.",
+  "_readme": "Ava operational goals board. Edit this file on GitHub — avaivy.cloud/goals redeploys automatically. Never invent amount_raised_usd. Never fund from player Gold or the ops/hosting buffer. See EDITING.md.",
 
   "funding_rules": {
     "summary": "Goals are funded from Ava allocation (about 10–15% of earned income) only. Never player Gold. Never the ops/hosting buffer. Official receive addresses: Solana 3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL · EVM 0x983704ec4a39526b3f574050132b6659bb0474c5 · full list at /wallets.",

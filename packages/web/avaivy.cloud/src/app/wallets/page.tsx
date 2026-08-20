@@ -48,7 +48,7 @@ export default function WalletsPage() {
             </li>
             <li>
               Fund public wishlist items on{" "}
-              <a href="/status/goals">avaivy.cloud/status/goals</a> from{" "}
+              <a href="/goals">avaivy.cloud/goals</a> from{" "}
               <strong>Ava allocation</strong> (about 10–15% of earned income). Helpers are
               recorded against a goal; we do not invent raised totals.
             </li>
@@ -91,7 +91,7 @@ export default function WalletsPage() {
             character-for-character, then send. Prefer this URL
             (https://avaivy.cloud/wallets) over a screenshot from chat. Memberships stay on{" "}
             <a href="https://rootmc.net/pro/">rootmc.net/pro</a>. Ranked goals stay on{" "}
-            <a href="/status/goals">/status/goals</a>.
+            <a href="/goals">/goals</a>.
           </p>
         </article>
       </section>
