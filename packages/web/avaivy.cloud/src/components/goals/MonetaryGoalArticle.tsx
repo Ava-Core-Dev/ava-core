@@ -1,5 +1,5 @@
 import type { PublicGoal } from "@/lib/goals-api";
-import styles from "../app/goals/goals.module.css";
+import styles from "../../app/goals/goals.module.css";
 
 /** Legal + process copy shown under monetary progress on goal detail pages. */
 export default function MonetaryGoalArticle({ goal }: { goal: PublicGoal }) {
