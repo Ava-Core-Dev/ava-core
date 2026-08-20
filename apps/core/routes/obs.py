@@ -863,21 +863,103 @@ async def api_obs_overlay_gen():
 
 @api_router.get("/weather-desk")
 async def api_obs_weather_desk():
+    """Live desk payload for /obs/weather-board (temp/wind/conditions)."""
+    import re
     from datetime import datetime, timezone
 
-    out = {"ok": True, "ts": datetime.now(timezone.utc).isoformat(), "conditions": "—", "temp_f": None, "wind": "—", "hazards": "none"}
+    out = {
+        "ok": True,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "conditions": "—",
+        "temp_f": None,
+        "wind": "—",
+        "hazards": "none",
+    }
     try:
-        from apps.core.routes.realworld import api_weather
+        reports = sorted(
+            config.REPORTS_DIR.glob("nws-weather-*.md"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if reports:
+            text = reports[0].read_text(errors="replace")
+            out["ts"] = datetime.fromtimestamp(
+                reports[0].stat().st_mtime, tz=timezone.utc
+            ).isoformat()
+            # Prefer "80°F — Scattered Rain Showers" lines under ### Today / Tonight
+            line = re.search(
+                r"###\s*(Today|Tonight|This Afternoon)[^\n]*\n+(\d+)°F\s*[—\-]+\s*([^\n]+)",
+                text,
+                re.I,
+            )
+            if line:
+                out["temp_f"] = int(line.group(2))
+                out["conditions"] = line.group(3).strip()
+            else:
+                tm = re.search(r"(\d+)°F", text)
+                if tm:
+                    out["temp_f"] = int(tm.group(1))
+                cm = re.search(r"\d+°F\s*[—\-]+\s*([^\n]+)", text)
+                if cm:
+                    out["conditions"] = cm.group(1).strip()
+            wm = re.search(
+                r"((?:North|South|East|West|Variable)[^\n.]{0,40}wind[^\n.]{0,40})",
+                text,
+                re.I,
+            )
+            if wm:
+                out["wind"] = wm.group(1).strip().rstrip(".")
+            if re.search(r"##\s*No active HI alerts", text, re.I):
+                out["hazards"] = "none"
+            else:
+                alerts = re.findall(r"^\*\*(.+?)\*\*", text, re.M)
+                if alerts:
+                    out["hazards"] = "; ".join(a.strip() for a in alerts[:3])
+        # Fall back to /api/weather shape if report parse is thin
+        if out["temp_f"] is None:
+            from apps.core.routes.realworld import api_weather
 
-        w = await api_weather()
-        if isinstance(w, dict):
-            out["conditions"] = w.get("conditions") or w.get("shortForecast") or out["conditions"]
-            out["temp_f"] = w.get("temp_f") or w.get("temperature")
-            out["wind"] = w.get("wind") or w.get("windSpeed") or out["wind"]
-            out["hazards"] = w.get("hazards") or out["hazards"]
+            w = await api_weather()
+            if isinstance(w, dict) and "error" not in w:
+                out["temp_f"] = w.get("temperature_f") or w.get("temp_f") or w.get("temperature")
+                out["conditions"] = (
+                    w.get("conditions")
+                    or w.get("period")
+                    or w.get("forecast")
+                    or out["conditions"]
+                )
+                out["wind"] = w.get("wind") or w.get("windSpeed") or out["wind"]
+                if w.get("alerts_active"):
+                    out["hazards"] = f"{w['alerts_active']} alert(s)"
     except Exception:
         pass
     return out
+
+
+@router.get("/hawaii-ir", response_class=HTMLResponse)
+async def obs_hawaii_ir():
+    """Full-bleed Hawaii IR loop for OBS (CEF-friendly wrapper around the NWS GIF)."""
+    return HTMLResponse(
+        """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>Hawaii IR</title>
+<style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#000;}
+img{width:100%;height:100%;object-fit:cover;display:block;}
+</style></head>
+<body>
+<img id="ir" alt="Hawaii IR"
+ src="https://www.weather.gov/images/hfo/satellite/Hawaii_IR_loop.gif"
+ onerror="this.src='https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/hi/GEOCOLOR/GOES18-HI-GEOCOLOR-600x600.gif'"/>
+<script>
+// Bust CDN caches every 5 minutes so the loop stays fresh in OBS CEF.
+setInterval(()=>{
+  const el=document.getElementById('ir');
+  const base=el.src.split('?')[0];
+  el.src=base+'?t='+Date.now();
+}, 300000);
+</script>
+</body></html>"""
+    )
 
 
 @api_router.get("/economy-desk")
