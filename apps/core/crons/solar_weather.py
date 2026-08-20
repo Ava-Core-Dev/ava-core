@@ -391,6 +391,9 @@ async def run():
     now_utc  = datetime.now(timezone.utc)
     now_hst  = datetime.now()  # scheduler runs in Pacific/Honolulu tz
     lines    = [f"# Solar + Weather — {now_utc.isoformat()}\n"]
+    from apps.core.services.site_ops import pv_line
+
+    lines.append(pv_line() + "\n")
 
     # ── EcoFlow live data ────────────────────────────────────────────────────
     if access_key and secret_key and serial_nos:

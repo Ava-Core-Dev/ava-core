@@ -521,6 +521,12 @@ async def api_obs_solar_desk():
                 break
             except Exception:
                 pass
+    try:
+        from apps.core.services.site_ops import site_ops, pv_line
+
+        solar = {**solar, **site_ops(), "pv_mount_note": pv_line()}
+    except Exception:
+        solar.setdefault("pv_mount_note", "Ground-mounted PV")
     return {
         "ok": True,
         "solar": solar,

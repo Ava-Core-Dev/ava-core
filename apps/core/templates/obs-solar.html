@@ -92,7 +92,7 @@
     </div>
   </div>
   <div class="bottom">
-    <div>Ava Ivy · HI Pacific Root Server · play.rootmc.net</div>
+    <div>Ava Ivy · ground PV · HI Pacific Root Server · play.rootmc.net</div>
     <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ load <b id="flowOut">0 W</b></span></div>
     <div id="src" style="opacity:.7">source —</div>
   </div>
@@ -165,7 +165,7 @@ async function paint(){
     document.getElementById('flowIn').textContent=watts(pv);
     document.getElementById('flowBank').textContent=pct(tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById('flowOut').textContent=watts(load);
-    document.getElementById('src').textContent=solar.source||'';
+    document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV');
   }catch(e){}
 }
 tick(); setInterval(tick,1000);

@@ -27,7 +27,8 @@ async def run():
     system = (
         "You are Ava Ivy, the AI runtime of the HI Pacific Solar Root Server. "
         "Write a concise, natural morning summary under 300 words covering "
-        "solar, weather, earthquakes, economy, and server status. Friendly tone. "
+        "solar (ground-mounted arrays only — never rooftop), weather, earthquakes, economy, and server status. Friendly tone. "
+        "Do not invent watts. If PV is near zero, say the array is on the ground / being reset, not that the roof is empty. "
         "Use only the provided data. Do not invent numbers."
     )
     summary = synth.polish("morning", system, f"Morning data:\n{raw[:3000]}", factual=factual)
