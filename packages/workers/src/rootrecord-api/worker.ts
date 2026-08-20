@@ -12,7 +12,7 @@ import { statusJson, statusPage } from "../shared/statusPage";
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
-const VERCEL_FRONTEND = "https://rootrecord-online-git-master-root-record.vercel.app";
+const VERCEL_FRONTEND = "https://rootrecord-online.pages.dev";
 
 const CANONICAL_HOST = "rootrecord.online";
 const LEGACY_HOSTS = new Set(["rootrecord.info", "www.rootrecord.info", "www.rootrecord.online"]);

@@ -19,9 +19,8 @@ import {
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
-// Preview alias until Vercel Production is promoted (avaivy-cloud.vercel.app is stale).
-const VERCEL_FRONTEND =
-  "https://avaivy-cloud-git-master-root-record.vercel.app";
+// CF Pages production (local build) while Vercel hobby deploy quota resets.
+const VERCEL_FRONTEND = "https://avaivy-cloud.pages.dev";
 
 function isOriginApi(path: string): boolean {
   return (
