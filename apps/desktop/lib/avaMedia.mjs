@@ -175,9 +175,12 @@ export function listMediaFiles({ limit = 200, under = "" } = {}) {
 /**
  * Copy external files into media/imports and return absolute paths.
  */
-export function importMediaFiles(filePaths = []) {
+export function importMediaFiles(filePaths = [], { kind = "images" } = {}) {
   const root = ensureMediaDirs();
-  const destDir = path.join(root, "images", "imports");
+  const destDir =
+    kind === "audio"
+      ? path.join(root, "audio", "reports")
+      : path.join(root, "images", "imports");
   fs.mkdirSync(destDir, { recursive: true });
   const imported = [];
   for (const raw of filePaths || []) {
@@ -191,8 +194,9 @@ export function importMediaFiles(filePaths = []) {
       path: dest,
       name: path.basename(dest),
       size: fs.statSync(dest).size,
-      relative: path.relative(root, dest),
+      relative: path.relative(root, dest).split(path.sep).join("/"),
       image: isImageFile(dest),
+      audio: kind === "audio",
     });
   }
   return { ok: true, root, imported };

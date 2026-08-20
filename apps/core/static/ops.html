@@ -44,6 +44,14 @@
     <label>Body (plain English). For RootMC you may paste simple HTML.
       <textarea id="body"></textarea>
     </label>
+    <div class="row" style="gap:0.5rem;flex-wrap:wrap;margin:0.4rem 0">
+      <button type="button" id="add-image">Add image</button>
+      <button type="button" id="add-sound">Add sound</button>
+      <button type="button" class="secondary" id="clear-media">Clear media</button>
+    </div>
+    <p class="muted" id="media-list">No media attached yet.</p>
+    <input id="file-image" type="file" accept="image/*,video/*" multiple hidden />
+    <input id="file-sound" type="file" accept="audio/*" multiple hidden />
     <button type="button" id="save">Save post + rebuild blogs</button>
   </section>
 
@@ -100,7 +108,15 @@
   <pre id="out">Ready.</pre>
   <script>
     const out = document.getElementById("out");
+    const media = { images: [], audio: [] };
     function show(x) { out.textContent = typeof x === "string" ? x : JSON.stringify(x, null, 2); }
+    function renderMedia() {
+      const el = document.getElementById("media-list");
+      const bits = [];
+      media.images.forEach((p) => bits.push("image: " + p));
+      media.audio.forEach((p) => bits.push("sound: " + p));
+      el.textContent = bits.length ? bits.join("\n") : "No media attached yet.";
+    }
     async function post(url, body, isForm) {
       const res = await fetch(url, isForm ? { method: "POST", body } : {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
@@ -108,8 +124,37 @@
       const t = await res.text();
       try { return JSON.parse(t); } catch { return t; }
     }
+    async function uploadMany(kind, fileList) {
+      for (const file of Array.from(fileList || [])) {
+        const fd = new FormData();
+        fd.append("kind", kind);
+        fd.append("file", file);
+        const j = await post("/api/ops/upload", fd, true);
+        if (!j?.ok || !j.media_path) throw new Error(j?.detail || "upload failed");
+        const bucket = kind === "audio" ? media.audio : media.images;
+        if (!bucket.includes(j.media_path)) bucket.push(j.media_path);
+      }
+      renderMedia();
+    }
+    document.getElementById("add-image").onclick = () => document.getElementById("file-image").click();
+    document.getElementById("add-sound").onclick = () => document.getElementById("file-sound").click();
+    document.getElementById("clear-media").onclick = () => {
+      media.images = [];
+      media.audio = [];
+      renderMedia();
+    };
+    document.getElementById("file-image").onchange = async (ev) => {
+      try { await uploadMany("images", ev.target.files); }
+      catch (e) { show(String(e.message || e)); }
+      ev.target.value = "";
+    };
+    document.getElementById("file-sound").onchange = async (ev) => {
+      try { await uploadMany("audio", ev.target.files); }
+      catch (e) { show(String(e.message || e)); }
+      ev.target.value = "";
+    };
     document.getElementById("save").onclick = async () => {
-      show(await post("/api/ops/blog", {
+      const j = await post("/api/ops/blog", {
         brand: document.getElementById("brand").value,
         category: document.getElementById("category").value,
         title: document.getElementById("title").value,
@@ -117,7 +162,15 @@
         date: document.getElementById("date").value,
         published: document.getElementById("published").value,
         body: document.getElementById("body").value,
-      }));
+        images: [...media.images],
+        audio: [...media.audio],
+      });
+      show(j);
+      if (j?.ok) {
+        media.images = [];
+        media.audio = [];
+        renderMedia();
+      }
     };
     document.getElementById("upload").onclick = async () => {
       const f = document.getElementById("file").files[0];
@@ -145,6 +198,7 @@
       if (!name) { show("Enter a draft filename first."); return; }
       show(await post(`/api/reports/queue/${encodeURIComponent(name)}/publish`, {}));
     };
+    renderMedia();
   </script>
 </body>
 </html>

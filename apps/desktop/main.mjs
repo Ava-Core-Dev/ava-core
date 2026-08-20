@@ -347,25 +347,36 @@ ipcMain.handle("ava:media-list", async (_e, opts) => {
 ipcMain.handle("ava:media-pick", async (_e, opts) => {
   try {
     const root = ensureMediaDirs();
+    const kind = String(opts?.kind || "images").toLowerCase() === "audio" ? "audio" : "images";
     const defaultPath =
       opts?.defaultPath && fs.existsSync(opts.defaultPath)
         ? opts.defaultPath
-        : path.join(root, "library");
+        : path.join(root, kind === "audio" ? "audio" : "library");
     const win = BrowserWindow.getFocusedWindow() || mainWindow;
+    const filters =
+      kind === "audio"
+        ? [
+            {
+              name: "Audio",
+              extensions: ["mp3", "wav", "ogg", "m4a", "aac", "flac", "opus", "webm"],
+            },
+            { name: "All files", extensions: ["*"] },
+          ]
+        : [
+            {
+              name: "Images & video",
+              extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "mp4", "webm", "mov"],
+            },
+            { name: "All files", extensions: ["*"] },
+          ];
     const result = await dialog.showOpenDialog(win, {
-      title: opts?.title || "Attach images",
+      title: opts?.title || (kind === "audio" ? "Attach sound" : "Attach images"),
       defaultPath,
       properties: ["openFile", "multiSelections"],
-      filters: [
-        {
-          name: "Images & video",
-          extensions: ["png", "jpg", "jpeg", "gif", "webp", "bmp", "mp4", "webm", "mov"],
-        },
-        { name: "All files", extensions: ["*"] },
-      ],
+      filters,
     });
     if (result.canceled || !result.filePaths?.length) {
-      return { ok: true, canceled: true, files: [] };
+      return { ok: true, canceled: true, files: [], kind };
     }
     const importAlso = opts?.import !== false;
     let files = result.filePaths.map((p) => ({
@@ -373,10 +384,10 @@ ipcMain.handle("ava:media-pick", async (_e, opts) => {
       name: path.basename(p),
     }));
     if (importAlso) {
-      const imported = importMediaFiles(result.filePaths);
+      const imported = importMediaFiles(result.filePaths, { kind });
       if (imported.imported?.length) files = imported.imported;
     }
-    return { ok: true, canceled: false, files, root };
+    return { ok: true, canceled: false, files, root, kind };
   } catch (err) {
     return { ok: false, detail: err?.message || String(err), files: [] };
   }
@@ -384,7 +395,8 @@ ipcMain.handle("ava:media-pick", async (_e, opts) => {
 
 ipcMain.handle("ava:media-import", async (_e, opts) => {
   try {
-    return importMediaFiles(opts?.filePaths || []);
+    const kind = String(opts?.kind || "images").toLowerCase() === "audio" ? "audio" : "images";
+    return importMediaFiles(opts?.filePaths || [], { kind });
   } catch (err) {
     return { ok: false, detail: err?.message || String(err), imported: [] };
   }

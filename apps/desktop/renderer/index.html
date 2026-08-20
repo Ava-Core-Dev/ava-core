@@ -595,6 +595,17 @@
       <label>Title <input id="sites-title" type="text" /></label>
       <label>Teaser <input id="sites-teaser" type="text" /></label>
       <label>Body <textarea id="sites-body" class="draft-tall" rows="8"></textarea></label>
+      <div class="attach-bar" style="margin:0.4rem 0 0.6rem">
+        <div class="row wrap">
+          <button type="button" id="sites-add-image">Add image</button>
+          <button type="button" id="sites-add-sound">Add sound</button>
+          <button type="button" id="sites-clear-media">Clear media</button>
+        </div>
+        <p class="hint-inline">Images go into the post body. Sound is attached as playable audio on the published post.</p>
+        <div id="sites-media-chips" class="attach-chips"></div>
+        <input id="sites-file-image" type="file" accept="image/*,video/*" multiple hidden />
+        <input id="sites-file-sound" type="file" accept="audio/*" multiple hidden />
+      </div>
       <div class="row wrap">
         <button type="button" id="sites-save" class="primary">Save + sync blogs</button>
         <button type="button" id="sites-publish-rootmc" class="warn-btn">Publish RootMC</button>

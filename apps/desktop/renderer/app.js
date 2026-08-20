@@ -2825,9 +2825,101 @@ async function refreshSitesPage() {
   }
 }
 
+const sitesMedia = { images: [], audio: [] };
+
+function renderSitesMediaChips() {
+  const box = $("sites-media-chips");
+  if (!box) return;
+  const bits = [];
+  sitesMedia.images.forEach((rel, i) => {
+    bits.push(
+      `<span class="chip">🖼 ${escapeHtml(rel.split("/").pop() || rel)} <button type="button" data-sites-rm="image" data-i="${i}">×</button></span>`
+    );
+  });
+  sitesMedia.audio.forEach((rel, i) => {
+    bits.push(
+      `<span class="chip">🔊 ${escapeHtml(rel.split("/").pop() || rel)} <button type="button" data-sites-rm="audio" data-i="${i}">×</button></span>`
+    );
+  });
+  box.innerHTML = bits.join(" ") || `<span class="hint-inline">No media attached yet.</span>`;
+  box.querySelectorAll("[data-sites-rm]").forEach((btn) => {
+    btn.onclick = () => {
+      const kind = btn.getAttribute("data-sites-rm");
+      const i = Number(btn.getAttribute("data-i"));
+      if (kind === "image") sitesMedia.images.splice(i, 1);
+      else sitesMedia.audio.splice(i, 1);
+      renderSitesMediaChips();
+    };
+  });
+}
+
+async function sitesUploadFiles(kind, fileList) {
+  const base = brainBaseUrl();
+  const files = Array.from(fileList || []);
+  for (const file of files) {
+    const fd = new FormData();
+    fd.append("kind", kind === "audio" ? "audio" : "images");
+    fd.append("file", file);
+    const j = await fetch(`${base}/api/ops/upload`, { method: "POST", body: fd }).then((r) => r.json());
+    if (!j?.ok || !j.media_path) throw new Error(j?.detail || "upload failed");
+    const bucket = kind === "audio" ? sitesMedia.audio : sitesMedia.images;
+    if (!bucket.includes(j.media_path)) bucket.push(j.media_path);
+  }
+  renderSitesMediaChips();
+}
+
+async function sitesAttachMedia(kind) {
+  try {
+    if (window.avaDesktop?.mediaPick) {
+      const r = await window.avaDesktop.mediaPick({
+        kind: kind === "audio" ? "audio" : "images",
+        title: kind === "audio" ? "Attach sound" : "Attach image",
+        import: true,
+      });
+      if (!r?.ok) throw new Error(r?.detail || "pick failed");
+      if (r.canceled) return;
+      const bucket = kind === "audio" ? sitesMedia.audio : sitesMedia.images;
+      for (const f of r.files || []) {
+        const rel = String(f.relative || "").replace(/\\/g, "/");
+        if (rel && !bucket.includes(rel)) bucket.push(rel);
+      }
+      renderSitesMediaChips();
+      return;
+    }
+    const input = $(kind === "audio" ? "sites-file-sound" : "sites-file-image");
+    if (input) input.click();
+  } catch (e) {
+    $("sites-status").textContent = String(e?.message || e);
+  }
+}
+
 async function bootSitesPage() {
   if (!$("page-sites")) return;
+  renderSitesMediaChips();
   $("sites-refresh")?.addEventListener("click", refreshSitesPage);
+  $("sites-add-image")?.addEventListener("click", () => sitesAttachMedia("images"));
+  $("sites-add-sound")?.addEventListener("click", () => sitesAttachMedia("audio"));
+  $("sites-clear-media")?.addEventListener("click", () => {
+    sitesMedia.images = [];
+    sitesMedia.audio = [];
+    renderSitesMediaChips();
+  });
+  $("sites-file-image")?.addEventListener("change", async (ev) => {
+    try {
+      await sitesUploadFiles("images", ev.target.files);
+    } catch (e) {
+      $("sites-status").textContent = String(e?.message || e);
+    }
+    ev.target.value = "";
+  });
+  $("sites-file-sound")?.addEventListener("change", async (ev) => {
+    try {
+      await sitesUploadFiles("audio", ev.target.files);
+    } catch (e) {
+      $("sites-status").textContent = String(e?.message || e);
+    }
+    ev.target.value = "";
+  });
   $("sites-save")?.addEventListener("click", async () => {
     const base = brainBaseUrl();
     const body = {
@@ -2836,6 +2928,8 @@ async function bootSitesPage() {
       body: $("sites-body")?.value || "",
       teaser: $("sites-teaser")?.value || "",
       category: "ops",
+      audio: [...sitesMedia.audio],
+      images: [...sitesMedia.images],
     };
     const fanout = $("sites-fanout")?.value === "all";
     const url = fanout ? `${base}/api/ops/sites-fanout` : `${base}/api/ops/blog`;
@@ -2848,6 +2942,11 @@ async function bootSitesPage() {
       body: JSON.stringify(payload),
     }).then((r) => r.json());
     $("sites-status").textContent = JSON.stringify(j, null, 2);
+    if (j?.ok) {
+      sitesMedia.images = [];
+      sitesMedia.audio = [];
+      renderSitesMediaChips();
+    }
     await refreshSitesPage();
   });
   $("sites-publish-rootmc")?.addEventListener("click", async () => {

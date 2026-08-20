@@ -57,6 +57,8 @@ class BlogIn(BaseModel):
     category: str = "ops"
     date: str = ""
     published: str = ""
+    audio: list[str] = Field(default_factory=list)
+    images: list[str] = Field(default_factory=list)
 
 
 class RewriteIn(BaseModel):
@@ -184,10 +186,36 @@ async def ops_blog(body: BlogIn, request: Request):
     ]
     if html:
         lines.append("html: true")
-    lines += ["---", "", body.body.strip(), ""]
+    audio_paths = []
+    for raw in body.audio or []:
+        rel = str(raw or "").strip().lstrip("/")
+        if rel and rel not in audio_paths:
+            audio_paths.append(rel)
+    if audio_paths:
+        lines.append("audio:")
+        for rel in audio_paths:
+            lines.append(f"  - {rel}")
+    lines += ["---", ""]
+    body_text = body.body.strip()
+    image_paths = []
+    for raw in body.images or []:
+        rel = str(raw or "").strip().lstrip("/")
+        if rel and rel not in image_paths:
+            image_paths.append(rel)
+    if image_paths:
+        extras = []
+        for rel in image_paths:
+            url = f"https://avaivy.cloud/api/media/public/file?path={rel}"
+            name = Path(rel).name
+            if html:
+                extras.append(f'<p><img src="{url}" alt="{name}" loading="lazy"/></p>')
+            else:
+                extras.append(f"![{name}]({url})")
+        body_text = (body_text + ("\n\n" if body_text else "") + "\n\n".join(extras)).strip()
+    lines += [body_text, ""]
     path.write_text("\n".join(lines), encoding="utf-8")
     sync = _run_sync()
-    return {"ok": True, "file": str(path), "slug": slug, "sync": sync}
+    return {"ok": True, "file": str(path), "slug": slug, "sync": sync, "audio": audio_paths, "images": image_paths}
 
 
 @router.post("/api/ops/upload")
@@ -344,6 +372,8 @@ async def ops_sites_fanout(body: FanoutBlogIn, request: Request):
             category=body.category,
             date=body.date,
             published=body.published,
+            audio=list(body.audio or []),
+            images=list(body.images or []),
         )
         resp = await ops_blog(sub, request)
         ok = resp.get("ok") if isinstance(resp, dict) else getattr(resp, "status_code", 500) == 200
