@@ -47,7 +47,9 @@ SCENE_MEDIA = {
     "Dev Updates": ("Dev Audio", "ffmpeg"),
     "Quake Overlay": ("Quake Loop", "ffmpeg"),
 }
-VLC_MIN_DWELL_S = 180
+# Ambient VLC can be on Morning_Broadcast_Current (~7 min); wait at least that long
+# unless GetMediaInputStatus reports the current item has ended.
+VLC_MIN_DWELL_S = 420
 MIN_DWELL_S = 12
 MAX_DWELL_S = 900
 
@@ -891,7 +893,15 @@ async def rotate_loop_scene() -> dict:
         if elapsed < MAX_DWELL_S and media_name:
             left = await _media_remaining_s(obs, media_name)
             if kind == "vlc":
-                if elapsed < VLC_MIN_DWELL_S:
+                if left is not None and left > 1.5:
+                    return {
+                        "ok": True,
+                        "scene": cur,
+                        "held": "vlc_audio",
+                        "remaining_s": round(left, 1),
+                        "elapsed_s": round(elapsed, 1),
+                    }
+                if left is None and elapsed < VLC_MIN_DWELL_S:
                     return {
                         "ok": True,
                         "scene": cur,
