@@ -70,6 +70,32 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.debug("Startup voice skipped: %s", e)
 
+    # AdSense boot report (twice-daily pair with 21:00 HST EOD close)
+    try:
+        async def _adsense_boot():
+            await asyncio.sleep(12)
+            from apps.core.crons import adsense_report
+
+            result = await adsense_report.run("boot")
+            log.info("AdSense boot report: %s", {k: result.get(k) for k in ("ok", "skipped", "posted", "path")})
+
+        asyncio.create_task(_adsense_boot())
+    except Exception as e:
+        log.debug("AdSense boot report skipped: %s", e)
+
+    # AdMob boot report (pair with 21:05 HST EOD)
+    try:
+        async def _admob_boot():
+            await asyncio.sleep(18)
+            from apps.core.crons import admob_report
+
+            result = await admob_report.run("boot")
+            log.info("AdMob boot report: %s", {k: result.get(k) for k in ("ok", "skipped", "posted", "path")})
+
+        asyncio.create_task(_admob_boot())
+    except Exception as e:
+        log.debug("AdMob boot report skipped: %s", e)
+
     try:
         from apps.core.inbox import run_inbox
         asyncio.create_task(run_inbox())

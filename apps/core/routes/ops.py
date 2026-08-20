@@ -521,19 +521,46 @@ async def ops_adsense_status(request: Request):
 
 
 @router.get("/api/ops/adsense/oauth/callback")
-async def ops_adsense_oauth_callback(request: Request, code: str = "", error: str = ""):
-    if not _local(request):
-        return _deny()
+async def ops_adsense_oauth_callback(
+    request: Request, code: str = "", error: str = "", state: str = ""
+):
+    """Public HTTPS callback (ava-origin tunnel). Exchanges code → desk token only."""
+    from fastapi.responses import HTMLResponse
+
     from apps.core.services import adsense
 
+    # Prefer the public redirect Google was told about; fall back to local if needed.
+    redirect_used = adsense.REDIRECT
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host in {"127.0.0.1", "localhost"}:
+        redirect_used = adsense.DEFAULT_LOCAL_REDIRECT
+
     if error:
-        return JSONResponse({"ok": False, "detail": error}, status_code=400)
+        return HTMLResponse(
+            f"<h1>AdSense OAuth failed</h1><pre>{error}</pre>",
+            status_code=400,
+        )
     if not code:
-        return JSONResponse({"ok": False, "detail": "missing code"}, status_code=400)
+        return HTMLResponse("<h1>AdSense OAuth</h1><p>missing code</p>", status_code=400)
     try:
-        return adsense.exchange_code(code)
+        result = adsense.exchange_code(code, redirect_uri=redirect_used)
+        return HTMLResponse(
+            "<html><body style='font-family:system-ui;background:#0a0e14;color:#e5e7eb;"
+            "padding:2rem'>"
+            "<h1>AdSense connected</h1>"
+            "<p>Token saved on the Ava desk. You can close this tab and return to "
+            "<a href='http://127.0.0.1:8787/ops' style='color:#22d3ee'>/ops</a> "
+            "→ List accounts.</p>"
+            f"<pre>{result}</pre></body></html>"
+        )
     except Exception as e:
-        return JSONResponse({"ok": False, "detail": str(e)}, status_code=500)
+        return HTMLResponse(
+            f"<h1>AdSense OAuth exchange failed</h1><pre>{e}</pre>"
+            f"<p>redirect_uri used: {redirect_used}</p>"
+            "<p>In Google Cloud Console, Authorized redirect URIs must include that exact URL "
+            "(not example.com).</p>",
+            status_code=500,
+        )
 
 
 @router.get("/api/ops/adsense/accounts")
@@ -546,4 +573,91 @@ async def ops_adsense_accounts(request: Request):
         return adsense.accounts_summary()
     except Exception as e:
         return JSONResponse({"ok": False, "detail": str(e)}, status_code=500)
+
+
+@router.post("/api/ops/adsense/report")
+async def ops_adsense_report(request: Request, kind: str = "manual"):
+    """Run AdSense snapshot now (manual / boot / eod). Local ops only."""
+    if not _local(request):
+        return _deny()
+    from apps.core.crons import adsense_report
+
+    k = (kind or "manual").strip().lower()
+    if k not in {"manual", "boot", "eod"}:
+        k = "manual"
+    return await adsense_report.run(k, force=True)
+
+
+# --- Google AdMob OAuth (local + public callback) ---
+
+
+@router.get("/api/ops/admob/status")
+async def ops_admob_status(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services import admob
+
+    st = admob.status()
+    if st.get("client_configured"):
+        st["auth_url"] = admob.auth_url()
+    return st
+
+
+@router.get("/api/ops/admob/oauth/callback")
+async def ops_admob_oauth_callback(
+    request: Request, code: str = "", error: str = "", state: str = ""
+):
+    from fastapi.responses import HTMLResponse
+
+    from apps.core.services import admob
+
+    redirect_used = admob.REDIRECT
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if host in {"127.0.0.1", "localhost"}:
+        redirect_used = admob.DEFAULT_LOCAL_REDIRECT
+
+    if error:
+        return HTMLResponse(f"<h1>AdMob OAuth failed</h1><pre>{error}</pre>", status_code=400)
+    if not code:
+        return HTMLResponse("<h1>AdMob OAuth</h1><p>missing code</p>", status_code=400)
+    try:
+        result = admob.exchange_code(code, redirect_uri=redirect_used)
+        return HTMLResponse(
+            "<html><body style='font-family:system-ui;background:#0a0e14;color:#e5e7eb;padding:2rem'>"
+            "<h1>AdMob connected</h1>"
+            "<p>Token saved on the Ava desk. Return to "
+            "<a href='http://127.0.0.1:8787/ops' style='color:#22d3ee'>/ops</a> "
+            "→ List AdMob accounts / Run AdMob report.</p>"
+            f"<pre>{result}</pre></body></html>"
+        )
+    except Exception as e:
+        return HTMLResponse(
+            f"<h1>AdMob OAuth exchange failed</h1><pre>{e}</pre>"
+            f"<p>redirect_uri used: {redirect_used}</p>",
+            status_code=500,
+        )
+
+
+@router.get("/api/ops/admob/accounts")
+async def ops_admob_accounts(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services import admob
+
+    try:
+        return admob.accounts_summary()
+    except Exception as e:
+        return JSONResponse({"ok": False, "detail": str(e)}, status_code=500)
+
+
+@router.post("/api/ops/admob/report")
+async def ops_admob_report(request: Request, kind: str = "manual"):
+    if not _local(request):
+        return _deny()
+    from apps.core.crons import admob_report
+
+    k = (kind or "manual").strip().lower()
+    if k not in {"manual", "boot", "eod"}:
+        k = "manual"
+    return await admob_report.run(k, force=True)
 

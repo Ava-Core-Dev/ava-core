@@ -211,9 +211,16 @@ DISCORD_CHANNELS: dict[str, str] = {
     "ava_media":         "1533268458668687392",
     "random_facts":      "1531432703675596942",
     "updates":           "1520665313631408251",   # pointer / forwards only — not report dump
-    "automations":       AVA_DISCORD_HOME,
+    # Real #automations (economy + cron posts). Override with DISCORD_AUTOMATIONS_CHANNEL_ID.
+    "automations":       os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1535712809399361668").strip()
+                         or "1535712809399361668",
     "daily_summary":     AVA_DISCORD_HOME,
-    "economy_info":      "1516804780884889621",
+    # Live economy stats land in #automations unless DISCORD_ECONOMY_STATS_CHANNEL_ID is set.
+    "economy_info":      os.getenv(
+                             "DISCORD_ECONOMY_STATS_CHANNEL_ID",
+                             os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1535712809399361668"),
+                         ).strip()
+                         or "1535712809399361668",
     "ava_progress":      AVA_DISCORD_HOME,
     "hourly_snapshots":  AVA_DISCORD_HOME,
     "ingame_chat":       "1516706598519832677",

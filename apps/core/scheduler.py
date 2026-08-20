@@ -90,6 +90,13 @@ class Scheduler:
         s.add_job(self._run("economy_brief"), CronTrigger(hour=15, minute=0),
                   id="economy-brief", name="Economy brief", misfire_grace_time=300)
 
+        # ── AdSense reports (boot + end-of-day only) ─────────────────────────
+        # Boot fires from main.py lifespan. EOD close at 21:00 HST.
+        s.add_job(self._run_adsense_eod, CronTrigger(hour=21, minute=0),
+                  id="adsense-eod", name="AdSense end-of-day report", misfire_grace_time=600)
+        s.add_job(self._run_admob_eod, CronTrigger(hour=21, minute=5),
+                  id="admob-eod", name="AdMob end-of-day report", misfire_grace_time=600)
+
         # ── Late-night relay (22:00–05:00 HST, top of each hour) ─────────────
         # No sleep gate — just a scheduled status check-in during late hours.
         # All other crons keep running regardless of time.
@@ -142,6 +149,18 @@ class Scheduler:
             record_host_sample()
         except Exception as e:
             log.debug("host sample skipped: %s", e)
+
+    @staticmethod
+    async def _run_adsense_eod():
+        from apps.core.crons import adsense_report
+
+        await adsense_report.run("eod")
+
+    @staticmethod
+    async def _run_admob_eod():
+        from apps.core.crons import admob_report
+
+        await admob_report.run("eod")
 
     @staticmethod
     def _run(name: str):

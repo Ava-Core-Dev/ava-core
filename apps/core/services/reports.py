@@ -26,6 +26,8 @@ _REPORT_JOBS = (
     ("morning-report", "Morning report", "10:00 HST"),
     ("merged-morning-summary", "Merged morning summary", "10:05 HST"),
     ("economy-brief", "Economy brief", "15:00 HST"),
+    ("adsense-eod", "AdSense EOD close", "21:00 HST (+ boot)"),
+    ("admob-eod", "AdMob EOD close", "21:05 HST (+ boot)"),
     ("overnight-relay", "Late-night relay", "overnight"),
 )
 

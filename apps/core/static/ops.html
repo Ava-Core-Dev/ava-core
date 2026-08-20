@@ -35,14 +35,33 @@
 
   <section>
     <h2>0b. Google AdSense API</h2>
-    <p class="muted">OAuth client is on this desk. Add the redirect URI in Google Cloud Console if prompted: <code>http://127.0.0.1:8787/api/ops/adsense/oauth/callback</code></p>
+    <p class="muted"><strong>Do not</strong> use <code>https://www.example.com/oauth2callback</code> — that is Google’s placeholder. In Cloud Console → Credentials → Authorized redirect URIs, paste:</p>
+    <ul>
+      <li><code>https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback</code> (primary)</li>
+      <li><code>http://127.0.0.1:8787/api/ops/adsense/oauth/callback</code> (local fallback)</li>
+    </ul>
+    <p class="muted">Full guide: <code>docs/ADSENSE-OAUTH.md</code>. Enable AdSense Management API on the same project, then Connect.</p>
     <p id="adsense-state" class="muted">Checking…</p>
     <a id="adsense-auth" href="#" target="_blank" rel="noopener">Connect AdSense (browser)</a>
     <button type="button" class="secondary" id="adsense-accounts">List accounts</button>
+    <button type="button" class="secondary" id="adsense-report">Run report now</button>
   </section>
 
   <section>
-    <h2>0c. Staging (test.*) sites</h2>
+    <h2>0c. Google AdMob API</h2>
+    <p class="muted">Same OAuth client as AdSense (<code>366072724921-baueoii…</code>). Guide: <code>docs/ADMOB-OAUTH.md</code>. In Cloud Console add redirect:</p>
+    <ul>
+      <li><code>https://ava-origin.rootmc.net/api/ops/admob/oauth/callback</code></li>
+    </ul>
+    <p class="muted">Enable <strong>AdMob API</strong> + scope <code>admob.readonly</code>. Reports: boot + 21:05 HST EOD.</p>
+    <p id="admob-state" class="muted">Checking…</p>
+    <a id="admob-auth" href="#" target="_blank" rel="noopener">Connect AdMob (browser)</a>
+    <button type="button" class="secondary" id="admob-accounts">List AdMob accounts</button>
+    <button type="button" class="secondary" id="admob-report">Run AdMob report now</button>
+  </section>
+
+  <section>
+    <h2>0d. Staging (test.*) sites</h2>
     <p class="muted">Deploy Emergent previews here before switching production.</p>
     <ul>
       <li><a href="https://test.avaivy.cloud" target="_blank" rel="noopener">test.avaivy.cloud</a></li>
@@ -267,10 +286,36 @@
     document.getElementById("adsense-accounts").onclick = async () => {
       show(await fetch("/api/ops/adsense/accounts").then((r) => r.json()));
     };
+    document.getElementById("adsense-report").onclick = async () => {
+      show("Running AdSense report…");
+      show(await post("/api/ops/adsense/report?kind=manual", {}));
+    };
+
+    async function refreshAdmob() {
+      const el = document.getElementById("admob-state");
+      const link = document.getElementById("admob-auth");
+      try {
+        const j = await fetch("/api/ops/admob/status").then((r) => r.json());
+        el.textContent = j.token_present
+          ? "AdMob: connected (token on desk)"
+          : (j.client_configured ? "AdMob: client ready — connect once" : "AdMob: client JSON missing");
+        if (j.auth_url) link.href = j.auth_url;
+      } catch (e) {
+        el.textContent = String(e);
+      }
+    }
+    document.getElementById("admob-accounts").onclick = async () => {
+      show(await fetch("/api/ops/admob/accounts").then((r) => r.json()));
+    };
+    document.getElementById("admob-report").onclick = async () => {
+      show("Running AdMob report…");
+      show(await post("/api/ops/admob/report?kind=manual", {}));
+    };
 
     renderMedia();
     refreshGhPush();
     refreshAdsense();
+    refreshAdmob();
   </script>
 </body>
 </html>
