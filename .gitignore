@@ -60,3 +60,8 @@ credentials.env.*
 
 # Operator private media (life story, 1:1, account exports) — never git
 **/media/private/
+
+
+
+# Cursor IDE local config — never commit
+.cursor/
