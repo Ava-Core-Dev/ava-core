@@ -3,7 +3,7 @@ import styles from "@/app/page.module.css";
 const NAV = [
   { href: "/", label: "Live" },
   { href: "/goals", label: "Goals" },
-  { href: "/blog", label: "Updates" },
+  { href: "/blog", label: "Blog" },
   { href: "/reports", label: "Auto Reports" },
   { href: "/timeline", label: "Timeline" },
   { href: "/dev", label: "Dev" },
@@ -32,6 +32,7 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
       <footer className={styles.footer}>
         <p>
           Root Record
+          {" "}· <a href="/blog">Blog</a>
           {" "}· <a href="https://avaivy.cloud">Ava Ivy</a>
           {" "}· <a href="https://rootmc.net">RootMC</a>
         </p>

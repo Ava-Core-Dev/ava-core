@@ -16,7 +16,7 @@
     { "label": "Index", "href": "/media" },
     { "label": "Goals", "href": "/status/goals" },
     { "label": "Wallets", "href": "/wallets" },
-    { "label": "Updates", "href": "/blog" },
+    { "label": "Blog", "href": "/blog" },
     { "label": "Timeline", "href": "/timeline" },
     { "label": "Context", "href": "/context" },
     { "label": "Solar", "href": "/solar" },

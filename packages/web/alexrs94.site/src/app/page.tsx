@@ -29,6 +29,14 @@ export default function HomePage() {
         </section>
 
         <section className="tile">
+          <h2 className="sectionTitle">Blog</h2>
+          <p className="lead">
+            Dated personal notes — solar, media, and site work that stays off the brand changelogs.
+          </p>
+          <Link href="/blog">Open Blog</Link>
+        </section>
+
+        <section className="tile">
           <h2 className="sectionTitle">YouTube</h2>
           <p className="lead">
             HIqualityviews is the current public channel for footage, cuts, and field updates.

@@ -20,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/">Home</Link>
               <Link href="/solar">Solar</Link>
               <Link href="/media">Media</Link>
+              <Link href="/blog">Blog</Link>
               <a href="https://www.youtube.com/@HIqualityviews">YouTube</a>
               <a href="https://rootrecord.online">Root Record</a>
             </nav>

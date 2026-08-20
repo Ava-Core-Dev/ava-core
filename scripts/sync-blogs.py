@@ -25,9 +25,10 @@ RMC_GEN = AVA / "workstations" / "rootmc-web" / "rootmc-web" / "scripts" / "writ
 RMC_JSON = RMC_GEN.with_name("_posts.json")
 AVA_TS = CORE / "packages" / "web" / "avaivy.cloud" / "src" / "lib" / "blogPosts.ts"
 RR_TS = CORE / "packages" / "web" / "rootrecord.online" / "src" / "lib" / "blogPosts.ts"
+ALEX_TS = CORE / "packages" / "web" / "alexrs94.site" / "src" / "lib" / "blogPosts.ts"
 
-BRANDS = ("ava", "rootrecord", "rootmc")
-BRAND_LABEL = {"ava": "Ava", "rootrecord": "Root Record", "rootmc": "RootMC"}
+BRANDS = ("ava", "rootrecord", "rootmc", "alex")
+BRAND_LABEL = {"ava": "Ava", "rootrecord": "Root Record", "rootmc": "RootMC", "alex": "Alex"}
 
 AVA_CATS = [
     ("runtime", "Runtime"),
@@ -44,6 +45,12 @@ RR_CATS = [
     ("product", "Product"),
     ("ops", "Migrations"),
     ("minecraft", "Minecraft (link)"),
+]
+ALEX_CATS = [
+    ("site", "Site"),
+    ("solar", "Solar"),
+    ("media", "Media"),
+    ("ops", "Notes"),
 ]
 
 
@@ -163,7 +170,7 @@ def js_str(s: str) -> str:
 
 
 def emit_ts(path: Path, home: str, cats: list[tuple[str, str]], posts: list[dict], revised: str) -> None:
-    brand_union = '"Ava" | "RootMC" | "Root Record"'
+    brand_union = '"Ava" | "RootMC" | "Root Record" | "Alex"'
     cat_block = ",\n".join(f'  {{ id: "{i}", label: {js_str(l)} }}' for i, l in cats)
     items = []
     for p in posts:
@@ -383,12 +390,14 @@ def main() -> int:
     ava = load_brand("ava")
     rr = load_brand("rootrecord")
     rmc = load_brand("rootmc")
-    if not ava and not rr and not rmc:
+    alex = load_brand("alex")
+    if not ava and not rr and not rmc and not alex:
         print("No markdown posts yet. Run: python3 sync-blogs.py --seed", file=sys.stderr)
         return 1
 
     emit_ts(AVA_TS, "Ava", AVA_CATS, ava, revised)
     emit_ts(RR_TS, "Root Record", RR_CATS, rr, revised)
+    emit_ts(ALEX_TS, "Alex", ALEX_CATS, alex, revised)
     RMC_JSON.write_text(json.dumps(rmc_json_from_md(rmc, revised), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     subprocess.run([sys.executable, str(RMC_GEN)], check=True)
 
@@ -400,8 +409,8 @@ def main() -> int:
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
-    print(f"synced ava={len(ava)} rootrecord={len(rr)} rootmc={len(rmc)} revised={revised}")
-    print("Ava/Root Record go live when GitHub auto-push runs (every 2 min) if Vercel is connected.")
+    print(f"synced ava={len(ava)} rootrecord={len(rr)} rootmc={len(rmc)} alex={len(alex)} revised={revised}")
+    print("Ava/Root Record/alexrs94 go live when GitHub auto-push runs (every 2 min) if Vercel is connected.")
     print("RootMC HTML is local; run publish-rootmc.sh to put it on the internet.")
     return 0
 
