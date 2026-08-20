@@ -306,10 +306,8 @@ async def ingest() -> dict[str, Any]:
 
         if not bins:
             bins = ["cp2"]
-        # Always keep CPAC + a placeholder EPAC graphics bin so empty-basin pages still refresh.
-        for extra_bin in ("cp2", "ep2"):
-            if extra_bin not in bins:
-                bins.append(extra_bin)
+        elif "cp2" not in bins:
+            bins.append("cp2")
 
         for bin_no in bins:
             graphics = f"{BASE}/refresh/graphics_{bin_no}+shtml/"
