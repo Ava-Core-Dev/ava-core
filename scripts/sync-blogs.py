@@ -401,7 +401,6 @@ def main() -> int:
         key=lambda p: (p.get("published") or p.get("date") or "", p.get("slug") or ""),
         reverse=True,
     )
-    merged_cats = list({**dict(AVA_CATS), **dict(RR_CATS)}.items())
     # preserve order: ava cats then rr-only
     seen = set()
     ordered_cats: list[tuple[str, str]] = []
