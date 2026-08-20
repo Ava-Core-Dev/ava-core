@@ -371,8 +371,12 @@ async def _ensure_input(
             "sceneItemEnabled": True,
         },
     )
-    if not audio:
-        await obs.try_req("SetInputMute", {"inputName": name, "inputMuted": False})
+    await obs.try_req("SetInputMute", {"inputName": name, "inputMuted": False})
+    if audio:
+        await obs.try_req(
+            "SetInputAudioMonitorType",
+            {"inputName": name, "monitorType": "OBS_MONITORING_TYPE_NONE"},
+        )
 
 
 async def _fit(obs: ObsClient, scene: str, source: str, w: int = 1920, h: int = 1080) -> None:

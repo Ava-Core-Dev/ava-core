@@ -45,7 +45,7 @@ async def run() -> None:
             BELL,
             name="chime",
             priority=Priority.SCHEDULED,
-            scene="Main",
+            scene=None,
         )
         log.info("Queued chime bell")
     else:
@@ -57,7 +57,7 @@ async def run() -> None:
             clip,
             name=f"time_{hour:02d}{minute:02d}",
             priority=Priority.SCHEDULED,
-            scene="Main",
+            scene=None,
         )
         log.info("Queued time announcement: %s", clip.name)
     else:

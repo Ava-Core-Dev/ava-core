@@ -14,6 +14,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from fastapi.staticfiles import StaticFiles
+
 from . import config
 from .scheduler import Scheduler
 
@@ -153,6 +155,17 @@ for _route in (
                 app.include_router(_extra)
     except Exception as _exc:
         log.warning("route %s not loaded: %s", _route, _exc)
+
+# OBS Ava Audio browser source fetches chimes/reports from here.
+try:
+    config.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+    app.mount(
+        "/data/generated",
+        StaticFiles(directory=str(config.GENERATED_DIR)),
+        name="generated_audio",
+    )
+except Exception as _exc:
+    log.warning("generated audio mount failed: %s", _exc)
 
 
 @app.get("/health")

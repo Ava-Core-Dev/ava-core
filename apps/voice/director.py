@@ -52,6 +52,9 @@ class Priority(IntEnum):
     CRITICAL  = 3
 
 
+_SCENE_RESOLVE = object()  # sentinel: resolve scene from SCENE_MAP
+
+
 @dataclass(order=True)
 class AudioItem:
     priority: int
@@ -61,8 +64,25 @@ class AudioItem:
     scene: str | None = field(compare=False, default=None)   # OBS scene to switch to
 
     def to_sse(self) -> dict:
+        """Stage clip into GENERATED_DIR so OBS Ava Audio can fetch it over HTTP."""
+        src = "/data/generated/missing.mp3"
+        if self.path and self.path.exists():
+            try:
+                from apps.core import config
+
+                config.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+                dest = config.GENERATED_DIR / self.path.name
+                if (
+                    not dest.exists()
+                    or dest.stat().st_mtime < self.path.stat().st_mtime
+                    or dest.stat().st_size != self.path.stat().st_size
+                ):
+                    shutil.copy2(self.path, dest)
+                src = f"/data/generated/{self.path.name}"
+            except Exception:
+                src = f"/data/generated/{self.path.name}"
         return {
-            "src": f"/data/generated/{self.path.name}",
+            "src": src,
             "name": self.name,
             "priority": self.priority,
         }
@@ -72,8 +92,8 @@ class AudioItem:
 # These must match scene names exactly as they appear in OBS Studio.
 # Update here first; OBS scene names should match these strings.
 
-# Scene shown when nothing specific is active
-DEFAULT_SCENE = "Main"
+# Stay on current program scene for chimes / generic clips (no phantom "Main").
+DEFAULT_SCENE = None
 
 # Scene shown during planned downtime / solar night
 BRB_SCENE = "Be right back"
@@ -81,47 +101,49 @@ BRB_SCENE = "Be right back"
 # Scene map — keyword → OBS scene name
 # Keywords are matched against AudioItem.name (lowercased).
 # First match wins. "default" is the fallback if no keyword matches.
-SCENE_MAP: dict[str, str] = {
+SCENE_MAP: dict[str, str | None] = {
     # Geologic / emergency alerts — switch immediately
-    "kilauea":       "Kilauea Watch",
-    "eruption":      "Kilauea Watch",
-    "volcano":       "Kilauea Watch",
-    "earthquake":    "Quake Overlay",
-    "quake":         "Quake Overlay",
-    "tsunami":       "Quake Overlay",
+    "kilauea":       "Scene 3 - Kilauea Watch",
+    "eruption":      "Scene 3 - Kilauea Watch",
+    "volcano":       "Scene 3 - Kilauea Watch",
+    "earthquake":    "Scene 4 - Quake Desk",
+    "quake":         "Scene 4 - Quake Desk",
+    "tsunami":       "Scene 4 - Quake Desk",
     # Weather
-    "weather":       "Weather Board",
-    "noaa":          "Weather Board",
-    "tropical":      "Weather Board",
-    "hurricane":     "Weather Board",
-    "storm":         "Weather Board",
+    "weather":       "Scene 1 - Weather Board",
+    "noaa":          "Scene 1 - Weather Board",
+    "tropical":      "Scene 2 - Storm Desk",
+    "hurricane":     "Scene 2 - Storm Desk",
+    "storm":         "Scene 2 - Storm Desk",
     # Solar / power
-    "solar":         "Solar Dashboard",
-    "battery":       "Solar Dashboard",
-    "power":         "Solar Dashboard",
-    "ecoflow":       "Solar Dashboard",
+    "solar":         "Scene 5 - Solar Dashboard",
+    "battery":       "Scene 5 - Solar Dashboard",
+    "power":         "Scene 5 - Solar Dashboard",
+    "ecoflow":       "Scene 5 - Solar Dashboard",
     # Economy / RootMC
-    "economy":       "Economy Board",
-    "finance":       "Economy Board",
-    "gold":          "Economy Board",
-    "rootmc":        "RootMC Live",
-    "minecraft":     "RootMC Live",
-    "server":        "RootMC Live",
-    # Reports / status
-    "morning":       "Main",
-    "report":        "Main",
-    "status":        "Main",
-    "overnight":     "Main",
-    # Hourly / ambient
-    "chime":         "Main",
-    "hourly":        "Main",
-    "ambient":       "Ambient Playlist",
+    "economy":       "Scene 6 - Economy Board",
+    "finance":       "Scene 6 - Economy Board",
+    "gold":          "Scene 6 - Economy Board",
+    "rootmc":        "Scene 7 - RootMC Live",
+    "minecraft":     "Scene 7 - RootMC Live",
+    "server":        "Scene 7 - RootMC Live",
+    # Reports / status — stay on whatever is live
+    "morning":       None,
+    "report":        None,
+    "status":        None,
+    "overnight":     None,
+    "startup":       None,
+    # Hourly / ambient — never yank the daily loop to a missing Main scene
+    "chime":         None,
+    "hourly":        None,
+    "time_":         None,
+    "ambient":       None,
     # Fallback
     "default":       DEFAULT_SCENE,
 }
 
-def scene_for(name: str) -> str:
-    """Return the OBS scene name for a given audio item name."""
+def scene_for(name: str) -> str | None:
+    """Return the OBS scene name for a given audio item name (or None = stay put)."""
     name_lower = name.lower()
     for keyword, scene in SCENE_MAP.items():
         if keyword == "default":
@@ -143,23 +165,37 @@ class StreamDirector:
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    async def queue(self, path: Path, name: str = "", priority: int = Priority.REPORT,
-                    scene: str | None = None) -> None:
-        """Submit audio to the queue. Higher priority pauses current playback."""
-        resolved_scene = scene if scene is not None else scene_for(name)
-        item = AudioItem(priority=-(priority), path=path, name=name, scene=resolved_scene)
+    async def queue(
+        self,
+        path: Path,
+        name: str = "",
+        priority: int = Priority.REPORT,
+        scene: str | None | object = _SCENE_RESOLVE,
+    ) -> None:
+        """Submit audio to the queue. Higher priority pauses current playback.
+
+        Pass scene=None to stay on the current OBS scene.
+        Omit scene to resolve from SCENE_MAP / scene_for(name).
+        """
+        resolved_scene = scene_for(name) if scene is _SCENE_RESOLVE else scene  # type: ignore[arg-type]
+        item = AudioItem(priority=-(priority), path=path, name=name, scene=resolved_scene)  # type: ignore[arg-type]
         await self._queue.put(item)
         log.info("Queued: %s  priority=%s", name or path.name, priority)
 
     async def queue_chime(self, path: Path) -> None:
-        await self.queue(path, name="Hourly Chime", priority=Priority.SCHEDULED, scene="Main")
+        await self.queue(path, name="Hourly Chime", priority=Priority.SCHEDULED, scene=None)
 
     async def queue_report(self, path: Path, name: str, report_type: str = "") -> None:
         scene = SCENE_MAP.get(report_type.lower())
         await self.queue(path, name=name, priority=Priority.REPORT, scene=scene)
 
     async def queue_alert(self, path: Path, name: str) -> None:
-        await self.queue(path, name=name, priority=Priority.CRITICAL, scene="Kilauea Watch")
+        await self.queue(
+            path,
+            name=name,
+            priority=Priority.CRITICAL,
+            scene="Scene 3 - Kilauea Watch",
+        )
 
     def get_status(self) -> dict:
         return {
@@ -281,6 +317,8 @@ class StreamDirector:
             await self._switch_scene(item.scene)
 
         self._broadcast(item)
+        # Also drive OBS ffmpeg "Ava Voice Bus" — reliable when browser autoplay fails.
+        await self._play_obs_voice_bus(item.path)
         log.info("Playing: %s  priority=%s  file=%s",
                  item.name, item.priority, item.path.name if item.path else "?")
 
@@ -294,6 +332,43 @@ class StreamDirector:
             resumed = self._paused
             self._paused = None
             await self._play(resumed)
+
+    async def _play_obs_voice_bus(self, path: Path | None) -> None:
+        """Point the shared OBS ffmpeg source at this clip and restart playback."""
+        if not path or not path.exists():
+            return
+        if not self._obs_ws:
+            await self._connect_obs()
+        if not self._obs_ws:
+            return
+        try:
+            await self._obs_request(
+                "SetInputSettings",
+                {
+                    "inputName": "Ava Voice Bus",
+                    "inputSettings": {
+                        "is_local_file": True,
+                        "local_file": str(path),
+                        "looping": False,
+                        "restart_on_activate": True,
+                        "close_when_inactive": False,
+                        "clear_on_media_end": False,
+                    },
+                },
+            )
+            await self._obs_request(
+                "SetInputMute",
+                {"inputName": "Ava Voice Bus", "inputMuted": False},
+            )
+            await self._obs_request(
+                "TriggerMediaInputAction",
+                {
+                    "inputName": "Ava Voice Bus",
+                    "mediaAction": "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART",
+                },
+            )
+        except Exception as e:
+            log.warning("OBS Ava Voice Bus play failed: %s", e)
 
     async def _play_local(self, path: Path | None) -> None:
         """Play MP3 through desktop audio (PulseAudio/PipeWire) via subprocess."""
