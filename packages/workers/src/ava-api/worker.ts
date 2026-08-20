@@ -44,16 +44,16 @@ export default {
       return statusPage(env);
     }
 
+    const origin = env.AVA_ORIGIN_URL || ORIGIN;
+
     if (path.startsWith("/ava/")) {
       return proxyToOrigin(request, {
-        originUrl: ORIGIN,
+        originUrl: origin,
         path: path.slice("/ava".length),
         offlineFallback: () => statusPage(env, { degraded: true }),
         timeoutMs: 8000,
       });
     }
-
-    const origin = env.AVA_ORIGIN_URL || ORIGIN;
 
     if (path === "/solar" || path === "/solar/") {
       return proxyToOrigin(request, {
@@ -65,7 +65,7 @@ export default {
 
     if (isOriginApi(path)) {
       return proxyToOrigin(request, {
-        originUrl: ORIGIN,
+        originUrl: origin,
         timeoutMs: 8000,
         offlineFallback: async () => {
           if (path.startsWith("/api/obs/solar-desk") || path.startsWith("/api/obs/solar")) {
