@@ -30,6 +30,11 @@ CATALOG_URLS = (
 )
 STATE_PATH = config.DATA_DIR / "state" / "kilauea-cams.json"
 YOUTUBE_Q = "autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1"
+KV_HAZARD_SCENES = [
+    ("KV · SO2", "KV SO2", "so2"),
+    ("KV · Vog", "KV Vog", "vog"),
+    ("KV · Windy", "KV Windy", "windy"),
+]
 
 # Same offline defaults as Kīlauea Alerts LiveFeedsRepository.
 DEFAULT_CAMS = [
@@ -151,7 +156,9 @@ async def refresh_catalog() -> dict:
         "source": source,
         "radar": NWS_RADAR_URL,
         "cams": cams,
-        "scenes": ["KV · Radar"] + [c["scene"] for c in cams],
+        "scenes": ["KV · Radar"]
+        + [s[0] for s in KV_HAZARD_SCENES]
+        + [c["scene"] for c in cams],
         "featured": cams[0]["id"] if cams else "usgs_v1",
     }
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -165,11 +172,21 @@ def load_catalog() -> dict:
             return json.loads(STATE_PATH.read_text())
         except Exception:
             pass
-    return {"cams": DEFAULT_CAMS, "scenes": ["KV · Radar"] + [c["scene"] for c in DEFAULT_CAMS]}
+    return {
+        "cams": DEFAULT_CAMS,
+        "scenes": ["KV · Radar"] + [s[0] for s in KV_HAZARD_SCENES] + [c["scene"] for c in DEFAULT_CAMS],
+    }
 
 
 def kilauea_scene_pool() -> list[str]:
-    return list(load_catalog().get("scenes") or ["KV · Radar", "KV · V1", "KV · V2", "KV · V3"])
+    cams = [c["scene"] for c in DEFAULT_CAMS]
+    hazards = [s[0] for s in KV_HAZARD_SCENES]
+    saved = list(load_catalog().get("scenes") or [])
+    ordered = ["KV · Radar", *hazards, *cams]
+    for s in saved:
+        if s not in ordered:
+            ordered.append(s)
+    return ordered
 
 
 async def _browser(obs, scene: str, name: str, url: str) -> None:
@@ -193,7 +210,14 @@ async def _browser(obs, scene: str, name: str, url: str) -> None:
 
 
 async def apply_kilauea_kit(obs: Any | None = None) -> dict:
-    from apps.core.services.obs_studio import ObsClient, _stretch_all, NWS_RADAR_URL
+    from apps.core.services.obs_studio import (
+        ObsClient,
+        _stretch_all,
+        NWS_RADAR_URL,
+        HI_SO2_URL,
+        HI_VOG_URL,
+        WINDY_KILAUEA_URL,
+    )
 
     data = await refresh_catalog()
     own = obs is None
@@ -222,6 +246,18 @@ async def apply_kilauea_kit(obs: Any | None = None) -> dict:
             "KV Overlay Radar",
             f"{origin}/obs/kilauea-desk?cam=radar",
         )
+
+        hazard_urls = {"so2": HI_SO2_URL, "vog": HI_VOG_URL, "windy": WINDY_KILAUEA_URL}
+        for scene, inp, cam in KV_HAZARD_SCENES:
+            if scene not in existing:
+                await obs.try_req("CreateScene", {"sceneName": scene})
+            await _browser(obs, scene, inp, hazard_urls[cam])
+            await _browser(
+                obs,
+                scene,
+                f"KV Overlay {cam}",
+                f"{origin}/obs/kilauea-desk?cam={cam}",
+            )
 
         for cam in data.get("cams") or []:
             scene = cam["scene"]

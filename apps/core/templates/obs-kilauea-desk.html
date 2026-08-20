@@ -53,6 +53,24 @@ async function tick(){
       document.getElementById('kind').textContent = 'NWS mosaic';
       document.getElementById('head').textContent = 'RADAR SLIDE';
       document.getElementById('foot').textContent = 'rotating with V1 / V2 / V3';
+    } else if (cam === 'so2') {
+      document.getElementById('camk').textContent = 'SO₂ INDEX';
+      document.getElementById('name').textContent = 'Hawaii SO₂';
+      document.getElementById('kind').textContent = 'hiso2index.info';
+      document.getElementById('head').textContent = 'AIR QUALITY';
+      document.getElementById('foot').textContent = 'official island SO₂ index';
+    } else if (cam === 'vog') {
+      document.getElementById('camk').textContent = 'VOG MAP';
+      document.getElementById('name').textContent = 'MKWC vog';
+      document.getElementById('kind').textContent = 'mkwc.ifa.hawaii.edu';
+      document.getElementById('head').textContent = 'VOG FORECAST';
+      document.getElementById('foot').textContent = 'Mauna Kea Weather Center';
+    } else if (cam === 'windy') {
+      document.getElementById('camk').textContent = 'WINDY';
+      document.getElementById('name').textContent = 'Kīlauea winds';
+      document.getElementById('kind').textContent = 'windy.com · 19.76N 155.62W';
+      document.getElementById('head').textContent = 'WIND / WEATHER';
+      document.getElementById('foot').textContent = 'Big Island zoom';
     } else {
     document.getElementById('camk').textContent = (c.id||cam).toUpperCase();
     document.getElementById('name').textContent = c.title || 'Kīlauea';

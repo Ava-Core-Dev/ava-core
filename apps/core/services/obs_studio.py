@@ -28,6 +28,9 @@ AMBIENT_SCENES = [
     "Weather Board",
     "Radar",
     "Satellite",
+    "SO2 Index",
+    "Vog Map",
+    "Windy Big Island",
     "Kilauea Watch",
     "Solar Dashboard",
     "Economy Board",
@@ -47,6 +50,9 @@ SCENE_MEDIA = {
     "Weather Board": ("NWS Hawaii", "ffmpeg"),
     "Radar": ("NWS Radar", "image"),
     "Satellite": ("Hawaii IR", "image"),
+    "SO2 Index": ("HI SO2 Index", "image"),
+    "Vog Map": ("MKWC Vog", "image"),
+    "Windy Big Island": ("Windy Kilauea", "image"),
     "Kilauea Watch": ("Kilauea Audio", "ffmpeg"),
     "Solar Dashboard": ("Solar Audio", "ffmpeg"),
     "Economy Board": ("Economy Audio", "ffmpeg"),
@@ -249,8 +255,17 @@ NWS_RADAR_URL = (
 WINDY_RADAR_URL = "https://www.windy.com/-Weather-radar-radar?radar,20.808,-157.736,6,p:cities"
 WINDY_HURRICANE_URL = "https://www.windy.com/-Hurricane-tracker/hurricanes?950h,19.929,-155.800,6,p:cities"
 WINDY_CLOUDS_URL = "https://www.windy.com/-High-clouds-hclouds?hclouds,21.545,-156.761,6,p:cities"
+WINDY_KILAUEA_URL = "https://www.windy.com/?19.761,-155.615,9,p:cities,m:eeNaPl"
+HI_SO2_URL = "https://www.hiso2index.info/"
+HI_VOG_URL = "http://mkwc.ifa.hawaii.edu/vmap/vog/"
 HAWAII_IR_URL = "https://www.weather.gov/images/hfo/satellite/Hawaii_IR_loop.gif"
 GOES_HI_URL = "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/hi/GEOCOLOR/GOES18-HI-GEOCOLOR-1000x1000.gif"
+# Full-screen hazard maps used as scene media (Kīlauea + weather).
+HAZARD_SCENES = [
+    ("SO2 Index", "HI SO2 Index", HI_SO2_URL),
+    ("Vog Map", "MKWC Vog", HI_VOG_URL),
+    ("Windy Big Island", "Windy Kilauea", WINDY_KILAUEA_URL),
+]
 _SKIP_STRETCH = {
     "Ava Audio",
     "Economy Audio",
@@ -376,6 +391,11 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
             ("Satellite", "Windy Clouds", WINDY_CLOUDS_URL, False),
             ("Weather Board", "Hawaii IR", HAWAII_IR_URL, False),
         ]
+        for scene, name, url in HAZARD_SCENES:
+            if scene not in existing:
+                await obs.try_req("CreateScene", {"sceneName": scene})
+            browsers.append((scene, name, url, True))
+            browsers.append(("Weather Board", name, url, False))
         for scene, name, url, vis in browsers:
             await _ensure_input(
                 obs,
