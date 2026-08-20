@@ -84,9 +84,10 @@ function tick(){
   document.getElementById('date').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'Pacific/Honolulu'});
   document.getElementById('time').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Pacific/Honolulu'})+' HST';
 }
-function ring(label,pct){
+function ring(label,pct,wattsOut){
   const p=Math.max(0,Math.min(100,Number(pct)||0));
-  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div>${label}</div></div>`;
+  const w=(wattsOut!=null && wattsOut!=='') ? `<div style="opacity:.7;font-size:13px">${Math.round(Number(wattsOut)||0)} W</div>` : '';
+  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div>${label}</div>${w}</div>`;
 }
 function watts(v){ if(v==null||v==='') return '—'; return Math.round(Number(v))+' W'; }
 async function j(path){ const r=await fetch(ORIGIN+path); return r.json(); }
@@ -99,7 +100,7 @@ async function paint(){
     const k=s.kilauea||{};
     const devices=solar.devices||[];
     document.getElementById('rings').innerHTML = devices.length
-      ? devices.map(d=>ring(d.label||'pack', d.soc)).join('')
+      ? devices.map(d=>ring(d.label||'pack', d.soc, d.watts_out)).join('')
       : ring('Bank', solar.battery_pct);
     document.getElementById('solar').textContent=watts(solar.solar_in_w||solar.power_w);
     document.getElementById('load').textContent=watts(solar.load_w);

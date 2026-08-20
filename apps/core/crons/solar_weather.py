@@ -19,6 +19,22 @@ import httpx
 
 log = logging.getLogger("ava.cron.solar_weather")
 
+# EcoFlow's device-list productName is reversed vs the packs on the desk.
+# R331 (listed as DELTA 2) is the River; R621 (listed as RIVER 2 Pro) is the Delta.
+SN_LABELS = {
+    "R331ZAB5SG6S2858": "RIVER 2 Pro",
+    "R621ZA16XH6K1155": "DELTA 2",
+}
+
+
+def _label_for_sn(sn: str, listed: str | None = None) -> str:
+    return SN_LABELS.get(str(sn).strip()) or listed or str(sn)[-6:]
+
+
+def _sort_devices(devices: list[dict]) -> list[dict]:
+    rank = {"DELTA 2": 0, "Delta 2": 0, "RIVER 2 Pro": 1, "River 2 Pro": 1}
+    return sorted(devices, key=lambda d: rank.get(str(d.get("label") or ""), 9))
+
 
 # ── EcoFlow API helpers ────────────────────────────────────────────────────────
 
@@ -119,10 +135,9 @@ async def live_snapshot() -> dict:
     watts_in = 0.0
     watts_out = 0.0
     devices: list[dict] = []
-    labels = ["Delta 2", "River 2 Pro"]
     async with httpx.AsyncClient() as client:
         for i, sn in enumerate(serial_nos):
-            label = labels[i] if i < len(labels) else f"Device {i + 1}"
+            label = _label_for_sn(sn, f"Device {i + 1}")
             data = await _fetch_ecoflow_device(client, base_url, access_key, secret_key, sn)
             soc = _soc_from_quota(data) if data else None
             inn = _num(data, "mppt.inWatts", "pd.inputWatts") or 0
@@ -131,7 +146,8 @@ async def live_snapshot() -> dict:
                 banks.append(soc)
             watts_in += inn
             watts_out += out
-            devices.append({"label": label, "soc": soc, "watts_in": inn, "watts_out": out, "online": bool(data)})
+            devices.append({"label": label, "sn": sn, "soc": soc, "watts_in": inn, "watts_out": out, "online": bool(data)})
+    devices = _sort_devices(devices)
 
     battery = round(sum(banks) / len(banks), 1) if banks else None
     state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
@@ -178,7 +194,8 @@ def _quota_snapshot() -> dict:
         try:
             payload = json_loads(listing.read_text())
             for d in payload.get("devices") or []:
-                names[str(d.get("sn") or "")] = d.get("productName") or d.get("sn")
+                sn = str(d.get("sn") or "")
+                names[sn] = _label_for_sn(sn, d.get("productName") or sn)
         except Exception:
             pass
     devices = []
@@ -196,7 +213,7 @@ def _quota_snapshot() -> dict:
         if not isinstance(data, dict):
             continue
         sn = qf.stem
-        label = names.get(sn) or sn
+        label = _label_for_sn(sn, names.get(sn))
         soc = _soc_from_quota(data)
         inn = _num(data, "mppt.inWatts", "pd.inputWatts", "pd.wattsInSum") or 0
         out = _num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") or 0
@@ -217,6 +234,7 @@ def _quota_snapshot() -> dict:
         })
     if not devices:
         return {}
+    devices = _sort_devices(devices)
     battery = round(sum(banks) / len(banks), 1) if banks else None
     updated = None
     if newest > 1_000_000_000_000:
@@ -279,10 +297,9 @@ async def run():
 
     # ── EcoFlow live data ────────────────────────────────────────────────────
     if access_key and secret_key and serial_nos:
-        labels = ["Delta 2", "River 2 Pro"]
         async with httpx.AsyncClient() as client:
             for i, sn in enumerate(serial_nos):
-                label = labels[i] if i < len(labels) else f"Device {i+1}"
+                label = _label_for_sn(sn, f"Device {i+1}")
                 data  = await _fetch_ecoflow_device(client, base_url, access_key, secret_key, sn)
                 lines.append(_extract_battery(data, label))
 
