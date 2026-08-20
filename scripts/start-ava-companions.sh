@@ -10,27 +10,30 @@ mkdir -p "${HOME}/ava/logs"
 exec >>"${LOG}" 2>&1
 echo "---- $(date -Iseconds) start-ava-companions ----"
 
-# Weather GIF collector (desktop NOAA/NWS leftover board)
-if systemctl --user cat ava-weather-gifs.service >/dev/null 2>&1; then
-  systemctl --user enable --now ava-weather-gifs.service || true
-fi
-
 # Discord + Slack conversation poller. Origin already long-polls Telegram
 # for /subscribe — leave Telegram to origin so getUpdates does not conflict.
 POLLER_ROOT="${HOME}/ava/workstations/rootmc-web/rootmc-ava"
 if [[ -x "${POLLER_ROOT}/scripts/start-poller.sh" ]] && [[ -d "${POLLER_ROOT}/node_modules" ]]; then
-  if ! pgrep -f 'rootmc-ava/src/poller.mjs' >/dev/null 2>&1; then
+  if ! ps -eo args= | grep -q '[n]ode src/poller.mjs'; then
     echo "starting discord/slack poller"
     (
       cd "${POLLER_ROOT}"
-      export AVA_TELEGRAM_ENABLED=0
-      nohup ./scripts/start-poller.sh >>"${HOME}/ava/logs/poller.out" 2>&1 &
+      nohup ./scripts/start-poller-discord-slack.sh >>"${HOME}/ava/logs/poller.out" 2>&1 &
     )
   else
     echo "poller already running"
   fi
 else
   echo "poller skipped (missing ${POLLER_ROOT})"
+fi
+
+# Weather GIF collector — only if the working directory still exists
+WG_DIR="/home/ava-core/Desktop/ava-weather-gif-collector-hawaii-pacific-v7./ava-weather-gif-collector"
+if [[ -d "${WG_DIR}" ]] && [[ -f "${WG_DIR}/weathergifs.py" ]]; then
+  systemctl --user enable --now ava-weather-gifs.service || true
+else
+  echo "weather GIFs collector missing on disk — leaving unit stopped"
+  systemctl --user disable --now ava-weather-gifs.service >/dev/null 2>&1 || true
 fi
 
 # OBS for Stream Director websocket :4455 — do not auto-start the live stream.
