@@ -1,0 +1,28 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-20T19:30:24.246Z
+new_messages: 2
+after: 1540050004616413285
+
+========================================================================
+
+--- 2026-08-20T17:44:22.650Z | Ava
+**Player base + economy** — 07:44 HST — Thu, Aug 20
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+
+--- 2026-08-20T18:01:49.094Z | Ava
+**Solar morning open report** - HST day **2026-08-20**
+
+Bank blend: **3%**
+- **Delta 2**: not live
+- **River 2 Pro**: SOC 3% - in 142W - out 73W - solar 142W
+
+Morning cycle avg (today only): **~121W** site - 35 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/solar (or the Ava status ho…
+
+========================================================================
