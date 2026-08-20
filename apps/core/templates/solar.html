@@ -172,7 +172,7 @@ const path = location.pathname.replace(/\/$/, "") || "/";
 document.querySelectorAll(".nav a[data-match]").forEach((a) => {
   if (path === a.getAttribute("data-match") || path.endsWith(a.getAttribute("data-match"))) a.classList.add("on");
 });
-const BGS = [
+const FALLBACK_BGS = [
   API + "/api/media/public/file?path=images/character/ava-solar-ground-pv-night.png",
   API + "/api/media/public/file?path=images/character/ava-05-desk-root-server.png",
   API + "/api/media/public/file?path=images/character/ava-01-meadow-holograms.png",
@@ -180,9 +180,12 @@ const BGS = [
   API + "/api/media/public/file?path=images/character/ava-desk-ops.png",
   API + "/api/media/public/file?path=images/character/background%20home.jpg",
 ];
+let BGS = FALLBACK_BGS.slice();
+let CYCLE_MS = 18000;
 let bi = 0, showA = true;
 function setBg(el, url){ el.style.backgroundImage = `url("${url}")`; }
 function cycleBg(){
+  if (BGS.length < 2) return;
   bi = (bi + 1) % BGS.length;
   const next = BGS[bi];
   const a = document.getElementById("bgA"), b = document.getElementById("bgB");
@@ -191,7 +194,28 @@ function cycleBg(){
   showA = !showA;
 }
 setBg(document.getElementById("bgA"), BGS[0]);
-setInterval(cycleBg, 18000);
+let bgTimer = setInterval(cycleBg, CYCLE_MS);
+async function loadConfiguredBackgrounds(){
+  try {
+    const r = await fetch(API + "/api/site-backgrounds/solar", { cache: "no-store" });
+    const j = await r.json();
+    const urls = (j.page && Array.isArray(j.page.urls) ? j.page.urls : [])
+      .map((u) => (String(u).startsWith("http") ? u : API + u));
+    if (!urls.length) return;
+    BGS = urls;
+    bi = 0;
+    showA = true;
+    const a = document.getElementById("bgA"), b = document.getElementById("bgB");
+    setBg(a, BGS[0]);
+    a.classList.remove("dim");
+    b.classList.add("dim");
+    const sec = Number(j.page.cycle_seconds || 18);
+    CYCLE_MS = sec > 0 ? sec * 1000 : 0;
+    clearInterval(bgTimer);
+    if (CYCLE_MS > 0 && BGS.length > 1) bgTimer = setInterval(cycleBg, CYCLE_MS);
+  } catch (_) { /* keep fallbacks */ }
+}
+void loadConfiguredBackgrounds();
 
 function tick(){
   const n = new Date();

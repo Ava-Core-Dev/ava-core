@@ -143,6 +143,7 @@ for _route in (
     "blog",
     "ops",
     "vercel_builds",
+    "site_backgrounds",
 ):
     try:
         _mod = importlib.import_module(f".routes.{_route}", __package__)

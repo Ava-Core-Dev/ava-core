@@ -31,6 +31,7 @@
       <button type="button" class="tab" data-page="desk">Desk</button>
       <button type="button" class="tab" data-page="automation">Automation</button>
       <button type="button" class="tab" data-page="sites">Sites</button>
+      <button type="button" class="tab" data-page="backgrounds">Backgrounds</button>
       <button type="button" class="tab" data-page="reports">Reports</button>
       <button type="button" class="tab" data-page="weather-gifs">Weather GIFs</button>
       <button type="button" class="tab" data-page="biz">Biz</button>
@@ -617,6 +618,44 @@
       </div>
       <pre id="sites-goals-out" class="status"></pre>
       <pre id="sites-status" class="status"></pre>
+    </section>
+
+    <section id="page-backgrounds" class="page">
+      <div class="cron-head">
+        <div>
+          <h2 class="cron-title">Site backgrounds</h2>
+          <p class="hint-inline">
+            Change the rotating full-bleed art on solar/status and other boards.
+            Files live in <code>media/images/character/</code>; config is
+            <code>site-backgrounds.json</code> in that folder.
+          </p>
+        </div>
+        <div class="row wrap">
+          <button type="button" id="bg-refresh">Refresh</button>
+          <button type="button" id="bg-open-folder" class="primary">Open character folder</button>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top:0.75rem">
+        <label>Page
+          <select id="bg-page"></select>
+        </label>
+        <label>New page key
+          <input id="bg-new-key" type="text" placeholder="e.g. live-home" />
+        </label>
+      </div>
+      <label>Label <input id="bg-label" type="text" /></label>
+      <label>Sites (comma-separated) <input id="bg-sites" type="text" placeholder="avaivy.cloud/solar, rootrecord.online/ava" /></label>
+      <label>Cycle seconds (0 = no rotate) <input id="bg-cycle" type="number" min="0" step="1" value="18" /></label>
+      <p class="hint-inline" id="bg-dir">Folder: —</p>
+      <h3 class="cron-title" style="margin-top:1rem">Rotation (click × to remove, drag order via Up/Down)</h3>
+      <div id="bg-selected" class="attach-chips"></div>
+      <h3 class="cron-title" style="margin-top:1rem">Character library — click to add</h3>
+      <div id="bg-library" class="bg-library"></div>
+      <div class="row wrap" style="margin-top:0.8rem">
+        <button type="button" id="bg-save" class="primary">Save page backgrounds</button>
+        <button type="button" id="bg-create">Create / select new page</button>
+      </div>
+      <pre id="bg-status" class="status"></pre>
     </section>
 
     <section id="page-reports" class="page">
