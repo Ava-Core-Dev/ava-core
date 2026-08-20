@@ -100,6 +100,9 @@ class Scheduler:
         s.add_job(self._run("broadcast_loop"), IntervalTrigger(minutes=6),
                   id="broadcast-loop", name="OBS daily loop rotator", misfire_grace_time=90)
 
+        s.add_job(self._run("minecraft_live"), IntervalTrigger(seconds=45),
+                  id="minecraft-live", name="Minecraft in-game detect", misfire_grace_time=30)
+
         # ── D1 ← host MySQL (every 5 min) ────────────────────────────────────
         s.add_job(self._run("d1_sync"), IntervalTrigger(minutes=5),
                   id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=120)

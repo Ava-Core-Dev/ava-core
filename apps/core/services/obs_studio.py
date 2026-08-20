@@ -18,15 +18,21 @@ from apps.core import config
 log = logging.getLogger("ava.obs_studio")
 
 COLLECTION = "Ava Daily Broadcast"
-LOOP_SCENES = [
+MC_SCENE = "RootMC Live"
+MC_SHARE = 0.75
+AMBIENT_SCENES = [
     "Main",
+    "Ambient Playlist",
     "Weather Board",
     "Kilauea Watch",
     "Solar Dashboard",
     "Economy Board",
-    "RootMC Live",
     "Goals Report",
     "Dev Updates",
+]
+LOOP_SCENES = [
+    *AMBIENT_SCENES,
+    MC_SCENE,
 ]
 
 
@@ -114,20 +120,50 @@ def _item(path: Path, selected: bool = False) -> dict:
 
 
 def playlist_paths() -> list[Path]:
+    """Unique videos for VLC — longer files first, then the rest of the library."""
     media = config.MEDIA_DIR
-    candidates = [
-        media / "video" / "appearance" / "ava-gen-0.mp4",
-        media / "video" / "clips" / "ava-good-morning.mp4",
-        media / "video" / "appearance" / "ava-gen-1.mp4",
-        media / "video" / "current" / "ara-report-current.mp4",
-        media / "video" / "appearance" / "ava-gen-2.mp4",
-        media / "video" / "current" / "nws-hawaii-current.mp4",
-        media / "video" / "appearance" / "ava-gen-3.mp4",
-        media / "video" / "current" / "earthquake-global-current.mp4",
-        media / "video" / "appearance" / "peakactivity.mp4",
-        media / "video" / "current" / "Morning_Broadcast_Current.mp4",
+    roots = [
+        media / "video" / "current",
+        media / "video" / "appearance",
+        media / "video" / "clips",
+        media / "video" / "reports",
+        media / "video" / "youtube",
     ]
-    return [p for p in candidates if p.is_file()]
+    seen: set[int] = set()
+    files: list[Path] = []
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for p in sorted(root.glob("*.mp4")) + sorted(root.glob("*.webm")):
+            try:
+                sz = p.stat().st_size
+            except OSError:
+                continue
+            if sz < 80_000 or sz in seen:
+                continue
+            seen.add(sz)
+            files.append(p)
+    mix = media / "video" / "current" / "ambient-mix.mp4"
+    if mix.is_file() and mix.stat().st_size not in seen:
+        files.insert(0, mix)
+    # Prefer long current reports at the front of the VLC list
+    def _rank(p: Path) -> tuple[int, str]:
+        name = p.name.lower()
+        if "morning_broadcast" in name or "ambient-mix" in name:
+            return (0, name)
+        if "current" in str(p.parent):
+            return (1, name)
+        return (2, name)
+    files.sort(key=_rank)
+    return files
+
+
+def write_playlist_m3u(paths: list[Path] | None = None) -> Path:
+    dest = config.MEDIA_DIR / "stream" / "ava-daily-loop.m3u"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    items = paths or playlist_paths()
+    dest.write_text("#EXTM3U\n" + "\n".join(str(p) for p in items) + "\n")
+    return dest
 
 
 async def _ensure_input(
@@ -192,6 +228,22 @@ async def _fit(obs: ObsClient, scene: str, source: str, w: int = 1920, h: int = 
     )
 
 
+async def _enable_item(obs: ObsClient, scene: str, source: str, on: bool) -> bool:
+    items = await obs.try_req("GetSceneItemList", {"sceneName": scene}) or {}
+    for it in items.get("sceneItems") or []:
+        if it.get("sourceName") == source:
+            await obs.try_req(
+                "SetSceneItemEnabled",
+                {
+                    "sceneName": scene,
+                    "sceneItemId": it["sceneItemId"],
+                    "sceneItemEnabled": bool(on),
+                },
+            )
+            return True
+    return False
+
+
 async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
     """Create/switch the Ava Daily Broadcast collection and wire sources."""
     media = config.MEDIA_DIR
@@ -248,7 +300,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 "Main",
                 "Daily Loop",
                 "vlc_source",
-                {"playlist": playlist, "loop": True, "shuffle": False},
+                {"playlist": playlist, "loop": True, "shuffle": True},
                 audio=True,
             )
             await _fit(obs, "Main", "Daily Loop")
@@ -433,6 +485,35 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             },
         )
         await _fit(obs, "RootMC Live", "Ava Ivy Cloud")
+        from apps.core.services.minecraft_live import offline_thumb
+        mc_thumb = offline_thumb() or Path(config.DAILY_BROADCAST_THUMB)
+        await _ensure_input(
+            obs,
+            "RootMC Live",
+            "MC Offline Thumb",
+            "image_source",
+            {"file": str(mc_thumb)},
+        )
+        await _fit(obs, "RootMC Live", "MC Offline Thumb")
+        kinds = ((await obs.try_req("GetInputKindList")) or {}).get("inputKinds") or []
+        if "xcomposite_input" in kinds:
+            await _ensure_input(
+                obs,
+                "RootMC Live",
+                "MC Game",
+                "xcomposite_input",
+                {"capture_window": "Minecraft", "show_cursor": False},
+            )
+            await _fit(obs, "RootMC Live", "MC Game")
+        elif "pipewire-screen-capture-source" in kinds:
+            await _ensure_input(
+                obs,
+                "RootMC Live",
+                "MC Game",
+                "pipewire-screen-capture-source",
+                {},
+            )
+            await _fit(obs, "RootMC Live", "MC Game")
 
         # Goals / Dev
         await _ensure_input(
@@ -522,9 +603,11 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 "Ambient Playlist",
                 "Daily Loop",
                 "vlc_source",
-                {"playlist": playlist, "loop": True},
+                {"playlist": playlist, "loop": True, "shuffle": True},
                 audio=True,
             )
+
+            await _fit(obs, "Ambient Playlist", "Daily Loop")
 
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})
 
@@ -552,11 +635,73 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         await obs.close()
 
 
+async def apply_ambient_playlist() -> dict:
+    paths = playlist_paths()
+    m3u = write_playlist_m3u(paths)
+    playlist = [_item(p) for p in paths]
+    obs = ObsClient()
+    if not await obs.connect():
+        return {"ok": False, "detail": "obs_unreachable", "count": len(paths)}
+    try:
+        await obs.req(
+            "SetInputSettings",
+            {
+                "inputName": "Daily Loop",
+                "inputSettings": {"playlist": playlist, "loop": True, "shuffle": True},
+            },
+        )
+        await _fit(obs, "Main", "Daily Loop")
+        await _fit(obs, "Ambient Playlist", "Daily Loop")
+        return {"ok": True, "count": len(paths), "m3u": str(m3u), "files": [p.name for p in paths[:20]]}
+    except Exception as e:
+        return {"ok": False, "detail": str(e)[:240], "count": len(paths)}
+    finally:
+        await obs.close()
+
+
+async def apply_minecraft_live(snap: dict | None = None) -> dict:
+    from apps.core.services.minecraft_live import snapshot as mc_snapshot, offline_thumb
+
+    snap = snap or mc_snapshot()
+    ingame = bool(snap.get("ingame"))
+    thumb = offline_thumb()
+    obs = ObsClient()
+    if not await obs.connect():
+        return {"ok": False, "detail": "obs_unreachable", "ingame": ingame}
+    try:
+        if thumb:
+            await obs.try_req(
+                "SetInputSettings",
+                {"inputName": "MC Offline Thumb", "inputSettings": {"file": str(thumb)}},
+            )
+        await _enable_item(obs, MC_SCENE, "MC Game", ingame)
+        await _enable_item(obs, MC_SCENE, "MC Offline Thumb", not ingame)
+        await _enable_item(obs, MC_SCENE, "Ava Ivy Cloud", False)
+        cur = (await obs.req("GetCurrentProgramScene")).get("currentProgramSceneName")
+        switched = None
+        if ingame and not snap.get("was_ingame") and cur != MC_SCENE:
+            await obs.req("SetCurrentProgramScene", {"sceneName": MC_SCENE})
+            switched = MC_SCENE
+        elif (not ingame) and cur == MC_SCENE:
+            await obs.req("SetCurrentProgramScene", {"sceneName": "Ambient Playlist"})
+            switched = "Ambient Playlist"
+        return {
+            "ok": True,
+            "ingame": ingame,
+            "thumb": str(thumb) if thumb else None,
+            "scene": switched or cur,
+        }
+    finally:
+        await obs.close()
+
+
 async def rotate_loop_scene() -> dict:
-    """Advance Main → weather → volcano → … unless an alert is holding the desk."""
+    """Advance ambient desks, or keep Minecraft on ~75% of ticks while in-game."""
     from apps.core.routes.obs import _kilauea_state, _watch_from_state
+    from apps.core.services.minecraft_live import mc_share, record_tick, snapshot
 
     watch = _watch_from_state(_kilauea_state())
+    mc = snapshot()
     obs = ObsClient()
     if not await obs.connect():
         return {"ok": False, "detail": "obs_unreachable"}
@@ -566,12 +711,23 @@ async def rotate_loop_scene() -> dict:
             if cur != "Kilauea Watch":
                 await obs.req("SetCurrentProgramScene", {"sceneName": "Kilauea Watch"})
             return {"ok": True, "scene": "Kilauea Watch", "held": "eruption"}
-        if cur not in LOOP_SCENES:
-            await obs.req("SetCurrentProgramScene", {"sceneName": "Main"})
-            return {"ok": True, "scene": "Main", "held": "reset"}
-        idx = LOOP_SCENES.index(cur)
-        nxt = LOOP_SCENES[(idx + 1) % len(LOOP_SCENES)]
+        if mc.get("ingame"):
+            share = mc_share()
+            if share < MC_SHARE:
+                record_tick(True)
+                if cur != MC_SCENE:
+                    await obs.req("SetCurrentProgramScene", {"sceneName": MC_SCENE})
+                return {"ok": True, "scene": MC_SCENE, "held": "minecraft", "share": share}
+            record_tick(False)
+        elif cur == MC_SCENE:
+            await obs.req("SetCurrentProgramScene", {"sceneName": "Ambient Playlist"})
+            return {"ok": True, "scene": "Ambient Playlist", "held": "mc_offline"}
+        pool = AMBIENT_SCENES
+        if cur not in pool:
+            nxt = "Ambient Playlist"
+        else:
+            nxt = pool[(pool.index(cur) + 1) % len(pool)]
         await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
-        return {"ok": True, "scene": nxt, "from": cur}
+        return {"ok": True, "scene": nxt, "from": cur, "ingame": bool(mc.get("ingame"))}
     finally:
         await obs.close()
