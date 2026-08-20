@@ -2,7 +2,8 @@
 
 Policy (7 days):
   • Dated / rotated files (``2026-08-04-1.log.gz``, ``*.log.1``, ``*.log.old``)
-    older than 7 days → unlink that file.
+    older than 7 days → unlink that file. Age is the ``YYYY-MM-DD`` in the
+    filename when present (rsync/copy can refresh mtime); otherwise mtime.
   • Live logs we still write (``latest.log``, ``origin-uvicorn.log``, …) are
     never deleted. If they grow past 2 MiB, copy to
     ``name-YYYY-MM-DD.log`` then truncate the original in place (same inode).
@@ -50,6 +51,7 @@ LIVE_NAMES = {
     "devnet-sol-boot.log",
     "autostart.log",
     "phpmyadmin.log",
+    "ava-phpmyadmin.log",
     "electron.log",
     "minecraft-test.log",
     "minecraft-test-session.log",
@@ -58,6 +60,7 @@ LIVE_NAMES = {
     "rootmc-ava-poller.log",
     "local-api.log",
     "local-edge-8791.log",
+    "auto-push.log",
 }
 
 
@@ -71,9 +74,11 @@ def _roots() -> list[Path]:
         config.AVA_HOME / "logs",
         Path("/home/ava-core/ava/ava-core-v2/data/logs"),
         config.MC_TEST_DIR / "logs",
-        config.AVA_HOME / "workstations" / "shockbyte" / "logs",
-        config.AVA_HOME / "workstations" / "minecraft-plugins" / "server" / "logs",
-        config.AVA_HOME / "workstations" / "minecraft-test" / "logs",
+        Path.home() / "ava" / "workstations" / "shockbyte" / "logs",
+        Path.home() / "ava" / "workstations" / "minecraft-plugins" / "server" / "logs",
+        Path.home() / "ava" / "workstations" / "minecraft-test" / "logs",
+        Path.home() / "ava" / "workstations" / "minecraft-test-live" / "logs",
+        Path.home() / "ava" / "minecraft-plugins" / "server" / "logs",
     ]
     seen: set[Path] = set()
     roots: list[Path] = []
@@ -116,6 +121,28 @@ def _unlink(path: Path, deleted: list[str]) -> None:
         log.warning("skip unlink %s: %s", path, e)
 
 
+def _name_day(name: str) -> datetime | None:
+    m = re.match(r"^(\d{4}-\d{2}-\d{2})", name)
+    if not m:
+        m = re.search(r"-(\d{4}-\d{2}-\d{2})(?:-\d+)?\.log", name, re.I)
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+
+def _stale(path: Path, cutoff: float, keep_days: int) -> bool:
+    day = _name_day(path.name)
+    if day is not None:
+        return (datetime.now().date() - day.date()).days >= keep_days
+    try:
+        return path.stat().st_mtime < cutoff
+    except OSError:
+        return False
+
+
 def _rotate_live(path: Path, rotated: list[str]) -> None:
     try:
         size = path.stat().st_size
@@ -156,11 +183,7 @@ def cleanup(keep_days: int = KEEP_DAYS) -> dict:
             if live and not dated:
                 _rotate_live(path, rotated)
                 continue
-            try:
-                mtime = path.stat().st_mtime
-            except OSError:
-                continue
-            if mtime < cutoff:
+            if _stale(path, cutoff, keep_days):
                 _unlink(path, deleted)
     payload = {
         "ok": True,
