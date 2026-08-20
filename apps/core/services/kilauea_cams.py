@@ -216,14 +216,24 @@ async def apply_kilauea_kit(obs: Any | None = None) -> dict:
         if "KV · Radar" not in existing:
             await obs.try_req("CreateScene", {"sceneName": "KV · Radar"})
         await _browser(obs, "KV · Radar", "KV Radar", data.get("radar") or NWS_RADAR_URL)
-        await _browser(obs, "KV · Radar", "KV Overlay", f"{origin}/obs/kilauea-desk")
+        await _browser(
+            obs,
+            "KV · Radar",
+            "KV Overlay Radar",
+            f"{origin}/obs/kilauea-desk?cam=radar",
+        )
 
         for cam in data.get("cams") or []:
             scene = cam["scene"]
             if scene not in existing:
                 await obs.try_req("CreateScene", {"sceneName": scene})
             await _browser(obs, scene, cam["input"], cam["url"])
-            await _browser(obs, scene, "KV Overlay", f"{origin}/obs/kilauea-desk?cam={cam['id']}")
+            await _browser(
+                obs,
+                scene,
+                f"KV Overlay {cam['id']}",
+                f"{origin}/obs/kilauea-desk?cam={cam['id']}",
+            )
 
         await _stretch_all(obs)
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "KV · V1"})

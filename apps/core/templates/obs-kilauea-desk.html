@@ -47,6 +47,13 @@ async function tick(){
     const d = await fetch(origin+'/api/obs/kilauea-desk?cam='+encodeURIComponent(cam)).then(r=>r.json());
     const c = d.cam || {};
     const w = d.watch || {};
+    if (cam === 'radar') {
+      document.getElementById('camk').textContent = 'NWS RADAR';
+      document.getElementById('name').textContent = 'Hawaiʻi radar';
+      document.getElementById('kind').textContent = 'NWS mosaic';
+      document.getElementById('head').textContent = 'RADAR SLIDE';
+      document.getElementById('foot').textContent = 'rotating with V1 / V2 / V3';
+    } else {
     document.getElementById('camk').textContent = (c.id||cam).toUpperCase();
     document.getElementById('name').textContent = c.title || 'Kīlauea';
     document.getElementById('alert').textContent = (w.alert_level||'normal').toUpperCase();
@@ -54,6 +61,7 @@ async function tick(){
     document.getElementById('kind').textContent = (c.kind||'—') + (c.live ? ' · live' : '');
     document.getElementById('head').textContent = c.live ? 'LIVE EMBED' : 'STILL / RESOLVING';
     document.getElementById('foot').textContent = (c.youtube_video_id||'') + ' · ' + (d.ts||'');
+    }
   }catch(e){}
 }
 tick(); setInterval(tick, 15000);
