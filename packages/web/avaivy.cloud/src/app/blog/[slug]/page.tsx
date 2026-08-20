@@ -1,5 +1,5 @@
 import blog from "../blog.module.css";
-import { POSTS, getPost, neighbors } from "@/lib/blogPosts";
+import { POSTS, getPost, neighbors, mediaUrl } from "@/lib/blogPosts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 

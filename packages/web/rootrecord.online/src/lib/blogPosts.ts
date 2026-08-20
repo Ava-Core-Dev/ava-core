@@ -7,6 +7,9 @@ export type BlogPost = {
   paragraphs: string[];
   bullets?: string[];
   after?: string[];
+  audio?: string[];
+  sources?: string[];
+  published?: string;
 };
 
 /** Newest first. Dates only from changelogs, Goals notes, archives, and public announcements. */
@@ -29,6 +32,24 @@ export const POSTS: BlogPost[] = [
     after: [
       "rootrecord.info remains the wiki and Ava atlas. rootrecord.online is the live dashboard and this blog. g.rootrecord.info is Goals. Mixing those hostnames is how you get the wrong product.",
       "This series backfills every substantiated beat we can date. Days that were never written down are not invented.",
+    ],
+  },
+  {
+    slug: "api-host-cutover",
+    date: "2026-08-18",
+    published: "2026-08-18T12:00:00-10:00",
+    title: "New API hostnames and Vercel frontends",
+    teaser:
+      "18 Aug session: Kīlauea/real-life → api.rootrecord.online. RootMC API stays api.rootmc.net. Frontends on Vercel. DNS/tunnels on Cloudflare. Spoken desk session on disk.",
+    brand: "Root Record",
+    paragraphs: [
+      "The 18 Aug 2026 desk session renamed the public edges without publishing account IDs: real-life and Kīlauea traffic aimed at api.rootrecord.online; Minecraft plugins at api.rootmc.net; Ava origin for status/solar/chat. Pages for avaivy.cloud and rootrecord.online sit on Vercel; Cloudflare remains DNS, tunnels, Workers, D1, Hyperdrive into production MySQL.",
+      "A 301 from rootrecord.info to .online is coded for when that zone is on the current Cloudflare account. Until then .info is still wiki/atlas. Android Kīlauea source was retargeted; shipping APKs still needed a rebuild the next morning.",
+    ],
+    audio: ["audio/reports/ava_session_08182026_ara.mp3"],
+    sources: [
+      "https://rootrecord.online/blog/desk-online",
+      "https://avaivy.cloud/blog/fastapi-cutover",
     ],
   },
   {
