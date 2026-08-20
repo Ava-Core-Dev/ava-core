@@ -58,7 +58,6 @@ import { listOpsCatalog, opsCommandById } from "./lib/opsCommands.mjs";
 import { listAvaLinks } from "./lib/avaLinks.mjs";
 import {
   startAvaSession,
-  stopAvaSession,
 } from "./lib/avaLifecycle.mjs";
 import {
   loadConnectionConfig,
@@ -172,10 +171,7 @@ function createWindow() {
     setTimeout(fire, 2500);
   });
 
-  // Closing the window with X ends the whole Ava session
-  mainWindow.on("close", () => {
-    stopAvaSession();
-  });
+  // Closing the GUI must not kill origin — Ava stays up as the root server.
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -193,7 +189,7 @@ function appendLine(line) {
 }
 
 app.whenReady().then(async () => {
-  // Start Ava Core + Voice with the GUI (stops again when window closes)
+  // Start Ava Core + Voice with the GUI. Closing the window does not stop origin.
   try {
     await startAvaSession();
   } catch (err) {
@@ -220,7 +216,6 @@ app.on("window-all-closed", () => {
     }
     runningOps = null;
   }
-  stopAvaSession();
   if (process.platform !== "darwin") app.quit();
 });
 
@@ -233,7 +228,6 @@ app.on("before-quit", () => {
     }
     runningOps = null;
   }
-  stopAvaSession();
 });
 
 ipcMain.handle("ava:env-status", async () => {

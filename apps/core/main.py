@@ -108,22 +108,29 @@ app.add_middleware(
 )
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+# Optional modules must not take the origin down (USB vs SSD route sets differ).
+import importlib
 
-from .routes import status, context, goals, obs, minecraft, economy, chat, plugins, realworld, crons, reports, media, vercel_builds  # noqa: E402
-
-app.include_router(crons.router)
-app.include_router(reports.router)
-app.include_router(status.router)
-app.include_router(context.router)
-app.include_router(goals.router)
-app.include_router(obs.router)
-app.include_router(minecraft.router)
-app.include_router(economy.router)
-app.include_router(chat.router)
-app.include_router(plugins.router)
-app.include_router(realworld.router)
-app.include_router(media.router)
-app.include_router(vercel_builds.router)
+for _route in (
+    "crons",
+    "reports",
+    "status",
+    "context",
+    "goals",
+    "obs",
+    "minecraft",
+    "economy",
+    "chat",
+    "plugins",
+    "realworld",
+    "media",
+    "vercel_builds",
+):
+    try:
+        _mod = importlib.import_module(f".routes.{_route}", __package__)
+        app.include_router(_mod.router)
+    except Exception as _exc:
+        log.warning("route %s not loaded: %s", _route, _exc)
 
 
 @app.get("/health")

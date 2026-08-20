@@ -16,6 +16,7 @@ const CRON_BUTTONS = [
   ["overnight-relay", "Late-night relay", "Late-night status check-in"],
   ["heartbeat", "Heartbeat write", "Force a Cloudflare D1 heartbeat write"],
   ["d1-sync", "D1 sync (MySQL→edge)", "Push Minecraft cache to Cloudflare D1"],
+  ["vercel-builds", "Vercel build logs", "Pull failed Vercel builds into docs media"],
 ];
 
 export const OPS_COMMAND_GROUPS = [

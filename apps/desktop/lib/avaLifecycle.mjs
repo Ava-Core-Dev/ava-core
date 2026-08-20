@@ -1,7 +1,7 @@
 /**
- * Ava session lifecycle — start/stop Python core + voice with the desktop GUI.
- * Processes run as children of Electron (same user), so no sudo is required.
- * On quit we also reap any leftover uvicorn / director PIDs from prior runs.
+ * Ava session lifecycle — start Python core + voice with the desktop GUI.
+ * Origin stays up if the window closes. A watchdog restarts core if /health dies.
+ * stopAvaSession() is only for an explicit power-off.
  */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -23,6 +23,9 @@ const PORT = String(process.env.AVA_PORT || "8787").replace(/\s*#.*$/, "").trim(
 /** @type {import('node:child_process').ChildProcess[]} */
 const children = [];
 let startedByUs = false;
+let stopping = false;
+let restarting = false;
+let watchTimer = null;
 
 function ensureDirs() {
   fs.mkdirSync(RUN_DIR, { recursive: true });
@@ -51,7 +54,6 @@ function childEnv() {
 }
 
 function openLog(name) {
-  // Prefer session logs we always own (systemd often leaves root-owned *.log files)
   const preferred = [
     path.join(LOG_DIR, name.replace(/\.log$/, "-session.log")),
     path.join(LOG_DIR, name),
@@ -66,6 +68,10 @@ function openLog(name) {
     }
   }
   throw lastErr || new Error(`cannot open log ${name}`);
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 /**
@@ -97,8 +103,9 @@ function spawnTracked(cmd, args, logName, label) {
     cwd: AVA_ROOT,
     env: childEnv(),
     stdio: ["ignore", out, err],
-    detached: false,
+    detached: true,
   });
+  child.unref();
   children.push(child);
   const pidFile = path.join(RUN_DIR, `${label}.pid`);
   try {
@@ -113,6 +120,9 @@ function spawnTracked(cmd, args, logName, label) {
     } catch {
       /* ignore */
     }
+    if (label === "ava-core" && !stopping) {
+      void ensureCoreUp("child-exit");
+    }
   });
   return child;
 }
@@ -120,49 +130,26 @@ function spawnTracked(cmd, args, logName, label) {
 async function waitHealth(timeoutMs = 45000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${PORT}/health`, {
-        signal: AbortSignal.timeout(1500),
-      });
-      if (r.ok) return true;
-    } catch {
-      /* retry */
-    }
-    await new Promise((r) => setTimeout(r, 400));
+    if (await healthOk()) return true;
+    await sleep(400);
   }
   return false;
 }
 
-/**
- * Start Ava Core + Voice Director for this GUI session.
- */
-export async function startAvaSession() {
-  ensureDirs();
-  appendLog(path.join(LOG_DIR, "ava-desktop.log"), "lifecycle: starting Ava session");
-
-  // If core is already healthy (manual start / prior session), adopt it — don't kill.
+async function healthOk() {
   try {
     const r = await fetch(`http://127.0.0.1:${PORT}/health`, {
-      signal: AbortSignal.timeout(1500),
+      signal: AbortSignal.timeout(2000),
     });
-    if (r.ok) {
-      startedByUs = false; // we didn't spawn; on close still stop via reap
-      appendLog(path.join(LOG_DIR, "ava-desktop.log"), "lifecycle: adopting existing Ava Core");
-      // Still ensure voice director is up
-      await ensureVoiceDirector();
-      return true;
-    }
+    return r.ok;
   } catch {
-    /* not up yet */
+    return false;
   }
+}
 
-  // Clear any prior dead runtime so close→open is deterministic
-  reapStaleAvaProcesses();
-  await new Promise((r) => setTimeout(r, 800));
-
+function spawnCore() {
   const uvicornBin = fs.existsSync(VENV_UVICORN) ? VENV_UVICORN : null;
   const pyBin = fs.existsSync(VENV_PY) ? VENV_PY : "python3";
-
   if (uvicornBin) {
     spawnTracked(
       uvicornBin,
@@ -187,7 +174,69 @@ export async function startAvaSession() {
       "ava-core",
     );
   }
+}
 
+async function ensureCoreUp(reason) {
+  if (stopping || restarting) return;
+  if (await healthOk()) return;
+  restarting = true;
+  try {
+    appendLog(path.join(LOG_DIR, "ava-desktop.log"), `watchdog: Ava Core down (${reason}) — restarting`);
+    reapStaleAvaProcesses();
+    await sleep(800);
+    spawnCore();
+    await ensureVoiceDirector();
+    const ok = await waitHealth(30000);
+    appendLog(
+      path.join(LOG_DIR, "ava-desktop.log"),
+      ok ? "watchdog: Ava Core back" : "watchdog: restart failed",
+    );
+  } finally {
+    restarting = false;
+  }
+}
+
+function startWatchdog() {
+  if (watchTimer) return;
+  watchTimer = setInterval(() => {
+    void ensureCoreUp("health-poll");
+  }, 8000);
+}
+
+function stopWatchdog() {
+  if (watchTimer) {
+    clearInterval(watchTimer);
+    watchTimer = null;
+  }
+}
+
+/**
+ * Start Ava Core + Voice Director. Origin is kept alive after the GUI exits.
+ */
+export async function startAvaSession() {
+  stopping = false;
+  ensureDirs();
+  appendLog(path.join(LOG_DIR, "ava-desktop.log"), "lifecycle: starting Ava session");
+
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT}/health`, {
+      signal: AbortSignal.timeout(1500),
+    });
+    if (r.ok) {
+      startedByUs = false;
+      appendLog(path.join(LOG_DIR, "ava-desktop.log"), "lifecycle: adopting existing Ava Core");
+      await ensureVoiceDirector();
+      startWatchdog();
+      return true;
+    }
+  } catch {
+    /* not up yet */
+  }
+
+  reapStaleAvaProcesses();
+  await sleep(800);
+  spawnCore();
+  const pyBin = fs.existsSync(VENV_PY) ? VENV_PY : "python3";
   spawnTracked(pyBin, ["-m", "apps.voice.director"], "ava-voice.log", "ava-voice");
 
   startedByUs = true;
@@ -196,11 +245,11 @@ export async function startAvaSession() {
     path.join(LOG_DIR, "ava-desktop.log"),
     ok ? "lifecycle: Ava Core healthy" : "lifecycle: Ava Core health wait timed out",
   );
+  startWatchdog();
   return ok;
 }
 
 async function ensureVoiceDirector() {
-  // If director already logging / process exists, skip
   try {
     const { execSync } = await import("node:child_process");
     const out = execSync("pgrep -f 'apps.voice.director' || true", { encoding: "utf8" });
@@ -213,10 +262,12 @@ async function ensureVoiceDirector() {
 }
 
 /**
- * Stop everything this session started + any leftover Ava runtime PIDs.
+ * Explicit power-off only. Closing the GUI must not call this.
  */
 export function stopAvaSession() {
-  appendLog(path.join(LOG_DIR, "ava-desktop.log"), "lifecycle: stopping Ava session (GUI closed)");
+  stopping = true;
+  stopWatchdog();
+  appendLog(path.join(LOG_DIR, "ava-desktop.log"), "lifecycle: stopping Ava session (explicit)");
 
   for (const child of children.splice(0)) {
     try {
@@ -228,22 +279,13 @@ export function stopAvaSession() {
     }
   }
 
-  // Hard reap after a brief grace
   setTimeout(() => {
-    for (const child of children) {
-      try {
-        if (child.pid && !child.killed) child.kill("SIGKILL");
-      } catch {
-        /* ignore */
-      }
-    }
     reapStaleAvaProcesses();
   }, 1500);
 
   reapStaleAvaProcesses();
   startedByUs = false;
 
-  // Clear pid files
   for (const name of ["ava-core.pid", "ava-voice.pid"]) {
     try {
       fs.unlinkSync(path.join(RUN_DIR, name));
