@@ -62,6 +62,12 @@ GENERATED_DIR = Path(
 LOG_DIR       = Path(os.getenv("LOG_DIR",       str(MEDIA_DIR / "documents" / "logs"))).expanduser().resolve()
 DB_DIR        = Path(os.getenv("DB_DIR",        str(DATA_DIR / "db"))).expanduser().resolve()
 PLUGIN_DIR    = Path(os.getenv("PLUGIN_DIR",    str(AVA_HOME / "plugins"))).expanduser().resolve()
+AUTOMATION_DROP_DIR = Path(
+    os.getenv(
+        "AVA_AUTOMATION_DROP_DIR",
+        str(AVA_HOME / "ava-core-v2" / "tools" / "Automated New Python Scripts Confirmed Working for Automation Drag and Drop"),
+    )
+).expanduser().resolve()
 ASSETS_DIR    = MEDIA_DIR / "audio"   # words / numbers / time_clips / sounds / station / reports
 MP4_DIR       = Path(os.getenv("MP4_DIR", str(MEDIA_DIR / "video" / "current"))).expanduser().resolve()
 AUDIO_CURRENT_DIR = Path(

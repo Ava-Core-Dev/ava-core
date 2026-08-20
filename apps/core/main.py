@@ -77,6 +77,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.warning("Report inbox failed to start: %s", e)
 
+    # Drop-in automation scripts (visible windows + watchdog)
+    try:
+        from apps.core.services.python_drop_runner import ensure_running
+
+        ensure_running()
+        log.info("Python drop runner started")
+    except Exception as e:
+        log.warning("Python drop runner failed to start: %s", e)
+
     yield
 
     log.info("Ava Core shutting down")
@@ -85,6 +94,12 @@ async def lifespan(app: FastAPI):
     try:
         from apps.voice.director import get_director
         await get_director().stop()
+    except Exception:
+        pass
+    try:
+        from apps.core.services.python_drop_runner import get_runner
+
+        await get_runner().stop()
     except Exception:
         pass
 
