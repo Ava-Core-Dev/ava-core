@@ -1,0 +1,19 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-20T21:30:49.530Z
+new_messages: 2
+after: 1540058289407131782
+
+========================================================================
+
+--- 2026-08-20T19:39:12.862Z | Ava
+**Player base + economy** — 09:39 HST — Thu, Aug 20
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+
+--- 2026-08-20T21:13:44.953Z | Ava
+**Player base + economy** — 11:13 HST — Thu, Aug 20
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+
+========================================================================
