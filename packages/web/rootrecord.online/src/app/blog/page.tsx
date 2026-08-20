@@ -1,48 +1,37 @@
-import blog from "./blog.module.css";
-import { POSTS } from "@/lib/blogPosts";
-import Link from "next/link";
+import { Suspense } from "react";
+import BlogIndex from "@/components/BlogIndex";
 import GuestChat from "@/components/GuestChat";
+import blog from "./blog.module.css";
 
 export const metadata = {
   title: "Updates — Root Record",
   description:
-    "Root Record timeline — solar, Kīlauea, Goals, business ops, and the Ava / RootMC couplings.",
+    "Root Record timeline — solar, Kīlauea, Goals, business. Filter by category and page.",
 };
 
 export default function BlogPage() {
   return (
-    <section className={blog.wrap}>
-      <p className={blog.eyebrow}>Product · real world · business</p>
-      <h1 className={blog.title}>Root Record</h1>
-      <p className={blog.lead}>
-        Solar, Kīlauea, Goals, and business — April 2026 through the three-blog split.
-        Minecraft changelogs live on{" "}
-        <a href="https://rootmc.net/blog/">rootmc.net/blog</a>. Ava platform notes live on{" "}
-        <a href="https://avaivy.cloud/blog">avaivy.cloud/blog</a>.
-      </p>
-      <div className={blog.list}>
-        {POSTS.map((p) => (
-          <article key={p.slug} className={blog.card}>
-            <div className={blog.meta}>
-              <time className={blog.date}>{p.date}</time>
-              <span className={blog.brand}>{p.brand}</span>
-            </div>
-            <h2>
-              <Link href={`/blog/${p.slug}`}>{p.title}</Link>
-            </h2>
-            <p>
-              {p.teaser}{" "}
-              <Link href={`/blog/${p.slug}`} className={blog.read}>
-                Read
-              </Link>
-            </p>
-          </article>
-        ))}
-      </div>
-      <div className={blog.chatSection}>
-        <p className={blog.eyebrow}>Talk to Ava</p>
-        <GuestChat />
-      </div>
-    </section>
+    <>
+      <Suspense fallback={<p style={{ padding: 48 }}>Loading updates…</p>}>
+        <BlogIndex
+          eyebrow="Product · real world · Hawaiʻi"
+          heading="Root Record"
+          lead={
+            <>
+              Solar, Kīlauea, Goals, and business — April 2026 through the three-blog split.
+              Default view is this site. Minecraft changelogs live on{" "}
+              <a href="https://rootmc.net/blog/">rootmc.net/blog</a>. Ava platform notes live on{" "}
+              <a href="https://avaivy.cloud/blog">avaivy.cloud/blog</a>.
+            </>
+          }
+        />
+      </Suspense>
+      <section className={blog.wrap} style={{ paddingTop: 0 }}>
+        <div className={blog.chatSection}>
+          <p className={blog.eyebrow}>Talk to Ava</p>
+          <GuestChat />
+        </div>
+      </section>
+    </>
   );
 }

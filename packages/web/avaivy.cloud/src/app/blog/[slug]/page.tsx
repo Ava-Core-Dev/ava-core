@@ -1,5 +1,14 @@
 import blog from "../blog.module.css";
-import { POSTS, getPost, neighbors, mediaUrl } from "@/lib/blogPosts";
+import {
+  ARCHIVE_REVISED,
+  CATEGORIES,
+  POSTS,
+  datetimeAttr,
+  formatStamp,
+  getPost,
+  mediaUrl,
+  neighbors,
+} from "@/lib/blogPosts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -30,10 +39,20 @@ export default async function BlogPostPage({
   return (
     <section className={blog.wrap}>
       <p className={blog.crumb}>
-        <Link href="/blog">Updates</Link> · {post.date}
+        <Link href="/blog">Updates</Link>
+        {post.categories.map((id) => (
+          <span key={id}>
+            {" · "}
+            <Link href={`/blog?cat=${id}`}>{CATEGORIES.find((c) => c.id === id)?.label ?? id}</Link>
+          </span>
+        ))}
       </p>
       <p className={blog.eyebrow}>Ava Ivy · {post.brand}</p>
       <h1 className={blog.title}>{post.title}</h1>
+      <p className={blog.stamp}>
+        <time dateTime={datetimeAttr(post)}>{formatStamp(post)}</time>
+        {" · "}revised {ARCHIVE_REVISED}
+      </p>
       <p className={blog.lead}>{post.teaser}</p>
       {post.audio && post.audio.length > 0 ? (
         <div className={blog.audioBox}>

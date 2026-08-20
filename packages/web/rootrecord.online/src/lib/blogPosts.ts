@@ -10,7 +10,60 @@ export type BlogPost = {
   audio?: string[];
   sources?: string[];
   published?: string;
+  categories: string[];
 };
+
+/** Solar, Kīlauea, Goals, business — Hawaiʻi-scoped product, not the game changelog. */
+export const HOME_BRAND: BlogPost["brand"] = "Root Record";
+export const PAGE_SIZE = 8;
+export const ARCHIVE_REVISED = "2026-08-19 19:30:00 HST";
+
+export const CATEGORIES: { id: string; label: string }[] = [
+  { id: "solar", label: "Solar" },
+  { id: "kilauea", label: "Kīlauea" },
+  { id: "goals", label: "Goals" },
+  { id: "product", label: "Product" },
+  { id: "ops", label: "Migrations" },
+  { id: "minecraft", label: "Minecraft (link)" },
+];
+
+const CATS: Record<string, string[]> = {
+  "this-blog": ["product", "ops"],
+  "api-host-cutover": ["ops", "product"],
+  "quiet-discord": ["product"],
+  "panels-and-banners": ["product", "kilauea"],
+  "desk-online": ["ops"],
+  magmaalert: ["kilauea", "product"],
+  "kilauea-briefs": ["kilauea"],
+  "goals-priority": ["goals"],
+  director: ["product"],
+  "morning-pulse": ["product", "solar"],
+  "host-power-gold": ["solar", "minecraft"],
+  "note-keeper": ["product"],
+  "solar-gold": ["solar"],
+  "ecoflow-status": ["solar"],
+  "monorepo-export": ["ops"],
+  "brands-split": ["product"],
+  "what-we-are": ["product"],
+  "product-downloads": ["product"],
+};
+
+export function formatStamp(p: Pick<BlogPost, "date" | "published">): string {
+  if (p.published) {
+    const m = p.published.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})/);
+    if (m) {
+      const tz = m[3] === "-10:00" ? "HST" : m[3] === "Z" || m[3] === "+00:00" ? "UTC" : m[3];
+      return `${m[1]} ${m[2]} ${tz}`;
+    }
+    return p.published;
+  }
+  if (p.date.length === 7) return `${p.date} · month precision`;
+  return `${p.date} · day precision`;
+}
+
+export function datetimeAttr(p: Pick<BlogPost, "date" | "published">): string {
+  return p.published || (p.date.length === 7 ? `${p.date}-01` : p.date);
+}
 
 const MEDIA_FILE = "https://avaivy.cloud/api/media/public/file?path=";
 
@@ -19,7 +72,7 @@ export function mediaUrl(rel: string): string {
 }
 
 /** Newest first. Dates only from changelogs, Goals notes, archives, and public announcements. */
-export const POSTS: BlogPost[] = [
+const POSTS_RAW: Omit<BlogPost, "categories">[] = [
   {
     slug: "this-blog",
     date: "2026-08-19",
@@ -287,6 +340,11 @@ export const POSTS: BlogPost[] = [
     ],
   },
 ];
+
+export const POSTS: BlogPost[] = POSTS_RAW.map((p) => ({
+  ...p,
+  categories: CATS[p.slug] ?? ["product"],
+}));
 
 export function getPost(slug: string): BlogPost | undefined {
   return POSTS.find((p) => p.slug === slug);

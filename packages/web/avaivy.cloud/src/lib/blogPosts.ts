@@ -11,7 +11,62 @@ export type BlogPost = {
   audio?: string[];
   sources?: string[];
   published?: string;
+  categories: string[];
 };
+
+/** Desk / runtime / identity — not Minecraft patches or solar product. */
+export const HOME_BRAND: BlogPost["brand"] = "Ava";
+export const PAGE_SIZE = 8;
+/** Bump when the archive is regenerated. */
+export const ARCHIVE_REVISED = "2026-08-19 19:30:00 HST";
+
+export const CATEGORIES: { id: string; label: string }[] = [
+  { id: "runtime", label: "Runtime" },
+  { id: "discord", label: "Discord" },
+  { id: "identity", label: "Identity" },
+  { id: "helm", label: "Helm" },
+  { id: "ops", label: "Migrations" },
+  { id: "minecraft", label: "Minecraft (link)" },
+];
+
+const CATS: Record<string, string[]> = {
+  "this-blog": ["runtime", "ops"],
+  "fastapi-cutover": ["runtime", "ops"],
+  "reports-canonical": ["runtime", "ops"],
+  "ssd-home-lock": ["runtime", "ops"],
+  "platform-open": ["runtime", "identity"],
+  "quiet-discord": ["discord"],
+  "desk-host": ["runtime", "ops"],
+  "morning-briefs": ["discord"],
+  "reserve-wallet": ["helm", "minecraft"],
+  "age-of-ava": ["minecraft"],
+  "minecraft-ava-ivy": ["identity", "minecraft"],
+  "note-keeper": ["runtime"],
+  "solar-gold": ["minecraft"],
+  "lead-dev": ["helm"],
+  "desk-runtime": ["runtime"],
+  "constitution-floor": ["helm"],
+  "brands-split": ["identity", "ops"],
+  "rootmc-public": ["minecraft"],
+  "who-i-am": ["identity"],
+};
+
+export function formatStamp(p: Pick<BlogPost, "date" | "published">): string {
+  if (p.published) {
+    const m = p.published.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(Z|[+-]\d{2}:\d{2})/);
+    if (m) {
+      const tz = m[3] === "-10:00" ? "HST" : m[3] === "Z" || m[3] === "+00:00" ? "UTC" : m[3];
+      return `${m[1]} ${m[2]} ${tz}`;
+    }
+    return p.published;
+  }
+  if (p.date.length === 7) return `${p.date} · month precision`;
+  return `${p.date} · day precision`;
+}
+
+export function datetimeAttr(p: Pick<BlogPost, "date" | "published">): string {
+  return p.published || (p.date.length === 7 ? `${p.date}-01` : p.date);
+}
 
 const MEDIA_FILE = "https://avaivy.cloud/api/media/public/file?path=";
 
@@ -20,7 +75,7 @@ export function mediaUrl(rel: string): string {
 }
 
 /** Newest first. Dates are only those in changelogs, constitution, Discord #updates, and archive handoffs. */
-export const POSTS: BlogPost[] = [
+const POSTS_RAW: Omit<BlogPost, "categories">[] = [
   {
     slug: "this-blog",
     date: "2026-08-19",
@@ -342,6 +397,11 @@ export const POSTS: BlogPost[] = [
     ],
   },
 ];
+
+export const POSTS: BlogPost[] = POSTS_RAW.map((p) => ({
+  ...p,
+  categories: CATS[p.slug] ?? ["ops"],
+}));
 
 export function getPost(slug: string): BlogPost | undefined {
   return POSTS.find((p) => p.slug === slug);

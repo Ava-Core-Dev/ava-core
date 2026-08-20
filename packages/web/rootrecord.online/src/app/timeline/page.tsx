@@ -1,10 +1,10 @@
 import blog from "../blog/blog.module.css";
-import { POSTS } from "@/lib/blogPosts";
+import { ARCHIVE_REVISED, POSTS, datetimeAttr, formatStamp } from "@/lib/blogPosts";
 import Link from "next/link";
 
 export const metadata = {
   title: "Timeline — Root Record",
-  description: "Dated Root Record public timeline. Same posts as /blog.",
+  description: "Dated Root Record public timeline. Same posts as /blog, with full timestamps.",
 };
 
 export default function TimelinePage() {
@@ -16,11 +16,14 @@ export default function TimelinePage() {
         Same source as <Link href="/blog">Updates</Link>. Migrations, host moves, and product
         dates with clock times when sourced.
       </p>
+      <p className={blog.revised}>Last revised {ARCHIVE_REVISED}</p>
       <ol className={blog.list} style={{ listStyle: "none", padding: 0 }}>
         {POSTS.map((p) => (
           <li key={p.slug} className={blog.card}>
             <div className={blog.meta}>
-              <time className={blog.date}>{p.published || p.date}</time>
+              <time className={blog.date} dateTime={datetimeAttr(p)}>
+                {formatStamp(p)}
+              </time>
               <span className={blog.brand}>{p.brand}</span>
             </div>
             <h2>

@@ -67,3 +67,33 @@
 .audioBox audio { width: 100%; }
 .sources { font-size: 13px; color: var(--muted); margin-top: 1.5rem; }
 .sources li { margin: 0 0 4px; }
+.revised { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin: -24px 0 24px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.toggle {
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.toggle:disabled { opacity: .4; cursor: default; }
+.toggleOn { border-color: var(--accent, #06b6d4); background: var(--surface); }
+.pageMeta { font-size: 12px; color: var(--muted); margin: 0 0 16px; }
+.cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.catChip {
+  font-size: 10px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pagerRow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; align-items: center; }
+.stamp { font-size: 13px; color: var(--muted); font-family: var(--font-mono); margin: 0 0 16px; }
