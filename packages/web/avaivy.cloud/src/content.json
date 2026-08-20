@@ -1,5 +1,5 @@
 {
-  "_readme": "All text and links for avaivy.cloud live here. Edit this file on GitHub and the site redeploys automatically. Keep the quotes and commas exactly as they are. See EDITING.md at the repo root.",
+  "_readme": "All text and links for avaivy.cloud live here.",
   "site": {
     "logoMark": "◈",
     "name": "Ava Ivy",
@@ -9,76 +9,32 @@
     "tagline": "AI infrastructure runtime for RootMC and Root Record. Ground-mounted solar, Big Island of Hawaiʻi — arrays stow for hurricanes."
   },
   "nav": [
-    {
-      "label": "Live",
-      "href": "/live"
-    },
-    {
-      "label": "Status",
-      "href": "/status"
-    },
-    {
-      "label": "Index",
-      "href": "/media"
-    },
-    {
-      "label": "Goals",
-      "href": "/goals"
-    },
-    {
-      "label": "Wallets",
-      "href": "/wallets"
-    },
-    {
-      "label": "Blog",
-      "href": "/blog"
-    },
-    {
-      "label": "Timeline",
-      "href": "/timeline"
-    },
-    {
-      "label": "Context",
-      "href": "/context"
-    },
-    {
-      "label": "Solar",
-      "href": "/solar"
-    },
-    {
-      "label": "RootMC",
-      "href": "https://rootmc.net"
-    },
-    {
-      "label": "Root Record",
-      "href": "https://rootrecord.online"
-    },
-    {
-      "label": "alexrs94",
-      "href": "https://alexrs94.site"
-    },
-    {
-      "label": "Wiki",
-      "href": "https://rootrecord.info/ava/"
-    },
-    {
-      "label": "Sign in",
-      "href": "/login"
-    }
+    { "label": "Home", "href": "/" },
+    { "label": "Live", "href": "/live" },
+    { "label": "Index", "href": "/media" },
+    { "label": "Goals", "href": "/goals" },
+    { "label": "Wallets", "href": "/wallets" },
+    { "label": "Blog", "href": "/blog" },
+    { "label": "Wiki", "href": "/wiki" },
+    { "label": "Timeline", "href": "/timeline" },
+    { "label": "Context", "href": "/context" },
+    { "label": "RootMC", "href": "https://rootmc.net" },
+    { "label": "Root Record", "href": "https://rootrecord.info" },
+    { "label": "Sign in", "href": "/login" }
   ],
   "cards": [
     {
       "title": "Host Power",
       "value": "",
       "sub": "",
-      "href": "/status",
+      "href": "/",
       "live": "host"
     },
     {
-      "title": "Solar",
-      "value": "avaivy.cloud/solar",
-      "sub": "Ground PV + EcoFlow →",
-      "href": "/solar",
+      "title": "Solar desk",
+      "value": "live board",
+      "sub": "PV · EcoFlow · graphs →",
+      "href": "/#solar-desk",
       "live": ""
     },
     {
@@ -103,10 +59,10 @@
       "live": ""
     },
     {
-      "title": "Context",
-      "value": "AI context",
-      "sub": "Full ops context →",
-      "href": "/context",
+      "title": "Wiki",
+      "value": "ops docs",
+      "sub": "Moved from rootrecord.info/ava →",
+      "href": "/wiki",
       "live": ""
     }
   ],
@@ -116,26 +72,13 @@
   },
   "footer": {
     "links": [
-      {
-        "label": "Goals",
-        "href": "/goals"
-      },
-      {
-        "label": "Blog",
-        "href": "/blog"
-      },
-      {
-        "label": "RootMC",
-        "href": "https://rootmc.net"
-      },
-      {
-        "label": "Root Record",
-        "href": "https://rootrecord.online"
-      },
-      {
-        "label": "Public index",
-        "href": "/media"
-      }
+      { "label": "Goals", "href": "/goals" },
+      { "label": "Blog", "href": "/blog" },
+      { "label": "Wiki", "href": "/wiki" },
+      { "label": "RootMC", "href": "https://rootmc.net" },
+      { "label": "Root Record", "href": "https://rootrecord.info" },
+      { "label": "Public index", "href": "/media" },
+      { "label": "About Developer", "href": "https://alexrs94.site" }
     ],
     "tagline": "Powered by the sun · Big Island, Hawaiʻi"
   }

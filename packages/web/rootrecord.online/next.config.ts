@@ -1,10 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    const origin = process.env.AVA_ORIGIN_URL || "https://ava-origin.rootmc.net";
+  async redirects() {
     return [
-      { source: "/api/:path*", destination: `${origin}/api/:path*` },
+      // Consolidate: Root Record marketing + goals live on rootrecord.info
+      { source: "/:path*", destination: "https://rootrecord.info/:path*", permanent: true },
     ];
   },
 };

@@ -498,20 +498,29 @@ def _soc_from_quota(data: dict) -> float | None:
 
 def _ecoflow_root() -> Path | None:
     from apps.core import config
+    repo_data = Path(__file__).resolve().parents[3] / "data" / "ecoflow"
     roots = [
         config.DATA_DIR / "ecoflow",
         config.AVA_HOME / "data" / "ecoflow",
+        repo_data,
         Path.home() / "ava" / "data" / "ecoflow",
     ]
+    # Prefer the tree with the newest quota or history samples.
     scored: list[tuple[float, Path]] = []
     for p in roots:
+        mtimes: list[float] = []
         q = p / "quota"
-        if not q.is_dir():
-            continue
-        files = list(q.glob("*.json"))
-        if not files:
-            continue
-        scored.append((max(f.stat().st_mtime for f in files), p))
+        if q.is_dir():
+            mtimes.extend(f.stat().st_mtime for f in q.glob("*.json"))
+        h = p / "history"
+        if h.is_dir():
+            mtimes.extend(
+                f.stat().st_mtime
+                for f in h.glob("*.jsonl")
+                if not f.name.endswith("-minutes.jsonl")
+            )
+        if mtimes:
+            scored.append((max(mtimes), p))
     if not scored:
         return next((p for p in roots if (p / "history").is_dir()), None)
     scored.sort(reverse=True)
@@ -563,9 +572,11 @@ def history_points(hours: float = 12) -> dict:
         return {"ok": True, "points": [], "hours": hours}
     now_ms = int(time.time() * 1000)
     window_ms = now_ms - int(hours * 3600_000)
+    # ~1 sample/min/device × hours × devices, with headroom
+    tail = max(800, int(hours * 60 * 4) + 200)
     # minute_ms -> device -> latest sample fields
     buckets: dict[int, dict[str, dict[str, float | None]]] = {}
-    for device, row in _iter_history_rows(hist):
+    for device, row in _iter_history_rows(hist, tail=tail):
         at_ms = _parse_history_at_ms(row, now_ms)
         if at_ms is None or at_ms < window_ms:
             continue

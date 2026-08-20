@@ -6,7 +6,8 @@ import styles from "@/app/page.module.css";
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  if (path === "/live/embed" || path === "/solar") {
+  // Full-bleed boards: home (solar desk), solar iframe origin, live embed
+  if (path === "/" || path === "/live/embed" || path === "/solar" || path === "/status") {
     return <>{children}</>;
   }
   const { site, nav, footer } = content;
