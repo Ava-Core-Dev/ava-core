@@ -865,7 +865,6 @@ ipcMain.handle("ava:ops-run", async (_e, { id }) => {
 
   // URL launcher — open in system browser
   if (cmd.kind === "url" && cmd.url) {
-    const { shell } = require("electron");
     shell.openExternal(cmd.url);
     appendLine(`↗ opened ${cmd.url}`);
     return { ok: true, detail: `opened:${cmd.url}` };

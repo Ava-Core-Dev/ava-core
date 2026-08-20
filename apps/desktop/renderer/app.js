@@ -2283,7 +2283,7 @@ function mcSetMsg(text, err) {
 }
 
 function renderMcStatus(s) {
-  const run = !!s?.running;
+  const run = !!(s?.running || s?.test?.online);
   const pill = $("mc-pill");
   if (pill) {
     pill.textContent = run ? "Running" : "Stopped";
@@ -2322,8 +2322,8 @@ async function refreshMinecraftLog() {
   const follow = $("mc-follow")?.checked;
   const atBottom =
     consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight < 80;
-  if (j.size !== mcLastSize || consoleEl.textContent !== (j.text || "")) {
-    consoleEl.textContent = j.text || "(empty log)";
+  if (j.size !== mcLastSize || consoleEl.textContent !== (j.text || (j.lines || []).join("\n") || "")) {
+    consoleEl.textContent = j.text || (Array.isArray(j.lines) ? j.lines.join("\n") : "") || "(empty log)";
     mcLastSize = j.size;
     if (follow || atBottom) consoleEl.scrollTop = consoleEl.scrollHeight;
   }

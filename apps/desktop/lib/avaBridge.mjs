@@ -1565,7 +1565,7 @@ async function localJson(url, { method = "GET", body, env } = {}) {
 }
 
 export async function fetchCronStatus(env) {
-  return localJson(`${apiBase(env)}/api/cron`, { env });
+  return localJson(`${apiBase(env)}/api/crons`, { env });
 }
 
 export async function fetchReportsStatus(env) {
@@ -1613,7 +1613,8 @@ export async function tickEarlyLoginDesktop(env) {
 }
 
 export async function runCronJob(env, id) {
-  return localJson(`${apiBase(env)}/api/cron/run`, {
+  const jobId = encodeURIComponent(String(id || "").trim());
+  return localJson(`${apiBase(env)}/api/crons/${jobId}/run`, {
     method: "POST",
     body: { id, reason: "desktop" },
     env,
