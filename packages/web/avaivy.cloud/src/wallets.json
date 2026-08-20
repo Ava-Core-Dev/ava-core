@@ -1,50 +1,70 @@
 {
   "_readme": "Official Ava Core public receive addresses only. Never put a seed or private key in this file. Secrets live in gitignored credentials.env on the host.",
-  "label": "Official Ava Core wallets",
+  "label": "Ava Core Wallets",
   "networks": [
     {
+      "id": "solana",
       "name": "Solana",
-      "address": "3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL"
+      "address": "3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL",
+      "payload": "solana:3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL"
     },
     {
+      "id": "ethereum",
       "name": "Ethereum",
-      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5"
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "payload": "ethereum:0x983704ec4a39526b3f574050132b6659bb0474c5"
     },
     {
+      "id": "bitcoin-taproot",
       "name": "Bitcoin Taproot",
-      "address": "bc1prvwfa6xj4kxpu4s0h674hsf4wd03cs2qm3qntpvwc4zte9qhpx8q3uq4zy"
+      "address": "bc1prvwfa6xj4kxpu4s0h674hsf4wd03cs2qm3qntpvwc4zte9qhpx8q3uq4zy",
+      "payload": "bitcoin:bc1prvwfa6xj4kxpu4s0h674hsf4wd03cs2qm3qntpvwc4zte9qhpx8q3uq4zy"
     },
     {
+      "id": "bitcoin-segwit",
       "name": "Bitcoin Native SegWit",
-      "address": "bc1qfje8y2v20hu8u0v30qyadrsxjztd8n4tlm2a4h"
+      "address": "bc1qfje8y2v20hu8u0v30qyadrsxjztd8n4tlm2a4h",
+      "payload": "bitcoin:bc1qfje8y2v20hu8u0v30qyadrsxjztd8n4tlm2a4h"
     },
     {
+      "id": "robinhood",
       "name": "Robinhood",
       "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "payload": "ethereum:0x983704ec4a39526b3f574050132b6659bb0474c5",
       "note": "Same EVM key as Ethereum"
     },
     {
+      "id": "monad",
       "name": "Monad",
       "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "payload": "ethereum:0x983704ec4a39526b3f574050132b6659bb0474c5",
       "note": "Same EVM key as Ethereum"
     },
     {
+      "id": "base",
       "name": "Base",
       "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "payload": "ethereum:0x983704ec4a39526b3f574050132b6659bb0474c5",
       "note": "Same EVM key as Ethereum"
     },
     {
+      "id": "sui",
       "name": "Sui",
-      "address": "0x326803a7d6717291df988548e77db8808afde383e1baa65665eeac8f9b2b882c"
+      "address": "0x326803a7d6717291df988548e77db8808afde383e1baa65665eeac8f9b2b882c",
+      "payload": "0x326803a7d6717291df988548e77db8808afde383e1baa65665eeac8f9b2b882c"
     },
     {
+      "id": "polygon",
       "name": "Polygon",
       "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "payload": "ethereum:0x983704ec4a39526b3f574050132b6659bb0474c5",
       "note": "Same EVM key as Ethereum"
     },
     {
+      "id": "hyperevm",
       "name": "HyperEVM",
       "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "payload": "ethereum:0x983704ec4a39526b3f574050132b6659bb0474c5",
       "note": "Same EVM key as Ethereum"
     }
   ]
