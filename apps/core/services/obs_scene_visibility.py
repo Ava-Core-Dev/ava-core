@@ -65,16 +65,16 @@ async def refresh_auto_hide() -> dict[str, Any]:
         auto.add(MC_SCENE)
 
     try:
-        from apps.core.services.nhc_media import nhc_outlook_scenes
         from apps.core.services.hurricane_tracker import load_storms
 
+        # Storm Desk stays in the 10-scene loop; only auto-hide legacy NHC scene names
+        # if they somehow reappear outside the capped daily set.
         storms = load_storms().get("storms") or []
-        if not storms:
-            for s in nhc_outlook_scenes():
-                auto.add(s)
+        _ = storms  # presence tracked elsewhere; Storm Desk always carries products
     except Exception as e:
         log.debug("nhc auto-hide: %s", e)
 
+    # Quake Desk is the daily topic scene; legacy split scenes stay optional.
     if not await quake_has_global_event():
         auto.add(QUAKE_GLOBAL)
     if not await quake_has_island_event():

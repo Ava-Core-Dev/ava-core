@@ -23,73 +23,50 @@ MC_SCENE = "RootMC Live"
 MC_SHARE = 0.75
 QUAKE_GLOBAL = "Quake · Global"
 QUAKE_ISLAND = "Quake · Big Island"
+QUAKE_DESK = "Quake Desk"
+STORM_DESK = "Storm Desk"
 DEFAULT_START_SCENE = "Weather Board"
+# Hard cap: 10 topical scenes × ~60s each for the daily loop.
 AMBIENT_SCENES = [
-    "Weather Board",
-    "Radar",
-    "Satellite",
-    "SO2 Index",
-    "Vog Map",
-    "Windy Big Island",
-    "NHC · EPAC 2-Day",
-    "NHC · EPAC 7-Day",
-    "NHC · CPAC 2-Day",
-    "NHC · CPAC 7-Day",
-    "NHC · 5-Day Cone",
-    "NHC · Wind Field",
-    "NHC · Wind History",
-    "Kilauea Watch",
-    "Solar Dashboard",
-    "Economy Board",
-    "Goals Report",
-    "Dev Updates",
-    "Support Ava",
-    QUAKE_GLOBAL,
-    QUAKE_ISLAND,
+    "Weather Board",   # local NWS / island weather
+    STORM_DESK,        # NHC + Pacific storm products
+    "Kilauea Watch",   # volcano
+    QUAKE_DESK,        # seismicity
+    "Solar Dashboard", # power / EcoFlow
+    "Economy Board",   # desk economics
+    MC_SCENE,          # Minecraft / RootMC
+    "Dev Updates",     # build / code desk
+    "Goals Report",    # mission / goals
+    "Support Ava",     # donate / follow
 ]
-def weather_scene_pool() -> list[str]:
-    from apps.core.services.nhc_media import nhc_outlook_scenes
 
+
+def weather_scene_pool() -> list[str]:
     return [
         "Weather Board",
-        "Radar",
-        "Satellite",
-        *nhc_outlook_scenes(),
-        "SO2 Index",
-        "Vog Map",
-        "Windy Big Island",
+        STORM_DESK,
+        "Kilauea Watch",
     ]
 
 
-LOOP_SCENES = [
-    *AMBIENT_SCENES,
-    MC_SCENE,
-]
+LOOP_SCENES = list(AMBIENT_SCENES)
 
 # Primary media per scene — rotator waits for this to finish before leaving.
 SCENE_MEDIA = {
-    "Weather Board": ("NWS Hawaii", "ffmpeg"),
-    "Radar": ("NWS Radar", "image"),
-    "Satellite": ("Hawaii IR", "image"),
-    "SO2 Index": ("HI SO2 Index", "image"),
-    "Vog Map": ("MKWC Vog", "image"),
-    "Windy Big Island": ("Windy Kilauea", "image"),
-    "NHC · EPAC 2-Day": ("NHC EPAC 2Day", "browser"),
-    "NHC · EPAC 7-Day": ("NHC EPAC 7Day", "browser"),
-    "NHC · CPAC 2-Day": ("NHC CPAC 2Day", "browser"),
-    "NHC · CPAC 7-Day": ("NHC CPAC 7Day", "browser"),
-    "NHC · 5-Day Cone": ("NHC 5Day Cone", "image"),
-    "NHC · Wind Field": ("NHC Wind", "image"),
-    "NHC · Wind History": ("NHC Wind History", "image"),
-    "Kilauea Watch": ("Kilauea Audio", "ffmpeg"),
-    "Solar Dashboard": ("Solar Audio", "ffmpeg"),
-    "Economy Board": ("Economy Audio", "ffmpeg"),
-    "Goals Report": ("Goals Audio", "ffmpeg"),
-    "Dev Updates": ("Dev Audio", "ffmpeg"),
-    "Support Ava": ("Solana QR", "image"),
+    "Weather Board": ("Narration · Weather Board", "ffmpeg"),
+    STORM_DESK: ("Narration · Storm Desk", "ffmpeg"),
+    "Kilauea Watch": ("Narration · Kilauea Watch", "ffmpeg"),
+    QUAKE_DESK: ("Narration · Quake Desk", "ffmpeg"),
+    "Solar Dashboard": ("Narration · Solar Dashboard", "ffmpeg"),
+    "Economy Board": ("Narration · Economy Board", "ffmpeg"),
+    MC_SCENE: ("Narration · RootMC Live", "ffmpeg"),
+    "Dev Updates": ("Narration · Dev Updates", "ffmpeg"),
+    "Goals Report": ("Narration · Goals Report", "ffmpeg"),
+    "Support Ava": ("Narration · Support Ava", "ffmpeg"),
     QUAKE_GLOBAL: ("Quake Global Map", "browser"),
     QUAKE_ISLAND: ("Quake Island Map", "browser"),
 }
+DEFAULT_SCENE_DWELL_S = 60
 # Ambient VLC can be on Morning_Broadcast_Current (~7 min); wait at least that long
 # unless GetMediaInputStatus reports the current item has ended.
 VLC_MIN_DWELL_S = 420

@@ -100,15 +100,8 @@ def write_mode(mode: str, extra: dict | None = None) -> dict:
 
 
 def hurricane_scene_pool() -> list[str]:
-    from apps.core.services.nhc_media import nhc_scene_names
-
-    data = load_storms()
-    scenes = [s for s, _ in BOARD_SCENES] + nhc_scene_names()
-    for st in data.get("storms") or []:
-        name = st.get("scene")
-        if name:
-            scenes.append(name)
-    return scenes or [s for s, _ in BOARD_SCENES]
+    """Daily hurricane mode stays on the single Storm Desk topic scene."""
+    return ["Storm Desk", "Weather Board", "Kilauea Watch"]
 
 
 def load_storms() -> dict:
