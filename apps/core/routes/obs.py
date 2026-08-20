@@ -576,15 +576,19 @@ async def api_hurricane_desk(id: str = "world"):
 
 @api_router.get("/kilauea-desk")
 async def api_kilauea_desk(cam: str = "usgs_v1"):
-    from apps.core.services.kilauea_cams import load_catalog
+    from apps.core.services.kilauea_cams import load_catalog, DEFAULT_CAMS
 
     data = load_catalog()
     cams = data.get("cams") or []
-    hit = next((c for c in cams if c.get("id") == cam), cams[0] if cams else {})
+    hit = next((c for c in cams if c.get("id") == cam), None)
+    if not hit and cams:
+        hit = cams[0]
+    if not hit:
+        hit = next((c for c in DEFAULT_CAMS if c.get("id") == cam), DEFAULT_CAMS[0])
     return {
         "ok": True,
         "cam": hit,
-        "cams": cams,
+        "cams": cams or DEFAULT_CAMS,
         "ts": data.get("ts"),
         "watch": _watch_from_state(_kilauea_state()),
     }

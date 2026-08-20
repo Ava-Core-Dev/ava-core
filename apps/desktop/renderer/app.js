@@ -52,6 +52,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "feedback") refreshFeedbackPage();
     if (btn.dataset.page === "minecraft") refreshMinecraft();
     if (btn.dataset.page === "stream") refreshStreamOps();
+    if (btn.dataset.page === "sites") refreshSitesPage();
     if (btn.dataset.page === "terminal") refreshTerminalLive();
     if (btn.dataset.page === "settings") refreshConnectionForm();
   });
@@ -2586,6 +2587,7 @@ async function bootStreamOps() {
   document.querySelectorAll("[data-stream-scene]").forEach((btn) => {
     btn.onclick = () => streamAction("scene", { scene: btn.dataset.streamScene });
   });
+  await loadStreamSceneHide();
   document.querySelectorAll("[data-stream-reaction]").forEach((btn) => {
     btn.onclick = () =>
       streamAction("reaction", {
@@ -2602,6 +2604,97 @@ async function bootStreamOps() {
       refreshStreamPreview().catch(() => {});
     }
   }, 4000);
+}
+
+const STREAM_HIDE_SCENES = [
+  "Weather Board", "Radar", "Satellite", "Economy Board", "Goals Report", "Dev Updates",
+  "Support Ava", "RootMC Live", "Quake · Global", "Quake · Big Island", "Kilauea Watch",
+];
+
+async function loadStreamSceneHide() {
+  const host = $("stream-scene-hide");
+  if (!host) return;
+  let hidden = [];
+  try {
+    const j = await fetch(`${brainBaseUrl()}/api/obs/scene-visibility`).then((r) => r.json());
+    hidden = [...(j.hidden_manual || []), ...(j.hidden_auto || [])];
+  } catch {
+    /* ignore */
+  }
+  host.innerHTML = "";
+  for (const scene of STREAM_HIDE_SCENES) {
+    const lbl = document.createElement("label");
+    lbl.className = "mc-follow";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = hidden.includes(scene);
+    cb.dataset.sceneHide = scene;
+    cb.onchange = async () => {
+      const boxes = host.querySelectorAll("input[data-scene-hide]");
+      const manual = [...boxes].filter((b) => b.checked).map((b) => b.dataset.sceneHide);
+      await fetch(`${brainBaseUrl()}/api/obs/scene-visibility`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hidden_manual: manual }),
+      });
+    };
+    lbl.append(cb, document.createTextNode(` ${scene}`));
+    host.append(lbl);
+  }
+}
+
+async function refreshSitesPage() {
+  if (!$("page-sites")?.classList.contains("active")) return;
+  const base = brainBaseUrl();
+  try {
+    const j = await fetch(`${base}/api/ops/sites-posts`).then((r) => r.json());
+    const box = $("sites-latest");
+    if (box && j.newest) {
+      box.innerHTML = `<div class="mc-kpi"><span class="k">Newest post</span><span class="v">${j.newest.site_label || ""}</span><span class="sub">${j.newest.title || ""} · ${j.newest.date || ""}</span></div>`;
+    }
+    $("sites-status").textContent = JSON.stringify(j, null, 2);
+  } catch (e) {
+    $("sites-status").textContent = String(e);
+  }
+}
+
+async function bootSitesPage() {
+  if (!$("page-sites")) return;
+  $("sites-refresh")?.addEventListener("click", refreshSitesPage);
+  $("sites-save")?.addEventListener("click", async () => {
+    const base = brainBaseUrl();
+    const body = {
+      brand: $("sites-brand")?.value || "ava",
+      title: $("sites-title")?.value || "",
+      body: $("sites-body")?.value || "",
+      teaser: $("sites-teaser")?.value || "",
+      category: "ops",
+    };
+    const fanout = $("sites-fanout")?.value === "all";
+    const url = fanout ? `${base}/api/ops/sites-fanout` : `${base}/api/ops/blog`;
+    const payload = fanout
+      ? { ...body, brands: ["ava", "rootrecord", "rootmc"] }
+      : body;
+    const j = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then((r) => r.json());
+    $("sites-status").textContent = JSON.stringify(j, null, 2);
+    await refreshSitesPage();
+  });
+  $("sites-publish-rootmc")?.addEventListener("click", async () => {
+    const j = await fetch(`${brainBaseUrl()}/api/ops/publish-rootmc`, { method: "POST" }).then((r) => r.json());
+    $("sites-status").textContent = JSON.stringify(j, null, 2);
+  });
+  $("sites-goals-generate")?.addEventListener("click", async () => {
+    const j = await fetch(`${brainBaseUrl()}/api/ops/goal-drafts/generate`, { method: "POST" }).then((r) => r.json());
+    $("sites-goals-out").textContent = JSON.stringify(j, null, 2);
+  });
+  $("sites-goals-approve")?.addEventListener("click", async () => {
+    const j = await fetch(`${brainBaseUrl()}/api/ops/goal-drafts/approve?index=0`, { method: "POST" }).then((r) => r.json());
+    $("sites-goals-out").textContent = JSON.stringify(j, null, 2);
+  });
 }
 
 let lastBrainUrl = "http://127.0.0.1:8787";
@@ -2798,6 +2891,7 @@ async function boot() {
   await bootTerminal();
   await bootMinecraft();
   await bootStreamOps();
+  await bootSitesPage();
   ensureBizTimer();
   window.avaDesktop.earlyLogin?.().catch(() => {});
 

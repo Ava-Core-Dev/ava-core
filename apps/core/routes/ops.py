@@ -298,3 +298,76 @@ def _run_sync() -> dict:
         return {"ok": r.returncode == 0, "log": (r.stdout + "\n" + r.stderr)[-3000:]}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
+
+
+@router.get("/api/ops/sites-posts")
+async def ops_sites_posts(request: Request):
+    """Latest posts per site for the desktop Sites tab."""
+    if not _local(request):
+        return _deny()
+    out = []
+    for brand in ("ava", "rootrecord", "rootmc"):
+        root = POSTS / brand
+        latest = None
+        if root.is_dir():
+            for path in sorted(root.glob("*.md"), key=lambda p: p.stat().st_mtime, reverse=True)[:1]:
+                latest = {"slug": path.stem, "mtime": path.stat().st_mtime, "path": str(path)}
+        out.append({"brand": brand, "latest": latest})
+    from apps.core.services.obs_desk_data import latest_blog_across_sites
+
+    return {"ok": True, "sites": out, "newest": latest_blog_across_sites()}
+
+
+class FanoutBlogIn(BlogIn):
+    brands: list[str] = Field(default_factory=lambda: ["ava", "rootrecord", "rootmc"])
+
+
+@router.post("/api/ops/sites-fanout")
+async def ops_sites_fanout(body: FanoutBlogIn, request: Request):
+    """Save the same post to multiple site trees, then sync."""
+    if not _local(request):
+        return _deny()
+    saved = []
+    for brand in body.brands:
+        sub = BlogIn(
+            brand=brand,
+            title=body.title,
+            body=body.body,
+            teaser=body.teaser,
+            category=body.category,
+            date=body.date,
+            published=body.published,
+        )
+        resp = await ops_blog(sub, request)
+        ok = resp.get("ok") if isinstance(resp, dict) else getattr(resp, "status_code", 500) == 200
+        saved.append({"brand": brand, "ok": bool(ok)})
+    sync = _run_sync()
+    return {"ok": True, "saved": saved, "sync": sync}
+
+
+@router.get("/api/ops/goal-drafts")
+async def ops_goal_drafts_get(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services.goal_drafts import load_drafts
+
+    return {"ok": True, **load_drafts()}
+
+
+@router.post("/api/ops/goal-drafts/generate")
+async def ops_goal_drafts_generate(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services.goal_drafts import generate_drafts
+
+    return await generate_drafts()
+
+
+@router.post("/api/ops/goal-drafts/approve")
+async def ops_goal_drafts_approve(request: Request, index: int = 0):
+    if not _local(request):
+        return _deny()
+    from apps.core.services.goal_drafts import approve_draft
+
+    return approve_draft(index)
+

@@ -16,4 +16,10 @@ async def run() -> None:
         log.info("kilauea kit %s", {k: kit.get(k) for k in ("ok", "cams")})
         return
     pushed = await push_embeds_to_current_collection()
+    try:
+        from apps.core.services.obs_desk_data import quake_feed
+
+        await quake_feed()
+    except Exception:
+        pass
     log.info("kilauea embeds %s", {k: pushed.get(k) for k in ("ok", "changed")})

@@ -526,6 +526,7 @@ async def apply_scene_overlays(obs: Any | None = None, origin: str | None = None
                     "width": 1920,
                     "height": 1080,
                     "shutdown": False,
+                    "restart_when_active": True,
                 },
             )
             placed.append(scene)

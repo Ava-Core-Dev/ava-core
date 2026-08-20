@@ -221,6 +221,12 @@ class StreamDirector:
 
     async def _switch_scene(self, scene_name: str) -> None:
         await self._obs_request("SetCurrentProgramScene", {"sceneName": scene_name})
+        try:
+            from apps.core.services.obs_overlay_gen import bump_overlay_gen
+
+            bump_overlay_gen(scene_name, "director")
+        except Exception:
+            pass
         log.debug("OBS scene → %s", scene_name)
 
     # ── SSE broadcast ─────────────────────────────────────────────────────────

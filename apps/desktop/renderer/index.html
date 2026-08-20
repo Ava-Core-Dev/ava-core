@@ -29,6 +29,7 @@
       <button type="button" class="tab" data-page="feedback">Feedback</button>
       <button type="button" class="tab" data-page="crons">Crons</button>
       <button type="button" class="tab" data-page="desk">Desk</button>
+      <button type="button" class="tab" data-page="sites">Sites</button>
       <button type="button" class="tab" data-page="reports">Reports</button>
       <button type="button" class="tab" data-page="weather-gifs">Weather GIFs</button>
       <button type="button" class="tab" data-page="biz">Biz</button>
@@ -137,13 +138,17 @@
           </div>
           <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Jump to scene</p>
           <div class="row wrap stream-transport" id="stream-scene-btns">
-            <button type="button" data-stream-scene="Main">Main</button>
             <button type="button" data-stream-scene="Weather Board">Weather</button>
             <button type="button" data-stream-scene="Radar">Radar</button>
             <button type="button" data-stream-scene="NHC · EPAC 2-Day">NHC EPAC</button>
             <button type="button" data-stream-scene="Solar Dashboard">Solar</button>
             <button type="button" data-stream-scene="Economy Board">Economy</button>
+            <button type="button" data-stream-scene="Goals Report">Goals</button>
+            <button type="button" data-stream-scene="Dev Updates">Dev</button>
+            <button type="button" data-stream-scene="Support Ava">Support</button>
             <button type="button" data-stream-scene="RootMC Live">Minecraft</button>
+            <button type="button" data-stream-scene="Quake · Global">Quake Global</button>
+            <button type="button" data-stream-scene="Quake · Big Island">Quake HI</button>
             <button type="button" data-stream-scene="KV · V1">KV V1</button>
             <button type="button" data-stream-scene="KV · V2">KV V2</button>
             <button type="button" data-stream-scene="KV · V3">KV V3</button>
@@ -151,6 +156,8 @@
             <button type="button" data-stream-scene="HT · Hawaii">HT Hawaiʻi</button>
             <button type="button" data-stream-scene="Be right back">BRB</button>
           </div>
+          <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Hide scenes from rotator</p>
+          <div id="stream-scene-hide" class="row wrap stream-transport"></div>
         </div>
       </div>
       <p class="hint-inline" style="margin-top:0.35rem">Start/stop streaming in OBS — Ava does not launch OBS or control the stream transport.</p>
@@ -548,6 +555,46 @@
         </div>
       </div>
       <iframe title="Ava desk" src="http://127.0.0.1:8787/ops" style="width:100%;min-height:70vh;border:1px solid var(--border,#1f2937);border-radius:12px;background:#0a0e14"></iframe>
+    </section>
+
+    <section id="page-sites" class="page">
+      <div class="cron-head">
+        <div>
+          <h2 class="cron-title">Sites · avaivy · rootrecord · rootmc</h2>
+          <p class="hint-inline">Control posts across all three sites. Root Record / Goals posts use operator identity <code>root@rootrecord.info</code>.</p>
+        </div>
+        <button type="button" id="sites-refresh">Refresh</button>
+      </div>
+      <div id="sites-latest" class="mc-kpis"></div>
+      <div class="grid-2" style="margin-top:0.75rem">
+        <label>Site
+          <select id="sites-brand">
+            <option value="ava">avaivy.cloud</option>
+            <option value="rootrecord">rootrecord.online</option>
+            <option value="rootmc">rootmc.net</option>
+          </select>
+        </label>
+        <label>Fan-out
+          <select id="sites-fanout">
+            <option value="one">This site only</option>
+            <option value="all">All three sites</option>
+          </select>
+        </label>
+      </div>
+      <label>Title <input id="sites-title" type="text" /></label>
+      <label>Teaser <input id="sites-teaser" type="text" /></label>
+      <label>Body <textarea id="sites-body" class="draft-tall" rows="8"></textarea></label>
+      <div class="row wrap">
+        <button type="button" id="sites-save" class="primary">Save + sync blogs</button>
+        <button type="button" id="sites-publish-rootmc" class="warn-btn">Publish RootMC</button>
+      </div>
+      <h3 class="cron-title" style="margin-top:1.2rem">Goal drafts (from context)</h3>
+      <div class="row wrap">
+        <button type="button" id="sites-goals-generate">Generate drafts</button>
+        <button type="button" id="sites-goals-approve">Approve first draft</button>
+      </div>
+      <pre id="sites-goals-out" class="status"></pre>
+      <pre id="sites-status" class="status"></pre>
     </section>
 
     <section id="page-reports" class="page">
