@@ -120,19 +120,42 @@ async def run():
             await reports.publish("kilauea", content[:1900], channel="kilauea")
 
             alert_level = _infer_alert_level(features, hvo_text)
-            _write_alert_state(config, alert_level)
+            _write_alert_state(config, alert_level, hvo_text)
 
     except Exception:
         log.exception("Kīlauea cron failed")
 
 
 def _infer_alert_level(features: list, hvo_text: str) -> str:
-    blob = (hvo_text or "").lower()
-    if "eruption" in blob or "erupting" in blob or " aviation color code red" in blob:
-        return "eruption"
-    if "watch" in blob or "orange" in blob:
+    """Official USGS/HVO levels only. Do not treat the word 'eruption' in
+    'eruption is paused' / 'not erupting' as a live eruption."""
+    blob = hvo_text or ""
+    low = blob.lower()
+
+    m = re.search(r"current volcano alert level:\s*(warning|watch|advisory|normal)", low)
+    if m:
+        return m.group(1)
+
+    m = re.search(r"current aviation color code:\s*(red|orange|yellow|green)", low)
+    if m:
+        return {
+            "red": "warning",
+            "orange": "watch",
+            "yellow": "advisory",
+            "green": "normal",
+        }[m.group(1)]
+
+    paused = bool(
+        re.search(r"not erupting|is paused|eruption (is )?paused|currently paused", low)
+    )
+    if paused:
+        return "advisory" if ("advisory" in low or "yellow" in low) else "normal"
+
+    if re.search(r"\bis erupting\b", low) or "aviation color code red" in low:
+        return "warning"
+    if "watch" in low or "orange" in low:
         return "watch"
-    if "advisory" in blob or "yellow" in blob:
+    if "advisory" in low or "yellow" in low:
         return "advisory"
     if not features:
         return "normal"
@@ -144,24 +167,43 @@ def _infer_alert_level(features: list, hvo_text: str) -> str:
     return "normal"
 
 
-def _write_alert_state(config, alert_level: str) -> None:
+def _headline(hvo_text: str, alert_level: str) -> str:
+    low = (hvo_text or "").lower()
+    if re.search(r"not erupting|is paused|eruption (is )?paused", low):
+        return "not erupting — Halemaʻumaʻu paused"
+    if alert_level == "warning":
+        return "WARNING — check HVO daily update"
+    if alert_level == "watch":
+        return "WATCH — elevated unrest"
+    if alert_level == "advisory":
+        return "ADVISORY — unrest, not a live fountain"
+    return "quiet"
+
+
+def _write_alert_state(config, alert_level: str, hvo_text: str = "") -> None:
     try:
         state_dir = config.DATA_DIR / "state"
         state_dir.mkdir(parents=True, exist_ok=True)
         state_path = state_dir / "kilauea-alert.json"
+        erupting = alert_level in {"warning"} or bool(
+            re.search(r"\bis erupting\b", (hvo_text or "").lower())
+            and not re.search(r"not erupting|is paused", (hvo_text or "").lower())
+        )
         state_path.write_text(json.dumps({
             "alert_level": alert_level,
             "multiplier": get_multiplier(alert_level),
+            "erupting": erupting,
+            "headline": _headline(hvo_text, alert_level),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }))
-        log.debug("Kīlauea alert state written: %s", alert_level)
+        log.info("Kīlauea alert state written: %s erupting=%s", alert_level, erupting)
     except Exception as e:
         log.warning("Could not write kilauea alert state: %s", e)
 
 
 def get_multiplier(alert_level: str) -> float:
     level = alert_level.lower().strip()
-    if "erupt" in level or "red" in level:
+    if "erupt" in level or "red" in level or "warning" in level:
         return MULTIPLIERS["eruption"]
     if "watch" in level or "orange" in level:
         return MULTIPLIERS["watch"]

@@ -189,8 +189,8 @@ async function refresh() {{
   }} catch (e) {{}}
   try {{
     const w = await fetch('{origin}/api/obs/volcano-watch').then(r => r.json());
-    const a = (w.watch && (w.watch.alert_level || w.watch.mode)) || 'quiet';
-    document.getElementById('alert').textContent = String(a).toUpperCase();
+    const a = (w.watch && (w.watch.headline || w.watch.alert_level)) || 'quiet';
+    document.getElementById('alert').textContent = String(a);
   }} catch (e) {{}}
 }}
 refresh(); setInterval(refresh, 15000);
@@ -201,25 +201,46 @@ refresh(); setInterval(refresh, 15000);
 
 @router.get("/quake-overlay", response_class=HTMLResponse)
 async def obs_quake_overlay():
-    watch = _watch_from_state(_kilauea_state())
-    level = watch.get("alert_level") or "normal"
-    mode = watch.get("mode") or "off"
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
+<meta http-equiv="refresh" content="30"/>
 <style>
 html,body{{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;
 font-family:Segoe UI,system-ui,sans-serif;color:#fff}}
 .box{{position:fixed;top:40px;left:50%;transform:translateX(-50%);
-background:rgba(90,10,10,.88);border:2px solid #ff5e3a;border-radius:16px;
-padding:18px 28px;text-align:center;min-width:640px}}
+background:rgba(8,12,18,.88);border:2px solid rgba(255,200,80,.45);border-radius:16px;
+padding:18px 28px;text-align:center;min-width:720px}}
+.box.hot{{background:rgba(90,10,10,.88);border-color:#ff5e3a}}
 .h{{font-size:14px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}}
-.t{{font-size:36px;font-weight:800;margin-top:4px}}
+.t{{font-size:32px;font-weight:800;margin-top:4px}}
+.s{{font-size:16px;opacity:.85;margin-top:8px}}
 </style></head>
 <body>
-<div class="box">
-  <div class="h">Pacific seismic / volcano desk</div>
-  <div class="t">Kīlauea {level} · {mode}</div>
+<div class="box" id="box">
+  <div class="h">Pacific seismic / volcano desk · HVO</div>
+  <div class="t" id="line">Kīlauea — loading official status…</div>
+  <div class="s" id="sub">Source: USGS Hawaiian Volcano Observatory</div>
 </div>
+<script>
+async function paint() {{
+  try {{
+    const w = await fetch('{origin}/api/obs/volcano-watch').then(r => r.json());
+    const watch = w.watch || {{}};
+    const erupting = !!watch.erupting;
+    const level = (watch.alert_level || 'normal').toUpperCase();
+    const headline = watch.headline || (erupting ? 'erupting' : 'not erupting');
+    document.getElementById('box').className = 'box' + (erupting ? ' hot' : '');
+    document.getElementById('line').textContent = erupting
+      ? ('Kīlauea ' + level + ' · erupting')
+      : ('Kīlauea ' + level + ' · not erupting');
+    document.getElementById('sub').textContent = headline;
+  }} catch (e) {{
+    document.getElementById('line').textContent = 'Kīlauea status unavailable';
+  }}
+}}
+paint(); setInterval(paint, 15000);
+</script>
 </body></html>""")
 
 
@@ -235,12 +256,20 @@ def _kilauea_state() -> dict:
 
 def _watch_from_state(state: dict) -> dict:
     level = str(state.get("alert_level") or "").strip().lower()
-    erupting = level in {"watch", "warning", "eruption", "advisory"}
+    if level in {"eruption", "erupting"}:
+        level = "warning"
+    erupting = bool(state.get("erupting")) if "erupting" in state else level == "warning"
+    if level in {"advisory", "normal", ""}:
+        erupting = False
+    headline = state.get("headline") or (
+        "WARNING" if erupting else f"{(level or 'normal').upper()} — not a live fountain"
+    )
     return {
-        "active": erupting,
-        "erupting": level in {"watch", "warning", "eruption"},
-        "mode": "active" if erupting else "off",
-        "alert_level": state.get("alert_level"),
+        "active": erupting or level in {"watch", "warning"},
+        "erupting": erupting,
+        "mode": "erupting" if erupting else "paused" if level == "advisory" else "off",
+        "alert_level": level or "normal",
+        "headline": headline,
         "multiplier": state.get("multiplier"),
         "updated_at": state.get("updated_at"),
     }
