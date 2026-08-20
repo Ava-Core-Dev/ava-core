@@ -75,6 +75,7 @@
 
   "footer": {
     "links": [
+      { "label": "Blog", "href": "/blog" },
       { "label": "RootMC", "href": "https://rootmc.net" },
       { "label": "Root Record", "href": "https://rootrecord.online" },
       { "label": "Public index", "href": "/media" }
