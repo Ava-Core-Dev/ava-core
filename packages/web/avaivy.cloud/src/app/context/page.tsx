@@ -1,4 +1,5 @@
 import blog from "../blog/blog.module.css";
+import { sanitizeVendorDeep, sanitizeVendorNames } from "../../lib/sanitizeVendorNames";
 
 export const revalidate = 60;
 
@@ -8,9 +9,14 @@ async function getContext() {
       `${process.env.AVA_ORIGIN_URL || "https://ava-origin.rootmc.net"}/api/context`,
       { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) }
     );
-    if (r.ok) return r.json();
+    if (r.ok) return sanitizeVendorDeep(await r.json());
   } catch {}
   return null;
+}
+
+function renderContext(ctx: Record<string, unknown>): string {
+  if (typeof ctx.content === "string") return sanitizeVendorNames(ctx.content);
+  return sanitizeVendorNames(JSON.stringify(ctx, null, 2));
 }
 
 export default async function ContextPage() {
@@ -23,7 +29,7 @@ export default async function ContextPage() {
       <p className={blog.lead}>Live operational context — refreshed every 60 seconds.</p>
       {ctx ? (
         <pre className={blog.card} style={{ whiteSpace: "pre-wrap", overflowX: "auto", fontFamily: "var(--font-mono)", fontSize: 13, lineHeight: 1.6 }}>
-          {typeof ctx.content === "string" ? ctx.content : JSON.stringify(ctx, null, 2)}
+          {renderContext(ctx as Record<string, unknown>)}
         </pre>
       ) : (
         <div className={blog.card} style={{ textAlign: "center", color: "var(--muted)" }}>

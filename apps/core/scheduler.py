@@ -112,6 +112,10 @@ class Scheduler:
         s.add_job(self._run("ecoflow_quota"), IntervalTrigger(minutes=2),
                   id="ecoflow-quota", name="EcoFlow quota refresh", misfire_grace_time=60)
 
+        # Host CPU/RAM samples for solar/status desk history charts (~1/min)
+        s.add_job(self._sample_host, IntervalTrigger(minutes=1),
+                  id="host-sample", name="Host CPU/RAM sample", misfire_grace_time=45)
+
         s.add_job(self._run("nhc_media"), IntervalTrigger(minutes=10),
                   id="nhc-media", name="NHC EPAC + CPAC forecast graphics", misfire_grace_time=90)
 
@@ -130,6 +134,14 @@ class Scheduler:
 
         log.info("Registered %d cron jobs (always-on, no sleep gate)",
                  len(s.get_jobs()))
+
+    @staticmethod
+    async def _sample_host():
+        try:
+            from apps.core.crons.solar_weather import record_host_sample
+            record_host_sample()
+        except Exception as e:
+            log.debug("host sample skipped: %s", e)
 
     @staticmethod
     def _run(name: str):

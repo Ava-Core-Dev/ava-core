@@ -563,39 +563,163 @@ def _iter_history_rows(hist: Path, *, tail: int = 800):
             yield device, row
 
 
+_HOST_SAMPLE_MIN_GAP_S = 50
+_last_host_sample_at = 0.0
+
+
+def _host_history_paths() -> list[Path]:
+    """Canonical + legacy host CPU jsonl locations."""
+    from apps.core import config
+
+    paths: list[Path] = []
+    seen: set[Path] = set()
+    candidates = [
+        config.DATA_DIR / "host" / "history.jsonl",
+        config.DATA_DIR / "biz" / "cpu.jsonl",
+        config.AVA_HOME / "data" / "host" / "history.jsonl",
+        config.AVA_HOME / "data" / "biz" / "cpu.jsonl",
+        Path("/home/ava-core/ava/data/host/history.jsonl"),
+        Path("/home/ava-core/ava/data/biz/cpu.jsonl"),
+    ]
+    for p in candidates:
+        try:
+            rp = p.resolve()
+        except OSError:
+            rp = p
+        if rp in seen:
+            continue
+        seen.add(rp)
+        paths.append(p)
+    return paths
+
+
+def record_host_sample(*, force: bool = False) -> dict | None:
+    """Append one CPU/RAM sample (~1/min). Safe to call from desk/API/cron."""
+    global _last_host_sample_at
+    now = time.time()
+    if not force and now - _last_host_sample_at < _HOST_SAMPLE_MIN_GAP_S:
+        return None
+    try:
+        import psutil
+    except ImportError:
+        return None
+    from apps.core import config
+
+    cpu = float(psutil.cpu_percent(interval=None))
+    mem = psutil.virtual_memory()
+    row = {
+        "at": int(now * 1000),
+        "cpu_pct": round(cpu, 2),
+        "mem_pct": round(float(mem.percent), 2),
+    }
+    out = config.DATA_DIR / "host" / "history.jsonl"
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with out.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, separators=(",", ":")) + "\n")
+        _last_host_sample_at = now
+    except OSError as e:
+        log.debug("host sample write skipped: %s", e)
+        return None
+    return row
+
+
+def _cpu_from_row(row: dict) -> float | None:
+    for key in ("cpu_pct", "hostCpu", "cpu", "host_cpu"):
+        v = row.get(key)
+        if v is None or v == "":
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= n <= 100:
+            return round(n, 2)
+    return None
+
+
+def _iter_host_cpu_rows(*, tail: int = 2000):
+    """Yield (at_ms, cpu_pct) from host/biz cpu history files."""
+    for path in _host_history_paths():
+        if not path.is_file():
+            continue
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            continue
+        # Legacy biz writer sometimes pads with NULs
+        text = raw.replace(b"\x00", b"").decode("utf-8", errors="replace")
+        lines = text.splitlines()[-tail:]
+        for line in lines:
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                row = json_loads(line)
+            except Exception:
+                continue
+            cpu = _cpu_from_row(row)
+            if cpu is None:
+                continue
+            at_ms = _parse_history_at_ms(row, int(time.time() * 1000))
+            if at_ms is None:
+                t = row.get("t")
+                try:
+                    at_ms = int(t)
+                    if at_ms < 10_000_000_000:
+                        at_ms *= 1000
+                except (TypeError, ValueError):
+                    continue
+            yield at_ms, cpu
+
+
+def _host_cpu_by_minute(hours: float, now_ms: int) -> dict[int, float]:
+    window_ms = now_ms - int(hours * 3600_000)
+    by_min: dict[int, float] = {}
+    for at_ms, cpu in _iter_host_cpu_rows(tail=max(400, int(hours * 60) + 120)):
+        if at_ms < window_ms:
+            continue
+        minute = (at_ms // 60_000) * 60_000
+        by_min[minute] = cpu  # latest sample in that minute wins
+    return by_min
+
+
 def history_points(hours: float = 12) -> dict:
-    """Bank time series from EcoFlow history jsonl for the last N hours."""
+    """Bank + host time series for the last N hours (solar_w, load_w, soc, cpu_pct)."""
     hours = max(0.25, min(float(hours or 12), 72))
+    # Opportunistic sample so the chart grows even before the minute cron fires.
+    record_host_sample()
     root = _ecoflow_root()
     hist = root / "history" if root else None
-    if not hist or not hist.is_dir():
-        return {"ok": True, "points": [], "hours": hours}
     now_ms = int(time.time() * 1000)
     window_ms = now_ms - int(hours * 3600_000)
     # ~1 sample/min/device × hours × devices, with headroom
     tail = max(800, int(hours * 60 * 4) + 200)
     # minute_ms -> device -> latest sample fields
     buckets: dict[int, dict[str, dict[str, float | None]]] = {}
-    for device, row in _iter_history_rows(hist, tail=tail):
-        at_ms = _parse_history_at_ms(row, now_ms)
-        if at_ms is None or at_ms < window_ms:
-            continue
-        minute = (at_ms // 60_000) * 60_000
-        solar = row.get("solarW")
-        out = row.get("outW")
-        soc = row.get("soc")
-        try:
-            sample = {
-                "solar_w": float(solar) if solar is not None else None,
-                "load_w": float(out) if out is not None else None,
-                "soc": float(soc) if soc is not None else None,
-            }
-        except (TypeError, ValueError):
-            continue
-        buckets.setdefault(minute, {})[device] = sample
+    if hist and hist.is_dir():
+        for device, row in _iter_history_rows(hist, tail=tail):
+            at_ms = _parse_history_at_ms(row, now_ms)
+            if at_ms is None or at_ms < window_ms:
+                continue
+            minute = (at_ms // 60_000) * 60_000
+            solar = row.get("solarW")
+            out = row.get("outW")
+            soc = row.get("soc")
+            try:
+                sample = {
+                    "solar_w": float(solar) if solar is not None else None,
+                    "load_w": float(out) if out is not None else None,
+                    "soc": float(soc) if soc is not None else None,
+                }
+            except (TypeError, ValueError):
+                continue
+            buckets.setdefault(minute, {})[device] = sample
+    cpu_by_min = _host_cpu_by_minute(hours, now_ms)
+    minutes = sorted(set(buckets) | set(cpu_by_min))
     points: list[dict] = []
-    for minute in sorted(buckets):
-        samples = list(buckets[minute].values())
+    for minute in minutes:
+        samples = list(buckets.get(minute, {}).values())
         solar_vals = [s["solar_w"] for s in samples if s["solar_w"] is not None]
         load_vals = [s["load_w"] for s in samples if s["load_w"] is not None]
         soc_vals = [
@@ -603,11 +727,13 @@ def history_points(hours: float = 12) -> dict:
             if s["soc"] is not None and 0 <= float(s["soc"]) <= 100
         ]
         t = datetime.fromtimestamp(minute / 1000, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+        cpu = cpu_by_min.get(minute)
         points.append({
             "t": t,
             "solar_w": round(sum(solar_vals), 1) if solar_vals else None,
             "load_w": round(sum(load_vals), 1) if load_vals else None,
             "soc": round(sum(soc_vals) / len(soc_vals), 1) if soc_vals else None,
+            "cpu_pct": round(cpu, 2) if cpu is not None else None,
         })
     return {"ok": True, "points": points, "hours": hours}
 

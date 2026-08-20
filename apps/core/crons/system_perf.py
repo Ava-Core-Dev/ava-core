@@ -31,4 +31,9 @@ async def run():
 
     report_path = config.REPORTS_DIR / f"system-performance-{now.strftime('%Y-%m-%dT%H')}.md"
     report_path.write_text(content)
+    try:
+        from apps.core.crons.solar_weather import record_host_sample
+        record_host_sample(force=True)
+    except Exception as e:
+        log.debug("host sample from system_perf skipped: %s", e)
     log.info("System performance written: %s  cpu=%s%%  ram=%s%%", report_path.name, cpu, mem.percent)

@@ -43,7 +43,7 @@ export default function WalletsPage() {
           <ul>
             <li>
               Take inbound SOL, USDC, BTC, Sui, and EVM-chain transfers so Ava can work toward
-              covering the documented ~$200/month ecosystem floor (host, tools, voice, Cursor)
+              covering the documented ~$200/month ecosystem floor (host, tools, voice, coding agent)
               from earned income — not from a personal draw.
             </li>
             <li>
