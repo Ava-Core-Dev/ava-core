@@ -119,11 +119,21 @@ def economy_desk() -> dict[str, Any]:
 
 
 async def _fetch_quakes() -> dict[str, Any]:
-    start = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    payload: dict[str, Any] = {"ts": datetime.now(timezone.utc).isoformat(), "global": [], "island": []}
+    # Island query: rolling 24h window (not just "today UTC midnight")
+    start = (datetime.now(timezone.utc).timestamp() - 86400)
+    start_iso = datetime.fromtimestamp(start, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    payload: dict[str, Any] = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "global": [],
+        "island": [],
+    }
     try:
-        g = _get_json(USGS_ALL)
-        for f in (g.get("features") or [])[:12]:
+        # Match USGS map "M2.5+ Past Day" — not all_day microquakes
+        g = _get_json(USGS_DAY)
+        feats = list(g.get("features") or [])
+        feats.sort(key=lambda f: int((f.get("properties") or {}).get("time") or 0), reverse=True)
+        for f in feats[:12]:
             props = f.get("properties") or {}
             payload["global"].append(
                 {
@@ -137,8 +147,10 @@ async def _fetch_quakes() -> dict[str, Any]:
     except Exception as e:
         payload["global_error"] = str(e)[:120]
     try:
-        h = _get_json(USGS_HAWAII.format(start=start))
-        for f in (h.get("features") or [])[:12]:
+        h = _get_json(USGS_HAWAII.format(start=start_iso))
+        feats = list(h.get("features") or [])
+        feats.sort(key=lambda f: int((f.get("properties") or {}).get("time") or 0), reverse=True)
+        for f in feats[:12]:
             props = f.get("properties") or {}
             payload["island"].append(
                 {
@@ -156,11 +168,20 @@ async def _fetch_quakes() -> dict[str, Any]:
     return payload
 
 
-async def quake_feed() -> dict[str, Any]:
-    if QUAKE_CACHE.is_file():
+async def quake_feed(*, force: bool = False, max_age_s: float = 45.0) -> dict[str, Any]:
+    """Live USGS feed with short TTL — never serve a forever-stale cache."""
+    if not force and QUAKE_CACHE.is_file():
         try:
             cached = json.loads(QUAKE_CACHE.read_text())
-            if cached.get("global") or cached.get("island"):
+            age_ok = False
+            stamp = cached.get("fetched_at") or cached.get("ts")
+            if stamp:
+                try:
+                    when = datetime.fromisoformat(str(stamp).replace("Z", "+00:00"))
+                    age_ok = (datetime.now(timezone.utc) - when).total_seconds() <= max_age_s
+                except Exception:
+                    age_ok = False
+            if age_ok and (cached.get("global") or cached.get("island")):
                 return cached
         except Exception:
             pass

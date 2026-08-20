@@ -357,8 +357,8 @@ async def push_embeds_to_current_collection() -> dict:
                         "RemoveSceneItem",
                         {"sceneName": KILAUEA_WATCH, "sceneItemId": it["sceneItemId"]},
                     )
-            # Ensure HVO Kilauea is fitted on canvas
-            from apps.core.services.obs_studio import _fit, _ensure_input
+            # Ensure HVO Kilauea is on the scene — do NOT resize user transforms
+            from apps.core.services.obs_studio import _ensure_input
 
             v1 = next((c for c in data.get("cams") or [] if c.get("id") == "usgs_v1"), None)
             if v1:
@@ -376,7 +376,6 @@ async def push_embeds_to_current_collection() -> dict:
                         "css": "body{margin:0;overflow:hidden;background:#000;}",
                     },
                 )
-                await _fit(obs, KILAUEA_WATCH, "HVO Kilauea")
 
         return {
             "ok": True,

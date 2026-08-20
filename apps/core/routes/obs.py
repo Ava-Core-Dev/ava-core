@@ -984,7 +984,7 @@ async def api_obs_dev_updates_desk():
 async def api_obs_quake_desk(scope: str = "global"):
     from apps.core.services.obs_desk_data import quake_feed
 
-    data = await quake_feed()
+    data = await quake_feed(force=True)
     key = "island" if scope == "island" else "global"
     return {"ok": True, "scope": key, "quakes": data.get(key) or [], "ts": data.get("ts")}
 
