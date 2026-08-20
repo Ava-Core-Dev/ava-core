@@ -730,6 +730,74 @@ async def obs_solar_dashboard():
     return HTMLResponse(html.replace("__ORIGIN__", origin))
 
 
+def _overlays_root() -> Path:
+    return Path(__file__).resolve().parent.parent / "templates" / "overlays"
+
+
+@router.get("/overlays/_shared/{asset_name}")
+async def obs_overlay_shared_asset(asset_name: str):
+    """Serve shared CSS/JS for isolated card overlays."""
+    safe = Path(asset_name).name
+    path = _overlays_root() / "_shared" / safe
+    if not path.is_file():
+        return Response("missing", status_code=404)
+    media = "text/css" if safe.endswith(".css") else "application/javascript" if safe.endswith(".js") else "text/plain"
+    body = path.read_text(encoding="utf-8")
+    if "__ORIGIN__" in body:
+        body = body.replace("__ORIGIN__", f"http://127.0.0.1:{config.AVA_PORT}")
+    return Response(body, media_type=media)
+
+
+@router.get("/card/{board}/{card}", response_class=HTMLResponse)
+async def obs_overlay_card(board: str, card: str):
+    """Isolated board card — one OBS Browser Source per element."""
+    b = Path(board).name
+    c = Path(card).name
+    path = _overlays_root() / b / f"{c}.html"
+    if not path.is_file():
+        return HTMLResponse(f"<p>card missing: {b}/{c}</p>", status_code=404)
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(path.read_text(encoding="utf-8").replace("__ORIGIN__", origin))
+
+
+@router.get("/cards", response_class=HTMLResponse)
+async def obs_overlay_cards_index():
+    """Human-readable index of every isolated overlay card."""
+    root = _overlays_root()
+    cat = root / "catalog.json"
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    if cat.is_file():
+        data = json.loads(cat.read_text(encoding="utf-8"))
+    else:
+        data = {"cards": []}
+    rows = []
+    for item in data.get("cards") or []:
+        url = f"{origin}{item['url']}"
+        rows.append(
+            f"<tr><td>{item['board']}</td><td><code>{item['card']}</code></td>"
+            f"<td><a href='{url}' target='_blank'>{url}</a></td></tr>"
+        )
+    html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>OBS Overlay Cards</title>
+<style>body{{font-family:system-ui;background:#0b1220;color:#e8f4ff;padding:24px}}
+table{{border-collapse:collapse;width:100%}}td,th{{border:1px solid #234;padding:8px;text-align:left}}
+a{{color:#38bdf8}}code{{color:#ffd54a}}</style></head><body>
+<h1>OBS Overlay Cards ({len(rows)})</h1>
+<p>Each URL is a transparent 1920×1080 page — add as its own Browser Source.</p>
+<table><thead><tr><th>Board</th><th>Card</th><th>URL</th></tr></thead>
+<tbody>{''.join(rows)}</tbody></table></body></html>"""
+    return HTMLResponse(html)
+
+
+@api_router.get("/overlay-cards")
+async def api_overlay_cards():
+    cat = _overlays_root() / "catalog.json"
+    if not cat.is_file():
+        return {"ok": False, "cards": []}
+    data = json.loads(cat.read_text(encoding="utf-8"))
+    data["origin"] = f"http://127.0.0.1:{config.AVA_PORT}"
+    return data
+
+
 def _template_html(name: str) -> str:
     path = Path(__file__).resolve().parent.parent / "templates" / name
     return path.read_text(encoding="utf-8") if path.is_file() else f"<p>{name} missing</p>"
