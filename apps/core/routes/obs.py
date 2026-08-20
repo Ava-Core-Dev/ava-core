@@ -723,3 +723,129 @@ async def obs_solar_dashboard():
     path = Path(__file__).resolve().parent.parent / "templates" / "obs-solar.html"
     html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar overlay missing</p>"
     return HTMLResponse(html.replace("__ORIGIN__", origin))
+
+
+def _template_html(name: str) -> str:
+    path = Path(__file__).resolve().parent.parent / "templates" / name
+    return path.read_text(encoding="utf-8") if path.is_file() else f"<p>{name} missing</p>"
+
+
+@router.get("/kilauea-cam", response_class=HTMLResponse)
+async def obs_kilauea_cam():
+    return HTMLResponse(_template_html("obs-kilauea-cam.html"))
+
+
+@router.get("/weather-board", response_class=HTMLResponse)
+async def obs_weather_board():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(_template_html("obs-weather.html").replace("__ORIGIN__", origin))
+
+
+@router.get("/economy-board", response_class=HTMLResponse)
+async def obs_economy_board():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(_template_html("obs-economy.html").replace("__ORIGIN__", origin))
+
+
+@router.get("/goals-report", response_class=HTMLResponse)
+async def obs_goals_report():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(_template_html("obs-goals.html").replace("__ORIGIN__", origin))
+
+
+@router.get("/dev-updates", response_class=HTMLResponse)
+async def obs_dev_updates():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(_template_html("obs-dev-updates.html").replace("__ORIGIN__", origin))
+
+
+@router.get("/quake-global", response_class=HTMLResponse)
+async def obs_quake_global():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(_template_html("obs-quake-global.html").replace("__ORIGIN__", origin))
+
+
+@router.get("/quake-island", response_class=HTMLResponse)
+async def obs_quake_island():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(_template_html("obs-quake-island.html").replace("__ORIGIN__", origin))
+
+
+USGS_MAP_GLOBAL = (
+    "https://earthquake.usgs.gov/earthquakes/map/"
+    "?extent=-80.58973,-374.0625&extent=84.9901,164.88281"
+)
+USGS_MAP_ISLAND = (
+    "https://earthquake.usgs.gov/earthquakes/map/"
+    "?extent=18.5,-161.0&extent=22.5,-154.0"
+)
+
+
+@api_router.get("/overlay-gen")
+async def api_obs_overlay_gen():
+    from apps.core.services.obs_overlay_gen import load_gen
+
+    return {"ok": True, **load_gen()}
+
+
+@api_router.get("/weather-desk")
+async def api_obs_weather_desk():
+    from datetime import datetime, timezone
+
+    out = {"ok": True, "ts": datetime.now(timezone.utc).isoformat(), "conditions": "—", "temp_f": None, "wind": "—", "hazards": "none"}
+    try:
+        from apps.core.routes.realworld import api_weather
+
+        w = await api_weather()
+        if isinstance(w, dict):
+            out["conditions"] = w.get("conditions") or w.get("shortForecast") or out["conditions"]
+            out["temp_f"] = w.get("temp_f") or w.get("temperature")
+            out["wind"] = w.get("wind") or w.get("windSpeed") or out["wind"]
+            out["hazards"] = w.get("hazards") or out["hazards"]
+    except Exception:
+        pass
+    return out
+
+
+@api_router.get("/economy-desk")
+async def api_obs_economy_desk():
+    from apps.core.services.obs_desk_data import economy_desk
+
+    return economy_desk()
+
+
+@api_router.get("/dev-updates-desk")
+async def api_obs_dev_updates_desk():
+    from apps.core.services.obs_desk_data import latest_blog_across_sites
+
+    return {"ok": True, **latest_blog_across_sites()}
+
+
+@api_router.get("/quake-desk")
+async def api_obs_quake_desk(scope: str = "global"):
+    from apps.core.services.obs_desk_data import quake_feed
+
+    data = await quake_feed()
+    key = "island" if scope == "island" else "global"
+    return {"ok": True, "scope": key, "quakes": data.get(key) or [], "ts": data.get("ts")}
+
+
+class SceneVisibilityBody(BaseModel):
+    hidden_manual: list[str] = []
+
+
+@api_router.get("/scene-visibility")
+async def api_obs_scene_visibility_get():
+    from apps.core.services.obs_scene_visibility import load_visibility
+
+    return {"ok": True, **load_visibility()}
+
+
+@api_router.post("/scene-visibility")
+async def api_obs_scene_visibility_post(body: SceneVisibilityBody):
+    from apps.core.services.obs_scene_visibility import set_manual_hidden, refresh_auto_hide
+
+    vis = set_manual_hidden(body.hidden_manual)
+    vis = await refresh_auto_hide()
+    return {"ok": True, **vis}
+

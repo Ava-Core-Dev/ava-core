@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Dev updates</title>
+<style>
+  html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;color:#e8f4ff;font-family:"Segoe UI",Inter,system-ui,sans-serif}
+  .panel{position:fixed;left:48px;top:120px;width:860px;background:rgba(10,14,28,.9);border:1px solid rgba(129,140,248,.4);border-radius:20px;padding:28px 32px}
+  .k{letter-spacing:.16em;text-transform:uppercase;color:#818cf8;font-size:13px}
+  h1{margin:8px 0 12px;font-size:36px}
+  .site{font-size:18px;color:#a5b4fc;margin-bottom:16px}
+  p{font-size:22px;line-height:1.45;margin:0;opacity:.9}
+  .date{margin-top:18px;font-size:16px;opacity:.7}
+  .toast{position:fixed;top:48px;right:48px;background:rgba(129,140,248,.92);padding:14px 20px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .3s}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+  <div class="toast" id="toast">Latest update</div>
+  <div class="panel">
+    <div class="k">Latest across all sites</div>
+    <div class="site" id="site">—</div>
+    <h1 id="title">Loading…</h1>
+    <p id="teaser">—</p>
+    <div class="date" id="date">—</div>
+  </div>
+<script>
+const origin='__ORIGIN__';
+let lastGen=0, lastSlug='';
+async function tick(){
+  try{
+    const [d,g]=await Promise.all([
+      fetch(origin+'/api/obs/dev-updates-desk').then(r=>r.json()),
+      fetch(origin+'/api/obs/overlay-gen').then(r=>r.json())
+    ]);
+    document.getElementById('site').textContent=d.site_label||'—';
+    document.getElementById('title').textContent=d.title||'—';
+    document.getElementById('teaser').textContent=d.teaser||'';
+    document.getElementById('date').textContent=d.date||'';
+    const slug=(d.slug||'')+(d.date||'');
+    if((g.gen&&g.gen!==lastGen)||(slug&&slug!==lastSlug)){
+      lastGen=g.gen||lastGen; lastSlug=slug;
+      const t=document.getElementById('toast'); t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),3500);
+    }
+  }catch(e){}
+}
+tick(); setInterval(tick,15000);
+</script>
+</body>
+</html>

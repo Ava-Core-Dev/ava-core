@@ -22,9 +22,10 @@ HURRICANE_COLLECTION = "Ava Hurricane Tracker"
 HURRICANE_DWELL_S = 42
 MC_SCENE = "RootMC Live"
 MC_SHARE = 0.75
+QUAKE_GLOBAL = "Quake · Global"
+QUAKE_ISLAND = "Quake · Big Island"
+DEFAULT_START_SCENE = "Weather Board"
 AMBIENT_SCENES = [
-    "Main",
-    "Ambient Playlist",
     "Weather Board",
     "Radar",
     "Satellite",
@@ -44,6 +45,8 @@ AMBIENT_SCENES = [
     "Goals Report",
     "Dev Updates",
     "Support Ava",
+    QUAKE_GLOBAL,
+    QUAKE_ISLAND,
 ]
 def weather_scene_pool() -> list[str]:
     from apps.core.services.nhc_media import nhc_outlook_scenes
@@ -66,8 +69,6 @@ LOOP_SCENES = [
 
 # Primary media per scene — rotator waits for this to finish before leaving.
 SCENE_MEDIA = {
-    "Main": ("Daily Loop", "vlc"),
-    "Ambient Playlist": ("Daily Loop", "vlc"),
     "Weather Board": ("NWS Hawaii", "ffmpeg"),
     "Radar": ("NWS Radar", "image"),
     "Satellite": ("Hawaii IR", "image"),
@@ -84,10 +85,11 @@ SCENE_MEDIA = {
     "Kilauea Watch": ("Kilauea Audio", "ffmpeg"),
     "Solar Dashboard": ("Solar Audio", "ffmpeg"),
     "Economy Board": ("Economy Audio", "ffmpeg"),
-    "Goals Report": ("Goals Video", "ffmpeg"),
+    "Goals Report": ("Goals Audio", "ffmpeg"),
     "Dev Updates": ("Dev Audio", "ffmpeg"),
     "Support Ava": ("Solana QR", "image"),
-    "Quake Overlay": ("Quake Loop", "ffmpeg"),
+    QUAKE_GLOBAL: ("Quake Global Map", "browser"),
+    QUAKE_ISLAND: ("Quake Island Map", "browser"),
 }
 # Ambient VLC can be on Morning_Broadcast_Current (~7 min); wait at least that long
 # unless GetMediaInputStatus reports the current item has ended.
