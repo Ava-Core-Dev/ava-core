@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
+import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 from apps.core import config
 
@@ -77,6 +78,61 @@ def _cmdlines() -> list[str]:
     return out
 
 
+def minecraft_window_title() -> str | None:
+    """Best-effort X11 window title for the Minecraft client."""
+    try:
+        out = subprocess.run(
+            ["wmctrl", "-l"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        for line in (out.stdout or "").splitlines():
+            low = line.lower()
+            if "minecraft" in low and "obs" not in low:
+                parts = line.split(None, 3)
+                if len(parts) >= 4:
+                    return parts[3]
+    except Exception:
+        pass
+    return None
+
+
+def resolve_capture_window() -> str:
+    st = load_state()
+    if st.get("window_title"):
+        return str(st["window_title"])
+    live = minecraft_window_title()
+    if live:
+        st["window_title"] = live
+        save_state(st)
+        return live
+    return "Minecraft"
+
+
+async def bind_minecraft_capture(obs: Any, ingame: bool) -> None:
+    """Point MC Game capture at the live window title; disable when offline."""
+    if not ingame:
+        return
+    title = resolve_capture_window()
+    lst = await obs.try_req("GetInputList") or {}
+    names = {i.get("inputName") for i in lst.get("inputs") or []}
+    if "MC Game" not in names:
+        return
+    st = await obs.try_req("GetInputSettings", {"inputName": "MC Game"}) or {}
+    settings = dict(st.get("inputSettings") or {})
+    kind = str(st.get("inputKind") or "")
+    if "xcomposite" in kind:
+        if settings.get("capture_window") != title:
+            settings["capture_window"] = title
+            settings["show_cursor"] = False
+            await obs.try_req(
+                "SetInputSettings",
+                {"inputName": "MC Game", "inputSettings": settings},
+            )
+
+
 def client_running() -> bool:
     for cmd in _cmdlines():
         if any(s in cmd for s in _SERVER_MARKERS) and "net.minecraft.client" not in cmd:
@@ -116,6 +172,7 @@ def snapshot(*, players_online: int | None = None) -> dict:
         "ingame": bool(ingame),
         "was_ingame": bool(prev.get("ingame")),
         "client_now": live_now,
+        "window_title": resolve_capture_window() if live_now else prev.get("window_title"),
         "last_seen": last_seen or None,
         "grace_s": GRACE_S,
         "players_online": players_online,

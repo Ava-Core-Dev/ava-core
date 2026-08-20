@@ -386,13 +386,55 @@ async def _enable_item(obs: ObsClient, scene: str, source: str, on: bool) -> boo
 
 
 SKIP_LOWER_THIRD = {
-    "Main",
     "Solar Dashboard",
-    "Quake Overlay",
+    QUAKE_GLOBAL,
+    QUAKE_ISLAND,
     "Support Ava",
     "Kilauea Watch",
 }
 
+
+USGS_MAP_GLOBAL = (
+    "https://earthquake.usgs.gov/earthquakes/map/"
+    "?extent=-80.58973,-374.0625&extent=84.9901,164.88281"
+)
+USGS_MAP_ISLAND = (
+    "https://earthquake.usgs.gov/earthquakes/map/"
+    "?extent=18.5,-161.0&extent=22.5,-154.0"
+)
+
+
+async def _overlay_browser(
+    obs: ObsClient,
+    scene: str,
+    name: str,
+    url: str,
+    *,
+    restart: bool = True,
+) -> None:
+    await _ensure_input(
+        obs,
+        scene,
+        name,
+        "browser_source",
+        {
+            "url": url,
+            "width": 1920,
+            "height": 1080,
+            "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
+            "shutdown": False,
+            "restart_when_active": restart,
+        },
+    )
+    await _fit(obs, scene, name)
+
+
+async def _remove_legacy_scenes(obs: ObsClient) -> list[str]:
+    removed = []
+    for scene in ("Main", "Ambient Playlist", "Quake Overlay"):
+        await obs.try_req("RemoveScene", {"sceneName": scene})
+        removed.append(scene)
+    return removed
 
 async def apply_scene_overlays(obs: Any | None = None, origin: str | None = None) -> dict:
     """Add lower-third + director audio to daily scenes that only had media."""
@@ -442,7 +484,7 @@ async def apply_scene_overlays(obs: Any | None = None, origin: str | None = None
                     "height": 1080,
                     "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
                     "shutdown": False,
-                    "restart_when_active": False,
+                    "restart_when_active": True,
                 },
             )
         for scene in targets:
@@ -690,66 +732,17 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         }
         for scene in [
             *LOOP_SCENES,
-            "Quake Overlay",
+            QUAKE_GLOBAL,
+            QUAKE_ISLAND,
             "Support Ava",
             "Be right back",
-            "Ambient Playlist",
         ]:
             if scene not in existing_scenes:
                 await obs.try_req("CreateScene", {"sceneName": scene})
 
-        # Main — looping playlist + still + overlays + director audio
-        if playlist:
-            await _ensure_input(
-                obs,
-                "Main",
-                "Daily Loop",
-                "vlc_source",
-                {"playlist": playlist, "loop": True, "shuffle": True},
-                audio=True,
-            )
-            await _fit(obs, "Main", "Daily Loop")
-        await _ensure_input(
-            obs,
-            "Main",
-            "Broadcast Still",
-            "image_source",
-            {"file": str(bg if bg.is_file() else thumb)},
-        )
-        await _fit(obs, "Main", "Broadcast Still")
-        await _ensure_input(
-            obs,
-            "Main",
-            "Ava HUD",
-            "browser_source",
-            {
-                "url": f"{origin}/obs/hud",
-                "width": 1920,
-                "height": 1080,
-                "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
-                "reroute_audio": False,
-                "shutdown": False,
-                "restart_when_active": False,
-            },
-        )
-        await _fit(obs, "Main", "Ava HUD")
-        await _ensure_input(
-            obs,
-            "Main",
-            "Ava Audio",
-            "browser_source",
-            {
-                "url": f"{origin}/obs/audio-stream",
-                "width": 2,
-                "height": 2,
-                "reroute_audio": True,
-                "shutdown": False,
-                "restart_when_active": True,
-            },
-            audio=True,
-        )
+        await _remove_legacy_scenes(obs)
 
-        # Weather
+        # Weather overlay on Weather Board
         if nws.is_file():
             await _ensure_input(
                 obs,
@@ -768,13 +761,14 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             )
             await _fit(obs, "Weather Board", "NWS Hawaii")
         await apply_weather_radar(obs)
+        await _overlay_browser(obs, "Weather Board", "Weather Overlay", f"{origin}/obs/weather-board")
 
-        # Kilauea — V1 YouTube embed (not the USGS directory page, which 403s in OBS)
-        from apps.core.services.kilauea_cams import load_catalog, _embed
+        # Kilauea — local USGS still page (never YouTube embed in OBS)
+        from apps.core.services.kilauea_cams import load_catalog, obs_cam_url
 
         cat = load_catalog()
         v1 = next((c for c in cat.get("cams") or [] if c.get("id") == "usgs_v1"), None)
-        v1_url = (v1 or {}).get("url") or _embed("HggWKlZv9yk")
+        v1_url = (v1 or {}).get("obs_url") or obs_cam_url("usgs_v1")
         await _ensure_input(
             obs,
             "Kilauea Watch",
@@ -801,8 +795,15 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                     "width": 1920,
                     "height": 1080,
                     "shutdown": False,
+                    "restart_when_active": True,
                 },
             )
+        await _overlay_browser(
+            obs,
+            "Kilauea Watch",
+            "Kilauea Desk",
+            f"{origin}/obs/kilauea-desk?cam=usgs_v1",
+        )
 
         # Solar
         still_solar = thumb
@@ -868,6 +869,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 },
                 audio=True,
             )
+        await _overlay_browser(obs, "Economy Board", "Economy Overlay", f"{origin}/obs/economy-board")
         await _ensure_input(
             obs,
             "RootMC Live",
@@ -936,6 +938,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 },
                 audio=True,
             )
+        await _overlay_browser(obs, "Goals Report", "Goals Overlay", f"{origin}/obs/goals-report")
         await _ensure_input(
             obs,
             "Dev Updates",
@@ -944,6 +947,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             {"file": str(dev_img if dev_img.is_file() else thumb)},
         )
         await _fit(obs, "Dev Updates", "Dev Image")
+        await _overlay_browser(obs, "Dev Updates", "Dev Overlay", f"{origin}/obs/dev-updates")
         if intro.is_file():
             await _ensure_input(
                 obs,
@@ -960,29 +964,27 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 audio=True,
             )
 
-        if quake.is_file():
+        for qscene, qname, qurl in (
+            (QUAKE_GLOBAL, "Quake Global Map", USGS_MAP_GLOBAL),
+            (QUAKE_ISLAND, "Quake Island Map", USGS_MAP_ISLAND),
+        ):
             await _ensure_input(
                 obs,
-                "Quake Overlay",
-                "Quake Loop",
-                "ffmpeg_source",
+                qscene,
+                qname,
+                "browser_source",
                 {
-                    "is_local_file": True,
-                    "local_file": str(quake),
-                    "looping": True,
-                    "close_when_inactive": False,
-                    "clear_on_media_end": False,
+                    "url": qurl,
+                    "width": 1920,
+                    "height": 1080,
+                    "shutdown": True,
+                    "restart_when_active": True,
+                    "css": "body { margin: 0; overflow: hidden; background: #000; }",
                 },
-                audio=True,
             )
-            await _fit(obs, "Quake Overlay", "Quake Loop")
-        await _ensure_input(
-            obs,
-            "Quake Overlay",
-            "Quake HUD",
-            "browser_source",
-            {"url": f"{origin}/obs/quake-overlay", "width": 1920, "height": 1080},
-        )
+            await _fit(obs, qscene, qname)
+            await _overlay_browser(obs, qscene, "Quake Overlay Global", f"{origin}/obs/quake-global")
+            await _overlay_browser(obs, qscene, "Quake Overlay Island", f"{origin}/obs/quake-island")
 
         await _ensure_input(
             obs,
@@ -993,24 +995,15 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         )
         await _fit(obs, "Be right back", "BRB Still")
 
-        # Ambient shares the daily loop
-        if playlist:
-            await _ensure_input(
-                obs,
-                "Ambient Playlist",
-                "Daily Loop",
-                "vlc_source",
-                {"playlist": playlist, "loop": True, "shuffle": True},
-                audio=True,
-            )
-
-            await _fit(obs, "Ambient Playlist", "Daily Loop")
-
         await apply_solana_qr_scene(obs, origin=origin, thumb=thumb if thumb.is_file() else bg)
         await apply_scene_overlays(obs, origin=origin)
+        from apps.core.services.obs_scene_visibility import refresh_auto_hide, apply_hidden_scenes
+
+        await refresh_auto_hide()
+        await apply_hidden_scenes(obs)
         await _stretch_all(obs)
 
-        await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})
+        await obs.try_req("SetCurrentProgramScene", {"sceneName": DEFAULT_START_SCENE})
         from apps.core.services.hurricane_tracker import write_mode as _write_obs_mode
 
         _write_obs_mode("daily")
@@ -1045,32 +1038,17 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
 
 
 async def apply_ambient_playlist() -> dict:
-    paths = playlist_paths()
-    m3u = write_playlist_m3u(paths)
-    playlist = [_item(p) for p in paths]
-    obs = ObsClient()
-    if not await obs.connect():
-        return {"ok": False, "detail": "obs_unreachable", "count": len(paths)}
-    try:
-        await obs.req(
-            "SetInputSettings",
-            {
-                "inputName": "Daily Loop",
-                "inputSettings": {"playlist": playlist, "loop": True, "shuffle": True},
-            },
-        )
-        await _fit(obs, "Main", "Daily Loop")
-        await _fit(obs, "Ambient Playlist", "Daily Loop")
-        await _stretch_all(obs)
-        return {"ok": True, "count": len(paths), "m3u": str(m3u), "files": [p.name for p in paths[:20]]}
-    except Exception as e:
-        return {"ok": False, "detail": str(e)[:240], "count": len(paths)}
-    finally:
-        await obs.close()
+    """Legacy — Main/Ambient removed; refresh weather desk media instead."""
+    wired = await apply_current_scene_media()
+    return {"ok": wired.get("ok", False), "detail": "ambient_removed", "wired": wired}
 
 
 async def apply_minecraft_live(snap: dict | None = None) -> dict:
-    from apps.core.services.minecraft_live import snapshot as mc_snapshot, offline_thumb
+    from apps.core.services.minecraft_live import (
+        snapshot as mc_snapshot,
+        offline_thumb,
+        bind_minecraft_capture,
+    )
 
     snap = snap or mc_snapshot()
     ingame = bool(snap.get("ingame"))
@@ -1084,6 +1062,7 @@ async def apply_minecraft_live(snap: dict | None = None) -> dict:
                 "SetInputSettings",
                 {"inputName": "MC Offline Thumb", "inputSettings": {"file": str(thumb)}},
             )
+        await bind_minecraft_capture(obs, ingame)
         await _enable_item(obs, MC_SCENE, "MC Game", ingame)
         await _enable_item(obs, MC_SCENE, "MC Offline Thumb", not ingame)
         await _enable_item(obs, MC_SCENE, "Ava Ivy Cloud", False)
@@ -1093,13 +1072,14 @@ async def apply_minecraft_live(snap: dict | None = None) -> dict:
             await obs.req("SetCurrentProgramScene", {"sceneName": MC_SCENE})
             switched = MC_SCENE
         elif (not ingame) and cur == MC_SCENE:
-            await obs.req("SetCurrentProgramScene", {"sceneName": "Ambient Playlist"})
-            switched = "Ambient Playlist"
+            await obs.req("SetCurrentProgramScene", {"sceneName": DEFAULT_START_SCENE})
+            switched = DEFAULT_START_SCENE
         return {
             "ok": True,
             "ingame": ingame,
             "thumb": str(thumb) if thumb else None,
             "scene": switched or cur,
+            "window": snap.get("window_title"),
         }
     finally:
         await obs.close()
@@ -1153,9 +1133,8 @@ async def apply_current_scene_media() -> dict:
             ("Solar Dashboard", "Solar Audio", cur_a / "solar-weather-current.mp3", False),
             ("Economy Board", "Economy Audio", desk if desk.is_file() else cur_a / "ara-report-current.mp3", False),
             ("Economy Board", "Economy Video", cur_v / "ara-report-current.mp4", True),
-            ("Goals Report", "Goals Video", cur_v / "Morning_Broadcast_Current.mp4", True),
+            ("Goals Report", "Goals Audio", statement if statement.is_file() else cur_a / "Morning_Broadcast_Current.mp3", False),
             ("Dev Updates", "Dev Audio", dev_cur if dev_cur.exists() else reports / "ava_intro_what_she_does_ara.mp3", False),
-            ("Quake Overlay", "Quake Loop", cur_v / "earthquake-global-current.mp4", True),
         ]
         for scene, name, path, vis in jobs:
             if not path.is_file():
@@ -1166,9 +1145,9 @@ async def apply_current_scene_media() -> dict:
             if vis:
                 await _fit(obs, scene, name)
             wired[name] = path.name
-        await _enable_item(obs, "Goals Report", "Goals Audio", False)
+        await _enable_item(obs, "Goals Report", "Goals Audio", True)
         await _enable_item(obs, "Goals Report", "Goals Image", False)
-        await _enable_item(obs, "Goals Report", "Goals Video", True)
+        await _enable_item(obs, "Goals Report", "Goals Video", False)
         await _enable_item(obs, "Economy Board", "Economy Still", False)
         await _enable_item(obs, "Economy Board", "Economy Video", True)
         return {"ok": True, "wired": wired, "desk_brief": desk.name if desk.is_file() else None}
@@ -1337,8 +1316,8 @@ async def rotate_loop_scene() -> dict:
                 return {"ok": True, "scene": MC_SCENE, "held": "minecraft", "share": share}
             record_tick(False)
         elif cur == MC_SCENE:
-            await obs.req("SetCurrentProgramScene", {"sceneName": "Ambient Playlist"})
-            return {"ok": True, "scene": "Ambient Playlist", "held": "mc_offline"}
+            await obs.req("SetCurrentProgramScene", {"sceneName": DEFAULT_START_SCENE})
+            return {"ok": True, "scene": DEFAULT_START_SCENE, "held": "mc_offline"}
 
         media_name, kind = SCENE_MEDIA.get(cur, (None, None))
         import time as _time
@@ -1390,12 +1369,19 @@ async def rotate_loop_scene() -> dict:
                     "elapsed_s": round(elapsed, 1),
                 }
 
-        pool = AMBIENT_SCENES
+        from apps.core.services.obs_scene_visibility import visible_pool, refresh_auto_hide
+        from apps.core.services.obs_overlay_gen import bump_overlay_gen
+
+        await refresh_auto_hide()
+        pool = visible_pool(AMBIENT_SCENES)
+        if not pool:
+            pool = [DEFAULT_START_SCENE]
         if cur not in pool:
-            nxt = "Ambient Playlist"
+            nxt = pool[0]
         else:
             nxt = pool[(pool.index(cur) + 1) % len(pool)]
         await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
+        bump_overlay_gen(nxt, "rotate")
         nxt_media, _ = SCENE_MEDIA.get(nxt, (None, None))
         if nxt_media:
             await _restart_media(obs, nxt_media)
