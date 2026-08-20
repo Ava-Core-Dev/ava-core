@@ -67,12 +67,23 @@ def current_mode() -> str:
         mode = str(json.loads(p.read_text()).get("mode") or "daily").lower()
     except Exception:
         return "daily"
-    return "hurricane" if mode in {"hurricane", "hurricanes", "tracker"} else "daily"
+    if mode in {"hurricane", "hurricanes", "tracker"}:
+        return "hurricane"
+    if mode in {"kilauea", "volcano", "kv"}:
+        return "kilauea"
+    return "daily"
 
 
 def write_mode(mode: str, extra: dict | None = None) -> dict:
+    raw = str(mode or "daily").lower()
+    if raw in {"hurricane", "hurricanes", "tracker"}:
+        stored = "hurricane"
+    elif raw in {"kilauea", "volcano", "kv"}:
+        stored = "kilauea"
+    else:
+        stored = "daily"
     payload = {
-        "mode": "hurricane" if mode == "hurricane" else "daily",
+        "mode": stored,
         "ts": datetime.now(timezone.utc).isoformat(),
         **(extra or {}),
     }
@@ -686,7 +697,13 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
 async def set_mode(mode: str) -> dict:
     from apps.core.services.obs_studio import COLLECTION, ObsClient
 
-    want = "hurricane" if str(mode).lower() in {"hurricane", "hurricanes", "tracker"} else "daily"
+    raw = str(mode or "daily").lower()
+    if raw in {"hurricane", "hurricanes", "tracker"}:
+        want = "hurricane"
+    elif raw in {"kilauea", "volcano", "kv"}:
+        want = "kilauea"
+    else:
+        want = "daily"
     write_mode(want)
     obs = ObsClient()
     if not await obs.connect():
@@ -694,6 +711,11 @@ async def set_mode(mode: str) -> dict:
     try:
         if want == "hurricane":
             kit = await apply_hurricane_kit(obs)
+            return {"ok": True, "mode": want, "kit": kit}
+        if want == "kilauea":
+            from apps.core.services.kilauea_cams import apply_kilauea_kit
+
+            kit = await apply_kilauea_kit(obs)
             return {"ok": True, "mode": want, "kit": kit}
         cols = await obs.req("GetSceneCollectionList")
         if COLLECTION in (cols.get("sceneCollections") or []):
@@ -709,9 +731,15 @@ async def set_mode(mode: str) -> dict:
 async def ensure_mode_collection(obs) -> dict:
     """Keep OBS on the collection that matches the saved mode. No kit rebuild."""
     from apps.core.services.obs_studio import COLLECTION
+    from apps.core.services.kilauea_cams import KILAUEA_COLLECTION
 
     mode = current_mode()
-    target = HURRICANE_COLLECTION if mode == "hurricane" else COLLECTION
+    if mode == "hurricane":
+        target = HURRICANE_COLLECTION
+    elif mode == "kilauea":
+        target = KILAUEA_COLLECTION
+    else:
+        target = COLLECTION
     cols = await obs.req("GetSceneCollectionList")
     names = cols.get("sceneCollections") or []
     cur = cols.get("currentSceneCollectionName")

@@ -348,7 +348,7 @@ async def _stretch_all(obs: ObsClient) -> int:
         items = await obs.try_req("GetSceneItemList", {"sceneName": scene}) or {}
         for it in items.get("sceneItems") or []:
             name = str(it.get("sourceName") or "")
-            if not name or name in _SKIP_STRETCH or name.startswith("HT Overlay"):
+            if not name or name in _SKIP_STRETCH or name.startswith("HT Overlay") or name.startswith("KV Overlay"):
                 continue
             await _fit(obs, scene, name)
             n += 1
@@ -593,14 +593,19 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             await _fit(obs, "Weather Board", "NWS Hawaii")
         await apply_weather_radar(obs)
 
-        # Kilauea
+        # Kilauea — V1 YouTube embed (not the USGS directory page, which 403s in OBS)
+        from apps.core.services.kilauea_cams import load_catalog, _embed
+
+        cat = load_catalog()
+        v1 = next((c for c in cat.get("cams") or [] if c.get("id") == "usgs_v1"), None)
+        v1_url = (v1 or {}).get("url") or _embed("HggWKlZv9yk")
         await _ensure_input(
             obs,
             "Kilauea Watch",
             "HVO Kilauea",
             "browser_source",
             {
-                "url": "https://www.usgs.gov/volcanoes/kilauea/webcams",
+                "url": v1_url,
                 "width": 1920,
                 "height": 1080,
                 "shutdown": True,
@@ -1052,6 +1057,7 @@ async def rotate_loop_scene() -> dict:
             ensure_mode_collection,
             hurricane_scene_pool,
         )
+        from apps.core.services.kilauea_cams import KILAUEA_DWELL_S, kilauea_scene_pool
         import time as _time
 
         mode = current_mode()
@@ -1059,6 +1065,33 @@ async def rotate_loop_scene() -> dict:
         cur = (await obs.req("GetCurrentProgramScene")).get("currentProgramSceneName")
         if coll.get("switched"):
             return {"ok": True, "scene": cur, "held": "mode_collection", "mode": mode}
+
+        if mode == "kilauea":
+            pool = kilauea_scene_pool()
+            st = _load_rotate()
+            if st.get("scene") != cur:
+                _save_rotate(cur)
+                elapsed = 0.0
+            else:
+                elapsed = _time.time() - float(st.get("since") or _time.time())
+            if elapsed < MIN_DWELL_S:
+                return {"ok": True, "scene": cur, "held": "min_dwell", "mode": mode, "elapsed_s": round(elapsed, 1)}
+            if elapsed < KILAUEA_DWELL_S:
+                return {
+                    "ok": True,
+                    "scene": cur,
+                    "held": "kilauea_dwell",
+                    "mode": mode,
+                    "elapsed_s": round(elapsed, 1),
+                    "need_s": KILAUEA_DWELL_S,
+                }
+            if cur not in pool:
+                nxt = pool[0] if pool else "KV · V1"
+            else:
+                nxt = pool[(pool.index(cur) + 1) % len(pool)]
+            await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
+            _save_rotate(nxt)
+            return {"ok": True, "scene": nxt, "from": cur, "mode": "kilauea"}
 
         if mode == "hurricane":
             pool = hurricane_scene_pool()

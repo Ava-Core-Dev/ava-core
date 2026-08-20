@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Ava Kīlauea Desk</title>
+<style>
+  html,body{margin:0;padding:0;width:1920px;height:1080px;overflow:hidden;background:transparent;
+    color:#e8f4ff;font-family:"Segoe UI",Inter,system-ui,sans-serif;}
+  .top{position:fixed;top:22px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(90deg,rgba(28,12,8,.9),rgba(44,18,12,.72));
+    border:1px solid rgba(245,158,11,.4);border-radius:16px;padding:12px 22px;}
+  .brand{font-size:24px;font-weight:800;letter-spacing:.04em;}
+  .brand span{color:#fb7185;}
+  .live{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#fecaca;}
+  .card{position:fixed;top:110px;left:28px;width:440px;background:rgba(14,8,6,.88);
+    border:1px solid rgba(251,113,133,.28);border-radius:16px;padding:16px 18px;}
+  .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8ba3b8;margin-bottom:8px;}
+  .name{font-size:28px;font-weight:800;margin:0 0 8px;}
+  .row{display:flex;justify-content:space-between;margin:6px 0;font-size:16px;}
+  .row span:first-child{color:#9fb3c4;}
+  .bottom{position:fixed;left:28px;right:28px;bottom:22px;background:rgba(14,8,6,.86);
+    border:1px solid rgba(245,158,11,.28);border-radius:16px;padding:12px 20px;
+    display:flex;justify-content:space-between;font-size:16px;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand"><span>KĪLAUEA MODE</span> · V1 / V2 / V3 + radar</div>
+    <div class="live" id="head">USGS CAMS</div>
+  </div>
+  <div class="card">
+    <div class="k" id="camk">feed</div>
+    <div class="name" id="name">V1cam</div>
+    <div class="row"><span>Alert</span><span id="alert">—</span></div>
+    <div class="row"><span>Status</span><span id="status">—</span></div>
+    <div class="row"><span>Kind</span><span id="kind">—</span></div>
+  </div>
+  <div class="bottom">
+    <div>Official USGS · not an Ava forecast</div>
+    <div id="foot">embed refreshes on the origin</div>
+  </div>
+<script>
+const origin = location.origin;
+const cam = new URLSearchParams(location.search).get('cam') || 'usgs_v1';
+async function tick(){
+  try{
+    const d = await fetch(origin+'/api/obs/kilauea-desk?cam='+encodeURIComponent(cam)).then(r=>r.json());
+    const c = d.cam || {};
+    const w = d.watch || {};
+    document.getElementById('camk').textContent = (c.id||cam).toUpperCase();
+    document.getElementById('name').textContent = c.title || 'Kīlauea';
+    document.getElementById('alert').textContent = (w.alert_level||'normal').toUpperCase();
+    document.getElementById('status').textContent = w.erupting ? 'erupting' : 'not a live fountain';
+    document.getElementById('kind').textContent = (c.kind||'—') + (c.live ? ' · live' : '');
+    document.getElementById('head').textContent = c.live ? 'LIVE EMBED' : 'STILL / RESOLVING';
+    document.getElementById('foot').textContent = (c.youtube_video_id||'') + ' · ' + (d.ts||'');
+  }catch(e){}
+}
+tick(); setInterval(tick, 15000);
+</script>
+</body>
+</html>

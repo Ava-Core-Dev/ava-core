@@ -350,8 +350,16 @@ async def api_volcano_watch_post(body: WatchBody):
     from apps.voice.director import get_director
 
     scene = "Kilauea Watch" if body.action != "exit" else "Main"
+    if body.action != "exit":
+        from apps.core.services.hurricane_tracker import set_mode
+
+        kit = await set_mode("kilauea")
+        return {"ok": True, "action": body.action, "scene": "KV · V1", "mode": "kilauea", "kit": kit}
+    from apps.core.services.hurricane_tracker import set_mode
+
+    daily = await set_mode("daily")
     await get_director()._switch_scene(scene)
-    return {"ok": True, "action": body.action, "scene": scene, "watch": _watch_from_state(_kilauea_state())}
+    return {"ok": True, "action": body.action, "scene": scene, "mode": "daily", "kit": daily}
 
 
 @api_router.get("/eruption-eta")
@@ -459,9 +467,25 @@ async def api_hurricane_desk(id: str = "world"):
     return desk_payload(id)
 
 
-@router.get("/hurricane", response_class=HTMLResponse)
-async def obs_hurricane():
-    path = Path(__file__).resolve().parent.parent / "templates" / "obs-hurricane.html"
+@api_router.get("/kilauea-desk")
+async def api_kilauea_desk(cam: str = "usgs_v1"):
+    from apps.core.services.kilauea_cams import load_catalog
+
+    data = load_catalog()
+    cams = data.get("cams") or []
+    hit = next((c for c in cams if c.get("id") == cam), cams[0] if cams else {})
+    return {
+        "ok": True,
+        "cam": hit,
+        "cams": cams,
+        "ts": data.get("ts"),
+        "watch": _watch_from_state(_kilauea_state()),
+    }
+
+
+@router.get("/kilauea-desk", response_class=HTMLResponse)
+async def obs_kilauea_desk():
+    path = Path(__file__).resolve().parent.parent / "templates" / "obs-kilauea-desk.html"
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 
