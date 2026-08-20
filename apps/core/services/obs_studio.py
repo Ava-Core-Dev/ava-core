@@ -1122,3 +1122,114 @@ async def rotate_loop_scene() -> dict:
         return {"ok": True, "scene": nxt, "from": cur, "ingame": bool(mc.get("ingame"))}
     finally:
         await obs.close()
+
+
+def _remap_media_path(old: str) -> str | None:
+    """Point stale Desktop/Thumbnails paths at the live PG-13 media tree."""
+    if not old:
+        return None
+    media = config.MEDIA_DIR
+    p = Path(old)
+    aliases = {
+        "goalsreports.jpg": media / "images" / "thumbnails" / "goalsreports.jpg",
+        "video devupdate.jpg": media / "images" / "thumbnails" / "video devupdate.jpg",
+        "ava_full_statement_ara.mp3": media / "audio" / "reports" / "ava_full_statement_ara.mp3",
+        "ava_intro_what_she_does_ara.mp3": media / "audio" / "reports" / "ava_intro_what_she_does_ara.mp3",
+        "ava_test_intro.mp3": media / "audio" / "reports" / "ava_test_intro.mp3",
+        "kilaueaappoverlay.html": media / "stream" / "overlays" / "obs-kilauea.html",
+        "last lala.mp4": media / "video" / "current" / "nws-hawaii-current.mp4",
+        "Ava_Lala_1600_Final_Complete.mp3": media / "audio" / "current" / "nws-hawaii-current.mp3",
+        "Ava_Lala_Closing.mp3": media / "audio" / "current" / "nws-hawaii-current.mp3",
+        "ava_5min_report_2026-08-17_1435.mp3": media / "audio" / "current" / "Morning_Broadcast_Current.mp3",
+        "ava_account_promo_1min.mp3": media / "audio" / "reports" / "ava_intro_what_she_does_ara.mp3",
+    }
+    cand = aliases.get(p.name)
+    if cand is not None and cand.is_file():
+        return str(cand)
+    if p.is_file():
+        return str(p)
+    return None
+
+
+def _path_is_pg13(path: str) -> bool:
+    name = Path(path).name.lower()
+    deny = ("generated_video", "grok-video", "ava-gen-", "nsfw", "nude", "explicit", "ambient-mix")
+    return not any(d in name for d in deny)
+
+
+async def _retarget_collection_inputs(obs: ObsClient) -> dict:
+    changed = 0
+    lst = await obs.try_req("GetInputList") or {}
+    for inp in lst.get("inputs") or []:
+        name = inp.get("inputName")
+        kind = str(inp.get("inputKind") or "")
+        st = await obs.try_req("GetInputSettings", {"inputName": name}) or {}
+        settings = dict(st.get("inputSettings") or {})
+        dirty = False
+        for key in ("file", "local_file"):
+            old = str(settings.get(key) or "")
+            new = _remap_media_path(old)
+            if new and new != old:
+                settings[key] = new
+                dirty = True
+        if "vlc" in kind:
+            pl = settings.get("playlist") or []
+            newpl = []
+            for item in pl:
+                val = item.get("value") if isinstance(item, dict) else str(item)
+                mapped = _remap_media_path(str(val or "")) or str(val or "")
+                if mapped and _path_is_pg13(mapped) and Path(mapped).is_file():
+                    if isinstance(item, dict):
+                        newpl.append({**item, "value": mapped, "hidden": False})
+                    else:
+                        newpl.append({"value": mapped, "hidden": False, "selected": False})
+            if not newpl:
+                newpl = [_item(p) for p in playlist_paths()[:6]]
+            settings["playlist"] = newpl
+            settings["loop"] = True
+            dirty = True
+        url = str(settings.get("url") or "")
+        if "hurricanes/lala" in url:
+            settings["url"] = WINDY_HURRICANE_URL
+            dirty = True
+        elif "radar.weather.gov" in url:
+            settings["url"] = NWS_RADAR_URL
+            dirty = True
+        elif url.rstrip("/").endswith("Hawaii_IR_loop.gif") or "hfo/satellite" in url:
+            settings["url"] = HAWAII_IR_URL
+            dirty = True
+        if dirty:
+            await obs.try_req("SetInputSettings", {"inputName": name, "inputSettings": settings})
+            changed += 1
+    stretched = await _stretch_all(obs)
+    return {"inputs": changed, "stretched": stretched}
+
+
+async def update_all_scene_collections() -> dict:
+    """Stretch, PG-13 media, and weather URLs on every OBS scene collection."""
+    obs = ObsClient()
+    if not await obs.connect():
+        return {"ok": False, "detail": "obs_unreachable"}
+    out: dict = {"ok": True, "collections": {}}
+    try:
+        cols = await obs.req("GetSceneCollectionList")
+        names = list(cols.get("sceneCollections") or [])
+        home = cols.get("currentSceneCollectionName") or COLLECTION
+        for name in names:
+            if name != home:
+                await obs.req("SetCurrentSceneCollection", {"sceneCollectionName": name})
+                await asyncio.sleep(1.8)
+            if name in {"All Islands Weather", "Untitled", "test"}:
+                await apply_weather_radar(obs)
+            stats = await _retarget_collection_inputs(obs)
+            scenes = [s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []]
+            out["collections"][name] = {**stats, "scenes": scenes}
+        if home:
+            cur = (await obs.req("GetSceneCollectionList")).get("currentSceneCollectionName")
+            if cur != home:
+                await obs.req("SetCurrentSceneCollection", {"sceneCollectionName": home})
+                await asyncio.sleep(1.2)
+        out["current"] = home
+        return out
+    finally:
+        await obs.close()

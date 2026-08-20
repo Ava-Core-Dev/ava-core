@@ -411,6 +411,13 @@ async def api_obs_setup_daily():
     return await setup_daily_broadcast(start_stream=False)
 
 
+@api_router.post("/update-collections")
+async def api_obs_update_collections():
+    from apps.core.services.obs_studio import update_all_scene_collections
+
+    return await update_all_scene_collections()
+
+
 @api_router.post("/reaction")
 async def api_obs_reaction(body: ReactionBody):
     rid = body.reactionId or body.id or ""
