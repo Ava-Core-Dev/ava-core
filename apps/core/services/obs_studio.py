@@ -414,6 +414,7 @@ SKIP_LOWER_THIRD = {
     "Solar Dashboard",
     QUAKE_GLOBAL,
     QUAKE_ISLAND,
+    QUAKE_DESK,
     "Support Ava",
     "Kilauea Watch",
 }
@@ -455,10 +456,17 @@ async def _overlay_browser(
 
 
 async def _remove_legacy_scenes(obs: ObsClient) -> list[str]:
+    """Drop anything outside the hard-capped 10 topic scenes."""
     removed = []
-    for scene in ("Main", "Ambient Playlist", "Quake Overlay"):
-        await obs.try_req("RemoveScene", {"sceneName": scene})
-        removed.append(scene)
+    keep = set(AMBIENT_SCENES)
+    existing = {
+        s.get("sceneName")
+        for s in (await obs.req("GetSceneList")).get("scenes") or []
+    }
+    for scene in sorted(existing):
+        if scene and scene not in keep:
+            await obs.try_req("RemoveScene", {"sceneName": scene})
+            removed.append(scene)
     return removed
 
 async def apply_scene_overlays(obs: Any | None = None, origin: str | None = None) -> dict:
@@ -478,7 +486,7 @@ async def apply_scene_overlays(obs: Any | None = None, origin: str | None = None
         }
         targets = [
             s
-            for s in [*LOOP_SCENES, "Be right back"]
+            for s in LOOP_SCENES
             if s in existing and s not in SKIP_LOWER_THIRD
         ]
         first = targets[0] if targets else None
@@ -585,23 +593,21 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
             return {"ok": False, "detail": "obs_unreachable"}
     try:
         existing = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
-        for scene in ("Radar", "Satellite", "Weather Board"):
+        for scene in ("Weather Board", STORM_DESK):
             if scene not in existing:
                 await obs.try_req("CreateScene", {"sceneName": scene})
+        from apps.core.services.nhc_media import live_url, NHC_OUTLOOK_SCENES
         browsers = [
-            ("Radar", "NWS Radar", NWS_RADAR_URL, True),
-            ("Radar", "Windy Hawaii", WINDY_RADAR_URL, False),
-            ("Radar", "Hurricane Tracker", WINDY_HURRICANE_URL, False),
-            ("Satellite", "Hawaii IR", HAWAII_IR_URL, True),
-            ("Satellite", "GOES Hawaii", GOES_HI_URL, False),
-            ("Satellite", "Windy Clouds", WINDY_CLOUDS_URL, False),
+            ("Weather Board", "NWS Radar", NWS_RADAR_URL, False),
             ("Weather Board", "Hawaii IR", HAWAII_IR_URL, False),
+            ("Weather Board", "GOES Hawaii", GOES_HI_URL, False),
+            ("Storm Desk", "Hurricane Tracker", WINDY_HURRICANE_URL, False),
+            ("Storm Desk", "Windy Kilauea", WINDY_KILAUEA_URL, False),
+            ("Storm Desk", "MKWC Vog", HI_VOG_URL, False),
+            ("Storm Desk", "HI SO2 Index", HI_SO2_URL, False),
         ]
-        for scene, name, url in HAZARD_SCENES:
-            if scene not in existing:
-                await obs.try_req("CreateScene", {"sceneName": scene})
-            browsers.append((scene, name, url, True))
-            browsers.append(("Weather Board", name, url, False))
+        for i, (_scene, name, slug) in enumerate(NHC_OUTLOOK_SCENES):
+            browsers.append((STORM_DESK, name, live_url(slug), i == 1))
         for scene, name, url, vis in browsers:
             await _ensure_input(
                 obs,
@@ -619,29 +625,10 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
             )
             await _fit(obs, scene, name)
             await _enable_item(obs, scene, name, vis)
-        await _enable_item(obs, "Weather Board", "Windy Hawaii", False)
         await _enable_item(obs, "Weather Board", "NWS Hawaii", True)
         await _fit(obs, "Weather Board", "NWS Hawaii")
-        from apps.core.services.nhc_media import apply_nhc_obs_scenes, live_url, NHC_OUTLOOK_SCENES
-
-        for _scene, name, slug in NHC_OUTLOOK_SCENES:
-            await _ensure_input(
-                obs,
-                "Weather Board",
-                name,
-                "browser_source",
-                {
-                    "url": live_url(slug),
-                    "width": 1920,
-                    "height": 1080,
-                    "shutdown": True,
-                    "restart_when_active": True,
-                },
-            )
-            await _enable_item(obs, "Weather Board", name, False)
-        await apply_nhc_obs_scenes(obs)
         stretched = await _stretch_all(obs) if own else 0
-        return {"ok": True, "stretched": stretched}
+        return {"ok": True, "stretched": stretched, "topics": ["Weather Board", STORM_DESK]}
     finally:
         if own:
             await obs.close()
@@ -756,13 +743,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             s.get("sceneName")
             for s in (await obs.req("GetSceneList")).get("scenes") or []
         }
-        for scene in [
-            *LOOP_SCENES,
-            QUAKE_GLOBAL,
-            QUAKE_ISLAND,
-            "Support Ava",
-            "Be right back",
-        ]:
+        for scene in LOOP_SCENES:
             if scene not in existing_scenes:
                 await obs.try_req("CreateScene", {"sceneName": scene})
 
@@ -990,38 +971,26 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 audio=True,
             )
 
-        for qscene, qname, qurl in (
-            (QUAKE_GLOBAL, "Quake Global Map", USGS_MAP_GLOBAL),
-            (QUAKE_ISLAND, "Quake Island Map", USGS_MAP_ISLAND),
-        ):
-            await _ensure_input(
-                obs,
-                qscene,
-                qname,
-                "browser_source",
-                {
-                    "url": qurl,
-                    "width": 1920,
-                    "height": 1080,
-                    "shutdown": True,
-                    "restart_when_active": True,
-                    "css": "body { margin: 0; overflow: hidden; background: #000; }",
-                },
-            )
-            await _fit(obs, qscene, qname)
-            await _overlay_browser(obs, qscene, "Quake Overlay Global", f"{origin}/obs/quake-global")
-            await _overlay_browser(obs, qscene, "Quake Overlay Island", f"{origin}/obs/quake-island")
-
         await _ensure_input(
             obs,
-            "Be right back",
-            "BRB Still",
-            "image_source",
-            {"file": str(thumb)},
+            QUAKE_DESK,
+            "Quake Global Map",
+            "browser_source",
+            {
+                "url": USGS_MAP_GLOBAL,
+                "width": 1920,
+                "height": 1080,
+                "shutdown": True,
+                "restart_when_active": True,
+                "css": "body { margin: 0; overflow: hidden; background: #000; }",
+            },
         )
-        await _fit(obs, "Be right back", "BRB Still")
+        await _fit(obs, QUAKE_DESK, "Quake Global Map")
+        await _overlay_browser(obs, QUAKE_DESK, "Quake Overlay Global", f"{origin}/obs/quake-global")
 
         await apply_solana_qr_scene(obs, origin=origin, thumb=thumb if thumb.is_file() else bg)
+        # Enforce the 10-topic cap again after overlays/QR may have created extras.
+        await _remove_legacy_scenes(obs)
         await apply_scene_overlays(obs, origin=origin)
         from apps.core.services.obs_scene_visibility import refresh_auto_hide, apply_hidden_scenes
 
