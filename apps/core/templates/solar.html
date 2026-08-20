@@ -98,6 +98,18 @@
   }
   .flow { display: flex; gap: 16px; color: var(--text); }
   .flow b { color: var(--accent); }
+  .chart-card .k { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .chart-card .k .win { font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 11px; }
+  .chart {
+    width: 100%; height: 88px; display: block;
+    background: rgba(255,255,255,.03); border-radius: 8px;
+  }
+  .chart + .chart { margin-top: 10px; }
+  .chart-meta {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 11px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums;
+  }
+  .chart-meta b { color: var(--text); font-weight: 600; }
   @media (max-width: 900px) {
     .rail { position: relative; width: auto; left: auto; right: auto; top: auto; margin: 12px 12px 0; }
     .stage { display: flex; flex-direction: column; padding-bottom: 80px; }
@@ -131,6 +143,13 @@
       <div class="card">
         <div class="k">Battery bank</div>
         <div class="ringwrap" id="rings"></div>
+      </div>
+      <div class="card chart-card">
+        <div class="k">History <span class="win" id="histWin">12h</span></div>
+        <svg class="chart" id="chartSolar" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="Solar watts over time"></svg>
+        <div class="chart-meta"><span>Solar W</span><span id="histSolarMeta">—</span></div>
+        <svg class="chart" id="chartSoc" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="Battery percent over time"></svg>
+        <div class="chart-meta"><span>Battery %</span><span id="histSocMeta">—</span></div>
       </div>
       <div class="card">
         <div class="k">Totals now</div>
@@ -240,6 +259,60 @@ function ring(d){
 function watts(v){ if(v==null||v==="") return "—"; return Math.round(Number(v))+" W"; }
 function pct(v){ if(v==null||v==="") return "—"; return Number(v).toFixed(0)+"%"; }
 function dur(s){ s=Number(s)||0; if(!s) return "—"; const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60); return d? d+"d "+h+"h" : h+"h "+m+"m"; }
+
+const CHART_W = 320, CHART_H = 88, CHART_PAD = 6;
+function linePath(vals, yMin, yMax){
+  const n = vals.length;
+  if (!n) return "";
+  const span = Math.max(yMax - yMin, 1e-6);
+  const xAt = (i) => CHART_PAD + (n === 1 ? (CHART_W - 2 * CHART_PAD) / 2 : i * (CHART_W - 2 * CHART_PAD) / (n - 1));
+  const yAt = (v) => CHART_H - CHART_PAD - ((v - yMin) / span) * (CHART_H - 2 * CHART_PAD);
+  let d = "";
+  vals.forEach((v, i) => {
+    if (v == null || Number.isNaN(v)) return;
+    d += (d ? " L " : "M ") + xAt(i).toFixed(1) + " " + yAt(v).toFixed(1);
+  });
+  return d;
+}
+function drawChart(svg, vals, color, fixedMin, fixedMax){
+  const known = vals.filter((v) => v != null && !Number.isNaN(v));
+  let yMin = fixedMin != null ? fixedMin : (known.length ? Math.min(...known) : 0);
+  let yMax = fixedMax != null ? fixedMax : (known.length ? Math.max(...known) : 1);
+  if (yMax <= yMin) yMax = yMin + 1;
+  if (fixedMin == null && fixedMax == null) {
+    const pad = (yMax - yMin) * 0.08 || 1;
+    yMin = Math.max(0, yMin - pad);
+    yMax = yMax + pad;
+  }
+  const path = linePath(vals, yMin, yMax);
+  const gridY = [0.25, 0.5, 0.75].map((f) => {
+    const y = CHART_PAD + f * (CHART_H - 2 * CHART_PAD);
+    return `<line x1="${CHART_PAD}" y1="${y.toFixed(1)}" x2="${CHART_W - CHART_PAD}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>`;
+  }).join("");
+  svg.innerHTML = gridY + (path
+    ? `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`
+    : `<text x="160" y="48" text-anchor="middle" fill="#9ca3af" font-size="11">no data</text>`);
+  return { yMin, yMax, last: known.length ? known[known.length - 1] : null };
+}
+async function paintHistory(){
+  try {
+    const j = await (await fetch(API + "/api/solar/history?hours=12", { cache: "no-store" })).json();
+    const pts = Array.isArray(j.points) ? j.points : [];
+    const hours = j.hours != null ? j.hours : 12;
+    document.getElementById("histWin").textContent = hours + "h · " + pts.length + " pts";
+    const solarVals = pts.map((p) => p.solar_w == null ? null : Number(p.solar_w));
+    const socVals = pts.map((p) => p.soc == null ? null : Number(p.soc));
+    const sMeta = drawChart(document.getElementById("chartSolar"), solarVals, "#f59e0b", 0, null);
+    const bMeta = drawChart(document.getElementById("chartSoc"), socVals, "#06b6d4", 0, 100);
+    document.getElementById("histSolarMeta").innerHTML = sMeta.last != null
+      ? `<b>${Math.round(sMeta.last)} W</b> · max ${Math.round(sMeta.yMax)}`
+      : "—";
+    document.getElementById("histSocMeta").innerHTML = bMeta.last != null
+      ? `<b>${bMeta.last.toFixed(0)}%</b>`
+      : "—";
+  } catch (_) {}
+}
+
 async function paint(){
   try {
     const s = await (await fetch(API + "/api/obs/solar-desk",{cache:"no-store"})).json();
@@ -276,6 +349,7 @@ async function paint(){
 }
 tick(); setInterval(tick, 1000);
 paint(); setInterval(paint, 8000);
+paintHistory(); setInterval(paintHistory, 60000);
 </script>
 </body>
 </html>

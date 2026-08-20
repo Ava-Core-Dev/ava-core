@@ -127,6 +127,19 @@ async def api_solar():
     }
 
 
+@router.get("/api/solar/history")
+async def api_solar_history(hours: float = 12):
+    """EcoFlow history time series — bank solar_w, load_w, soc over the last N hours."""
+    try:
+        from apps.core.crons.solar_weather import history_points
+        return history_points(hours)
+    except Exception as exc:
+        return JSONResponse(
+            {"ok": False, "points": [], "hours": hours, "error": str(exc)[:200]},
+            status_code=500,
+        )
+
+
 @router.get("/status")
 @router.get("/status/")
 @router.get("/ava")

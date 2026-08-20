@@ -522,6 +522,85 @@ def _mean(vals: list[float]) -> float | None:
     return round(sum(vals) / len(vals), 1) if vals else None
 
 
+def _parse_history_at_ms(row: dict, now_ms: int) -> int | None:
+    at = int(row.get("at") or 0)
+    if at <= 0:
+        return None
+    if at > 10_000_000_000:
+        at_s = at / 1000.0
+    else:
+        at_s = float(at)
+    return int(at_s * 1000) if at_s < now_ms / 10 else int(at)
+
+
+def _iter_history_rows(hist: Path, *, tail: int = 800):
+    """Yield (device_key, row) from EcoFlow history jsonl (skip *-minutes)."""
+    for path in sorted(hist.glob("*.jsonl")):
+        if path.name.endswith("-minutes.jsonl"):
+            continue
+        try:
+            lines = path.read_text(errors="replace").splitlines()[-tail:]
+        except OSError:
+            continue
+        device = path.stem
+        for line in lines:
+            line = line.strip().strip("\x00")
+            if not line.startswith("{"):
+                continue
+            try:
+                row = json_loads(line)
+            except Exception:
+                continue
+            yield device, row
+
+
+def history_points(hours: float = 12) -> dict:
+    """Bank time series from EcoFlow history jsonl for the last N hours."""
+    hours = max(0.25, min(float(hours or 12), 72))
+    root = _ecoflow_root()
+    hist = root / "history" if root else None
+    if not hist or not hist.is_dir():
+        return {"ok": True, "points": [], "hours": hours}
+    now_ms = int(time.time() * 1000)
+    window_ms = now_ms - int(hours * 3600_000)
+    # minute_ms -> device -> latest sample fields
+    buckets: dict[int, dict[str, dict[str, float | None]]] = {}
+    for device, row in _iter_history_rows(hist):
+        at_ms = _parse_history_at_ms(row, now_ms)
+        if at_ms is None or at_ms < window_ms:
+            continue
+        minute = (at_ms // 60_000) * 60_000
+        solar = row.get("solarW")
+        out = row.get("outW")
+        soc = row.get("soc")
+        try:
+            sample = {
+                "solar_w": float(solar) if solar is not None else None,
+                "load_w": float(out) if out is not None else None,
+                "soc": float(soc) if soc is not None else None,
+            }
+        except (TypeError, ValueError):
+            continue
+        buckets.setdefault(minute, {})[device] = sample
+    points: list[dict] = []
+    for minute in sorted(buckets):
+        samples = list(buckets[minute].values())
+        solar_vals = [s["solar_w"] for s in samples if s["solar_w"] is not None]
+        load_vals = [s["load_w"] for s in samples if s["load_w"] is not None]
+        soc_vals = [
+            s["soc"] for s in samples
+            if s["soc"] is not None and 0 <= float(s["soc"]) <= 100
+        ]
+        t = datetime.fromtimestamp(minute / 1000, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+        points.append({
+            "t": t,
+            "solar_w": round(sum(solar_vals), 1) if solar_vals else None,
+            "load_w": round(sum(load_vals), 1) if load_vals else None,
+            "soc": round(sum(soc_vals) / len(soc_vals), 1) if soc_vals else None,
+        })
+    return {"ok": True, "points": points, "hours": hours}
+
+
 def _history_averages() -> dict:
     """1h and morning (06–12 HST) averages from EcoFlow history jsonl."""
     root = _ecoflow_root()
@@ -540,43 +619,26 @@ def _history_averages() -> dict:
     load_recent: list[float] = []
     pv_recent: list[float] = []
     soc_recent: list[float] = []
-    for path in hist.glob("*.jsonl"):
-        if path.name.endswith("-minutes.jsonl"):
+    for _device, row in _iter_history_rows(hist, tail=400):
+        at_ms = _parse_history_at_ms(row, now_ms)
+        if at_ms is None:
             continue
+        solar = row.get("solarW")
+        out = row.get("outW")
+        soc = row.get("soc")
         try:
-            lines = path.read_text(errors="replace").splitlines()[-400:]
-        except OSError:
+            wall = datetime.fromtimestamp(at_ms / 1000, tz=hst)
+        except Exception:
             continue
-        for line in lines:
-            line = line.strip().strip("\x00")
-            if not line.startswith("{"):
-                continue
-            try:
-                row = json_loads(line)
-            except Exception:
-                continue
-            at = int(row.get("at") or 0)
-            if at > 10_000_000_000:
-                at_s = at / 1000.0
-            else:
-                at_s = float(at)
-            at_ms = int(at_s * 1000) if at_s < now_ms / 10 else int(at)
-            solar = row.get("solarW")
-            out = row.get("outW")
-            soc = row.get("soc")
-            try:
-                wall = datetime.fromtimestamp(at_ms / 1000, tz=hst)
-            except Exception:
-                continue
-            if at_ms >= window_ms:
-                if out is not None:
-                    load_recent.append(float(out))
-                if solar is not None:
-                    pv_recent.append(float(solar))
-                if soc is not None and 5 < float(soc) <= 100:
-                    soc_recent.append(float(soc))
-            if wall.date() == today and 5 <= wall.hour < 12 and solar is not None:
-                solar_morn.append(float(solar))
+        if at_ms >= window_ms:
+            if out is not None:
+                load_recent.append(float(out))
+            if solar is not None:
+                pv_recent.append(float(solar))
+            if soc is not None and 5 < float(soc) <= 100:
+                soc_recent.append(float(soc))
+        if wall.date() == today and 5 <= wall.hour < 12 and solar is not None:
+            solar_morn.append(float(solar))
     return {
         "load_1h_w": _mean(load_recent),
         "solar_1h_w": _mean(pv_recent),
