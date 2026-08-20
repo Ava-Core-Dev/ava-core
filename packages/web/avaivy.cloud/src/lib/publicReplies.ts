@@ -137,7 +137,7 @@ const TOPICS: Topic[] = [
   {
     id: "blog",
     keys: ["blog", "updates", "news", "changelog"],
-    reply: `Me: ${LINKS.blog} · Minecraft: ${LINKS.mcBlog} · real-world: ${LINKS.record}/blog.`,
+    reply: `My timeline: ${LINKS.blog} — desk, Age of Ava, Discord policy. Minecraft: ${LINKS.mcBlog}. Real-world: ${LINKS.record}/blog.`,
   },
   {
     id: "pro",
