@@ -16,6 +16,32 @@ _TAGS_TTL_S = 30.0
 _tags_cache: tuple[float, bool, list[str]] = (0.0, False, [])
 
 
+def _payload(messages: list[dict], model: str | None) -> dict:
+    return {
+        "model": model or config.OLLAMA_MODEL,
+        "messages": messages,
+        "stream": False,
+        "think": False,
+    }
+
+
+def chat_sync(messages: list[dict], *, model: str | None = None, timeout: int = 90) -> str | None:
+    """Blocking Ollama chat for crons. Prefer qwen3:8b if rewriting long reports."""
+    try:
+        r = httpx.post(
+            f"{config.OLLAMA_URL}/api/chat",
+            json=_payload(messages, model),
+            timeout=timeout,
+        )
+        if r.status_code == 200:
+            return (r.json().get("message") or {}).get("content") or None
+        log.debug("Ollama sync status %s", r.status_code)
+        return None
+    except Exception as e:
+        log.debug("Ollama sync unavailable: %s", e)
+        return None
+
+
 async def chat(messages: list[dict], *, model: str | None = None,
                timeout: int = 20) -> str | None:
     """Returns reply string or None if Ollama is unavailable."""
@@ -23,8 +49,7 @@ async def chat(messages: list[dict], *, model: str | None = None,
         async with httpx.AsyncClient(timeout=timeout) as client:
             r = await client.post(
                 f"{config.OLLAMA_URL}/api/chat",
-                json={"model": model or config.OLLAMA_MODEL,
-                      "messages": messages, "stream": False},
+                json=_payload(messages, model),
             )
         if r.status_code == 200:
             return r.json().get("message", {}).get("content", "")

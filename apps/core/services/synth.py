@@ -1,7 +1,6 @@
-"""Write a public report: Grok first, Cursor only if Grok is down, else facts.
+"""Write a public report: Grok → local Ollama → facts. Cursor is last-resort queue.
 
-Cursor is rate-limited (2×/day). Callers must still publish the factual
-excerpt immediately so Kīlauea cannot go silent for days.
+Ollama on this desk keeps mornings alive when xAI/Cursor credits are gone.
 """
 
 from __future__ import annotations
@@ -20,14 +19,18 @@ def source_hash(*parts: str) -> str:
 
 
 def polish(kind: str, system: str, user: str, *, factual: str, channel: str | None = None) -> str:
-    """Return Grok/Cursor prose if cheaply available, else the factual text."""
+    """Grok if credits exist, else local Ollama, else facts. Cursor is optional queue."""
     h = source_hash(kind, user)
-    grok = xai.try_chat(
-        [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        max_tokens=400,
-    )
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    grok = xai.try_chat(messages, max_tokens=400)
     if grok:
         return grok
+    from . import ollama as ollama_svc
+
+    local = ollama_svc.chat_sync(messages, model="qwen3:8b", timeout=90)
+    if local and local.strip():
+        log.info("%s: Grok missed — used local Ollama", kind)
+        return local.strip()
     cursor_fallback.enqueue(kind, system, user, source_hash=h, channel=channel)
-    log.info("%s: Grok missed — queued Cursor, posting facts now", kind)
+    log.info("%s: Grok and Ollama missed — queued Cursor, posting facts now", kind)
     return factual
