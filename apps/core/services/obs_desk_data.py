@@ -87,19 +87,74 @@ def latest_blog_across_sites() -> dict[str, Any]:
     return best or {"title": "No posts yet", "site_label": "—", "date": "—", "teaser": ""}
 
 
+def _economy_stats_candidates() -> list[Path]:
+    """Live Shockbyte first — local minecraft-test often has empty wallets."""
+    roots = [
+        AVA / "workstations" / "shockbyte" / "plugins" / "RootMC" / "webstat" / "stats.json",
+        AVA / "workstations" / "minecraft-test" / "plugins" / "RootMC" / "webstat" / "stats.json",
+    ]
+    seen: set[Path] = set()
+    out: list[Path] = []
+    for p in roots:
+        rp = p.resolve()
+        if rp in seen or not p.is_file():
+            continue
+        seen.add(rp)
+        out.append(p)
+    # Any other workstation webstat dumps
+    for p in sorted((AVA / "workstations").glob("*/plugins/RootMC/webstat/stats.json")):
+        rp = p.resolve()
+        if rp in seen:
+            continue
+        seen.add(rp)
+        out.append(p)
+    return out
+
+
+def _read_economy_stats(path: Path) -> dict[str, Any] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    series = data.get("series") or {}
+    online = series.get("online_players") or {}
+    wallet = series.get("player_wallet_g") or {}
+    return {
+        "path": str(path),
+        "server": data.get("server_name") or "RootMC",
+        "computed_at": data.get("computed_at"),
+        "players_online": int(
+            online.get("highest")
+            or online.get("mean")
+            or online.get("average")
+            or online.get("total")
+            or 0
+        ),
+        "wallet_g": float(wallet.get("total") or 0),
+        "wallet_count": int(wallet.get("count") or 0),
+    }
+
+
 def economy_desk() -> dict[str, Any]:
-    stats_path = AVA / "workstations" / "minecraft-test" / "plugins" / "RootMC" / "webstat" / "stats.json"
-    out: dict[str, Any] = {"ok": True, "players_online": 0, "wallet_g": 0, "server": "RootMC"}
-    if stats_path.is_file():
-        try:
-            data = json.loads(stats_path.read_text())
-            series = data.get("series") or {}
-            out["players_online"] = int((series.get("online_players") or {}).get("highest") or 0)
-            out["wallet_g"] = float((series.get("player_wallet_g") or {}).get("total") or 0)
-            out["server"] = data.get("server_name") or out["server"]
-            out["computed_at"] = data.get("computed_at")
-        except Exception:
-            pass
+    """Board numbers for Scene 6 — prefer live wallet totals over empty test dumps."""
+    out: dict[str, Any] = {"ok": True, "players_online": 0, "wallet_g": 0.0, "server": "RootMC"}
+    rows = [r for p in _economy_stats_candidates() if (r := _read_economy_stats(p))]
+    if rows:
+        # Wallet: richest non-empty snapshot (test server often writes 0 G with newer timestamp)
+        by_wallet = sorted(
+            rows,
+            key=lambda r: (float(r.get("wallet_g") or 0), int(r.get("wallet_count") or 0)),
+            reverse=True,
+        )
+        wallet_row = by_wallet[0]
+        # Online: highest current reading across dumps
+        online_row = max(rows, key=lambda r: int(r.get("players_online") or 0))
+        out["players_online"] = int(online_row.get("players_online") or 0)
+        out["wallet_g"] = float(wallet_row.get("wallet_g") or 0)
+        out["wallet_count"] = int(wallet_row.get("wallet_count") or 0)
+        out["server"] = wallet_row.get("server") or out["server"]
+        out["computed_at"] = wallet_row.get("computed_at")
+        out["stats_source"] = wallet_row.get("path")
     alert = "normal"
     alert_path = config.DATA_DIR / "state" / "kilauea-alert.json"
     if alert_path.is_file():
