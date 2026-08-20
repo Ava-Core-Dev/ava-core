@@ -207,7 +207,7 @@ async def api_activity(limit: int = 220):
         },
         "jobs": jobs,
         "logs": logs[-limit:],
-        "processes": [],
+        "processes": processes[:12],
         "heartbeat": {"pid": os.getpid()},
         "ts": datetime.now(timezone.utc).isoformat(),
     }
