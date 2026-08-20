@@ -19,7 +19,6 @@ log = logging.getLogger("ava.obs_studio")
 
 COLLECTION = "Ava Daily Broadcast"
 HURRICANE_COLLECTION = "Ava Hurricane Tracker"
-HURRICANE_DWELL_S = 42
 MC_SCENE = "RootMC Live"
 MC_SHARE = 0.75
 QUAKE_GLOBAL = "Quake · Global"
@@ -95,8 +94,15 @@ SCENE_MEDIA = {
 # unless GetMediaInputStatus reports the current item has ended.
 VLC_MIN_DWELL_S = 420
 MIN_DWELL_S = 12
-IMAGE_DWELL_S = 28
 MAX_DWELL_S = 900
+ROTATION_CFG_PATH = config.DATA_DIR / "state" / "obs-rotation-config.json"
+
+DEFAULT_MODE_DWELL_S = {
+    "daily": 60,
+    "weather": 60,
+    "kilauea": 60,
+    "hurricane": 60,
+}
 
 
 def _rotate_state_path() -> Path:
@@ -118,6 +124,47 @@ def _save_rotate(scene: str) -> None:
     p = _rotate_state_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps({"scene": scene, "since": time.time()}))
+
+
+def _sanitize_dwell(value: Any, fallback: int = 60) -> int:
+    try:
+        n = int(float(value))
+    except Exception:
+        n = int(fallback)
+    return max(5, min(3600, n))
+
+
+def load_rotation_config() -> dict[str, Any]:
+    mode_dwell = dict(DEFAULT_MODE_DWELL_S)
+    scene_dwell: dict[str, int] = {}
+    if ROTATION_CFG_PATH.is_file():
+        try:
+            raw = json.loads(ROTATION_CFG_PATH.read_text())
+        except Exception:
+            raw = {}
+        for mode, default_s in DEFAULT_MODE_DWELL_S.items():
+            mode_dwell[mode] = _sanitize_dwell((raw.get("mode_dwell_s") or {}).get(mode), default_s)
+        for scene, dwell in (raw.get("scene_dwell_s") or {}).items():
+            if isinstance(scene, str) and scene.strip():
+                scene_dwell[scene] = _sanitize_dwell(dwell, 60)
+    return {"mode_dwell_s": mode_dwell, "scene_dwell_s": scene_dwell}
+
+
+def save_rotation_config(mode_dwell_s: dict[str, Any] | None = None, scene_dwell_s: dict[str, Any] | None = None) -> dict[str, Any]:
+    cfg = load_rotation_config()
+    if isinstance(mode_dwell_s, dict):
+        for mode in DEFAULT_MODE_DWELL_S:
+            if mode in mode_dwell_s:
+                cfg["mode_dwell_s"][mode] = _sanitize_dwell(mode_dwell_s.get(mode), cfg["mode_dwell_s"][mode])
+    if isinstance(scene_dwell_s, dict):
+        cleaned: dict[str, int] = {}
+        for scene, dwell in scene_dwell_s.items():
+            if isinstance(scene, str) and scene.strip():
+                cleaned[scene] = _sanitize_dwell(dwell, 60)
+        cfg["scene_dwell_s"] = cleaned
+    ROTATION_CFG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    ROTATION_CFG_PATH.write_text(json.dumps(cfg, indent=2))
+    return cfg
 
 
 class ObsClient:
@@ -1214,95 +1261,15 @@ async def rotate_loop_scene() -> dict:
             ensure_mode_collection,
             hurricane_scene_pool,
         )
-        from apps.core.services.kilauea_cams import KILAUEA_DWELL_S, kilauea_scene_pool
+        from apps.core.services.kilauea_cams import kilauea_scene_pool
         import time as _time
+        from apps.core.services.obs_scene_visibility import visible_pool, refresh_auto_hide
 
         mode = current_mode()
         coll = await ensure_mode_collection(obs)
         cur = (await obs.req("GetCurrentProgramScene")).get("currentProgramSceneName")
         if coll.get("switched"):
             return {"ok": True, "scene": cur, "held": "mode_collection", "mode": mode}
-
-        if mode == "kilauea":
-            pool = kilauea_scene_pool()
-            st = _load_rotate()
-            if st.get("scene") != cur:
-                _save_rotate(cur)
-                elapsed = 0.0
-            else:
-                elapsed = _time.time() - float(st.get("since") or _time.time())
-            if elapsed < MIN_DWELL_S:
-                return {"ok": True, "scene": cur, "held": "min_dwell", "mode": mode, "elapsed_s": round(elapsed, 1)}
-            if elapsed < KILAUEA_DWELL_S:
-                return {
-                    "ok": True,
-                    "scene": cur,
-                    "held": "kilauea_dwell",
-                    "mode": mode,
-                    "elapsed_s": round(elapsed, 1),
-                    "need_s": KILAUEA_DWELL_S,
-                }
-            if cur not in pool:
-                nxt = pool[0] if pool else "KV · V1"
-            else:
-                nxt = pool[(pool.index(cur) + 1) % len(pool)]
-            await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
-            _save_rotate(nxt)
-            return {"ok": True, "scene": nxt, "from": cur, "mode": "kilauea"}
-
-        if mode == "hurricane":
-            pool = hurricane_scene_pool()
-            st = _load_rotate()
-            if st.get("scene") != cur:
-                _save_rotate(cur)
-                elapsed = 0.0
-            else:
-                elapsed = _time.time() - float(st.get("since") or _time.time())
-            if elapsed < MIN_DWELL_S:
-                return {"ok": True, "scene": cur, "held": "min_dwell", "mode": mode, "elapsed_s": round(elapsed, 1)}
-            if elapsed < HURRICANE_DWELL_S:
-                return {
-                    "ok": True,
-                    "scene": cur,
-                    "held": "hurricane_dwell",
-                    "mode": mode,
-                    "elapsed_s": round(elapsed, 1),
-                    "need_s": HURRICANE_DWELL_S,
-                }
-            if cur not in pool:
-                nxt = pool[0] if pool else "HT · Florida"
-            else:
-                nxt = pool[(pool.index(cur) + 1) % len(pool)]
-            await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
-            _save_rotate(nxt)
-            return {"ok": True, "scene": nxt, "from": cur, "mode": "hurricane"}
-
-        if mode == "weather":
-            pool = weather_scene_pool()
-            st = _load_rotate()
-            if st.get("scene") != cur:
-                _save_rotate(cur)
-                elapsed = 0.0
-            else:
-                elapsed = _time.time() - float(st.get("since") or _time.time())
-            if elapsed < MIN_DWELL_S:
-                return {"ok": True, "scene": cur, "held": "min_dwell", "mode": mode, "elapsed_s": round(elapsed, 1)}
-            if elapsed < IMAGE_DWELL_S:
-                return {
-                    "ok": True,
-                    "scene": cur,
-                    "held": "weather_dwell",
-                    "mode": mode,
-                    "elapsed_s": round(elapsed, 1),
-                    "need_s": IMAGE_DWELL_S,
-                }
-            if cur not in pool:
-                nxt = pool[0]
-            else:
-                nxt = pool[(pool.index(cur) + 1) % len(pool)]
-            await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
-            _save_rotate(nxt)
-            return {"ok": True, "scene": nxt, "from": cur, "mode": "weather"}
 
         if watch.get("erupting"):
             if cur != "Kilauea Watch":
@@ -1320,61 +1287,46 @@ async def rotate_loop_scene() -> dict:
             await obs.req("SetCurrentProgramScene", {"sceneName": DEFAULT_START_SCENE})
             return {"ok": True, "scene": DEFAULT_START_SCENE, "held": "mc_offline"}
 
-        media_name, kind = SCENE_MEDIA.get(cur, (None, None))
-        import time as _time
+        from apps.core.services.obs_overlay_gen import bump_overlay_gen
+
+        await refresh_auto_hide()
+        cfg = load_rotation_config()
+        dwell_mode = _sanitize_dwell((cfg.get("mode_dwell_s") or {}).get(mode), 60)
+        dwell_scene = _sanitize_dwell((cfg.get("scene_dwell_s") or {}).get(cur), dwell_mode)
+        dwell_s = max(MIN_DWELL_S, dwell_scene)
         st = _load_rotate()
         if st.get("scene") != cur:
             _save_rotate(cur)
             elapsed = 0.0
         else:
             elapsed = _time.time() - float(st.get("since") or _time.time())
-        if elapsed < MIN_DWELL_S:
-            return {"ok": True, "scene": cur, "held": "min_dwell", "elapsed_s": round(elapsed, 1)}
-        if elapsed < MAX_DWELL_S and media_name:
-            left = await _media_remaining_s(obs, media_name)
-            if kind == "vlc":
-                if left is not None and left > 1.5:
-                    return {
-                        "ok": True,
-                        "scene": cur,
-                        "held": "vlc_audio",
-                        "remaining_s": round(left, 1),
-                        "elapsed_s": round(elapsed, 1),
-                    }
-                if left is None and elapsed < VLC_MIN_DWELL_S:
-                    return {
-                        "ok": True,
-                        "scene": cur,
-                        "held": "vlc_dwell",
-                        "elapsed_s": round(elapsed, 1),
-                        "need_s": VLC_MIN_DWELL_S,
-                    }
-            elif kind in {"image", "browser"}:
-                if elapsed < IMAGE_DWELL_S:
-                    return {
-                        "ok": True,
-                        "scene": cur,
-                        "held": "image_dwell",
-                        "elapsed_s": round(elapsed, 1),
-                        "need_s": IMAGE_DWELL_S,
-                    }
-            elif left is None:
-                if elapsed < 45:
-                    return {"ok": True, "scene": cur, "held": "audio_unknown", "elapsed_s": round(elapsed, 1)}
-            elif left > 1.5:
-                return {
-                    "ok": True,
-                    "scene": cur,
-                    "held": "audio",
-                    "remaining_s": round(left, 1),
-                    "elapsed_s": round(elapsed, 1),
-                }
-
-        from apps.core.services.obs_scene_visibility import visible_pool, refresh_auto_hide
-        from apps.core.services.obs_overlay_gen import bump_overlay_gen
-
-        await refresh_auto_hide()
-        pool = visible_pool(AMBIENT_SCENES)
+        if elapsed < dwell_s:
+            return {
+                "ok": True,
+                "scene": cur,
+                "held": "dwell",
+                "mode": mode,
+                "elapsed_s": round(elapsed, 1),
+                "need_s": dwell_s,
+            }
+        scene_list = [
+            s.get("sceneName")
+            for s in (await obs.req("GetSceneList")).get("scenes") or []
+            if s.get("sceneName")
+        ]
+        if mode == "kilauea":
+            base_pool = kilauea_scene_pool()
+        elif mode == "hurricane":
+            base_pool = hurricane_scene_pool()
+        elif mode == "weather":
+            base_pool = weather_scene_pool()
+        else:
+            base_pool = AMBIENT_SCENES
+        merged_pool: list[str] = []
+        for scene_name in [*base_pool, *scene_list]:
+            if scene_name and scene_name not in merged_pool:
+                merged_pool.append(scene_name)
+        pool = visible_pool(merged_pool)
         if not pool:
             pool = [DEFAULT_START_SCENE]
         if cur not in pool:

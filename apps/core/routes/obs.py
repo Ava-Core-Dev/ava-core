@@ -866,11 +866,27 @@ class SceneVisibilityBody(BaseModel):
     hidden_manual: list[str] = []
 
 
+class RotationConfigBody(BaseModel):
+    mode_dwell_s: dict[str, int] = {}
+    scene_dwell_s: dict[str, int] = {}
+
+
 @api_router.get("/scene-visibility")
 async def api_obs_scene_visibility_get():
     from apps.core.services.obs_scene_visibility import load_visibility
+    from apps.voice.director import get_director
 
-    return {"ok": True, **load_visibility()}
+    scenes: list[str] = []
+    try:
+        lst = await get_director()._obs_request("GetSceneList")
+        scenes = [
+            s.get("sceneName")
+            for s in ((lst or {}).get("responseData") or {}).get("scenes") or []
+            if s.get("sceneName")
+        ]
+    except Exception:
+        scenes = []
+    return {"ok": True, "scenes": scenes, **load_visibility()}
 
 
 @api_router.post("/scene-visibility")
@@ -880,4 +896,19 @@ async def api_obs_scene_visibility_post(body: SceneVisibilityBody):
     vis = set_manual_hidden(body.hidden_manual)
     vis = await refresh_auto_hide()
     return {"ok": True, **vis}
+
+
+@api_router.get("/rotation-config")
+async def api_obs_rotation_config_get():
+    from apps.core.services.obs_studio import load_rotation_config
+
+    return {"ok": True, **load_rotation_config()}
+
+
+@api_router.post("/rotation-config")
+async def api_obs_rotation_config_post(body: RotationConfigBody):
+    from apps.core.services.obs_studio import save_rotation_config
+
+    cfg = save_rotation_config(body.mode_dwell_s, body.scene_dwell_s)
+    return {"ok": True, **cfg}
 
