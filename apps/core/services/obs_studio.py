@@ -52,6 +52,27 @@ MIN_DWELL_S = 12
 MAX_DWELL_S = 900
 
 
+def _rotate_state_path() -> Path:
+    return config.DATA_DIR / "state" / "obs-rotate.json"
+
+
+def _load_rotate() -> dict:
+    p = _rotate_state_path()
+    if not p.is_file():
+        return {}
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return {}
+
+
+def _save_rotate(scene: str) -> None:
+    import time
+    p = _rotate_state_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"scene": scene, "since": time.time()}))
+
+
 class ObsClient:
     def __init__(self) -> None:
         self._ws: Any = None
@@ -639,6 +660,9 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             streaming = bool((await obs.try_req("GetStreamStatus") or {}).get("outputActive"))
 
         scenes = [s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []]
+        await obs.close()
+        self_obs_closed = True
+        wired = await apply_current_scene_media()
         return {
             "ok": True,
             "collection": COLLECTION,
@@ -646,9 +670,11 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             "playlist": [str(p) for p in playlist_paths()],
             "streaming": streaming,
             "detail": detail,
+            "current_media": wired,
         }
     finally:
-        await obs.close()
+        if not locals().get("self_obs_closed"):
+            await obs.close()
 
 
 async def apply_ambient_playlist() -> dict:
@@ -711,8 +737,121 @@ async def apply_minecraft_live(snap: dict | None = None) -> dict:
         await obs.close()
 
 
+async def apply_current_scene_media() -> dict:
+    """Point each desk at media/audio/current + video/current and play each file once."""
+    media = config.MEDIA_DIR
+    cur_a = media / "audio" / "current"
+    cur_v = media / "video" / "current"
+    reports = media / "audio" / "reports"
+    dev_src = reports / "ava_dev_update_account_redesign_ara.mp3"
+    dev_cur = cur_a / "dev-update-current.mp3"
+    if dev_src.is_file() and not dev_cur.exists():
+        try:
+            dev_cur.symlink_to(dev_src)
+        except OSError:
+            import shutil
+            shutil.copy2(dev_src, dev_cur)
+    desk = cur_a / "hourly-desk-current.mp3"
+    parts = [
+        cur_a / "solar-weather-current.mp3",
+        cur_a / "Kilauea_Current.mp3",
+        cur_a / "nws-hawaii-current.mp3",
+        cur_a / "earthquake-global-current.mp3",
+        cur_a / "ara-report-current.mp3",
+        cur_a / "system-performance-current.mp3",
+    ]
+    existing = [p for p in parts if p.is_file()]
+    if existing and (not desk.is_file() or desk.stat().st_mtime < max(p.stat().st_mtime for p in existing)):
+        _concat_mp3(existing, desk)
+
+    def spoken(path: Path) -> dict:
+        return {
+            "is_local_file": True,
+            "local_file": str(path),
+            "looping": False,
+            "restart_on_activate": True,
+            "close_when_inactive": True,
+            "clear_on_media_end": False,
+        }
+
+    obs = ObsClient()
+    if not await obs.connect():
+        return {"ok": False, "detail": "obs_unreachable"}
+    wired: dict[str, str] = {}
+    try:
+        jobs = [
+            ("Weather Board", "NWS Hawaii", cur_v / "nws-hawaii-current.mp4", True),
+            ("Kilauea Watch", "Kilauea Audio", cur_a / "Kilauea_Current.mp3", False),
+            ("Solar Dashboard", "Solar Audio", cur_a / "solar-weather-current.mp3", False),
+            ("Economy Board", "Economy Audio", desk if desk.is_file() else cur_a / "ara-report-current.mp3", False),
+            ("Economy Board", "Economy Video", cur_v / "ara-report-current.mp4", True),
+            ("Goals Report", "Goals Video", cur_v / "Morning_Broadcast_Current.mp4", True),
+            ("Dev Updates", "Dev Audio", dev_cur if dev_cur.exists() else reports / "ava_intro_what_she_does_ara.mp3", False),
+            ("Quake Overlay", "Quake Loop", cur_v / "earthquake-global-current.mp4", True),
+        ]
+        for scene, name, path, vis in jobs:
+            if not path.is_file():
+                wired[name] = "missing"
+                continue
+            settings = spoken(path)
+            await _ensure_input(obs, scene, name, "ffmpeg_source", settings, audio=True)
+            if vis:
+                await _fit(obs, scene, name)
+            wired[name] = path.name
+        await _enable_item(obs, "Goals Report", "Goals Audio", False)
+        await _enable_item(obs, "Goals Report", "Goals Image", False)
+        await _enable_item(obs, "Goals Report", "Goals Video", True)
+        await _enable_item(obs, "Economy Board", "Economy Still", False)
+        await _enable_item(obs, "Economy Board", "Economy Video", True)
+        return {"ok": True, "wired": wired, "desk_brief": desk.name if desk.is_file() else None}
+    finally:
+        await obs.close()
+
+
+def _concat_mp3(parts: list[Path], dest: Path) -> None:
+    import subprocess
+    lst = dest.with_suffix(".concat.txt")
+    lst.write_text("".join(f"file '{p}'\n" for p in parts))
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    cmd_copy = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(dest)]
+    r = subprocess.run(cmd_copy, capture_output=True, text=True, timeout=60)
+    if r.returncode != 0 or not dest.is_file():
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
+             "-c:a", "libmp3lame", "-b:a", "192k", str(dest)],
+            capture_output=True, text=True, timeout=90, check=False,
+        )
+
+
+async def _media_remaining_s(obs: ObsClient, input_name: str) -> float | None:
+    st = await obs.try_req("GetMediaInputStatus", {"inputName": input_name})
+    if not st:
+        return None
+    state = str(st.get("mediaState") or "")
+    if "ENDED" in state or "STOPPED" in state:
+        return 0.0
+    dur = float(st.get("mediaDuration") or 0)
+    cur = float(st.get("mediaCursor") or 0)
+    if dur <= 0:
+        return None
+    if dur > 1000:
+        dur /= 1000.0
+        cur /= 1000.0
+    return max(0.0, dur - cur)
+
+
+async def _restart_media(obs: ObsClient, input_name: str) -> None:
+    await obs.try_req(
+        "TriggerMediaInputAction",
+        {
+            "inputName": input_name,
+            "mediaAction": "OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART",
+        },
+    )
+
+
 async def rotate_loop_scene() -> dict:
-    """Advance ambient desks, or keep Minecraft on ~75% of ticks while in-game."""
+    """Advance desks only after the current file has finished (or VLC min dwell)."""
     from apps.core.routes.obs import _kilauea_state, _watch_from_state
     from apps.core.services.minecraft_live import mc_share, record_tick, snapshot
 
@@ -738,12 +877,50 @@ async def rotate_loop_scene() -> dict:
         elif cur == MC_SCENE:
             await obs.req("SetCurrentProgramScene", {"sceneName": "Ambient Playlist"})
             return {"ok": True, "scene": "Ambient Playlist", "held": "mc_offline"}
+
+        media_name, kind = SCENE_MEDIA.get(cur, (None, None))
+        import time as _time
+        st = _load_rotate()
+        if st.get("scene") != cur:
+            _save_rotate(cur)
+            elapsed = 0.0
+        else:
+            elapsed = _time.time() - float(st.get("since") or _time.time())
+        if elapsed < MIN_DWELL_S:
+            return {"ok": True, "scene": cur, "held": "min_dwell", "elapsed_s": round(elapsed, 1)}
+        if elapsed < MAX_DWELL_S and media_name:
+            left = await _media_remaining_s(obs, media_name)
+            if kind == "vlc":
+                if elapsed < VLC_MIN_DWELL_S:
+                    return {
+                        "ok": True,
+                        "scene": cur,
+                        "held": "vlc_dwell",
+                        "elapsed_s": round(elapsed, 1),
+                        "need_s": VLC_MIN_DWELL_S,
+                    }
+            elif left is None:
+                if elapsed < 45:
+                    return {"ok": True, "scene": cur, "held": "audio_unknown", "elapsed_s": round(elapsed, 1)}
+            elif left > 1.5:
+                return {
+                    "ok": True,
+                    "scene": cur,
+                    "held": "audio",
+                    "remaining_s": round(left, 1),
+                    "elapsed_s": round(elapsed, 1),
+                }
+
         pool = AMBIENT_SCENES
         if cur not in pool:
             nxt = "Ambient Playlist"
         else:
             nxt = pool[(pool.index(cur) + 1) % len(pool)]
         await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
+        nxt_media, _ = SCENE_MEDIA.get(nxt, (None, None))
+        if nxt_media:
+            await _restart_media(obs, nxt_media)
+        _save_rotate(nxt)
         return {"ok": True, "scene": nxt, "from": cur, "ingame": bool(mc.get("ingame"))}
     finally:
         await obs.close()
