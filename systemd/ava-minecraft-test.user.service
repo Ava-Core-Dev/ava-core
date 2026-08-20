@@ -7,9 +7,9 @@ StartLimitBurst=3
 
 [Service]
 Type=simple
-WorkingDirectory=/home/ava-core/ava/workstations/minecraft-test-live
+WorkingDirectory=/home/ava-core/ava/workstations/minecraft-test
 ExecStartPre=/bin/bash -c '! ss -tlnp | grep -q :24945'
-ExecStart=/home/ava-core/ava/workstations/minecraft-test-live/start.sh
+ExecStart=/home/ava-core/ava/workstations/minecraft-test/start.sh
 ExecStop=/bin/bash -c 'kill -TERM $MAINPID; sleep 10'
 Restart=on-failure
 RestartSec=15

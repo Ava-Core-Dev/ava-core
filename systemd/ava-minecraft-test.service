@@ -10,10 +10,10 @@ StartLimitBurst=3
 Type=simple
 User=ava-core
 Group=ava-core
-WorkingDirectory=/home/ava-core/ava/workstations/minecraft-test-live
+WorkingDirectory=/home/ava-core/ava/workstations/minecraft-test
 # Only start if port 24945 isn't already bound (prevents double-start)
 ExecStartPre=/bin/bash -c '! ss -tlnp | grep -q :24945'
-ExecStart=/home/ava-core/ava/workstations/minecraft-test-live/start.sh
+ExecStart=/home/ava-core/ava/workstations/minecraft-test/start.sh
 ExecStop=/bin/bash -c 'kill -TERM $MAINPID; sleep 10'
 
 Restart=on-failure
