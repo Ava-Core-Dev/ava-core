@@ -150,6 +150,8 @@
         <div class="chart-meta"><span>Solar W</span><span id="histSolarMeta">—</span></div>
         <svg class="chart" id="chartSoc" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="Battery percent over time"></svg>
         <div class="chart-meta"><span>Battery %</span><span id="histSocMeta">—</span></div>
+        <svg class="chart" id="chartCpu" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="CPU percent over time"></svg>
+        <div class="chart-meta"><span>CPU %</span><span id="histCpuMeta">—</span></div>
       </div>
       <div class="card">
         <div class="k">Totals now</div>
@@ -302,13 +304,18 @@ async function paintHistory(){
     document.getElementById("histWin").textContent = hours + "h · " + pts.length + " pts";
     const solarVals = pts.map((p) => p.solar_w == null ? null : Number(p.solar_w));
     const socVals = pts.map((p) => p.soc == null ? null : Number(p.soc));
+    const cpuVals = pts.map((p) => p.cpu_pct == null ? null : Number(p.cpu_pct));
     const sMeta = drawChart(document.getElementById("chartSolar"), solarVals, "#f59e0b", 0, null);
     const bMeta = drawChart(document.getElementById("chartSoc"), socVals, "#06b6d4", 0, 100);
+    const cMeta = drawChart(document.getElementById("chartCpu"), cpuVals, "#10b981", 0, 100);
     document.getElementById("histSolarMeta").innerHTML = sMeta.last != null
       ? `<b>${Math.round(sMeta.last)} W</b> · max ${Math.round(sMeta.yMax)}`
       : "—";
     document.getElementById("histSocMeta").innerHTML = bMeta.last != null
       ? `<b>${bMeta.last.toFixed(0)}%</b>`
+      : "—";
+    document.getElementById("histCpuMeta").innerHTML = cMeta.last != null
+      ? `<b>${cMeta.last.toFixed(0)}%</b>`
       : "—";
   } catch (_) {}
 }

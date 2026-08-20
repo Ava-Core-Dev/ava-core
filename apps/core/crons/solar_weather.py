@@ -605,7 +605,8 @@ def record_host_sample(*, force: bool = False) -> dict | None:
         return None
     from apps.core import config
 
-    cpu = float(psutil.cpu_percent(interval=None))
+    # interval=None returns 0.0 on the first call in a process — use a short block.
+    cpu = float(psutil.cpu_percent(interval=0.1))
     mem = psutil.virtual_memory()
     row = {
         "at": int(now * 1000),

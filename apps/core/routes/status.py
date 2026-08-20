@@ -129,7 +129,7 @@ async def api_solar():
 
 @router.get("/api/solar/history")
 async def api_solar_history(hours: float = 12):
-    """EcoFlow history time series — bank solar_w, load_w, soc over the last N hours."""
+    """EcoFlow + host history — solar_w, load_w, soc, cpu_pct over the last N hours."""
     try:
         from apps.core.crons.solar_weather import history_points
         return history_points(hours)
