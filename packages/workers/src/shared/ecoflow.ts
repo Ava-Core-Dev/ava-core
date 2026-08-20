@@ -82,6 +82,24 @@ function num(data: Record<string, unknown>, ...keys: string[]): number | null {
   return null;
 }
 
+function wattsOf(data: Record<string, unknown>, ...keys: string[]): number {
+  const v = num(data, ...keys);
+  if (v == null) return 0;
+  const n = Math.abs(v) >= 10000 ? v / 1000 : v;
+  return Math.max(0, Math.round(n * 10) / 10);
+}
+
+function packPower(data: Record<string, unknown>) {
+  const pv = wattsOf(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts");
+  const acIn = wattsOf(data, "inv.inputWatts", "inv.acInWatts");
+  const acOut = wattsOf(data, "inv.outputWatts", "inv.outWatts");
+  const pdOut = wattsOf(data, "pd.wattsOutSum", "pd.outputWatts");
+  const usb = ["pd.usb1Watts", "pd.usb2Watts", "pd.typec1Watts", "pd.typec2Watts", "pd.carWatts"]
+    .reduce((s, k) => s + wattsOf(data, k), 0);
+  const dcOut = Math.max(usb, Math.max(0, pdOut - acOut));
+  return { pv_w: pv, ac_in_w: acIn, ac_out_w: acOut, dc_out_w: Math.round(dcOut * 10) / 10, watts_in: pv, watts_out: Math.round(dcOut * 10) / 10 };
+}
+
 function pickSoc(data: Record<string, unknown>): number | null {
   for (const k of ["bms_bmsStatus.soc", "bmsMaster.soc", "pd.soc", "soc"]) {
     const v = num(data, k);
@@ -123,42 +141,58 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
   await ensureEcoflowTable(env);
   const devices: Array<Record<string, unknown>> = [];
   const banks: number[] = [];
-  let wattsIn = 0;
-  let wattsOut = 0;
   for (const sn of sns) {
     const q = await ecoflowGet(env, "/iot-open/sign/device/quota/all", { sn });
     const data = (q.json?.data && typeof q.json.data === "object") ? q.json.data : {};
     const soc = pickSoc(data);
-    const inn = num(data, "mppt.inWatts", "pd.wattsInSum", "pd.inputWatts") || 0;
-    const out = num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") || 0;
+    const pwr = packPower(data);
     const live = q.ok && Object.keys(data).length > 0;
-    if (live && soc != null) {
-      banks.push(soc);
-      wattsIn += inn;
-      wattsOut += out;
-    }
+    if (live && soc != null) banks.push(soc);
+    const acOut = pwr.ac_out_w;
+    const acIn = pwr.ac_in_w;
+    const ac_role = acOut >= 1100 ? "appliances" : acIn > 20 ? "generator" : acOut > 20 ? "transfer_out" : null;
     devices.push({
       label: SN_LABELS[sn] || sn.slice(-6),
       sn,
       soc,
-      watts_in: inn,
-      watts_out: out,
       online: live,
+      ac_role,
+      ...pwr,
     });
   }
+  const taking = devices.filter((d) => Number(d.ac_in_w) > 20);
+  const sending = devices.filter((d) => Number(d.ac_out_w) > 20);
+  for (const d of devices) {
+    if (d.ac_role === "appliances") continue;
+    if (Number(d.ac_in_w) > 20 && sending.length) d.ac_role = "transfer_in";
+    else if (Number(d.ac_out_w) > 20 && taking.length) d.ac_role = "transfer_out";
+  }
   const battery = banks.length ? Math.round((banks.reduce((a, b) => a + b, 0) / banks.length) * 10) / 10 : null;
+  const pv = devices.reduce((s, d) => s + Number(d.pv_w || 0), 0);
+  const dc = devices.reduce((s, d) => s + Number(d.dc_out_w || 0), 0);
+  const acInSum = devices.reduce((s, d) => s + Number(d.ac_in_w || 0), 0);
+  const acOutSum = devices.reduce((s, d) => s + Number(d.ac_out_w || 0), 0);
+  const appliance = devices.reduce((s, d) => s + (d.ac_role === "appliances" ? Number(d.ac_out_w) : 0), 0);
+  const transfer = devices.reduce((s, d) => s + (d.ac_role === "transfer_out" ? Number(d.ac_out_w) : 0), 0);
+  const generator = devices.reduce((s, d) => s + (d.ac_role === "generator" ? Number(d.ac_in_w) : 0), 0);
   const snap = {
     battery_pct: battery,
     bank_pct: battery,
-    solar_in_w: Math.round(wattsIn * 10) / 10,
-    load_w: Math.round(wattsOut * 10) / 10,
-    power_w: Math.round(wattsIn * 10) / 10,
-    state: wattsIn > 20 ? "charging" : wattsOut > 20 ? "discharging" : "idle",
+    solar_in_w: Math.round(pv * 10) / 10,
+    load_w: Math.round(dc * 10) / 10,
+    power_w: Math.round(pv * 10) / 10,
+    state: appliance ? "appliances" : transfer ? "AC transfer" : generator ? "generator" : pv > 20 ? "PV charging" : dc > 20 ? "DC load" : "idle",
     devices,
     totals: {
-      solar_in_w: Math.round(wattsIn * 10) / 10,
-      load_w: Math.round(wattsOut * 10) / 10,
-      net_w: Math.round((wattsIn - wattsOut) * 10) / 10,
+      solar_in_w: Math.round(pv * 10) / 10,
+      load_w: Math.round(dc * 10) / 10,
+      dc_load_w: Math.round(dc * 10) / 10,
+      ac_in_w: Math.round(acInSum * 10) / 10,
+      ac_out_w: Math.round(acOutSum * 10) / 10,
+      generator_w: Math.round(generator * 10) / 10,
+      transfer_w: Math.round(transfer * 10) / 10,
+      appliance_w: Math.round(appliance * 10) / 10,
+      net_w: Math.round((pv - dc) * 10) / 10,
       bank_avg_pct: battery,
       packs: devices.length,
     },

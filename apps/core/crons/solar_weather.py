@@ -245,8 +245,6 @@ async def live_snapshot() -> dict:
 
     online_map: dict[str, bool | None] = {}
     banks: list[float] = []
-    watts_in = 0.0
-    watts_out = 0.0
     devices: list[dict] = []
     any_live = False
     async with httpx.AsyncClient() as client:
@@ -273,20 +271,16 @@ async def live_snapshot() -> dict:
             listed_on = online_map.get(sn)
             live = bool(data) and listed_on is not False
             soc = _soc_from_quota(data) if data else None
-            inn = _num(data, "mppt.inWatts", "pd.wattsInSum", "pd.inputWatts") or 0
-            out = _num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") or 0
+            pwr = _pack_power(data if live else {})
             if live and soc is not None:
                 banks.append(soc)
-                watts_in += inn
-                watts_out += out
                 any_live = True
             devices.append({
                 "label": label,
                 "sn": sn,
                 "soc": soc,
-                "watts_in": inn,
-                "watts_out": out,
                 "online": live,
+                **pwr,
             })
     devices = _sort_devices(devices)
 
@@ -296,20 +290,20 @@ async def live_snapshot() -> dict:
             _LIVE_CACHE.update({"snap": disk, "at": now})
             return disk
 
+    _apply_ac_roles(devices)
     battery = round(sum(banks) / len(banks), 1) if banks else None
-    state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
     live = _attach_rollups({
         "voltage": None,
         "current": None,
-        "power_w": round(watts_in, 1),
+        "power_w": round(sum(float(d.get("pv_w") or 0) for d in devices), 1),
         "battery_pct": battery,
-        "state": state if devices else "offline",
+        "state": _bank_state(devices) if devices else "offline",
         "kwh_today": None,
         "kwh_total": None,
         "panel_temp_c": None,
         "bank_pct": battery,
-        "solar_in_w": round(watts_in, 1),
-        "load_w": round(watts_out, 1),
+        "solar_in_w": round(sum(float(d.get("pv_w") or 0) for d in devices), 1),
+        "load_w": round(sum(float(d.get("dc_out_w") or 0) for d in devices), 1),
         "devices": devices,
         "source": "ecoflow_live",
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -382,8 +376,6 @@ def _quota_snapshot() -> dict:
             pass
     devices = []
     banks = []
-    watts_in = 0.0
-    watts_out = 0.0
     newest = 0
     for qf in sorted((root / "quota").glob("*.json")):
         try:
@@ -401,41 +393,37 @@ def _quota_snapshot() -> dict:
         fresh = age_s <= ECO_STALE_S
         label = _label_for_sn(sn, names.get(sn))
         soc = _soc_from_quota(data)
-        inn = _num(data, "mppt.inWatts", "pd.inputWatts", "pd.wattsInSum") or 0
-        out = _num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") or 0
+        pwr = _pack_power(data)
         remain = _num(data, "bms_emsStatus.dsgRemainTime", "pd.remainTime")
         if fresh and soc is not None:
             banks.append(soc)
-            watts_in += inn
-            watts_out += out
         devices.append({
             "label": label,
             "sn": sn,
             "soc": soc,
-            "watts_in": inn,
-            "watts_out": out,
             "remain_min": remain,
             "temp_c": _num(data, "bms_bmsStatus.temp", "mppt.mpptTemp"),
             "online": fresh,
             "age_s": int(age_s),
+            **pwr,
         })
     if not devices:
         return {}
     devices = _sort_devices(devices)
+    _apply_ac_roles(devices)
     battery = round(sum(banks) / len(banks), 1) if banks else None
     updated = None
     if newest > 1_000_000_000_000:
         newest = newest / 1000
     if newest:
         updated = datetime.fromtimestamp(newest, tz=timezone.utc).isoformat()
-    state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
     return _attach_rollups({
-        "power_w": round(watts_in, 1),
+        "power_w": round(sum(float(d.get("pv_w") or 0) for d in devices), 1),
         "battery_pct": battery,
-        "state": state,
+        "state": _bank_state(devices),
         "bank_pct": battery,
-        "solar_in_w": round(watts_in, 1),
-        "load_w": round(watts_out, 1),
+        "solar_in_w": round(sum(float(d.get("pv_w") or 0) for d in devices), 1),
+        "load_w": round(sum(float(d.get("dc_out_w") or 0) for d in devices), 1),
         "devices": devices,
         "source": "ecoflow_quota_cache" if any(d.get("online") for d in devices) else "ecoflow_quota_stale",
         "updated_at": updated or datetime.now(timezone.utc).isoformat(),
@@ -557,13 +545,28 @@ def _attach_rollups(snap: dict) -> dict:
     if not snap:
         return snap
     devices = snap.get("devices") or []
-    pv = sum(float(d.get("watts_in") or 0) for d in devices)
-    load = sum(float(d.get("watts_out") or 0) for d in devices)
-    socs = [float(d["soc"]) for d in devices if d.get("soc") is not None]
+    pv = sum(float(d.get("pv_w") or d.get("watts_in") or 0) for d in devices)
+    dc = sum(float(d.get("dc_out_w") or 0) for d in devices)
+    ac_in = sum(float(d.get("ac_in_w") or 0) for d in devices)
+    ac_out = sum(float(d.get("ac_out_w") or 0) for d in devices)
+    appliance = sum(float(d.get("ac_out_w") or 0) for d in devices if d.get("ac_role") == "appliances")
+    transfer = sum(float(d.get("ac_out_w") or 0) for d in devices if d.get("ac_role") == "transfer_out")
+    generator = sum(float(d.get("ac_in_w") or 0) for d in devices if d.get("ac_role") == "generator")
+    socs = [float(d["soc"]) for d in devices if d.get("soc") is not None and d.get("online") is not False]
+    snap["solar_in_w"] = round(pv, 1)
+    snap["load_w"] = round(dc, 1)
+    snap["power_w"] = round(pv, 1)
+    snap["state"] = snap.get("state") or _bank_state(devices)
     snap["totals"] = {
         "solar_in_w": round(pv, 1),
-        "load_w": round(load, 1),
-        "net_w": round(pv - load, 1),
+        "load_w": round(dc, 1),
+        "dc_load_w": round(dc, 1),
+        "ac_in_w": round(ac_in, 1),
+        "ac_out_w": round(ac_out, 1),
+        "generator_w": round(generator, 1),
+        "transfer_w": round(transfer, 1),
+        "appliance_w": round(appliance, 1),
+        "net_w": round(pv - dc, 1),
         "bank_avg_pct": round(sum(socs) / len(socs), 1) if socs else snap.get("battery_pct"),
         "packs": len(devices),
     }
