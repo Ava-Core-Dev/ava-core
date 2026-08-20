@@ -322,6 +322,13 @@ class FanoutBlogIn(BlogIn):
     brands: list[str] = Field(default_factory=lambda: ["ava", "rootrecord", "rootmc"])
 
 
+class PythonDropToggleIn(BaseModel):
+    name: str
+    enabled: bool | None = None
+    autostart: bool | None = None
+    restart_on_exit: bool | None = None
+
+
 @router.post("/api/ops/sites-fanout")
 async def ops_sites_fanout(body: FanoutBlogIn, request: Request):
     """Save the same post to multiple site trees, then sync."""
@@ -370,4 +377,36 @@ async def ops_goal_drafts_approve(request: Request, index: int = 0):
     from apps.core.services.goal_drafts import approve_draft
 
     return approve_draft(index)
+
+
+@router.get("/api/ops/python-drop/status")
+async def ops_python_drop_status(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services.python_drop_runner import get_runner
+
+    return get_runner().status()
+
+
+@router.post("/api/ops/python-drop/rescan")
+async def ops_python_drop_rescan(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services.python_drop_runner import get_runner
+
+    return {"ok": True, **get_runner().rescan()}
+
+
+@router.post("/api/ops/python-drop/toggle")
+async def ops_python_drop_toggle(body: PythonDropToggleIn, request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services.python_drop_runner import get_runner
+
+    return get_runner().update_script(
+        body.name,
+        enabled=body.enabled,
+        autostart=body.autostart,
+        restart_on_exit=body.restart_on_exit,
+    )
 

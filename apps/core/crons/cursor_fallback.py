@@ -34,10 +34,10 @@ async def run():
 
     pub_kind = kind if kind in reports.PUBLIC_KINDS else "summary"
     channel = job.get("channel") or "ava_home"
-    await reports.publish(pub_kind, body, channel=channel)
+    reports.queue_public_draft(pub_kind, body, source="cursor")
     if pub_kind in {"morning", "summary"}:
         reports.write_current(body, kind=pub_kind, source="cursor")
 
     report_path = config.REPORTS_DIR / f"{kind}-cursor-{datetime.now(HST).strftime('%Y-%m-%dT%H')}.md"
     report_path.write_text(body)
-    log.info("Cursor fallback posted kind=%s file=%s", kind, report_path.name)
+    log.info("Cursor fallback drafted kind=%s file=%s", kind, report_path.name)

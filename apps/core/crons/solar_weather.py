@@ -687,5 +687,5 @@ async def run():
     _last_hash = content_hash
 
     from apps.core.services import reports
-    await reports.publish("solar", content[:1900], channel="automations")
-    log.info("Solar+weather posted to #automations + report DMs")
+    reports.queue_public_draft("solar", content[:1900], source="cron")
+    log.info("Solar+weather draft queued for operator review")

@@ -21,6 +21,7 @@ HST = ZoneInfo("Pacific/Honolulu")
 PUBLIC_KINDS = {"morning", "summary", "solar", "weather", "kilauea"}
 
 CURRENT_MD_NAME = "morning-report-current.md"
+QUEUE_DIR_NAME = "queue"
 _REPORT_JOBS = (
     ("morning-report", "Morning report", "10:00 HST"),
     ("merged-morning-summary", "Merged morning summary", "10:05 HST"),
@@ -31,6 +32,12 @@ _REPORT_JOBS = (
 
 def current_md_path() -> Path:
     return config.REPORTS_DIR / CURRENT_MD_NAME
+
+
+def queue_dir() -> Path:
+    p = config.REPORTS_DIR / QUEUE_DIR_NAME
+    p.mkdir(parents=True, exist_ok=True)
+    return p
 
 
 def _hst_now() -> datetime:
@@ -181,6 +188,66 @@ def status_board() -> dict:
         "recurring": recurring,
         "generated": generated,
     }
+
+
+def queue_public_draft(kind: str, text: str, *, source: str = "cron") -> dict:
+    """Store a public report draft for operator review."""
+    kind = str(kind or "summary").strip().lower()
+    if kind not in PUBLIC_KINDS:
+        kind = "summary"
+    body = str(text or "").strip()
+    if not body:
+        return {"ok": False, "detail": "empty"}
+    now = _hst_now()
+    stamp = now.strftime("%Y-%m-%d %H:%M HST")
+    name = f"{now.strftime('%Y-%m-%dT%H%M%S')}-{kind}-{source}.md"
+    path = queue_dir() / name
+    if not body.lower().lstrip().startswith("**"):
+        body = f"**Ava {kind} report** — {stamp}\n\n{body}"
+    path.write_text(body + "\n", encoding="utf-8")
+    return {
+        "ok": True,
+        "kind": kind,
+        "source": source,
+        "name": name,
+        "path": str(path),
+        "stamp": stamp,
+    }
+
+
+def list_queue() -> dict:
+    qd = queue_dir()
+    rows = []
+    for p in sorted(qd.glob("*.md"), key=lambda x: x.stat().st_mtime, reverse=True):
+        st = p.stat()
+        rows.append(
+            {
+                "name": p.name,
+                "path": str(p),
+                "mtimeMs": int(st.st_mtime * 1000),
+                "bytes": st.st_size,
+            }
+        )
+    return {"ok": True, "count": len(rows), "items": rows}
+
+
+async def publish_queued(name: str, *, channel: str | None = None) -> dict:
+    q = queue_dir() / str(name or "").strip()
+    if not q.exists() or not q.is_file():
+        return {"ok": False, "detail": "not_found", "name": name}
+    text = q.read_text(encoding="utf-8", errors="replace").strip()
+    k = "summary"
+    for candidate in sorted(PUBLIC_KINDS):
+        if f"-{candidate}-" in q.name:
+            k = candidate
+            break
+    posted = await publish(k, text, channel=channel or "ava_home")
+    if posted.get("ok"):
+        write_current(text, kind=k, source="queued")
+        done_dir = queue_dir() / "published"
+        done_dir.mkdir(parents=True, exist_ok=True)
+        q.rename(done_dir / q.name)
+    return {"ok": bool(posted.get("ok")), "posted": posted, "kind": k, "name": q.name}
 
 
 async def publish(

@@ -117,7 +117,8 @@ async def run():
             report_path = config.REPORTS_DIR / f"kilauea-{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H')}.md"
             report_path.write_text(content)
             log.info("Kīlauea report written: %s", report_path.name)
-            await reports.publish("kilauea", content[:1900], channel="kilauea")
+            reports.queue_public_draft("kilauea", content[:1900], source="cron")
+            log.info("Kīlauea draft queued for operator review")
 
             alert_level = _infer_alert_level(features, hvo_text)
             _write_alert_state(config, alert_level, hvo_text)

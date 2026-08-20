@@ -29,6 +29,7 @@
       <button type="button" class="tab" data-page="feedback">Feedback</button>
       <button type="button" class="tab" data-page="crons">Crons</button>
       <button type="button" class="tab" data-page="desk">Desk</button>
+      <button type="button" class="tab" data-page="automation">Automation</button>
       <button type="button" class="tab" data-page="sites">Sites</button>
       <button type="button" class="tab" data-page="reports">Reports</button>
       <button type="button" class="tab" data-page="weather-gifs">Weather GIFs</button>
@@ -555,6 +556,22 @@
         </div>
       </div>
       <iframe title="Ava desk" src="http://127.0.0.1:8787/ops" style="width:100%;min-height:70vh;border:1px solid var(--border,#1f2937);border-radius:12px;background:#0a0e14"></iframe>
+    </section>
+
+    <section id="page-automation" class="page">
+      <div class="cron-head">
+        <div>
+          <h2 class="cron-title">Automation Drop Folder</h2>
+          <p class="hint-inline">Drop Python files into the folder and Ava auto-discovers, auto-starts in a terminal window, and watches restarts.</p>
+        </div>
+        <div class="row wrap">
+          <button type="button" id="auto-refresh">Refresh</button>
+          <button type="button" id="auto-rescan" class="primary">Rescan folder</button>
+        </div>
+      </div>
+      <p class="hint-inline" id="auto-dir">Folder: —</p>
+      <div id="auto-table" class="cron-table"></div>
+      <pre id="auto-status" class="status"></pre>
     </section>
 
     <section id="page-sites" class="page">

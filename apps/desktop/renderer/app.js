@@ -53,6 +53,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "minecraft") refreshMinecraft();
     if (btn.dataset.page === "stream") refreshStreamOps();
     if (btn.dataset.page === "sites") refreshSitesPage();
+    if (btn.dataset.page === "automation") refreshAutomationPage();
     if (btn.dataset.page === "terminal") refreshTerminalLive();
     if (btn.dataset.page === "settings") refreshConnectionForm();
   });
@@ -2697,6 +2698,64 @@ async function bootSitesPage() {
   });
 }
 
+async function refreshAutomationPage() {
+  if (!$("page-automation")?.classList.contains("active")) return;
+  const base = brainBaseUrl();
+  try {
+    const j = await fetch(`${base}/api/ops/python-drop/status`).then((r) => r.json());
+    const table = $("auto-table");
+    const rows = Object.entries(j.scripts || {}).sort((a, b) => a[0].localeCompare(b[0]));
+    if ($("auto-dir")) $("auto-dir").textContent = `Folder: ${j.drop_dir || "—"}`;
+    if (table) {
+      table.innerHTML = rows
+        .map(([name, meta]) => {
+          const run = j.running?.[name];
+          const running = run?.alive ? `running (pid ${run.pid})` : "stopped";
+          const reason = meta.disabled_reason ? ` · ${meta.disabled_reason}` : "";
+          return `<div class="cron-row">
+            <div class="cron-main">
+              <div class="cron-title">${escapeHtml(name)}</div>
+              <div class="cron-sub">${running}${reason}</div>
+            </div>
+            <div class="row wrap">
+              <label class="mc-follow"><input type="checkbox" data-auto-toggle="enabled" data-auto-name="${escapeHtml(name)}" ${meta.enabled ? "checked" : ""}/> enabled</label>
+              <label class="mc-follow"><input type="checkbox" data-auto-toggle="autostart" data-auto-name="${escapeHtml(name)}" ${meta.autostart ? "checked" : ""}/> autostart</label>
+              <label class="mc-follow"><input type="checkbox" data-auto-toggle="restart_on_exit" data-auto-name="${escapeHtml(name)}" ${meta.restart_on_exit ? "checked" : ""}/> restart</label>
+            </div>
+          </div>`;
+        })
+        .join("") || '<div class="hint-inline">No .py files discovered in drop folder.</div>';
+      table.querySelectorAll("input[data-auto-toggle]").forEach((el) => {
+        el.addEventListener("change", async () => {
+          const name = el.dataset.autoName;
+          const field = el.dataset.autoToggle;
+          const body = { name, [field]: el.checked };
+          const out = await fetch(`${base}/api/ops/python-drop/toggle`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }).then((r) => r.json());
+          $("auto-status").textContent = JSON.stringify(out, null, 2);
+          await refreshAutomationPage();
+        });
+      });
+    }
+    $("auto-status").textContent = JSON.stringify(j, null, 2);
+  } catch (e) {
+    $("auto-status").textContent = String(e);
+  }
+}
+
+async function bootAutomationPage() {
+  if (!$("page-automation")) return;
+  $("auto-refresh")?.addEventListener("click", refreshAutomationPage);
+  $("auto-rescan")?.addEventListener("click", async () => {
+    const j = await fetch(`${brainBaseUrl()}/api/ops/python-drop/rescan`, { method: "POST" }).then((r) => r.json());
+    $("auto-status").textContent = JSON.stringify(j, null, 2);
+    await refreshAutomationPage();
+  });
+}
+
 let lastBrainUrl = "http://127.0.0.1:8787";
 let connectionPresets = null;
 
@@ -2891,6 +2950,7 @@ async function boot() {
   await bootTerminal();
   await bootMinecraft();
   await bootStreamOps();
+  await bootAutomationPage();
   await bootSitesPage();
   ensureBizTimer();
   window.avaDesktop.earlyLogin?.().catch(() => {});

@@ -28,6 +28,10 @@ class ManualIn(BaseModel):
     post: bool = True
 
 
+class QueuePublishIn(BaseModel):
+    channel: str | None = None
+
+
 def _allow_mutate(request: Request) -> bool:
     # Cloudflare tunnel injects cf-ray; never accept mutations from the public origin.
     if request.headers.get("cf-ray") or request.headers.get("cf-connecting-ip"):
@@ -76,6 +80,19 @@ async def manual_report(body: ManualIn, request: Request):
     if not _allow_mutate(request):
         return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
     return await reports.submit_manual(body.text, kind=body.kind, post=body.post)
+
+
+@router.get("/queue")
+async def queue_list():
+    return reports.list_queue()
+
+
+@router.post("/queue/{name}/publish")
+async def queue_publish(name: str, request: Request, body: QueuePublishIn | None = None):
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    channel = body.channel if body else None
+    return await reports.publish_queued(name, channel=channel)
 
 
 @router.post("/test")

@@ -20,7 +20,7 @@ def _datapoints(limit: int, clip: int) -> str:
 async def run():
     log.info("Morning report cron  %s", datetime.now(timezone.utc).isoformat())
     from apps.core import config
-    from apps.core.services import discord, synth
+    from apps.core.services import reports, synth
 
     raw = _datapoints(10, 500)
     factual = f"_Live snapshot (Grok unavailable or cooling down)._\n\n{raw[:1500]}"
@@ -34,10 +34,10 @@ async def run():
     summary = synth.polish("morning", system, f"Morning data:\n{raw[:3000]}", factual=factual)
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Ava morning report** — {now_hst}\n\n{summary}"
-    await discord.post_message(config.DISCORD_CHANNELS["ava_home"], content)
     from apps.core.services import reports as report_store
+    reports.queue_public_draft("morning", content, source="cron")
     report_store.write_current(content, kind="morning", source="cron")
-    log.info("Morning report posted")
+    log.info("Morning report drafted for operator review")
     try:
         import asyncio
 
@@ -70,7 +70,7 @@ async def run():
 
 
 async def run_merged():
-    """Merged morning summary — posts to Ava home."""
+    """Merged morning summary — drafts for operator approval."""
     log.info("Merged morning summary  %s", datetime.now(timezone.utc).isoformat())
     from apps.core.services import reports, synth
 
@@ -86,6 +86,6 @@ async def run_merged():
     )
     now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
     content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
-    await reports.publish("summary", content, channel="ava_home")
+    reports.queue_public_draft("summary", content, source="cron")
     reports.write_current(content, kind="summary", source="cron")
-    log.info("Merged morning summary posted to Ava home + report DMs")
+    log.info("Merged morning summary drafted for operator review")

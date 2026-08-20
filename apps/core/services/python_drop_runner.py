@@ -113,6 +113,49 @@ class PythonDropRunner:
         self._write_cfg(cfg)
         return cfg
 
+    def rescan(self) -> dict:
+        return self._discover(self._read_cfg())
+
+    def status(self) -> dict:
+        cfg = self.rescan()
+        scripts = dict(cfg.get("scripts") or {})
+        running = {
+            name: {
+                "pid": st.proc.pid,
+                "started_at": int(st.started_at),
+                "alive": st.proc.returncode is None,
+                "short_restarts_live": st.restarts_short,
+            }
+            for name, st in self._procs.items()
+        }
+        return {
+            "ok": True,
+            "drop_dir": str(self.drop_dir),
+            "config_path": str(self.cfg_path),
+            "scripts": scripts,
+            "running": running,
+        }
+
+    def update_script(self, name: str, *, enabled: bool | None = None, autostart: bool | None = None, restart_on_exit: bool | None = None) -> dict:
+        cfg = self.rescan()
+        scripts = dict(cfg.get("scripts") or {})
+        if name not in scripts:
+            return {"ok": False, "detail": "script_not_found", "name": name}
+        row = dict(scripts[name])
+        if enabled is not None:
+            row["enabled"] = bool(enabled)
+            if enabled:
+                row["disabled_reason"] = ""
+                row["short_restarts"] = 0
+        if autostart is not None:
+            row["autostart"] = bool(autostart)
+        if restart_on_exit is not None:
+            row["restart_on_exit"] = bool(restart_on_exit)
+        scripts[name] = row
+        cfg["scripts"] = scripts
+        self._write_cfg(cfg)
+        return {"ok": True, "script": {name: row}}
+
     async def _spawn(self, script: Path, meta: dict) -> asyncio.subprocess.Process | None:
         title = f"Ava Script: {script.name}"
         cmd = _term_cmd(title, script)
