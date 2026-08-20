@@ -440,3 +440,110 @@ async def ops_python_drop_toggle(body: PythonDropToggleIn, request: Request):
         restart_on_exit=body.restart_on_exit,
     )
 
+
+# --- GitHub auto-push (Emergent safety switch) ---
+
+_AUTO_PUSH_TOGGLE = CORE / "scripts" / "github-auto-push-toggle.sh"
+
+
+@router.get("/api/ops/github-auto-push")
+async def ops_github_auto_push_status(request: Request):
+    if not _local(request):
+        return _deny()
+    r = subprocess.run(
+        ["bash", str(_AUTO_PUSH_TOGGLE), "status"],
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    flag = Path.home() / ".local/state/ava/github-auto-push.off"
+    active = subprocess.run(
+        ["systemctl", "--user", "is-active", "ava-auto-push.timer"],
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    enabled = not flag.is_file()
+    return {
+        "ok": r.returncode == 0,
+        "enabled": enabled,
+        "timer": active,
+        "flag_path": str(flag),
+        "detail": (r.stdout or r.stderr or "").strip(),
+    }
+
+
+class GithubAutoPushIn(BaseModel):
+    enabled: bool | None = None
+    action: str = ""  # on | off | toggle
+
+
+@router.post("/api/ops/github-auto-push")
+async def ops_github_auto_push_set(body: GithubAutoPushIn, request: Request):
+    if not _local(request):
+        return _deny()
+    action = (body.action or "").strip().lower()
+    if not action:
+        if body.enabled is True:
+            action = "on"
+        elif body.enabled is False:
+            action = "off"
+        else:
+            action = "toggle"
+    if action not in {"on", "off", "toggle", "status"}:
+        return JSONResponse({"ok": False, "detail": "action must be on|off|toggle"}, status_code=400)
+    r = subprocess.run(
+        ["bash", str(_AUTO_PUSH_TOGGLE), action],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    flag = Path.home() / ".local/state/ava/github-auto-push.off"
+    return {
+        "ok": r.returncode == 0,
+        "enabled": not flag.is_file(),
+        "detail": (r.stdout or r.stderr or "").strip(),
+    }
+
+
+# --- Google AdSense OAuth (local) ---
+
+
+@router.get("/api/ops/adsense/status")
+async def ops_adsense_status(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services import adsense
+
+    st = adsense.status()
+    if st.get("client_configured"):
+        st["auth_url"] = adsense.auth_url()
+    return st
+
+
+@router.get("/api/ops/adsense/oauth/callback")
+async def ops_adsense_oauth_callback(request: Request, code: str = "", error: str = ""):
+    if not _local(request):
+        return _deny()
+    from apps.core.services import adsense
+
+    if error:
+        return JSONResponse({"ok": False, "detail": error}, status_code=400)
+    if not code:
+        return JSONResponse({"ok": False, "detail": "missing code"}, status_code=400)
+    try:
+        return adsense.exchange_code(code)
+    except Exception as e:
+        return JSONResponse({"ok": False, "detail": str(e)}, status_code=500)
+
+
+@router.get("/api/ops/adsense/accounts")
+async def ops_adsense_accounts(request: Request):
+    if not _local(request):
+        return _deny()
+    from apps.core.services import adsense
+
+    try:
+        return adsense.accounts_summary()
+    except Exception as e:
+        return JSONResponse({"ok": False, "detail": str(e)}, status_code=500)
+

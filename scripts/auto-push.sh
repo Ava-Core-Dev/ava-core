@@ -22,6 +22,12 @@ if ! flock -n 9; then
   exit 0
 fi
 
+FLAG="${XDG_STATE_HOME:-$HOME/.local/state}/ava/github-auto-push.off"
+if [ -f "$FLAG" ]; then
+  # Quiet exit when operator (or /ops) disabled auto-push for Emergent / manual work.
+  exit 0
+fi
+
 cd "$REPO"
 
 if [ ! -d .git ]; then

@@ -177,7 +177,21 @@ Goals API: `https://api-goals.rootrecord.info` — guest id header already in `g
 
 ---
 
-## 8. Acceptance checklist
+## 8. Staging first (required)
+
+GitHub auto-push on the desk is **OFF** during Emergent work. Preview on:
+
+| Staging | Production |
+|---------|------------|
+| https://test.avaivy.cloud | https://avaivy.cloud |
+| https://test.alexrs94.site | https://alexrs94.site |
+| https://test.rootrecord.online | https://rootrecord.online |
+| https://test.rootmc.net | https://rootmc.net |
+| https://test.rootrecord.info | https://rootrecord.info |
+
+Pages projects: `*-test` (see `docs/STAGING-TEST-DOMAINS.md`). Do **not** deploy straight to production projects until Ava promotes.
+
+## 9. Acceptance checklist
 
 - [ ] avaivy.cloud, rootrecord.online, alexrs94.site feel like one family, each with strong brand-first landers.
 - [ ] Solar desk uses center space; 3-line solar + battery charts work; notifications not stuck on Aug 19 stubs.
@@ -185,10 +199,11 @@ Goals API: `https://api-goals.rootrecord.info` — guest id header already in `g
 - [ ] Background rotation documented and editable via JSON/API.
 - [ ] Blogs sync from markdown; alex posts have contextual filenames/titles.
 - [ ] Ava Desktop still boots Core and shows the board.
+- [ ] Changes land on `test.*` first; production only after desk QA.
 - [ ] GitHub `Ava-Core-Dev/ava-core` master/main contains latest `packages/web/{avaivy.cloud,rootrecord.online,alexrs94.site}` + desktop + Core templates.
 
 ---
 
-## 9. One-liner for Emergent
+## 10. One-liner for Emergent
 
-> Renovate Ava Ivy / Root Record / RootMC / alexrs94 websites and the Ava Desktop–served solar desk into a cohesive, brand-first, high-detail, efficient design system powered by live solar+host APIs and Root Record auth — preserve all product features listed above, fix auth device_id and desk notification noise, use the solar center stage, document backgrounds, and ship updates into https://github.com/Ava-Core-Dev/ava-core master with Pages deploys.
+> Renovate Ava Ivy / Root Record / RootMC / alexrs94 websites and the Ava Desktop–served solar desk into a cohesive, brand-first, high-detail, efficient design system powered by live solar+host APIs and Root Record auth — preserve all product features listed above, use the solar center stage, document backgrounds, deploy previews to test.* Pages projects first, and push source to https://github.com/Ava-Core-Dev/ava-core master (desk auto-push is OFF until Ava re-enables it).

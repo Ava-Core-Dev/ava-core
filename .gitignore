@@ -65,3 +65,7 @@ credentials.env.*
 
 # Cursor IDE local config — never commit
 .cursor/
+
+# Desk secrets (AdSense OAuth tokens, etc.) — never commit
+data/secrets/
+**/google-adsense-*.json
