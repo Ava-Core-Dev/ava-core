@@ -161,32 +161,34 @@ async def _load_accounts() -> list[dict]:
             used_db = db_id
             break
         last_err = body.get("errors")
-    if not rows and last_err:
+    if last_err and not rows:
         log.warning("user qr D1 query failed: %s", last_err)
-        return []
-    if not used_db:
-        return []
     linked: dict[str, str] = {}
-    link_body = await d1.query(
-        used_db,
-        "SELECT account_id, pubkey FROM solana_linked_wallets",
-    )
-    for r in _d1_rows(link_body):
-        aid = str(r.get("account_id") or "").strip()
-        pk = str(r.get("pubkey") or "").strip()
-        if aid and pk:
-            linked[aid] = pk
+    if used_db:
+        link_body = await d1.query(
+            used_db,
+            "SELECT account_id, pubkey FROM solana_linked_wallets",
+        )
+        for r in _d1_rows(link_body):
+            aid = str(r.get("account_id") or "").strip()
+            pk = str(r.get("pubkey") or "").strip()
+            if aid and pk:
+                linked[aid] = pk
+    if not rows:
+        rows = await _load_accounts_mysql()
+    if not rows:
+        rows = _load_accounts_local()
     out = []
     for r in rows:
         aid = str(r.get("account_id") or "").strip()
         email = str(r.get("email") or "").strip()
-        custodial = str(r.get("custodial_pubkey") or "").strip()
+        custodial = str(r.get("custodial_pubkey") or r.get("public_pubkey") or "").strip()
         public_pk = linked.get(aid) or custodial
-        local = email.split("@")[0] if email else aid[:12]
-        slug = slugify(local or aid)
+        local = email.split("@")[0] if "@" in email else (email or r.get("slug") or aid[:12])
+        slug = slugify(str(r.get("slug") or local or aid))
         out.append(
             {
-                "account_id": aid,
+                "account_id": aid or slug,
                 "email": email,
                 "slug": slug,
                 "custodial_pubkey": custodial,
@@ -195,6 +197,42 @@ async def _load_accounts() -> list[dict]:
             }
         )
     return out
+
+
+async def _load_accounts_mysql() -> list[dict]:
+    from apps.core.services import mysql
+
+    tables = await mysql.query("SHOW TABLES")
+    names = {str(v).lower() for row in tables for v in row.values()}
+    if "license_accounts" in names:
+        return await mysql.query(
+            "SELECT id AS account_id, email, NULL AS custodial_pubkey FROM license_accounts"
+        )
+    return []
+
+
+def _load_accounts_local() -> list[dict]:
+    rows: list[dict] = []
+    try:
+        from apps.core.services import subscribers
+        for s in subscribers.list_all():
+            sid = str(s.get("id") or "")
+            label = str(s.get("label") or s.get("surface") or "member")
+            slug = slugify(f"{s.get('surface')}-{label or sid}")
+            rows.append({"account_id": sid, "email": "", "slug": slug, "custodial_pubkey": ""})
+    except Exception:
+        pass
+    grok = config.MEDIA_DIR / "private" / "accounts" / "AIConversations" / "grok"
+    if grok.is_dir():
+        for p in grok.iterdir():
+            if p.is_dir() and "@" in p.name:
+                rows.append({
+                    "account_id": p.name,
+                    "email": p.name,
+                    "slug": slugify(p.name.split("@")[0]),
+                    "custodial_pubkey": "",
+                })
+    return rows
 
 
 def _save_user(row: dict) -> dict:
@@ -214,13 +252,12 @@ def _save_user(row: dict) -> dict:
         "kind": "member",
     }
     written = write_pair(folder, public_payload=public_payload, private_payload=private_payload, meta=meta)
-    if pk:
-        pub = public_qr_dir() / slug
-        pub.mkdir(parents=True, exist_ok=True)
-        _write_qr_png(pub / "qr-public.png", public_payload)
-        _write_qr_svg(pub / "qr-public.svg", public_payload)
-        (pub / "qr-public.txt").write_text(public_payload + "\n", encoding="utf-8")
-        written["public_copy"] = str(pub)
+    pub = public_qr_dir() / slug
+    pub.mkdir(parents=True, exist_ok=True)
+    _write_qr_png(pub / "qr-public.png", public_payload)
+    _write_qr_svg(pub / "qr-public.svg", public_payload)
+    (pub / "qr-public.txt").write_text(public_payload + "\n", encoding="utf-8")
+    written["public_copy"] = str(pub)
     return written
 
 

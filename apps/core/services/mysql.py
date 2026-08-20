@@ -47,6 +47,7 @@ async def query(sql: str, args: tuple = ()) -> list[dict[str, Any]]:
     if not pool:
         return []
     try:
+        import aiomysql
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(sql, args)
