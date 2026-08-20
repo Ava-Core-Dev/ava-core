@@ -1,9 +1,12 @@
 /**
- * rootmc-api Worker — rootmc.info / api.rootmc.info
+ * rootmc-api Worker — zone rootmc.net on account d2daf263.
  *
- * Awake: proxy to the home origin (Ava).
- * Offline: serve the D1 Minecraft cache the host keeps synced.
- * Hyperdrive (LIVE_DB) is bound for live SQL when workers need it.
+ * api.rootmc.net is the Minecraft plugin / site JSON API. The D1 + license
+ * Worker still lives on the previous RootMC account (workers.dev). This
+ * hostname must never be sent to Ava FastAPI (ava-origin / :8787).
+ *
+ * Apex / www: Pages frontend, with /api/edge D1 cache and Ava origin only
+ * for leftover /ava paths.
  */
 
 import { avaIsAwake } from "../shared/heartbeat";
@@ -13,7 +16,8 @@ import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
 const SITE_FRONTEND = "https://rootmc-web-egm.pages.dev";
-const API_PREFIXES = ["/api/", "/ava/"];
+/** Production RootMC Worker (old account). Zone transfer did not move D1. */
+const ROOTMC_API = "https://rootmc-api.root-337.workers.dev";
 
 async function d1Cache(env: AvaEnv, table: string): Promise<Response> {
   if (!env.ROOTMC_LIVE_DB) {
@@ -32,10 +36,26 @@ async function d1Cache(env: AvaEnv, table: string): Promise<Response> {
   return Response.json({ ok: true, source: "d1", table, results });
 }
 
+function apiUnavailable(): Response {
+  return Response.json(
+    { ok: false, error: "upstream_unavailable", detail: "RootMC API worker unreachable" },
+    { status: 502 },
+  );
+}
+
 export default {
   async fetch(request: Request, env: AvaEnv): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+    const host = url.hostname;
+
+    if (host === "api.rootmc.net") {
+      return proxyToOrigin(request, {
+        originUrl: ROOTMC_API,
+        timeoutMs: 30000,
+        offlineFallback: apiUnavailable,
+      });
+    }
 
     if (path === "/status.json" || path === "/api/status.json") {
       return statusJson(env);
@@ -47,18 +67,12 @@ export default {
       return d1Cache(env, path.slice("/api/edge/".length).replace(/\/$/, "") || "meta");
     }
 
-    const host = url.hostname;
-    const isApiHost = host === "api.rootmc.net" || API_PREFIXES.some((p) => path.startsWith(p));
-    if (isApiHost) {
+    if (path.startsWith("/ava/")) {
       return proxyToOrigin(request, {
         originUrl: ORIGIN,
-        path: path.startsWith("/ava/") ? path.slice("/ava".length) : undefined,
-        offlineFallback: async () => {
-          if (path.startsWith("/api/minecraft") || path.startsWith("/api/edge")) {
-            return d1Cache(env, "status");
-          }
-          return statusPage(env, { degraded: true });
-        },
+        path: path.slice("/ava".length),
+        timeoutMs: 8000,
+        offlineFallback: () => statusPage(env, { degraded: true }),
       });
     }
 
@@ -67,6 +81,5 @@ export default {
 
   async scheduled(_event: ScheduledEvent, env: AvaEnv): Promise<void> {
     if (await avaIsAwake(env)) return;
-    // Host is offline — edge keeps serving D1 cache. Host will catch up on boot.
   },
 };
