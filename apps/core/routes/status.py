@@ -123,6 +123,10 @@ async def api_solar():
     }
 
 
+@router.get("/status")
+@router.get("/status/")
+@router.get("/status")
+@router.get("/status/")
 @router.get("/ava")
 @router.get("/ava/")
 @router.get("/ava/status")
