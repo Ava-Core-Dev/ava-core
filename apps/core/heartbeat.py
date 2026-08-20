@@ -40,14 +40,16 @@ def _bearer_headers() -> dict[str, str]:
 def _legacy_headers() -> dict[str, str]:
     return {
         "Content-Type": "application/json",
-        "X-Auth-Email": config.CF_EMAIL,
-        "X-Auth-Key": config.CF_GLOBAL_API_KEY,
+        "X-Auth-Email": config.CF_WORKERS_EMAIL or config.CF_EMAIL,
+        "X-Auth-Key": config.CF_WORKERS_API_KEY or config.CF_GLOBAL_API_KEY,
     }
 
 
 def _auth_modes() -> list[tuple[str, dict[str, str]]]:
     modes: list[tuple[str, dict[str, str]]] = []
-    if config.CF_GLOBAL_API_KEY and config.CF_EMAIL:
+    email = (config.CF_WORKERS_EMAIL or config.CF_EMAIL or "").strip()
+    key = (config.CF_WORKERS_API_KEY or config.CF_GLOBAL_API_KEY or "").strip()
+    if email and key:
         modes.append(("legacy", _legacy_headers()))
     if config.CF_API_TOKEN:
         modes.append(("bearer", _bearer_headers()))
@@ -101,13 +103,18 @@ async def write_heartbeat() -> bool:
         async with httpx.AsyncClient(timeout=10) as client:
             r = None
             used = ""
+            ok_headers: dict[str, str] | None = None
             for name, headers in modes:
                 r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"], headers)
                 used = name
                 if r.status_code == 200:
+                    ok_headers = headers
                     break
-                if r.status_code == 403:
-                    log.warning("Heartbeat D1 403 with %s auth — trying next credential", name)
+                if r.status_code in {401, 403}:
+                    log.warning(
+                        "Heartbeat D1 %s with %s auth — trying next credential",
+                        r.status_code, name,
+                    )
                     continue
                 break
 
@@ -117,13 +124,13 @@ async def write_heartbeat() -> bool:
             # The workers own this schema, but they may not be deployed yet.
             if not _table_ready and _missing_table(r):
                 log.info("Creating %s table in D1", _HEARTBEAT_TABLE)
-                created = await _d1_query(client, _CREATE_TABLE_SQL, headers=_auth_modes()[-1][1])
+                create_headers = ok_headers or modes[0][1]
+                created = await _d1_query(client, _CREATE_TABLE_SQL, headers=create_headers)
                 if created.status_code != 200:
                     log.warning("Could not create %s  status=%s  body=%s",
                                 _HEARTBEAT_TABLE, created.status_code, created.text[:300])
                     return False
-                r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"], headers=_auth_modes()[-1][1])
-                used = "legacy"
+                r = await _d1_query(client, upsert, [now.isoformat(), "ava-core"], headers=create_headers)
 
         if r.status_code == 200:
             _table_ready = True

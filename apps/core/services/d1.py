@@ -40,11 +40,13 @@ def _auth_modes(db_id: str = "") -> list[dict[str, str]]:
             "X-Auth-Key": config.CF_D1_ACCOUNT_API_KEY,
         })
         return modes
-    if config.CF_EMAIL and config.CF_GLOBAL_API_KEY:
+    workers_email = (config.CF_WORKERS_EMAIL or config.CF_EMAIL or "").strip()
+    workers_key = (config.CF_WORKERS_API_KEY or config.CF_GLOBAL_API_KEY or "").strip()
+    if workers_email and workers_key:
         modes.append({
             "Content-Type": "application/json",
-            "X-Auth-Email": config.CF_EMAIL,
-            "X-Auth-Key": config.CF_GLOBAL_API_KEY,
+            "X-Auth-Email": workers_email,
+            "X-Auth-Key": workers_key,
         })
     if config.CF_API_TOKEN:
         modes.append({

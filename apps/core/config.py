@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 # ── Home resolution ────────────────────────────────────────────────────────────
 _DEFAULT_HOME = Path.home() / "ava"
@@ -354,6 +354,20 @@ CF_HYPERDRIVE_ROOTMC_ID  = _first_env("CF_HYPERDRIVE_ROOTMC_ID", "HYPERDRIVE_ROO
 CF_EMAIL                 = _first_env("CLOUDFLARE_EMAIL", "CF_EMAIL")
 CF_GLOBAL_API_KEY        = _first_env(
     "CLOUDFLARE_API_KEY", "CLOUDFLARE_GLOBAL_API_KEY", "CF_GLOBAL_API_KEY"
+)
+# Process env + credentials.env can mix Root Record email with the Ava API
+# key (401 / 7403 on ava-heartbeat). Heartbeat and rootmc-live always use the
+# pair written in ava-core-v2/.env unless CF_WORKERS_* is set.
+_REPO_DOTENV = dotenv_values(_REPO_ROOT / ".env")
+CF_WORKERS_EMAIL = (
+    _first_env("CF_WORKERS_EMAIL")
+    or (_REPO_DOTENV.get("CLOUDFLARE_EMAIL") or "").strip()
+    or CF_EMAIL
+)
+CF_WORKERS_API_KEY = (
+    _first_env("CF_WORKERS_API_KEY")
+    or (_REPO_DOTENV.get("CLOUDFLARE_API_KEY") or "").strip()
+    or CF_GLOBAL_API_KEY
 )
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
