@@ -2425,12 +2425,52 @@ async function refreshStreamOps() {
           : `Idle · scene ${st.scene || "?"} · kit ${st.kit?.health || "?"}`,
       );
     }
+    const mode = st.mode || pack.mode || "daily";
+    const modeLabel =
+      mode === "hurricane"
+        ? "MODE HURRICANE"
+        : mode === "kilauea"
+          ? "MODE KILAUEA"
+          : mode === "weather"
+            ? "MODE WEATHER"
+            : "MODE DAILY";
     const mb = $("stream-pill-mode");
     if (mb) {
-      const mode = st.mode || pack.mode || "daily";
-      mb.textContent =
-        mode === "hurricane" ? "MODE HURRICANE" : mode === "kilauea" ? "MODE KILAUEA" : "MODE DAILY";
-      mb.classList.toggle("on", mode === "hurricane" || mode === "kilauea");
+      mb.textContent = modeLabel;
+      mb.classList.toggle("on", mode !== "daily");
+    }
+    document.querySelectorAll(".stream-modes button").forEach((b) => b.classList.remove("on"));
+    const modeBtn = {
+      daily: $("stream-mode-daily"),
+      weather: $("stream-mode-weather"),
+      kilauea: $("stream-mode-kilauea"),
+      hurricane: $("stream-mode-hurricane"),
+    }[mode];
+    if (modeBtn) modeBtn.classList.add("on");
+    const sceneName = st.scene || "—";
+    const sn = $("stream-scene-now");
+    if (sn) sn.textContent = sceneName;
+    const sp = $("stream-pill-scene");
+    if (sp) {
+      sp.textContent = `SCENE ${sceneName}`;
+      sp.classList.add("on");
+    }
+    document.querySelectorAll("[data-stream-scene]").forEach((btn) => {
+      btn.classList.toggle("on", btn.dataset.streamScene === sceneName);
+    });
+    const livePack = pack.live || {};
+    const watchLink = $("stream-watch-link");
+    if (watchLink) {
+      watchLink.textContent = livePack.watch_url
+        ? `Public: ${livePack.watch_url}`
+        : "Public live page: avaivy.cloud/live";
+    }
+    const yt = $("stream-yt");
+    if (yt && livePack.embed_url && st.streaming) {
+      if (yt.dataset.src !== livePack.embed_url) {
+        yt.src = livePack.embed_url;
+        yt.dataset.src = livePack.embed_url;
+      }
     }
     const live = $("stream-pill-live");
     if (live) {
@@ -2467,13 +2507,44 @@ async function refreshStreamOps() {
       $("stream-description").value = st.description || "";
     }
     $("stream-status").textContent = JSON.stringify(
-      { status: st, watch, eta },
+      { status: st, watch, eta, live: livePack },
       null,
       2,
     );
   } catch (err) {
     streamSetMsg(String(err?.message || err), true);
   }
+}
+
+async function refreshStreamPreview() {
+  if (!$("page-stream")?.classList.contains("active") || !window.avaDesktop?.streamPreview) return;
+  const img = $("stream-preview");
+  const off = $("stream-preview-off");
+  const yt = $("stream-yt");
+  const cap = $("stream-preview-cap");
+  try {
+    const p = await window.avaDesktop.streamPreview();
+    if (p?.image && img) {
+      img.src = p.image;
+      img.hidden = false;
+      if (off) off.hidden = true;
+      if (yt) yt.hidden = true;
+      if (cap) cap.textContent = `Program · ${p.scene || ""}`;
+      return;
+    }
+  } catch {
+    /* fall through to YouTube / placeholder */
+  }
+  if (yt && yt.dataset.src) {
+    yt.hidden = false;
+    if (img) img.hidden = true;
+    if (off) off.hidden = true;
+    if (cap) cap.textContent = "YouTube live";
+    return;
+  }
+  if (img) img.hidden = true;
+  if (yt) yt.hidden = true;
+  if (off) off.hidden = false;
 }
 
 async function streamAction(action, extra = {}) {
@@ -2498,7 +2569,10 @@ async function streamAction(action, extra = {}) {
 
 async function bootStreamOps() {
   if (!$("page-stream") || !window.avaDesktop?.streamStatus) return;
-  $("stream-refresh").onclick = () => refreshStreamOps();
+  $("stream-refresh").onclick = () => {
+    refreshStreamOps();
+    refreshStreamPreview();
+  };
   $("stream-meta-apply").onclick = () => streamAction("metadata");
   $("stream-meta-restart").onclick = () => streamAction("metadata-restart");
   $("stream-watch-enter").onclick = () => streamAction("watch-enter");
@@ -2521,11 +2595,13 @@ async function bootStreamOps() {
       });
   });
   await refreshStreamOps();
+  await refreshStreamPreview();
   setInterval(() => {
     if ($("page-stream")?.classList.contains("active")) {
       refreshStreamOps().catch(() => {});
+      refreshStreamPreview().catch(() => {});
     }
-  }, 8000);
+  }, 4000);
 }
 
 let lastBrainUrl = "http://127.0.0.1:8787";

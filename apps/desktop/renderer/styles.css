@@ -125,6 +125,79 @@ main { padding: 1rem 1.25rem 2.5rem; max-width: 100%; overflow-x: hidden; }
 .page-terminal.active { display: flex; flex-direction: column; gap: 0.85rem; }
 .page-minecraft.active { display: flex; flex-direction: column; gap: 0.75rem; }
 .page-stream.active { display: flex; flex-direction: column; gap: 0.75rem; }
+.stream-board {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.4fr) minmax(240px, 1fr);
+  gap: 0.85rem;
+  align-items: stretch;
+}
+@media (max-width: 980px) {
+  .stream-board { grid-template-columns: 1fr; }
+}
+.stream-preview-wrap {
+  position: relative;
+  min-height: 220px;
+  background: #070b09;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.stream-preview-wrap img,
+.stream-preview-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  object-fit: contain;
+  background: #000;
+  border: 0;
+}
+#stream-preview-off {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  padding: 1rem;
+  text-align: center;
+}
+.stream-preview-cap {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: rgba(0,0,0,.55);
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+}
+.stream-side {
+  border: 1px solid var(--line);
+  background: rgba(0,0,0,.22);
+  border-radius: 10px;
+  padding: 0.85rem 0.95rem;
+}
+.stream-now-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stream-now {
+  margin: 0.2rem 0 0.55rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.stream-modes button.on,
+.stream-transport button.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .stream-transport button { min-width: 5.5rem; }
 .stream-reactions button[data-stream-reaction] {
   min-width: 6.5rem;

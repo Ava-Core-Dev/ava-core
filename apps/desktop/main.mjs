@@ -1023,19 +1023,23 @@ ipcMain.handle("ava:mc-rcon", async (_e, { command, target, allow } = {}) => {
 });
 
 ipcMain.handle("ava:stream-status", async () => {
-  const [status, watch, eta] = await Promise.all([
+  const [status, watch, eta, live] = await Promise.all([
     brainJson("/api/obs/status"),
     brainJson("/api/obs/volcano-watch"),
     brainJson("/api/obs/eruption-eta"),
+    brainJson("/api/live"),
   ]);
   return {
     ok: status?.ok !== false && !status?.detail,
     status,
     watch: watch?.watch || null,
     eta: eta && typeof eta === "object" ? eta : null,
+    live: live && typeof live === "object" ? live : null,
     detail: status?.detail || watch?.detail || eta?.detail || null,
   };
 });
+
+ipcMain.handle("ava:stream-preview", async () => brainJson("/api/obs/preview", { timeoutMs: 8000 }));
 
 ipcMain.handle("ava:stream-action", async (_e, opts = {}) => {
   const action = String(opts.action || "").trim();

@@ -104,10 +104,11 @@
       <div class="mc-head">
         <div>
           <h2 class="cron-title">Streaming Ops</h2>
-          <p class="hint-inline">Desktop director · Daily Broadcast (standard) · Hurricane Tracker · Volcano Watch · start/stop stream in OBS</p>
+          <p class="hint-inline">OBS modes, current scene, program preview. Start/stop the stream in OBS — Ava does not press Go Live.</p>
         </div>
         <div class="row wrap">
-          <span id="stream-pill-mode" class="mc-pill">MODE DAILY</span>
+          <span id="stream-pill-mode" class="mc-pill">MODE ?</span>
+          <span id="stream-pill-scene" class="mc-pill">SCENE —</span>
           <span id="stream-pill-live" class="mc-pill">STREAM ?</span>
           <span id="stream-pill-watch" class="mc-pill">WATCH OFF</span>
           <span id="stream-pill-kit" class="mc-pill">KIT ?</span>
@@ -116,14 +117,40 @@
         </div>
       </div>
       <p id="stream-msg" class="hint-inline"></p>
-      <div class="row wrap stream-transport">
-        <button type="button" data-stream-scene="Be right back">BRB</button>
-        <button type="button" data-stream-scene="Kilauea V1">V1</button>
-        <button type="button" data-stream-scene="Kilauea V2">V2</button>
-        <button type="button" data-stream-scene="Kilauea V3">V3</button>
-        <button type="button" data-stream-scene="Kilauea Watch">Watch dual</button>
-        <button type="button" data-stream-scene="Playing Minecraft">Minecraft</button>
-        <button type="button" data-stream-scene="System Status">Status</button>
+      <div class="stream-board">
+        <div class="stream-preview-wrap">
+          <img id="stream-preview" alt="OBS program" hidden />
+          <iframe id="stream-yt" title="YouTube live" allow="autoplay; encrypted-media" allowfullscreen hidden></iframe>
+          <div id="stream-preview-off">OBS preview loads here when the kit is connected</div>
+          <div class="stream-preview-cap" id="stream-preview-cap">Program</div>
+        </div>
+        <div class="stream-side">
+          <p class="stream-now-label">Current scene</p>
+          <p id="stream-scene-now" class="stream-now">—</p>
+          <p class="hint-inline" id="stream-watch-link"></p>
+          <div class="row wrap stream-modes">
+            <button type="button" id="stream-mode-daily">Daily</button>
+            <button type="button" id="stream-mode-weather">Weather / NHC</button>
+            <button type="button" id="stream-mode-kilauea" class="warn-btn">Kīlauea</button>
+            <button type="button" id="stream-mode-hurricane" class="warn-btn">Hurricane</button>
+          </div>
+          <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Jump to scene</p>
+          <div class="row wrap stream-transport" id="stream-scene-btns">
+            <button type="button" data-stream-scene="Main">Main</button>
+            <button type="button" data-stream-scene="Weather Board">Weather</button>
+            <button type="button" data-stream-scene="Radar">Radar</button>
+            <button type="button" data-stream-scene="NHC · EPAC 2-Day">NHC EPAC</button>
+            <button type="button" data-stream-scene="Solar Dashboard">Solar</button>
+            <button type="button" data-stream-scene="Economy Board">Economy</button>
+            <button type="button" data-stream-scene="RootMC Live">Minecraft</button>
+            <button type="button" data-stream-scene="KV · V1">KV V1</button>
+            <button type="button" data-stream-scene="KV · V2">KV V2</button>
+            <button type="button" data-stream-scene="KV · V3">KV V3</button>
+            <button type="button" data-stream-scene="Kilauea Watch">Kīlauea Watch</button>
+            <button type="button" data-stream-scene="HT · Hawaii">HT Hawaiʻi</button>
+            <button type="button" data-stream-scene="Be right back">BRB</button>
+          </div>
+        </div>
       </div>
       <p class="hint-inline" style="margin-top:0.35rem">Start/stop streaming in OBS — Ava does not launch OBS or control the stream transport.</p>
       <div class="grid-2" style="margin-top:0.75rem">
@@ -137,18 +164,14 @@
       <div class="row wrap" style="margin-top:0.5rem">
         <button type="button" id="stream-meta-apply">Apply title</button>
         <button type="button" id="stream-meta-restart" class="warn-btn">Apply title + scene</button>
-        <button type="button" id="stream-mode-daily">Daily Broadcast</button>
-        <button type="button" id="stream-mode-weather">Weather / NHC</button>
-        <button type="button" id="stream-mode-kilauea" class="warn-btn">Kīlauea cams</button>
-        <button type="button" id="stream-mode-hurricane" class="warn-btn">Hurricane Tracker</button>
         <button type="button" id="stream-watch-enter" class="warn-btn">Enter Watch</button>
         <button type="button" id="stream-watch-exit">Exit Watch</button>
         <button type="button" id="stream-toast">Test toast</button>
-        <button type="button" id="stream-repair">Repair kit</button>
+        <button type="button" id="stream-repair">Repair kit + overlays</button>
       </div>
       <div class="stream-reactions" style="margin-top:0.85rem">
         <h3 class="cron-title" style="font-size:1rem;margin:0 0 0.35rem">Ava reactions</h3>
-        <p class="hint-inline" style="margin:0 0 0.45rem">Manual triggers · needs OBS browser source <code>/obs/reactions</code> · force-plays even if stream session is off</p>
+        <p class="hint-inline" style="margin:0 0 0.45rem">Manual triggers · OBS browser source <code>/obs/reactions</code> on the scene · force-plays even if stream session is off</p>
         <div id="stream-reaction-btns" class="row wrap">
           <button type="button" data-stream-reaction="go_live">Wave / go-live</button>
           <button type="button" data-stream-reaction="quake">Quake</button>

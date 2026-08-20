@@ -418,10 +418,21 @@ async def api_obs_status():
         mode = current_mode()
     except Exception:
         pass
+    scenes: list[str] = []
+    try:
+        lst = await director._obs_request("GetSceneList")
+        scenes = [
+            s.get("sceneName")
+            for s in ((lst or {}).get("responseData") or {}).get("scenes") or []
+            if s.get("sceneName")
+        ]
+    except Exception:
+        pass
     return {
         "ok": True,
         "streaming": streaming,
         "scene": scene or st.get("current") or "Main",
+        "scenes": scenes,
         "director": st,
         "kit": {"health": kit},
         "mode": mode,
@@ -504,10 +515,16 @@ async def api_obs_toast(body: ToastBody):
 @api_router.post("/repair-kit")
 async def api_obs_repair():
     from apps.voice.director import get_director
+    from apps.core.services.obs_studio import apply_scene_overlays
 
     director = get_director()
     connected = await director._connect_obs()
-    return {"ok": connected, "detail": "obs_reconnect" if connected else "obs_unreachable"}
+    overlays = await apply_scene_overlays() if connected else {"ok": False, "detail": "obs_unreachable"}
+    return {
+        "ok": connected and overlays.get("ok"),
+        "detail": "obs_reconnect" if connected else "obs_unreachable",
+        "overlays": overlays,
+    }
 
 
 @api_router.post("/setup-daily")
@@ -579,10 +596,46 @@ async def obs_kilauea_desk():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 
+_last_reaction: dict = {"id": "", "label": "", "ts": 0}
+
+
 @api_router.post("/reaction")
 async def api_obs_reaction(body: ReactionBody):
-    rid = body.reactionId or body.id or ""
-    return {"ok": True, "id": rid, "detail": "ack"}
+    import time
+
+    rid = (body.reactionId or body.id or "").strip()
+    _last_reaction.update({"id": rid, "label": rid.replace("_", " "), "ts": int(time.time() * 1000)})
+    return {"ok": True, "id": rid, "detail": "queued"}
+
+
+@api_router.get("/reaction-last")
+async def api_obs_reaction_last():
+    return {"ok": True, **_last_reaction}
+
+
+@api_router.get("/preview")
+async def api_obs_preview():
+    from apps.voice.director import get_director
+
+    director = get_director()
+    scene = None
+    image = None
+    try:
+        scene_data = await director._obs_request("GetCurrentProgramScene")
+        scene = ((scene_data or {}).get("responseData") or {}).get("currentProgramSceneName")
+        shot = await director._obs_request(
+            "GetSourceScreenshot",
+            {
+                "sourceName": scene,
+                "imageFormat": "jpg",
+                "imageWidth": 960,
+                "imageHeight": 540,
+            },
+        )
+        image = ((shot or {}).get("responseData") or {}).get("imageData")
+    except Exception as e:
+        log.debug("OBS preview: %s", e)
+    return {"ok": bool(image), "scene": scene, "image": image}
 
 
 @api_router.get("/solar-desk")
@@ -662,8 +715,11 @@ async def obs_solar_public():
     path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
     html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar desk missing</p>"
     return HTMLResponse(html)
+
+
+@router.get("/solar-dashboard", response_class=HTMLResponse)
 async def obs_solar_dashboard():
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     path = Path(__file__).resolve().parent.parent / "templates" / "obs-solar.html"
-    html = path.read_text(encoding="utf-8")
+    html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar overlay missing</p>"
     return HTMLResponse(html.replace("__ORIGIN__", origin))

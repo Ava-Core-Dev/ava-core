@@ -62,6 +62,7 @@ contextBridge.exposeInMainWorld("avaDesktop", {
   mcControl: (action) => ipcRenderer.invoke("ava:mc-control", { action }),
   mcRcon: (opts) => ipcRenderer.invoke("ava:mc-rcon", opts || {}),
   streamStatus: () => ipcRenderer.invoke("ava:stream-status"),
+  streamPreview: () => ipcRenderer.invoke("ava:stream-preview"),
   streamAction: (opts) => ipcRenderer.invoke("ava:stream-action", opts || {}),
   listLinks: () => ipcRenderer.invoke("ava:list-links"),
   openLink: (url) => ipcRenderer.invoke("ava:open-link", { url }),
