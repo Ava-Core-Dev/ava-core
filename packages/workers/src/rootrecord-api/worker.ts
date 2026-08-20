@@ -14,8 +14,8 @@ import type { AvaEnv, ScheduledEvent } from "../shared/types";
 const ORIGIN = "https://ava-origin.rootmc.net";
 const VERCEL_FRONTEND = "https://rootrecord-online.pages.dev";
 
-const CANONICAL_HOST = "rootrecord.online";
-const LEGACY_HOSTS = new Set(["rootrecord.info", "www.rootrecord.info", "www.rootrecord.online"]);
+const CANONICAL_HOST = "rootrecord.info";
+const ONLINE_HOSTS = new Set(["rootrecord.online", "www.rootrecord.online"]);
 const PROXIED_PREFIXES = ["/api/", "/obs/", "/health"];
 
 export default {
@@ -23,10 +23,14 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    if (LEGACY_HOSTS.has(url.hostname)) {
-      const target = new URL(url);
-      target.hostname = CANONICAL_HOST;
-      return Response.redirect(target.toString(), 301);
+    // Marketing site consolidated on rootrecord.info; keep API on .online.
+    if (ONLINE_HOSTS.has(url.hostname)) {
+      const keepOnOnline = PROXIED_PREFIXES.some((p) => path === p.slice(0, -1) || path.startsWith(p));
+      if (!keepOnOnline) {
+        const target = new URL(url);
+        target.hostname = CANONICAL_HOST;
+        return Response.redirect(target.toString(), 301);
+      }
     }
 
     if (path === "/ava/status.json") {
