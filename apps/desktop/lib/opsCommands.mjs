@@ -491,8 +491,8 @@ export const OPS_COMMAND_GROUPS = [
         id: "voice-startup",
         label: "Play startup clip",
         endpoint: "/api/voice/play",
-        body: { clip: "phrase_device_startup" },
-        detail: "\"Root Record is online. I'm back.\"",
+        body: { clip: "phrase_device_startup", force: true },
+        detail: "\"Root Record is online. I'm back.\" (ops force)",
       },
       {
         id: "voice-chime-now",

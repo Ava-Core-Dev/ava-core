@@ -158,18 +158,9 @@ function createWindow() {
   });
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
 
-  // Fire startup voice clip when GUI finishes loading (core started with session)
-  mainWindow.webContents.once("did-finish-load", () => {
-    const fire = () =>
-      fetch("http://127.0.0.1:8787/api/voice/play", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clip: "phrase_device_startup" }),
-      }).catch(() => {});
-    // Retry briefly if core is still binding
-    fire();
-    setTimeout(fire, 2500);
-  });
+  // Startup voice is owned by Ava Core lifespan (30m cooldown).
+  // Do not re-fire from the GUI — reload / brief disconnects were spamming
+  // "Root Record is online. I'm back."
 
   // Closing the GUI must not kill origin — Ava stays up as the root server.
 

@@ -52,21 +52,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.warning("Stream Director loop failed to start: %s", e)
 
-    # Fire startup voice clip (non-blocking — best effort)
+    # Fire startup voice clip once — skip brief reconnect / watchdog flaps
     try:
         import asyncio
-        from apps.voice.director import get_director
 
         async def _startup_voice():
             await asyncio.sleep(3)  # let the server finish binding
-            director = get_director()
-            from apps.voice.director import Priority
-            clip = config.ASSETS_DIR / "words" / "phrase_device_startup.mp3"
-            if clip.exists():
-                await director.queue(clip, name="startup", priority=Priority.CRITICAL)
+            from apps.core.services.startup_voice import queue_if_allowed
+
+            result = await queue_if_allowed(force=False)
+            if result.get("played"):
                 log.info("Startup voice clip queued")
             else:
-                log.debug("No startup clip found at %s — skipping", clip)
+                log.info("Startup voice skipped: %s", result.get("detail"))
 
         asyncio.create_task(_startup_voice())
     except Exception as e:

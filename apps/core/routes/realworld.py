@@ -90,16 +90,33 @@ async def api_weather():
 class VoicePlayRequest(BaseModel):
     clip: str = "phrase_device_startup"
     priority: str = "critical"
+    force: bool = False  # bypass cooldown for intentional ops triggers
 
 
 @router.post("/voice/play")
 async def api_voice_play(req: VoicePlayRequest):
     """Trigger a named voice clip through the Stream Director.
     Looks in words/, time_clips/, and sounds/ under assets.
+    phrase_device_startup respects a 30m cooldown unless force=true.
     """
     try:
         from apps.voice.director import get_director, Priority
         from apps.voice.clips import WORDS_DIR, TIME_DIR, SOUNDS_DIR, ASSETS_DIR
+
+        # "I'm back" — never spam on brief reconnects / GUI reloads
+        if req.clip in ("phrase_device_startup", "startup"):
+            from apps.core.services.startup_voice import queue_if_allowed
+
+            result = await queue_if_allowed(force=req.force, name=req.clip)
+            if not result.get("ok"):
+                return JSONResponse(result, status_code=404)
+            return {
+                "ok": True,
+                "clip": req.clip,
+                "played": bool(result.get("played")),
+                "detail": result.get("detail"),
+                "priority": req.priority,
+            }
 
         candidates = [
             WORDS_DIR / f"{req.clip}.mp3",
