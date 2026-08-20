@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { GOALS_API, goalProgressPct, usd, type PublicGoal } from "@/lib/goals-api";
 import styles from "../goals.module.css";
 import DonatePanel from "@/components/goals/DonatePanel";
+import MonetaryGoalArticle from "@/components/goals/MonetaryGoalArticle";
 
 export const revalidate = 20;
 
@@ -70,6 +71,19 @@ export default async function GoalPage({
         <div className={styles.meter} style={{ marginTop: 10 }}>
           <span style={{ width: `${pct}%` }} />
         </div>
+        {money ? (
+          <>
+            <p className={styles.meta} style={{ marginTop: 12 }}>
+              100 goal tokens = 100% of the target. A $1 landed deposit on a $100 goal mints 1 token
+              after ATA rent. Over 100% still mints.
+            </p>
+            <MonetaryGoalArticle goal={goal} />
+          </>
+        ) : (
+          <p className={styles.meta} style={{ marginTop: 12 }}>
+            Non-monetary goal — progress is set by the creator.
+          </p>
+        )}
       </div>
       <DonatePanel goal={goal} />
     </div>

@@ -22,6 +22,8 @@ export type PublicGoal = {
   token_mint?: string | null;
   token_symbol?: string | null;
   token_status?: string | null;
+  token_cluster?: string | null;
+  solana_cluster?: string | null;
   donate_wallet?: string | null;
   usdc_mint?: string | null;
   stripe_payment_link?: string | null;
