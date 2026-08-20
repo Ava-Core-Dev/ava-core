@@ -55,7 +55,10 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "sites") refreshSitesPage();
     if (btn.dataset.page === "automation") refreshAutomationPage();
     if (btn.dataset.page === "terminal") refreshTerminalLive();
-    if (btn.dataset.page === "settings") refreshConnectionForm();
+    if (btn.dataset.page === "settings") {
+      refreshConnectionForm();
+      refreshGitSyncPrefs();
+    }
   });
 });
 function escapeHtml(s) {
@@ -3095,11 +3098,118 @@ function setConnPill(view, testOk) {
   if (!pill) return;
   const mode = view?.mode === "headless" ? "Headless" : "Local";
   const url = String(view?.brainUrl || lastBrainUrl || "").replace(/^https?:\/\//, "");
-  pill.textContent = `${mode} · ${url || "?"}`;
-  pill.classList.remove("ok", "remote", "warn");
+  const behind = Number(lastGitSync?.behind || 0);
+  const gitBit = behind > 0 ? ` · git↓${behind}` : "";
+  pill.textContent = `${mode} · ${url || "?"}${gitBit}`;
+  pill.classList.remove("ok", "remote", "warn", "git-behind");
   if (testOk === false) pill.classList.add("warn");
   else if (view?.mode === "headless") pill.classList.add("remote");
   else pill.classList.add("ok");
+  if (behind > 0) pill.classList.add("git-behind");
+}
+
+let lastGitSync = null;
+
+function formatGitSync(result) {
+  if (!result) return "No check yet.";
+  const lines = [
+    `repo: ${result.repo || "ava-core-v2"}`,
+    `branch: ${result.branch || "?"} → ${result.upstream || "?"}`,
+    `ahead ${result.ahead || 0} · behind ${result.behind || 0}`,
+    `dirty: ${result.dirty ? "yes" : "no"} · pulled: ${result.pulled ? "yes" : "no"}`,
+    `detail: ${result.detail || "?"}`,
+  ];
+  if (result.at) lines.push(`at: ${result.at}`);
+  if (result.changed_desktop) lines.push("note: desktop files changed — restart Ava desktop");
+  if (result.changed_core) lines.push("note: core files changed — restart Ava core / origin");
+  if (result.changed_web) lines.push("note: web packages changed — Vercel/GitHub deploy picks those up from GitHub");
+  if (result.detail === "dirty_tree") {
+    lines.push("Working tree dirty — auto-push or commit first, then pull.");
+  }
+  return lines.join("\n");
+}
+
+function applyGitSyncResult(result) {
+  lastGitSync = result || null;
+  const pre = $("git-sync-status");
+  if (pre) pre.textContent = formatGitSync(result);
+  const hint = $("git-sync-hint");
+  if (hint) {
+    if (result?.pulled) {
+      hint.textContent = "Live tree updated from GitHub.";
+    } else if (result?.behind > 0 && result?.dirty) {
+      hint.textContent = "Behind GitHub but dirty locally — use Pull after the tree is clean, or rely on auto-push first.";
+    } else if (result?.behind > 0) {
+      hint.textContent = "Behind GitHub — auto-pull will try when clean, or press Pull now.";
+    } else if (result?.detail === "already_up_to_date" || result?.detail === "up_to_date") {
+      hint.textContent = "Live tree matches GitHub.";
+    } else {
+      hint.textContent = "";
+    }
+  }
+  // Refresh pill git badge without wiping connection mode.
+  const pill = $("conn-pill");
+  if (pill && lastBrainUrl) {
+    setConnPill(
+      { mode: pill.textContent.startsWith("Headless") ? "headless" : "local", brainUrl: lastBrainUrl },
+      !pill.classList.contains("warn"),
+    );
+  }
+}
+
+async function refreshGitSyncPrefs() {
+  if (!window.avaDesktop?.gitSyncPrefs) return null;
+  try {
+    const r = await window.avaDesktop.gitSyncPrefs();
+    if (r?.prefs) {
+      if ($("git-auto-check")) $("git-auto-check").checked = r.prefs.autoCheck !== false;
+      if ($("git-auto-pull")) $("git-auto-pull").checked = r.prefs.autoPull !== false;
+    }
+    if (r?.last) applyGitSyncResult(r.last);
+    else if (r?.repo && $("git-sync-status") && !$("git-sync-status").textContent) {
+      $("git-sync-status").textContent = `repo: ${r.repo}\n(waiting for first auto-check)`;
+    }
+    return r;
+  } catch (err) {
+    if ($("git-sync-status")) $("git-sync-status").textContent = String(err.message || err);
+    return null;
+  }
+}
+
+async function saveGitSyncPrefsForm() {
+  const out = $("git-sync-status");
+  try {
+    const r = await window.avaDesktop.gitSyncPrefsSave({
+      autoCheck: Boolean($("git-auto-check")?.checked),
+      autoPull: Boolean($("git-auto-pull")?.checked),
+    });
+    if (out) out.textContent = `prefs saved\n${JSON.stringify(r.prefs, null, 2)}`;
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+  }
+}
+
+async function runGitCheckBtn() {
+  const out = $("git-sync-status");
+  if (out) out.textContent = "checking…";
+  try {
+    const r = await window.avaDesktop.gitCheck();
+    applyGitSyncResult(r);
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+  }
+}
+
+async function runGitPullBtn() {
+  if (!confirm("Pull latest GitHub commits into the live ava-core-v2 tree now?")) return;
+  const out = $("git-sync-status");
+  if (out) out.textContent = "pulling…";
+  try {
+    const r = await window.avaDesktop.gitPull();
+    applyGitSyncResult(r);
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+  }
 }
 
 async function refreshConnectionForm() {
@@ -3219,6 +3329,11 @@ async function boot() {
   await bootSitesPage();
   ensureBizTimer();
   window.avaDesktop.earlyLogin?.().catch(() => {});
+  await refreshGitSyncPrefs();
+  window.avaDesktop.onGitSync?.((payload) => applyGitSyncResult(payload));
+  $("git-check-btn")?.addEventListener("click", () => runGitCheckBtn().catch(() => {}));
+  $("git-pull-btn")?.addEventListener("click", () => runGitPullBtn().catch(() => {}));
+  $("git-prefs-save")?.addEventListener("click", () => saveGitSyncPrefsForm().catch(() => {}));
 
   const presetRes = await window.avaDesktop.listPresets();
   presets = presetRes.presets || [];
