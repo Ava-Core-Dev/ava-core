@@ -92,8 +92,10 @@ def write_mode(mode: str, extra: dict | None = None) -> dict:
 
 
 def hurricane_scene_pool() -> list[str]:
+    from apps.core.services.nhc_media import nhc_scene_names
+
     data = load_storms()
-    scenes = [s for s, _ in BOARD_SCENES]
+    scenes = [s for s, _ in BOARD_SCENES] + nhc_scene_names()
     for st in data.get("storms") or []:
         name = st.get("scene")
         if name:
@@ -603,8 +605,11 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
     from apps.core.services.obs_studio import (
         ObsClient,
         _enable_item,
+        _ensure_input,
+        _fit,
         _stretch_all,
     )
+    from apps.core.services.nhc_media import apply_nhc_obs_scenes, current_files
 
     data = await refresh_storms()
     own = obs is None
@@ -639,6 +644,22 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
             if key == "world":
                 map_url = board.get("windy")
             await _browser(obs, scene, f"HT Map {key}", map_url)
+            if key == "hawaii":
+                cone = next((p for n, p in current_files().items() if "5day_cone" in n), None)
+                two = current_files().get("cpac_2day")
+                if cone:
+                    await _ensure_input(
+                        obs, scene, "HT NHC Cone", "image_source",
+                        {"file": str(cone), "unload": False},
+                    )
+                    await _fit(obs, scene, "HT NHC Cone")
+                if two:
+                    await _ensure_input(
+                        obs, scene, "HT NHC 2Day", "image_source",
+                        {"file": str(two), "unload": False},
+                    )
+                    await _fit(obs, scene, "HT NHC 2Day")
+                    await _enable_item(obs, scene, "HT NHC 2Day", False)
             if key != "world" and board.get("goes"):
                 await _browser(obs, scene, f"HT Sat {key}", board["goes"])
                 await _enable_item(obs, scene, f"HT Sat {key}", False)
@@ -676,6 +697,8 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
         ]
         for scene in leftover:
             await obs.try_req("RemoveScene", {"sceneName": scene})
+
+        await apply_nhc_obs_scenes(obs)
 
         await _stretch_all(obs)
         first = BOARD_SCENES[0][0]

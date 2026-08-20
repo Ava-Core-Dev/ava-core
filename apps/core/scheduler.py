@@ -112,6 +112,9 @@ class Scheduler:
         s.add_job(self._run("ecoflow_quota"), IntervalTrigger(minutes=2),
                   id="ecoflow-quota", name="EcoFlow quota refresh", misfire_grace_time=60)
 
+        s.add_job(self._run("nhc_media"), IntervalTrigger(minutes=10),
+                  id="nhc-media", name="NHC CPAC forecast graphics", misfire_grace_time=90)
+
         s.add_job(self._run("user_qrcodes"), IntervalTrigger(hours=6),
                   id="user-qrcodes", name="User QR backfill", misfire_grace_time=120)
 
