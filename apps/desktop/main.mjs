@@ -74,14 +74,11 @@ const AVA_HOME =
   process.env.AVA_HANDOFF ||
   process.env.AVA_HOME ||
   "/home/ava-core/ava/ava-core-v2";
-// Legacy Node ops scripts (scripts/*.mjs) were never ported to the Python core.
-// Until they are, resolve them wherever they still exist: the archive tree is
-// the fallback, so those buttons keep working before the disk is retired.
 const AVA_CORE =
   process.env.AVA_CORE ||
   [
     path.join(AVA_HOME, "core"),
-    "/home/ava-core/ava-old-20260819/core",
+    "/home/ava-core/ava/workstations/rootmc-scripts",
   ].find((p) => fs.existsSync(path.join(p, "scripts"))) ||
   path.join(AVA_HOME, "core");
 

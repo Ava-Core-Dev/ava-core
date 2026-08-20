@@ -276,12 +276,11 @@ OLLAMA_URL   = os.getenv("AVA_OLLAMA_URL",   "http://127.0.0.1:11434").strip()
 OLLAMA_MODEL = os.getenv("AVA_OLLAMA_MODEL", "ava-ivy").strip()
 
 # ── Minecraft / RCON ──────────────────────────────────────────────────────────
-# Paper test server working directory. Still on the archive disk until the
-# minecraft-test world is moved onto the SSD; override with ROOTMC_TEST_DIR.
+# Paper test server working directory. Override with ROOTMC_TEST_DIR.
 MC_TEST_DIR = Path(
     _first_env(
         "ROOTMC_TEST_DIR",
-        default="/home/ava-core/ava-old-20260819/workstations/minecraft-test",
+        default="/home/ava-core/ava/workstations/minecraft-test",
     )
 ).expanduser()
 
