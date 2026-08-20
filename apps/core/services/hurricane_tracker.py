@@ -369,7 +369,7 @@ def _from_jtwc(text: str, default_basin: str) -> list[dict]:
     named = re.compile(
         r"(TYPHOON|HURRICANE|TROPICAL STORM|TROPICAL DEPRESSION)\s+(\d{1,2})([WEPACS])"
         r"(?:\s+\(([A-Z][A-Z0-9\- ]+)\))?.*?NEAR\s+(\d+\.?\d*)([NS])\s+(\d+\.?\d*)([EW])"
-        r".{0,280}?(\d{2,3})\s+KNOTS",
+        r".{0,500}?MAXIMUM\s+SUSTAINED\s+SURFACE\s+WINDS WERE ESTIMATED AT (\d{2,3})\s+KNOTS",
         re.I | re.S,
     )
     for m in named.finditer(text):

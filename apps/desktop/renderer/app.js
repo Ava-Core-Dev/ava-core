@@ -2425,6 +2425,12 @@ async function refreshStreamOps() {
           : `Idle · scene ${st.scene || "?"} · kit ${st.kit?.health || "?"}`,
       );
     }
+    const mb = $("stream-pill-mode");
+    if (mb) {
+      const mode = st.mode || pack.mode || "daily";
+      mb.textContent = mode === "hurricane" ? "MODE HURRICANE" : "MODE DAILY";
+      mb.classList.toggle("on", mode === "hurricane");
+    }
     const live = $("stream-pill-live");
     if (live) {
       live.textContent = st.streaming ? "STREAM LIVE" : "STREAM OFF";
@@ -2496,6 +2502,8 @@ async function bootStreamOps() {
   $("stream-meta-restart").onclick = () => streamAction("metadata-restart");
   $("stream-watch-enter").onclick = () => streamAction("watch-enter");
   $("stream-watch-exit").onclick = () => streamAction("watch-exit");
+  $("stream-mode-daily") && ($("stream-mode-daily").onclick = () => streamAction("mode-daily"));
+  $("stream-mode-hurricane") && ($("stream-mode-hurricane").onclick = () => streamAction("mode-hurricane"));
   $("stream-toast").onclick = () => streamAction("toast");
   $("stream-repair").onclick = () => streamAction("repair");
   document.querySelectorAll("[data-stream-scene]").forEach((btn) => {

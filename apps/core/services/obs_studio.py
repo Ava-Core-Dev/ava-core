@@ -348,7 +348,7 @@ async def _stretch_all(obs: ObsClient) -> int:
         items = await obs.try_req("GetSceneItemList", {"sceneName": scene}) or {}
         for it in items.get("sceneItems") or []:
             name = str(it.get("sourceName") or "")
-            if not name or name in _SKIP_STRETCH:
+            if not name or name in _SKIP_STRETCH or name.startswith("HT Overlay"):
                 continue
             await _fit(obs, scene, name)
             n += 1
@@ -829,6 +829,9 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         await _stretch_all(obs)
 
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})
+        from apps.core.services.hurricane_tracker import write_mode as _write_obs_mode
+
+        _write_obs_mode("daily")
 
         # Mute desktop/mic so only program audio goes out
         for cap in ("Desktop Audio", "Mic/Aux"):

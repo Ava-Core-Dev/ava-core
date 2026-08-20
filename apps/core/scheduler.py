@@ -103,6 +103,9 @@ class Scheduler:
         s.add_job(self._run("minecraft_live"), IntervalTrigger(seconds=45),
                   id="minecraft-live", name="Minecraft in-game detect", misfire_grace_time=30)
 
+        s.add_job(self._run("hurricane_tracker"), IntervalTrigger(minutes=15),
+                  id="hurricane-tracker", name="Hurricane tracker slides", misfire_grace_time=120)
+
         s.add_job(self._run("user_qrcodes"), IntervalTrigger(hours=6),
                   id="user-qrcodes", name="User QR backfill", misfire_grace_time=120)
 

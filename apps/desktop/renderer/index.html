@@ -104,9 +104,10 @@
       <div class="mc-head">
         <div>
           <h2 class="cron-title">Streaming Ops</h2>
-          <p class="hint-inline">Desktop director · titles · scenes · Volcano Watch · overlays — start/stop stream in OBS</p>
+          <p class="hint-inline">Desktop director · Daily Broadcast (standard) · Hurricane Tracker · Volcano Watch · start/stop stream in OBS</p>
         </div>
         <div class="row wrap">
+          <span id="stream-pill-mode" class="mc-pill">MODE DAILY</span>
           <span id="stream-pill-live" class="mc-pill">STREAM ?</span>
           <span id="stream-pill-watch" class="mc-pill">WATCH OFF</span>
           <span id="stream-pill-kit" class="mc-pill">KIT ?</span>
@@ -136,6 +137,8 @@
       <div class="row wrap" style="margin-top:0.5rem">
         <button type="button" id="stream-meta-apply">Apply title</button>
         <button type="button" id="stream-meta-restart" class="warn-btn">Apply title + scene</button>
+        <button type="button" id="stream-mode-daily">Daily Broadcast</button>
+        <button type="button" id="stream-mode-hurricane" class="warn-btn">Hurricane Tracker</button>
         <button type="button" id="stream-watch-enter" class="warn-btn">Enter Watch</button>
         <button type="button" id="stream-watch-exit">Exit Watch</button>
         <button type="button" id="stream-toast">Test toast</button>

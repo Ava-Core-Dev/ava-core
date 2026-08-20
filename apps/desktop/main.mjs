@@ -1097,6 +1097,13 @@ ipcMain.handle("ava:stream-action", async (_e, opts = {}) => {
       timeoutMs: 60000,
     });
   }
+  if (action === "mode-daily" || action === "mode-hurricane") {
+    return brainJson("/api/obs/mode", {
+      method: "POST",
+      body: { mode: action === "mode-hurricane" ? "hurricane" : "daily" },
+      timeoutMs: 120000,
+    });
+  }
   if (action === "reaction") {
     const reactionId = String(opts.reactionId || opts.id || "").trim();
     if (!reactionId) return { ok: false, detail: "reactionId_required" };

@@ -321,12 +321,20 @@ async def api_obs_status():
     except Exception as e:
         log.debug("OBS status probe: %s", e)
     kit = "ok" if st.get("obs_connected") else "offline"
+    mode = "daily"
+    try:
+        from apps.core.services.hurricane_tracker import current_mode
+
+        mode = current_mode()
+    except Exception:
+        pass
     return {
         "ok": True,
         "streaming": streaming,
         "scene": scene or st.get("current") or "Main",
         "director": st,
         "kit": {"health": kit},
+        "mode": mode,
         "title": "",
         "description": "",
     }
@@ -416,6 +424,45 @@ async def api_obs_update_collections():
     from apps.core.services.obs_studio import update_all_scene_collections
 
     return await update_all_scene_collections()
+
+
+@api_router.get("/mode")
+async def api_obs_mode_get():
+    from apps.core.services.hurricane_tracker import current_mode, load_storms
+
+    data = load_storms()
+    return {
+        "ok": True,
+        "mode": current_mode(),
+        "storms": data.get("count") or len(data.get("storms") or []),
+        "updated": data.get("ts"),
+    }
+
+
+class ModeBody(BaseModel):
+    mode: str = "daily"
+
+
+@api_router.post("/mode")
+async def api_obs_mode_post(body: ModeBody):
+    from apps.core.services.hurricane_tracker import set_mode
+
+    return await set_mode(body.mode)
+
+
+@api_router.get("/hurricane-desk")
+async def api_hurricane_desk(id: str = "world"):
+    from apps.core.services.hurricane_tracker import desk_payload, refresh_storms, load_storms
+
+    if not load_storms().get("storms"):
+        await refresh_storms()
+    return desk_payload(id)
+
+
+@router.get("/hurricane", response_class=HTMLResponse)
+async def obs_hurricane():
+    path = Path(__file__).resolve().parent.parent / "templates" / "obs-hurricane.html"
+    return HTMLResponse(path.read_text(encoding="utf-8"))
 
 
 @api_router.post("/reaction")
