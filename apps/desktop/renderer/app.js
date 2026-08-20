@@ -2460,6 +2460,7 @@ async function refreshStreamOps() {
     document.querySelectorAll("[data-stream-scene]").forEach((btn) => {
       btn.classList.toggle("on", btn.dataset.streamScene === sceneName);
     });
+    await loadStreamSceneControls(st.scenes || []);
     const livePack = pack.live || {};
     const watchLink = $("stream-watch-link");
     if (watchLink) {
@@ -2585,10 +2586,11 @@ async function bootStreamOps() {
   $("stream-mode-hurricane") && ($("stream-mode-hurricane").onclick = () => streamAction("mode-hurricane"));
   $("stream-toast").onclick = () => streamAction("toast");
   $("stream-repair").onclick = () => streamAction("repair");
-  document.querySelectorAll("[data-stream-scene]").forEach((btn) => {
-    btn.onclick = () => streamAction("scene", { scene: btn.dataset.streamScene });
-  });
-  await loadStreamSceneHide();
+  await loadStreamSceneControls([]);
+  $("stream-hide-all") &&
+    ($("stream-hide-all").onclick = () => setAllStreamSceneHidden(true));
+  $("stream-show-all") &&
+    ($("stream-show-all").onclick = () => setAllStreamSceneHidden(false));
   document.querySelectorAll("[data-stream-reaction]").forEach((btn) => {
     btn.onclick = () =>
       streamAction("reaction", {
@@ -2607,41 +2609,190 @@ async function bootStreamOps() {
   }, 4000);
 }
 
-const STREAM_HIDE_SCENES = [
-  "Weather Board", "Radar", "Satellite", "Economy Board", "Goals Report", "Dev Updates",
-  "Support Ava", "RootMC Live", "Quake · Global", "Quake · Big Island", "Kilauea Watch",
-];
+let streamLastSceneListKey = "";
+let streamLastHiddenKey = "";
+let streamRotationCfgKey = "";
 
-async function loadStreamSceneHide() {
+function sceneShortLabel(scene) {
+  const map = {
+    "Weather Board": "Weather",
+    "Solar Dashboard": "Solar",
+    "Economy Board": "Economy",
+    "Goals Report": "Goals",
+    "Dev Updates": "Dev",
+    "Support Ava": "Support",
+    "RootMC Live": "RootMC",
+    "Quake · Global": "Quake Global",
+    "Quake · Big Island": "Quake HI",
+    "Be right back": "BRB",
+  };
+  return map[scene] || scene;
+}
+
+function sceneKey(scenes) {
+  return (scenes || []).join("\u241f");
+}
+
+function modeLabel(mode) {
+  return {
+    daily: "Daily",
+    weather: "Weather",
+    kilauea: "Kilauea",
+    hurricane: "Hurricane",
+  }[mode] || mode;
+}
+
+async function loadStreamSceneControls(scenesFromStatus = []) {
+  const scenes =
+    Array.isArray(scenesFromStatus) && scenesFromStatus.length
+      ? scenesFromStatus.filter(Boolean)
+      : [];
+  const scenesSig = sceneKey(scenes);
   const host = $("stream-scene-hide");
-  if (!host) return;
-  let hidden = [];
+  const jumpHost = $("stream-scene-btns");
+  if (!host || !jumpHost) return;
+  let hiddenManual = [];
+  let hiddenAuto = [];
+  let cfg = {};
   try {
     const j = await fetch(`${brainBaseUrl()}/api/obs/scene-visibility`).then((r) => r.json());
-    hidden = [...(j.hidden_manual || []), ...(j.hidden_auto || [])];
+    hiddenManual = Array.isArray(j.hidden_manual) ? j.hidden_manual : [];
+    hiddenAuto = Array.isArray(j.hidden_auto) ? j.hidden_auto : [];
   } catch {
     /* ignore */
   }
+  try {
+    const j = await fetch(`${brainBaseUrl()}/api/obs/rotation-config`).then((r) => r.json());
+    cfg = j || {};
+  } catch {
+    cfg = {};
+  }
+  const hiddenSet = new Set([...(hiddenManual || []), ...(hiddenAuto || [])]);
+  const hiddenSig = [...hiddenSet].sort().join("\u241f");
+  const cfgSig = JSON.stringify(cfg || {});
+  if (
+    scenesSig === streamLastSceneListKey &&
+    hiddenSig === streamLastHiddenKey &&
+    cfgSig === streamRotationCfgKey
+  ) {
+    return;
+  }
+  streamLastSceneListKey = scenesSig;
+  streamLastHiddenKey = hiddenSig;
+  streamRotationCfgKey = cfgSig;
+
+  jumpHost.innerHTML = "";
+  for (const scene of scenes) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.streamScene = scene;
+    btn.textContent = sceneShortLabel(scene);
+    btn.onclick = () => streamAction("scene", { scene });
+    jumpHost.append(btn);
+  }
+
   host.innerHTML = "";
-  for (const scene of STREAM_HIDE_SCENES) {
+  for (const scene of scenes) {
     const lbl = document.createElement("label");
     lbl.className = "mc-follow";
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.checked = hidden.includes(scene);
+    cb.checked = hiddenSet.has(scene);
     cb.dataset.sceneHide = scene;
-    cb.onchange = async () => {
-      const boxes = host.querySelectorAll("input[data-scene-hide]");
-      const manual = [...boxes].filter((b) => b.checked).map((b) => b.dataset.sceneHide);
-      await fetch(`${brainBaseUrl()}/api/obs/scene-visibility`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hidden_manual: manual }),
-      });
-    };
+    cb.onchange = updateStreamSceneHidden;
     lbl.append(cb, document.createTextNode(` ${scene}`));
     host.append(lbl);
   }
+  renderStreamRotationEditors(scenes, cfg);
+}
+
+async function updateStreamSceneHidden() {
+  const host = $("stream-scene-hide");
+  if (!host) return;
+  const boxes = host.querySelectorAll("input[data-scene-hide]");
+  const manual = [...boxes].filter((b) => b.checked).map((b) => b.dataset.sceneHide);
+  await fetch(`${brainBaseUrl()}/api/obs/scene-visibility`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hidden_manual: manual }),
+  });
+}
+
+async function setAllStreamSceneHidden(hidden) {
+  const host = $("stream-scene-hide");
+  if (!host) return;
+  const boxes = host.querySelectorAll("input[data-scene-hide]");
+  boxes.forEach((b) => {
+    b.checked = Boolean(hidden);
+  });
+  await updateStreamSceneHidden();
+  await refreshStreamOps();
+}
+
+function asSecInput(v, fallback = 60) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(5, Math.min(3600, Math.round(n)));
+}
+
+function renderStreamRotationEditors(scenes, cfg) {
+  const modeHost = $("stream-rotation-modes");
+  const sceneHost = $("stream-rotation-scenes");
+  if (!modeHost || !sceneHost) return;
+  const modeDwell = cfg.mode_dwell_s || {};
+  const sceneDwell = cfg.scene_dwell_s || {};
+  modeHost.innerHTML = "";
+  sceneHost.innerHTML = "";
+  for (const mode of ["daily", "weather", "kilauea", "hurricane"]) {
+    const lbl = document.createElement("label");
+    lbl.className = "mc-follow";
+    lbl.textContent = `${modeLabel(mode)} `;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "5";
+    input.max = "3600";
+    input.step = "1";
+    input.value = String(asSecInput(modeDwell[mode], 60));
+    input.dataset.rotationMode = mode;
+    input.style.width = "5.5rem";
+    input.onchange = saveStreamRotationConfig;
+    lbl.append(input);
+    modeHost.append(lbl);
+  }
+  for (const scene of scenes) {
+    const lbl = document.createElement("label");
+    lbl.className = "mc-follow";
+    lbl.textContent = `${sceneShortLabel(scene)} `;
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "5";
+    input.max = "3600";
+    input.step = "1";
+    input.value = String(asSecInput(sceneDwell[scene], 60));
+    input.dataset.rotationScene = scene;
+    input.style.width = "5.5rem";
+    input.onchange = saveStreamRotationConfig;
+    lbl.append(input);
+    sceneHost.append(lbl);
+  }
+}
+
+async function saveStreamRotationConfig() {
+  const modeInputs = [...document.querySelectorAll("input[data-rotation-mode]")];
+  const sceneInputs = [...document.querySelectorAll("input[data-rotation-scene]")];
+  const mode_dwell_s = {};
+  const scene_dwell_s = {};
+  modeInputs.forEach((el) => {
+    mode_dwell_s[el.dataset.rotationMode] = asSecInput(el.value, 60);
+  });
+  sceneInputs.forEach((el) => {
+    scene_dwell_s[el.dataset.rotationScene] = asSecInput(el.value, 60);
+  });
+  await fetch(`${brainBaseUrl()}/api/obs/rotation-config`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode_dwell_s, scene_dwell_s }),
+  });
 }
 
 async function refreshSitesPage() {

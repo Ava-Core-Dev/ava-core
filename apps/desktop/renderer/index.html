@@ -139,26 +139,19 @@
           </div>
           <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Jump to scene</p>
           <div class="row wrap stream-transport" id="stream-scene-btns">
-            <button type="button" data-stream-scene="Weather Board">Weather</button>
-            <button type="button" data-stream-scene="Radar">Radar</button>
-            <button type="button" data-stream-scene="NHC · EPAC 2-Day">NHC EPAC</button>
-            <button type="button" data-stream-scene="Solar Dashboard">Solar</button>
-            <button type="button" data-stream-scene="Economy Board">Economy</button>
-            <button type="button" data-stream-scene="Goals Report">Goals</button>
-            <button type="button" data-stream-scene="Dev Updates">Dev</button>
-            <button type="button" data-stream-scene="Support Ava">Support</button>
-            <button type="button" data-stream-scene="RootMC Live">Minecraft</button>
-            <button type="button" data-stream-scene="Quake · Global">Quake Global</button>
-            <button type="button" data-stream-scene="Quake · Big Island">Quake HI</button>
-            <button type="button" data-stream-scene="KV · V1">KV V1</button>
-            <button type="button" data-stream-scene="KV · V2">KV V2</button>
-            <button type="button" data-stream-scene="KV · V3">KV V3</button>
-            <button type="button" data-stream-scene="Kilauea Watch">Kīlauea Watch</button>
-            <button type="button" data-stream-scene="HT · Hawaii">HT Hawaiʻi</button>
-            <button type="button" data-stream-scene="Be right back">BRB</button>
+            <span class="hint-inline">Loading scenes…</span>
           </div>
           <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Hide scenes from rotator</p>
+          <div class="row wrap stream-transport" style="margin-bottom:0.25rem">
+            <button type="button" id="stream-hide-all">Hide all</button>
+            <button type="button" id="stream-show-all">Show all</button>
+          </div>
           <div id="stream-scene-hide" class="row wrap stream-transport"></div>
+          <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Rotation dwell (seconds)</p>
+          <div class="stream-rotation" id="stream-rotation-config">
+            <div class="row wrap stream-transport" id="stream-rotation-modes"></div>
+            <div class="row wrap stream-transport" id="stream-rotation-scenes"></div>
+          </div>
         </div>
       </div>
       <p class="hint-inline" style="margin-top:0.35rem">Start/stop streaming in OBS — Ava does not launch OBS or control the stream transport.</p>
