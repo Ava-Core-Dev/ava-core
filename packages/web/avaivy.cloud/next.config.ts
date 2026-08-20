@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
     return [
       { source: "/desk", destination: `${origin}/solar` },
       { source: "/desk/", destination: `${origin}/solar` },
+      // Ported Root Record Ava wiki (static HTML under public/wiki/)
+      { source: "/wiki", destination: "/wiki/index.html" },
+      { source: "/wiki/", destination: "/wiki/index.html" },
+      { source: "/wiki/build", destination: "/wiki/build.html" },
+      { source: "/wiki/timeline", destination: "/wiki/timeline.html" },
+      { source: "/wiki/events", destination: "/wiki/events.html" },
       {
         source: "/api/:path*",
         destination: `${origin}/api/:path*`,

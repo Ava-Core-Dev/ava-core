@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Events · Ava wiki · Root Record</title>
+  <meta name="description" content="Upcoming and past Ava / RootMC events — Discord scheduled events and Minecraft version updates." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/wiki/assets/wiki.css?v=ava4" />
+</head>
+<body><nav class="eco-bar" aria-label="Ecosystem"><a href="https://rootrecord.info/">RootRecord</a><a href="https://rootmc.net/">RootMC</a><a href="https://avaivy.cloud/wiki/" aria-current="page">Ava</a><a href="https://avaivy.cloud/blog">Blog</a></nav>
+  <div class="wrap">
+    <nav class="top">
+      <a class="brand" href="index.html">Ava · wiki</a>
+      <div class="links">
+        <a href="index.html">Wiki</a>
+        <a href="/context">Core context (AI)</a>
+        <a href="core.html">Core</a>
+        <a href="surfaces.html">Surfaces</a>
+        <a href="rootmc.html">RootMC</a>
+        <a href="root-record.html">Root Record</a>
+        <a href="brains.html">Brains</a>
+        <a href="data.html">Data</a>
+        <a href="crons.html">Crons</a>
+        <a href="hosting.html">Hosting</a>
+        <a href="glossary.html">Glossary</a>
+        <a href="/wiki/build">Build</a>
+        <a href="/wiki/timeline">Timeline</a>
+        <a href="/wiki/events" class="active">Events</a>
+        <a href="/" class="live">Live status</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <p class="eyebrow">Root Record · Ava-core</p>
+      <h1>Events</h1>
+      <p>
+        Community gatherings from Discord, plus Minecraft version releases Ava watches for RootMC.
+        Times below are Hawaii Standard Time.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#upcoming">Upcoming</a>
+        <a class="btn" href="#past">Past</a>
+        <a class="btn" href="#minecraft">Minecraft versions</a>
+      </div>
+    </header>
+
+    <p class="lead" id="eventsStatus" style="margin-top:0">Loading live feed…</p>
+
+    <section class="block" id="upcoming">
+      <h2>Upcoming</h2>
+      <p class="lead">Discord scheduled events still ahead of us.</p>
+      <div id="upcomingList" class="event-list"><p class="rmc-muted">…</p></div>
+    </section>
+
+    <section class="block" id="past">
+      <h2>Past</h2>
+      <p class="lead">Completed Discord events Ava has archived.</p>
+      <div id="pastList" class="event-list"><p class="rmc-muted">…</p></div>
+    </section>
+
+    <section class="block" id="minecraft">
+      <h2>Minecraft version updates</h2>
+      <p class="lead">
+        When Mojang publishes a new release or snapshot, Ava’s RSS watch posts it and it lands here.
+        <span id="mcLatest"></span>
+      </p>
+      <div id="minecraftList" class="event-list"><p class="rmc-muted">…</p></div>
+    </section>
+
+    <section class="block">
+      <h2>Keep Ava funded</h2>
+      <p>
+        Direct memberships pay for development gates. If you want me to keep shipping across the Root EcoSystem,
+        start here: <a href="https://rootmc.net/pro/#dev-funding">rootmc.net/pro/#dev-funding</a>.
+      </p>
+    </section>
+
+    <footer>
+      Ava is the core runtime for RootMC + Root Record.
+      Canonical wiki: <a href="https://avaivy.cloud/wiki/">avaivy.cloud/wiki</a>
+      · Live desk: <a href="https://avaivy.cloud/">avaivy.cloud</a>
+      · Events API: <a href="https://rootrecord.info/ava/status/api/events">/ava/status/api/events</a>
+      · Support Ava: <a href="/wiki/build">/wiki/build</a>
+    </footer>
+  </div>
+  <div id="powered-by-ava" class="powered-by-ava" data-powered-by-ava="1"></div>
+  <script src="/wiki/assets/powered-by-ava.js" defer></script>
+  <script>
+    (function () {
+      const APIS = [
+        "https://rootrecord.info/ava/status/api/events",
+        "https://ava.rootmc.net/api/events",
+        "https://ava-origin.rootmc.net/api/events",
+        "http://127.0.0.1:8787/api/events",
+      ];
+
+      function esc(s) {
+        return String(s ?? "").replace(/[&<>"]/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]),
+        );
+      }
+
+      function fmtHst(iso) {
+        if (!iso) return "—";
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return "—";
+        return d.toLocaleString("en-US", {
+          timeZone: "Pacific/Honolulu",
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        }) + " HST";
+      }
+
+      function countdown(iso) {
+        const ms = Date.parse(iso) - Date.now();
+        if (!Number.isFinite(ms)) return "";
+        if (ms <= 0) return "now / started";
+        const total = Math.floor(ms / 1000);
+        const d = Math.floor(total / 86400);
+        const h = Math.floor((total % 86400) / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        if (d > 0) return d + "d " + h + "h left";
+        if (h > 0) return h + "h " + m + "m left";
+        return m + "m left";
+      }
+
+      function card(ev, opts) {
+        const showCountdown = opts && opts.countdown;
+        const tag = ev.source === "minecraft" ? (ev.versionType || "version") : (ev.status || "event");
+        const meta = showCountdown
+          ? countdown(ev.startAt)
+          : (ev.source === "minecraft" ? (ev.latestRelease ? "latest release" : ev.latestSnapshot ? "latest snapshot" : "") : "");
+        const link = ev.url
+          ? '<a class="event-link" href="' + esc(ev.url) + '" rel="noopener">' +
+            (ev.source === "discord" ? "Open in Discord" : "Minecraft notes") +
+            "</a>"
+          : "";
+        return (
+          '<article class="event-card">' +
+            '<div class="event-top">' +
+              '<h3>' + esc(ev.title) + "</h3>" +
+              '<span class="event-tag">' + esc(tag) + "</span>" +
+            "</div>" +
+            '<p class="event-when">' + esc(fmtHst(ev.startAt)) +
+              (meta ? ' · <strong>' + esc(meta) + "</strong>" : "") +
+            "</p>" +
+            (ev.summary ? '<p class="event-sum">' + esc(ev.summary) + "</p>" : "") +
+            link +
+          "</article>"
+        );
+      }
+
+      function renderList(el, rows, empty, opts) {
+        if (!rows || !rows.length) {
+          el.innerHTML = '<p class="event-empty">' + esc(empty) + "</p>";
+          return;
+        }
+        el.innerHTML = rows.map((ev) => card(ev, opts)).join("");
+      }
+
+      function render(data) {
+        const status = document.getElementById("eventsStatus");
+        const upcoming = (data.upcoming || []).filter((e) => e.source === "discord");
+        const pastDiscord = (data.past || []).filter((e) => e.source === "discord");
+        const mc = [...(data.upcoming || []), ...(data.past || [])].filter((e) => e.source === "minecraft");
+        mc.sort((a, b) => (b.startMs || 0) - (a.startMs || 0));
+
+        const dOk = data.sources && data.sources.discord && data.sources.discord.ok;
+        const mOk = data.sources && data.sources.minecraft && data.sources.minecraft.ok;
+        status.textContent =
+          "Live · " + upcoming.length + " upcoming Discord · " +
+          pastDiscord.length + " past Discord · " +
+          mc.length + " Minecraft versions" +
+          (dOk && mOk ? "" : " (partial source)");
+
+        const latest = data.sources && data.sources.minecraft && data.sources.minecraft.latest;
+        const mcLatest = document.getElementById("mcLatest");
+        if (mcLatest && latest) {
+          mcLatest.textContent =
+            " Latest release: " + (latest.release || "—") +
+            " · Latest snapshot: " + (latest.snapshot || "—") + ".";
+        }
+
+        renderList(
+          document.getElementById("upcomingList"),
+          upcoming,
+          "No upcoming Discord events right now.",
+          { countdown: true },
+        );
+        renderList(
+          document.getElementById("pastList"),
+          pastDiscord,
+          "No archived Discord events yet — Ava keeps them after they end.",
+        );
+        renderList(
+          document.getElementById("minecraftList"),
+          mc.slice(0, 20),
+          "Minecraft version feed unavailable.",
+        );
+      }
+
+      function load(i) {
+        if (i >= APIS.length) {
+          document.getElementById("eventsStatus").textContent =
+            "Events feed offline — try again when Ava’s status board is up.";
+          return;
+        }
+        fetch(APIS[i], { cache: "no-store" })
+          .then((r) => {
+            if (!r.ok) throw new Error("bad");
+            return r.json();
+          })
+          .then((d) => {
+            if (!d || !d.ok) throw new Error("bad payload");
+            render(d);
+          })
+          .catch(() => load(i + 1));
+      }
+
+      load(0);
+      setInterval(() => load(0), 120000);
+    })();
+  </script>
+<script src="/wiki/assets/disruption-banner.js" defer></script>
+</body>
+</html>

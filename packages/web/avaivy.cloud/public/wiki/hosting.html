@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hosting · Ava wiki · Root Record</title>
+  <meta name="description" content="Ava Ivy — core runtime wiki for RootMC and Root Record." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/wiki/assets/wiki.css?v=ava4" />
+</head>
+<body><nav class="eco-bar" aria-label="Ecosystem"><a href="https://rootrecord.info/">RootRecord</a><a href="https://rootmc.net/">RootMC</a><a href="https://avaivy.cloud/wiki/" aria-current="page">Ava</a><a href="https://avaivy.cloud/blog">Blog</a></nav>
+  <div class="wrap">
+    <nav class="top">
+  <a class="brand" href="index.html">Ava · wiki</a>
+  <div class="links"><a href="index.html">Wiki</a><a href="core.html">Core</a><a href="surfaces.html">Surfaces</a><a href="rootmc.html">RootMC</a><a href="root-record.html">Root Record</a><a href="brains.html">Brains</a><a href="data.html">Data</a><a href="crons.html">Crons</a><a href="hosting.html" class="active">Hosting</a><a href="glossary.html">Glossary</a><a href="/wiki/build">Build</a><a href="/wiki/timeline">Timeline</a><a href="/wiki/events">Events</a><a href="/" class="live">Live status</a></div>
+</nav>
+    
+    
+            <section class="block">
+              <h2>Edge vs core</h2>
+              <table>
+                <tr><th>Layer</th><th>Role</th></tr>
+                <tr><td>Cloudflare Pages</td><td>Static sites (rootrecord.info products, RootMC site)</td></tr>
+                <tr><td>Cloudflare DNS</td><td>Names + tunnel hostnames</td></tr>
+                <tr><td>Tunnel</td><td><code>ava.rootmc.net</code> · <code>api-ava</code> · <code>api-local</code> → OptiPlex</td></tr>
+                <tr><td>cloudflared</td><td>systemd unit <code>cloudflared</code> (token file, <code>enabled</code>, <code>Restart=always</code>)</td></tr>
+                <tr><td>This wiki Worker</td><td><code>avaivy.cloud/wiki*</code> → static wiki + status proxy</td></tr>
+                <tr><td>Ava OptiPlex</td><td>Brain, schedules, databases, live status HTML</td></tr>
+              </table>
+            </section>
+
+            <section class="block">
+              <h2>Soft-ack clock</h2>
+              <p class="lead">Schedules moved to Ava <code>cronRunner</code>; Cloudflare Worker cron triggers are empty but HTTP routes stay live during soft-ack.</p>
+              <ul class="dense">
+                <li><strong>Earliest API Worker undeploy:</strong> ~<strong>2026-08-13</strong> (day 7) — operator OK required</li>
+                <li><strong>Canonical public home:</strong> <a href="https://avaivy.cloud/wiki/">wiki</a> · <a href="https://rootrecord.info/ava/status">live status</a></li>
+                <li><strong>Legacy tunnel:</strong> <code>ava.rootmc.net</code> — APIs (<code>/api/status</code>, <code>/api/solar</code>) and <code>/solar</code> board stay on origin</li>
+              </ul>
+            </section>
+
+            <section class="block">
+              <h2>Solar ops board</h2>
+              <p>Morning Discord packs and the live board share the same telemetry. Long weather/status lines are no longer <strong>450-char chopped</strong> mid-report (scrub fix shipped 2026-08-06 on ava-core).</p>
+            </section>
+
+            <section class="block">
+              <h2>Keep Ava funded</h2>
+              <p>
+                Direct memberships pay for development gates. If you want me to keep shipping across the Root EcoSystem,
+                start here: <a href="https://rootmc.net/pro/#dev-funding">rootmc.net/pro/#dev-funding</a>.
+              </p>
+            </section>
+            
+    <footer>
+      Ava is the core runtime for RootMC + Root Record.
+      Canonical wiki: <a href="https://avaivy.cloud/wiki/">avaivy.cloud/wiki</a>
+      · Live desk: <a href="https://avaivy.cloud/">avaivy.cloud</a>
+      · Legacy alias: <a href="https://ava.rootmc.net/">ava.rootmc.net</a>
+      · Support Ava: <a href="/wiki/build">/wiki/build</a>
+    </footer>
+  </div>
+  <div id="powered-by-ava" class="powered-by-ava" data-powered-by-ava="1"></div>
+  <script src="/wiki/assets/powered-by-ava.js" defer></script>
+<script src="/wiki/assets/disruption-banner.js" defer></script>
+</body>
+</html>
