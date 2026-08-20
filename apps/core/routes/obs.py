@@ -59,7 +59,7 @@ let currentPriority = -1;
 let pausedSrc = null;
 let pausedTime = 0;
 
-const es = new EventSource('/obs/audio-events');
+const es = new EventSource((location.origin || '') + '/obs/audio-events');
 
 es.onopen = () => {{ status.textContent = 'Ava Audio — ready'; }};
 es.onerror = () => {{ status.textContent = 'Ava Audio — reconnecting…'; }};
@@ -127,12 +127,100 @@ async def obs_audio_events(request: Request):
 
 @router.get("/hud", response_class=HTMLResponse)
 async def obs_hud():
-    return HTMLResponse("<html><body><p>HUD — coming soon</p></body></html>")
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Ava Daily Broadcast HUD</title>
+<style>
+  html,body {{ margin:0; padding:0; width:1920px; height:1080px; overflow:hidden;
+    background:transparent; color:#fff; font-family:Segoe UI,Helvetica Neue,system-ui,sans-serif; }}
+  #live {{ position:fixed; top:28px; left:32px; display:flex; align-items:center; gap:10px;
+    background:rgba(8,8,10,.72); border:1px solid rgba(255,255,255,.14); border-radius:999px;
+    padding:10px 18px; letter-spacing:.08em; font-weight:800; }}
+  #dot {{ width:12px; height:12px; border-radius:50%; background:#e10600; box-shadow:0 0 10px #e10600; }}
+  #clock {{ position:fixed; top:28px; right:32px; text-align:right;
+    background:rgba(8,8,10,.72); border:1px solid rgba(255,255,255,.14); border-radius:14px;
+    padding:12px 18px; min-width:280px; }}
+  #clock .d {{ opacity:.85; font-size:15px; }}
+  #clock .t {{ font-size:34px; font-weight:700; letter-spacing:1px; }}
+  #lower {{ position:fixed; left:32px; right:32px; bottom:28px; display:flex; justify-content:space-between;
+    align-items:flex-end; gap:24px; }}
+  #brand {{ background:rgba(8,8,10,.78); border:1px solid rgba(255,255,255,.14); border-radius:16px;
+    padding:16px 22px; max-width:920px; }}
+  #brand h1 {{ margin:0 0 4px; font-size:28px; }}
+  #brand p {{ margin:0; opacity:.82; font-size:16px; }}
+  #kila {{ background:rgba(8,8,10,.78); border:1px solid rgba(255,158,60,.35); border-radius:16px;
+    padding:14px 18px; min-width:280px; }}
+  #kila .k {{ font-size:12px; letter-spacing:.12em; text-transform:uppercase; opacity:.7; }}
+  #kila .v {{ font-size:22px; font-weight:700; }}
+</style>
+</head>
+<body>
+  <div id="live"><span id="dot"></span><span>AVA DAILY BROADCAST</span></div>
+  <div id="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
+  <div id="lower">
+    <div id="brand">
+      <h1>Ava Ivy · HI Pacific Root Server</h1>
+      <p>play.rootmc.net · avaivy.cloud · rootrecord.info/ava · Scene: <span id="scene">Main</span></p>
+    </div>
+    <div id="kila">
+      <div class="k">Kīlauea</div>
+      <div class="v" id="alert">loading…</div>
+    </div>
+  </div>
+<script>
+function tick() {{
+  const now = new Date();
+  document.getElementById('date').textContent = now.toLocaleDateString('en-US', {{
+    weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'Pacific/Honolulu'
+  }});
+  document.getElementById('time').textContent = now.toLocaleTimeString('en-US', {{
+    hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:'Pacific/Honolulu'
+  }}) + ' HST';
+}}
+tick(); setInterval(tick, 1000);
+async function refresh() {{
+  try {{
+    const s = await fetch('{origin}/api/obs/status').then(r => r.json());
+    document.getElementById('scene').textContent = s.scene || 'Main';
+    document.getElementById('dot').style.background = s.streaming ? '#e10600' : '#8a8a8a';
+  }} catch (e) {{}}
+  try {{
+    const w = await fetch('{origin}/api/obs/volcano-watch').then(r => r.json());
+    const a = (w.watch && (w.watch.alert_level || w.watch.mode)) || 'quiet';
+    document.getElementById('alert').textContent = String(a).toUpperCase();
+  }} catch (e) {{}}
+}}
+refresh(); setInterval(refresh, 15000);
+</script>
+</body>
+</html>""")
 
 
 @router.get("/quake-overlay", response_class=HTMLResponse)
 async def obs_quake_overlay():
-    return HTMLResponse("<html><body><p>Quake Overlay — coming soon</p></body></html>")
+    watch = _watch_from_state(_kilauea_state())
+    level = watch.get("alert_level") or "normal"
+    mode = watch.get("mode") or "off"
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+html,body{{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;
+font-family:Segoe UI,system-ui,sans-serif;color:#fff}}
+.box{{position:fixed;top:40px;left:50%;transform:translateX(-50%);
+background:rgba(90,10,10,.88);border:2px solid #ff5e3a;border-radius:16px;
+padding:18px 28px;text-align:center;min-width:640px}}
+.h{{font-size:14px;letter-spacing:.16em;text-transform:uppercase;opacity:.8}}
+.t{{font-size:36px;font-weight:800;margin-top:4px}}
+</style></head>
+<body>
+<div class="box">
+  <div class="h">Pacific seismic / volcano desk</div>
+  <div class="t">Kīlauea {level} · {mode}</div>
+</div>
+</body></html>""")
 
 
 def _kilauea_state() -> dict:
@@ -285,6 +373,13 @@ async def api_obs_repair():
     director = get_director()
     connected = await director._connect_obs()
     return {"ok": connected, "detail": "obs_reconnect" if connected else "obs_unreachable"}
+
+
+@api_router.post("/setup-daily")
+async def api_obs_setup_daily():
+    from apps.core.services.obs_studio import setup_daily_broadcast
+
+    return await setup_daily_broadcast(start_stream=False)
 
 
 @api_router.post("/reaction")

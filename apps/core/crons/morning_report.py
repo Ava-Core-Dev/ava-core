@@ -37,6 +37,35 @@ async def run():
     from apps.core.services import reports as report_store
     report_store.write_current(content, kind="morning", source="cron")
     log.info("Morning report posted")
+    try:
+        import asyncio
+
+        def _render() -> str | None:
+            from apps.core.broadcast_render import spoken_script, synthesize
+            from apps.core.mp4_converter import convert_if_needed
+
+            script = spoken_script(summary)
+            dest = synthesize(script)
+            convert_if_needed(
+                dest,
+                current_path=config.MP4_DIR / "Morning_Broadcast_Current.mp4",
+            )
+            return str(dest)
+
+        mp3 = await asyncio.to_thread(_render)
+        if mp3:
+            from pathlib import Path
+            from apps.voice.director import Priority, get_director
+
+            await get_director().queue(
+                Path(mp3),
+                name="morning",
+                priority=Priority.REPORT,
+                scene="Main",
+            )
+            log.info("Morning broadcast queued for OBS")
+    except Exception:
+        log.exception("Morning broadcast render skipped")
 
 
 async def run_merged():

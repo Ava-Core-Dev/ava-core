@@ -200,11 +200,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
     if not thumb.is_file():
         thumb = media / "images" / "thumbnails" / "DEFAULT.jpg"
     bg = Path("/home/ava-core/.config/background")
-    if not bg.is_file():
-        bg = thumb
-    clock = media / "stream" / "overlays" / "obs-clock.html"
     kilauea_html = media / "stream" / "overlays" / "obs-kilauea.html"
-    status_html = media / "stream" / "obs-cams" / "status-bar.html"
     playlist = [_item(p) for p in playlist_paths()]
     statement = media / "audio" / "reports" / "ava_full_statement_ara.mp3"
     intro = media / "audio" / "reports" / "ava_intro_what_she_does_ara.mp3"
@@ -264,22 +260,6 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             {"file": str(bg if bg.is_file() else thumb)},
         )
         await _fit(obs, "Main", "Broadcast Still")
-        if statement.is_file():
-            await _ensure_input(
-                obs,
-                "Main",
-                "Statement Loop",
-                "ffmpeg_source",
-                {
-                    "is_local_file": True,
-                    "local_file": str(statement),
-                    "looping": True,
-                    "restart_on_activate": False,
-                    "close_when_inactive": False,
-                    "clear_on_media_end": False,
-                },
-                audio=True,
-            )
         await _ensure_input(
             obs,
             "Main",
@@ -296,20 +276,6 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             },
         )
         await _fit(obs, "Main", "Ava HUD")
-        if clock.is_file():
-            await _ensure_input(
-                obs,
-                "Main",
-                "HST Clock",
-                "browser_source",
-                {
-                    "is_local_file": True,
-                    "local_file": str(clock),
-                    "width": 420,
-                    "height": 180,
-                    "shutdown": False,
-                },
-            )
         await _ensure_input(
             obs,
             "Main",

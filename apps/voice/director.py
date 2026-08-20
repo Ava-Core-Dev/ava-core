@@ -152,7 +152,7 @@ class StreamDirector:
         log.info("Queued: %s  priority=%s", name or path.name, priority)
 
     async def queue_chime(self, path: Path) -> None:
-        await self.queue(path, name="Hourly Chime", priority=Priority.SCHEDULED, scene="Default")
+        await self.queue(path, name="Hourly Chime", priority=Priority.SCHEDULED, scene="Main")
 
     async def queue_report(self, path: Path, name: str, report_type: str = "") -> None:
         scene = SCENE_MAP.get(report_type.lower())
@@ -232,6 +232,12 @@ class StreamDirector:
                 q.put_nowait(payload)
             except asyncio.QueueFull:
                 pass
+        try:
+            from apps.core.routes.obs import broadcast_audio_event
+
+            broadcast_audio_event(item.to_sse())
+        except Exception:
+            pass
 
     def register_listener(self, q: asyncio.Queue) -> None:
         self._sse_listeners.append(q)

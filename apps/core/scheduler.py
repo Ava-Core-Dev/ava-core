@@ -97,6 +97,9 @@ class Scheduler:
                   CronTrigger(hour="22-23,0-5", minute=0),
                   id="overnight-relay", name="Late-night relay", misfire_grace_time=300)
 
+        s.add_job(self._run("broadcast_loop"), IntervalTrigger(minutes=6),
+                  id="broadcast-loop", name="OBS daily loop rotator", misfire_grace_time=90)
+
         # ── D1 ← host MySQL (every 5 min) ────────────────────────────────────
         s.add_job(self._run("d1_sync"), IntervalTrigger(minutes=5),
                   id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=120)
