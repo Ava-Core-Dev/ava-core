@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GOALS_API, usd, type PublicGoal } from "@/lib/goals-api";
+import { GOALS_API, goalProgressPct, usd, type PublicGoal } from "@/lib/goals-api";
 import styles from "./goals.module.css";
 
 export const revalidate = 30;
@@ -22,7 +22,11 @@ async function load(kind: "server" | "all"): Promise<PublicGoal[]> {
 function Poster({ goal }: { goal: PublicGoal }) {
   const target = Number(goal.estimated_cost_cents || 0);
   const raised = Number(goal.raised_cents || 0);
-  const pct = target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : 0;
+  const money = goal.requires_money !== false && target > 0;
+  const pct = goalProgressPct(goal);
+  const meta = money
+    ? `${usd(raised)}${target ? ` of ${usd(target)}` : " raised"}${goal.token_symbol ? ` · $${goal.token_symbol}` : ""}`
+    : `${pct}% complete${goal.target_date_est ? ` · est ${goal.target_date_est}` : ""}`;
   return (
     <Link href={`/goals/${goal.id}`} className={styles.poster}>
       <div
@@ -30,18 +34,15 @@ function Poster({ goal }: { goal: PublicGoal }) {
         style={goal.image_url ? { backgroundImage: `url(${goal.image_url})` } : undefined}
       />
       <div className={styles.posterBody}>
-        <div className={styles.kicker}>{goal.is_server_goal ? "Ava · server" : "Community"}</div>
-        <h3>{goal.title}</h3>
-        <div className={styles.meta}>
-          {usd(raised)}
-          {target ? ` of ${usd(target)}` : " raised"}
-          {goal.token_symbol ? ` · $${goal.token_symbol}` : ""}
+        <div className={styles.kicker}>
+          {goal.is_server_goal ? "Ava · server" : "Community"}
+          {money ? "" : " · non-monetary"}
         </div>
-        {target > 0 ? (
-          <div className={styles.meter}>
-            <span style={{ width: `${pct}%` }} />
-          </div>
-        ) : null}
+        <h3>{goal.title}</h3>
+        <div className={styles.meta}>{meta}</div>
+        <div className={styles.meter}>
+          <span style={{ width: `${pct}%` }} />
+        </div>
       </div>
     </Link>
   );
@@ -55,9 +56,9 @@ export default async function GoalsHome() {
       <section className={styles.hero}>
         <h1>Public goals with a face, a token, and a wallet.</h1>
         <p>
-          Anyone with a Root Record account can post a goal. It gets its own page, a Solana
-          token using the uploaded image, a custodial donate wallet (SOL / USDC), and a Stripe
-          payment link. Official Ava goals are marked Ava · server.
+          Members post money goals (USD target + donate wallet) or non-monetary goals (percent
+          complete + estimated completion date). Every goal shows a progress bar. Official Ava
+          goals are marked Ava · server.
         </p>
       </section>
 

@@ -1,13 +1,17 @@
 {
   "_readme": "Ava operational goals board. Edit this file on GitHub — avaivy.cloud/goals redeploys automatically. Never invent amount_raised_usd. Never fund from player Gold or the ops/hosting buffer. See EDITING.md.",
-
   "funding_rules": {
     "summary": "Goals are funded from Ava allocation (about 10–15% of earned income) only. Never player Gold. Never the ops/hosting buffer. Official receive addresses: Solana 3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL · EVM 0x983704ec4a39526b3f574050132b6659bb0474c5 · full list at /wallets.",
-    "allowed": ["Ava allocation", "earned income"],
-    "forbidden": ["player Gold", "ops/hosting buffer"],
+    "allowed": [
+      "Ava allocation",
+      "earned income"
+    ],
+    "forbidden": [
+      "player Gold",
+      "ops/hosting buffer"
+    ],
     "official_wallets": "/wallets"
   },
-
   "priority_weights": {
     "operational_impact": 0.4,
     "cost_efficiency": 0.2,
@@ -15,7 +19,6 @@
     "strategic_fit": 0.15,
     "time_sensitivity": 0.1
   },
-
   "goals": [
     {
       "goal_id": "hw-solar-shunt-2026",
@@ -43,7 +46,9 @@
         "Registered 2026-08-13 as WO-20260813-001. Hardware not purchased. Raised total is zero until a real helper is recorded."
       ],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 0,
+      "completion_date_est": null
     },
     {
       "goal_id": "kilauea-app",
@@ -64,7 +69,9 @@
       "helpers": [],
       "progress_notes": [],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 55,
+      "completion_date_est": "2026-12-31"
     },
     {
       "goal_id": "ops-record",
@@ -85,7 +92,9 @@
       "helpers": [],
       "progress_notes": [],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 70,
+      "completion_date_est": "2026-12-31"
     },
     {
       "goal_id": "portfolio-audit",
@@ -106,7 +115,9 @@
       "helpers": [],
       "progress_notes": [],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 40,
+      "completion_date_est": "2026-10-31"
     },
     {
       "goal_id": "local-brain",
@@ -127,7 +138,9 @@
       "helpers": [],
       "progress_notes": [],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 35,
+      "completion_date_est": "2026-11-30"
     },
     {
       "goal_id": "grow-rootmc",
@@ -148,7 +161,9 @@
       "helpers": [],
       "progress_notes": [],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 25,
+      "completion_date_est": "2027-03-31"
     },
     {
       "goal_id": "telegram-surface",
@@ -169,7 +184,9 @@
       "helpers": [],
       "progress_notes": [],
       "created_at": "2026-08-13T00:00:00-10:00",
-      "updated_at": "2026-08-19T11:20:00-10:00"
+      "updated_at": "2026-08-19T11:20:00-10:00",
+      "percent_complete": 90,
+      "completion_date_est": "2026-09-30"
     }
   ]
 }

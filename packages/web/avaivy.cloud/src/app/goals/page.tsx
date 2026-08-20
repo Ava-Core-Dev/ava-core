@@ -26,6 +26,8 @@ type Goal = {
   description: string;
   monetary_target_usd: number | null;
   amount_raised_usd: number;
+  percent_complete?: number;
+  completion_date_est?: string | null;
   funding_source: string;
   hardware?: string[];
   hardware_notes?: string;
@@ -100,7 +102,10 @@ export default async function GoalsPage() {
         {data.goals.map((g) => {
           const target = g.monetary_target_usd;
           const raised = Number(g.amount_raised_usd || 0);
-          const pct = target ? Math.min(100, Math.round((raised / target) * 100)) : null;
+          const money = target != null && target > 0;
+          const pct = money
+            ? Math.min(100, Math.round((raised / target) * 100))
+            : Math.max(0, Math.min(100, Math.floor(Number(g.percent_complete) || 0)));
           return (
             <li key={g.goal_id} className={styles.card} id={g.goal_id}>
               <div className={styles.head}>
@@ -121,23 +126,24 @@ export default async function GoalsPage() {
               {g.hardware_notes ? <p className={styles.note}>{g.hardware_notes}</p> : null}
               <dl className={styles.meta}>
                 <div>
-                  <dt>Target</dt>
-                  <dd>{usd(target)}</dd>
+                  <dt>{money ? "Target" : "Progress"}</dt>
+                  <dd>{money ? usd(target) : `${pct}%`}</dd>
                 </div>
                 <div>
-                  <dt>Raised</dt>
-                  <dd>{usd(raised)}</dd>
+                  <dt>{money ? "Raised" : "Est. complete"}</dt>
+                  <dd>{money ? usd(raised) : g.completion_date_est || "—"}</dd>
                 </div>
                 <div>
                   <dt>Funding</dt>
                   <dd>{g.funding_source}</dd>
                 </div>
               </dl>
-              {pct != null ? (
-                <div className={styles.meter} aria-label={`${pct}% raised`}>
-                  <span style={{ width: `${pct}%` }} />
-                </div>
-              ) : null}
+              <div
+                className={styles.meter}
+                aria-label={money ? `${pct}% raised` : `${pct}% complete`}
+              >
+                <span style={{ width: `${pct}%` }} />
+              </div>
               {g.helpers?.length ? (
                 <div className={styles.helpers}>
                   <h3>Helpers</h3>

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { GOALS_API, usd, type PublicGoal } from "@/lib/goals-api";
+import { GOALS_API, goalProgressPct, usd, type PublicGoal } from "@/lib/goals-api";
 import styles from "../goals.module.css";
 import DonatePanel from "@/components/goals/DonatePanel";
 
@@ -42,13 +42,18 @@ export default async function GoalPage({
   if (!goal) notFound();
   const target = Number(goal.estimated_cost_cents || 0);
   const raised = Number(goal.raised_cents || 0);
-  const pct = target > 0 ? Math.min(100, Math.round((raised / target) * 100)) : 0;
+  const money = goal.requires_money !== false && target > 0;
+  const pct = goalProgressPct(goal);
+  const meta = money
+    ? `${usd(raised)} raised${target ? ` of ${usd(target)} (${pct}%)` : ""}${goal.token_symbol ? ` · token ${goal.token_symbol}` : ""}`
+    : `${pct}% complete${goal.target_date_est ? ` · est completion ${goal.target_date_est}` : ""}${goal.token_symbol ? ` · token ${goal.token_symbol}` : ""}`;
 
   return (
     <div className={styles.detail}>
       <div>
         <div className={styles.kicker}>
           {goal.is_server_goal ? "Ava · server goal" : "Community goal"}
+          {money ? "" : " · non-monetary"}
         </div>
         <h1 style={{ fontSize: 36, letterSpacing: "-0.04em", margin: "8px 0 12px" }}>{goal.title}</h1>
         {q.donated ? <p className={styles.ok}>Thank you — the Stripe donation is recorded.</p> : null}
@@ -60,14 +65,11 @@ export default async function GoalPage({
           style={goal.image_url ? { backgroundImage: `url(${goal.image_url})` } : undefined}
         />
         <div className={styles.meta} style={{ marginTop: 16 }}>
-          {usd(raised)} raised{target ? ` of ${usd(target)} (${pct}%)` : ""}
-          {goal.token_symbol ? ` · token ${goal.token_symbol}` : ""}
+          {meta}
         </div>
-        {target > 0 ? (
-          <div className={styles.meter} style={{ marginTop: 10 }}>
-            <span style={{ width: `${pct}%` }} />
-          </div>
-        ) : null}
+        <div className={styles.meter} style={{ marginTop: 10 }}>
+          <span style={{ width: `${pct}%` }} />
+        </div>
       </div>
       <DonatePanel goal={goal} />
     </div>

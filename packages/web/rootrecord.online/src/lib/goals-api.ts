@@ -26,6 +26,8 @@ export type PublicGoal = {
   usdc_mint?: string | null;
   stripe_payment_link?: string | null;
   is_server_goal?: boolean;
+  requires_money?: boolean;
+  percent_complete?: number;
   raised_cents?: number;
   estimated_cost_cents?: number | null;
   target_date_est?: string | null;
@@ -33,6 +35,15 @@ export type PublicGoal = {
   page_path?: string;
   donations?: Array<{ source: string; amount_cents: number; currency: string; created_at: string }>;
 };
+
+/** Funding % when monetary with a target; otherwise owner percent_complete. Always 0–100. */
+export function goalProgressPct(goal: PublicGoal): number {
+  const target = Number(goal.estimated_cost_cents || 0);
+  const raised = Number(goal.raised_cents || 0);
+  const money = goal.requires_money !== false && target > 0;
+  if (money) return Math.min(100, Math.round((raised / target) * 100));
+  return Math.max(0, Math.min(100, Math.floor(Number(goal.percent_complete) || 0)));
+}
 
 export function deviceId(): string {
   if (typeof window === "undefined") return "web";
