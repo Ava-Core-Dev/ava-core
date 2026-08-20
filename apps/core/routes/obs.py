@@ -5,10 +5,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import urllib.request
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 from .. import config
@@ -832,6 +833,33 @@ async def api_obs_quake_desk(scope: str = "global"):
     data = await quake_feed()
     key = "island" if scope == "island" else "global"
     return {"ok": True, "scope": key, "quakes": data.get(key) or [], "ts": data.get("ts")}
+
+
+@api_router.get("/kilauea-still")
+async def api_obs_kilauea_still(cam: str = "usgs_v1"):
+    """Proxy USGS still images through localhost for OBS reliability."""
+    from apps.core.services.kilauea_cams import load_catalog, DEFAULT_CAMS
+
+    data = load_catalog()
+    cams = list(data.get("cams") or [])
+    if not cams:
+        cams = list(DEFAULT_CAMS)
+    hit = next((c for c in cams if c.get("id") == cam), cams[0])
+    still = str(hit.get("still") or "").strip()
+    if not still:
+        return Response(status_code=404, content=b"")
+    req = urllib.request.Request(still, headers={"User-Agent": "AvaIvy/2.0 (obs-still-proxy)"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            content = resp.read()
+            ctype = resp.headers.get("Content-Type") or "image/jpeg"
+        return Response(
+            content=content,
+            media_type=ctype,
+            headers={"Cache-Control": "no-store, max-age=0"},
+        )
+    except Exception:
+        return Response(status_code=502, content=b"")
 
 
 class SceneVisibilityBody(BaseModel):
