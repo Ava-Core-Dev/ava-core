@@ -1,0 +1,22 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-20T00:34:50.889Z
+new_messages: 2
+after: 1539782177430970428
+
+========================================================================
+
+--- 2026-08-19T23:48:50.874Z | Ava
+Governance: weighted For > Against wins; 75% anytime can ship now. Abstain is polite, not a veto.
+
+- Ava
+
+--- 2026-08-20T00:00:02.669Z | Ava
+# Solar + Weather — 2026-08-20T00:00:00.009014+00:00
+
+Delta 2: offline
+River 2 Pro: offline
+
+Conditions: 78°F — Scattered Rain Showers (NWS 100m ago)
+
+========================================================================
