@@ -372,6 +372,7 @@ async def ingest() -> dict[str, Any]:
         "downloaded": len(saved),
         "gis": gis,
         "current": files,
+        "live": {k: v for k, v in NHC_LIVE.items() if k.endswith("day")},
         "items": saved[-80:],
     }
     manifest_path().parent.mkdir(parents=True, exist_ok=True)

@@ -2504,6 +2504,7 @@ async function bootStreamOps() {
   $("stream-watch-enter").onclick = () => streamAction("watch-enter");
   $("stream-watch-exit").onclick = () => streamAction("watch-exit");
   $("stream-mode-daily") && ($("stream-mode-daily").onclick = () => streamAction("mode-daily"));
+  $("stream-mode-weather") && ($("stream-mode-weather").onclick = () => streamAction("mode-weather"));
   $("stream-mode-kilauea") && ($("stream-mode-kilauea").onclick = () => streamAction("mode-kilauea"));
   $("stream-mode-hurricane") && ($("stream-mode-hurricane").onclick = () => streamAction("mode-hurricane"));
   $("stream-toast").onclick = () => streamAction("toast");

@@ -179,6 +179,8 @@ def load_catalog() -> dict:
 
 
 def kilauea_scene_pool() -> list[str]:
+    from apps.core.services.nhc_media import nhc_outlook_scenes
+
     cams = [c["scene"] for c in DEFAULT_CAMS]
     hazards = [s[0] for s in KV_HAZARD_SCENES]
     saved = list(load_catalog().get("scenes") or [])
@@ -271,6 +273,9 @@ async def apply_kilauea_kit(obs: Any | None = None) -> dict:
                 f"{origin}/obs/kilauea-desk?cam={cam['id']}",
             )
 
+        from apps.core.services.nhc_media import apply_nhc_obs_scenes
+
+        await apply_nhc_obs_scenes(obs)
         await _stretch_all(obs)
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "KV · V1"})
         from apps.core.services.hurricane_tracker import write_mode

@@ -1097,9 +1097,15 @@ ipcMain.handle("ava:stream-action", async (_e, opts = {}) => {
       timeoutMs: 60000,
     });
   }
-  if (action === "mode-daily" || action === "mode-hurricane" || action === "mode-kilauea") {
+  if (action === "mode-daily" || action === "mode-hurricane" || action === "mode-kilauea" || action === "mode-weather") {
     const mode =
-      action === "mode-hurricane" ? "hurricane" : action === "mode-kilauea" ? "kilauea" : "daily";
+      action === "mode-hurricane"
+        ? "hurricane"
+        : action === "mode-kilauea"
+          ? "kilauea"
+          : action === "mode-weather"
+            ? "weather"
+            : "daily";
     return brainJson("/api/obs/mode", {
       method: "POST",
       body: { mode },

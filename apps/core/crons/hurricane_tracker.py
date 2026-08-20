@@ -9,10 +9,15 @@ log = logging.getLogger("ava.cron.hurricane_tracker")
 
 async def run() -> None:
     from apps.core.services.hurricane_tracker import apply_hurricane_kit, current_mode, refresh_storms
+    from apps.core.services.nhc_media import apply_nhc_obs_scenes, ingest
 
     data = await refresh_storms()
-    log.info("hurricanes %s storms sources=%s", data.get("count"), data.get("sources"))
-    if current_mode() != "hurricane":
+    nhc = await ingest()
+    log.info("hurricanes %s storms sources=%s nhc=%s", data.get("count"), data.get("sources"), nhc.get("downloaded"))
+    mode = current_mode()
+    if mode == "hurricane":
+        kit = await apply_hurricane_kit()
+        log.info("hurricane kit %s", {k: kit.get(k) for k in ("ok", "storms", "removed")})
         return
-    kit = await apply_hurricane_kit()
-    log.info("hurricane kit %s", {k: kit.get(k) for k in ("ok", "storms", "removed")})
+    obs = await apply_nhc_obs_scenes()
+    log.info("nhc live on %s %s", mode, {k: obs.get(k) for k in ("ok", "scenes")})

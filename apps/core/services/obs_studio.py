@@ -58,6 +58,12 @@ def weather_scene_pool() -> list[str]:
         "Windy Big Island",
     ]
 
+
+LOOP_SCENES = [
+    *AMBIENT_SCENES,
+    MC_SCENE,
+]
+
 # Primary media per scene — rotator waits for this to finish before leaving.
 SCENE_MEDIA = {
     "Main": ("Daily Loop", "vlc"),
