@@ -20,6 +20,11 @@ fi
 exec >>"${LOG_DIR}/ava-desktop.log" 2>&1
 echo "---- $(date -Iseconds) start-ava-desktop root=${AVA_ROOT} ----"
 
+# Same companions as login — safe to call twice.
+if [[ -x "${AVA_ROOT}/scripts/start-ava-companions.sh" ]]; then
+  bash "${AVA_ROOT}/scripts/start-ava-companions.sh" || true
+fi
+
 export AVA_HOME
 export AVA_HANDOFF="${AVA_ROOT}"
 export ROOTMC_ENV_FILE="${AVA_ROOT}/.env"
