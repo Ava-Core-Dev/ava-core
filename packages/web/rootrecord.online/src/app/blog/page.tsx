@@ -1,63 +1,48 @@
-import styles from "./page.module.css";
+import blog from "./blog.module.css";
+import { POSTS } from "@/lib/blogPosts";
+import Link from "next/link";
 import GuestChat from "@/components/GuestChat";
 
 export const metadata = {
   title: "Updates — Root Record",
-  description: "Product, real-world, and business ops updates from Root Record.",
+  description:
+    "Root Record timeline — solar, Kīlauea, Goals, business ops, and the Ava / RootMC couplings.",
 };
-
-const POSTS = [
-  {
-    date: "2026-08-19",
-    title: "Three blogs, one operator",
-    body: "This page is Root Record: solar, Kīlauea, Goals, business ops. Minecraft changelogs — including the full May–August 2026 timeline — live on rootmc.net/blog. Ava platform notes live on avaivy.cloud/blog. Player Discord stays the morning boot report only.",
-  },
-  {
-    date: "2026-08-19",
-    title: "Ops reports stay off player Discord",
-    body: "Product, solar, Kīlauea, and business briefs go to Slack and Alexrs94. Discord players only see Ava's morning boot report in #updates. Kīlauea briefs stay Hawaiʻi-scoped; charts stay on rootrecord.online.",
-  },
-  {
-    date: "2026-08-18",
-    title: "MagmaAlert pack and the solar desk",
-    body: "The 18 Aug archive holds MagmaAlert APKs and web assets for the Kīlauea consumer surface. Same window: Ava's desk FastAPI origin, Ollama, D1 heartbeat. Host-power (battery, CPU, solar) is what RootMC players already feel as mining multipliers and tax — game writeup is rootmc.net/blog/age-of-ava/.",
-  },
-  {
-    date: "2026-08-09",
-    title: "Morning merged reports (solar, weather, HVO)",
-    body: "9–13 Aug Ava posted merged mornings that mixed player census, Root-Economy, solar/host, NWS, and HVO Kīlauea. Those posts were the public pulse. They now land here and in Slack, not in player Discord.",
-  },
-  {
-    date: "2026-08-03",
-    title: "Solar Gold multiplier on the live economy",
-    body: "Root-Economy 1.8.1 fixed the solar Gold multiplier so watts on the host actually move in-game rates. That is a Root Record sensor feeding a RootMC rule. Skills XP later scaled the same way in the Age of Ava pack.",
-  },
-  {
-    date: "2026-06-27",
-    title: "Minecraft leaves the Root Record monorepo",
-    body: "27 Jun 2026 RootMC sources moved into their own workspace with Change Logs/. Solar, volcano, and business product stayed here. Ava still sits on both brands. Minecraft history from that split forward is reconstructed at rootmc.net/blog/changelog-discipline/.",
-  },
-];
 
 export default function BlogPage() {
   return (
-    <div className={styles.wrap}>
-      <div className={styles.content}>
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Product · real world · business</h2>
-          {POSTS.map((p) => (
-            <article key={p.title} style={{ marginBottom: 20 }}>
-              <div className={styles.brandSub}>{p.date}</div>
-              <h3 style={{ margin: "6px 0 8px", fontSize: 18 }}>{p.title}</h3>
-              <p style={{ color: "var(--muted)", fontSize: 14 }}>{p.body}</p>
-            </article>
-          ))}
-        </div>
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Talk to Ava</h2>
-          <GuestChat />
-        </div>
+    <section className={blog.wrap}>
+      <p className={blog.eyebrow}>Product · real world · business</p>
+      <h1 className={blog.title}>Root Record</h1>
+      <p className={blog.lead}>
+        Solar, Kīlauea, Goals, and business — April 2026 through the three-blog split.
+        Minecraft changelogs live on{" "}
+        <a href="https://rootmc.net/blog/">rootmc.net/blog</a>. Ava platform notes live on{" "}
+        <a href="https://avaivy.cloud/blog">avaivy.cloud/blog</a>.
+      </p>
+      <div className={blog.list}>
+        {POSTS.map((p) => (
+          <article key={p.slug} className={blog.card}>
+            <div className={blog.meta}>
+              <time className={blog.date}>{p.date}</time>
+              <span className={blog.brand}>{p.brand}</span>
+            </div>
+            <h2>
+              <Link href={`/blog/${p.slug}`}>{p.title}</Link>
+            </h2>
+            <p>
+              {p.teaser}{" "}
+              <Link href={`/blog/${p.slug}`} className={blog.read}>
+                Read
+              </Link>
+            </p>
+          </article>
+        ))}
       </div>
-    </div>
+      <div className={blog.chatSection}>
+        <p className={blog.eyebrow}>Talk to Ava</p>
+        <GuestChat />
+      </div>
+    </section>
   );
 }
