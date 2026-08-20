@@ -1,6 +1,7 @@
 """Pull official NHC / CPHC forecast graphics, GIFs, text, and GIS into media + data.
 
 Sources:
+  https://www.nhc.noaa.gov/?epac=
   https://www.nhc.noaa.gov/?cpac
   https://www.nhc.noaa.gov/refresh/graphics_{bin}+shtml/  (every product tab)
   https://www.nhc.noaa.gov/CurrentStorms.json
@@ -26,8 +27,20 @@ log = logging.getLogger("ava.nhc_media")
 
 BASE = "https://www.nhc.noaa.gov"
 STORMS_URL = f"{BASE}/CurrentStorms.json"
+EPAC_HOME = f"{BASE}/?epac="
 CPAC_HOME = f"{BASE}/?cpac"
 UA = "AvaIvy/2.0 (https://avaivy.cloud; nhc-media)"
+CANONICAL_TWO = (
+    f"{BASE}/xgtwo/resize/xgtwo_pac_2d0_w1920.png",
+    f"{BASE}/xgtwo/resize/xgtwo_pac_7d0_w1920.png",
+    f"{BASE}/xgtwo/resize/xgtwo_cpac_2d0_w1920.png",
+    f"{BASE}/xgtwo/resize/xgtwo_cpac_7d0_w1920.png",
+)
+EPAC_TEXT = (
+    ("MIATWOEP", "outlook.html"),
+    ("MIATWOSEP", "outlook-es.html"),
+    ("MIATWDEP", "discussion.html"),
+)
 GRAPHIC_TABS = (
     "cone",
     "wwCone",
@@ -225,7 +238,7 @@ async def _pull_text(client: httpx.AsyncClient, url: str, dest: Path) -> None:
 
 
 async def ingest() -> dict[str, Any]:
-    """Download latest official NHC CPAC + active-storm graphics/GIS/text."""
+    """Download latest official NHC EPAC + CPAC + active-storm graphics/GIS/text."""
     saved: list[dict] = []
     gis: list[dict] = []
     pages = 0
@@ -240,13 +253,27 @@ async def ingest() -> dict[str, Any]:
                 storms = []
             (data_root() / "CurrentStorms.json").write_bytes(storms_r.content)
 
-        home = await _get(client, CPAC_HOME)
-        urls: set[str] = set()
-        if home:
+        urls: set[str] = set(CANONICAL_TWO)
+        (data_root() / "pages").mkdir(parents=True, exist_ok=True)
+        for slug, home_url in (("epac", EPAC_HOME), ("cpac", CPAC_HOME)):
+            home = await _get(client, home_url)
+            if not home:
+                continue
             pages += 1
             urls |= _urls_from_html(home.text)
-            (data_root() / "pages").mkdir(parents=True, exist_ok=True)
-            (data_root() / "pages" / "cpac.html").write_bytes(home.content)
+            (data_root() / "pages" / f"{slug}.html").write_bytes(home.content)
+
+        xml = await _get(client, f"{BASE}/xml/TWOEP.xml")
+        if xml:
+            (data_root() / "xml").mkdir(parents=True, exist_ok=True)
+            (data_root() / "xml" / "TWOEP.xml").write_bytes(xml.content)
+
+        for product, fname in EPAC_TEXT:
+            await _pull_text(
+                client,
+                f"{BASE}/text/refresh/{product}+shtml/",
+                data_root() / "text" / "epac" / fname,
+            )
 
         bins = []
         for s in storms:
@@ -279,6 +306,10 @@ async def ingest() -> dict[str, Any]:
 
         if not bins:
             bins = ["cp2"]
+        # Always keep CPAC + a placeholder EPAC graphics bin so empty-basin pages still refresh.
+        for extra_bin in ("cp2", "ep2"):
+            if extra_bin not in bins:
+                bins.append(extra_bin)
 
         for bin_no in bins:
             graphics = f"{BASE}/refresh/graphics_{bin_no}+shtml/"
@@ -332,6 +363,8 @@ async def apply_nhc_obs_scenes(obs=None) -> dict:
         if not await obs.connect():
             return {"ok": False, "detail": "obs_unreachable"}
     scenes = [
+        ("NHC · EPAC 2-Day", "NHC EPAC 2Day", files.get("epac_2day")),
+        ("NHC · EPAC 7-Day", "NHC EPAC 7Day", files.get("epac_7day")),
         ("NHC · CPAC 2-Day", "NHC CPAC 2Day", files.get("cpac_2day")),
         ("NHC · CPAC 7-Day", "NHC CPAC 7Day", files.get("cpac_7day")),
         ("NHC · 5-Day Cone", "NHC 5Day Cone", _first(files, "_5day_cone")),
@@ -370,6 +403,8 @@ def _first(files: dict[str, Path], needle: str) -> Path | None:
 
 def nhc_scene_names() -> list[str]:
     return [
+        "NHC · EPAC 2-Day",
+        "NHC · EPAC 7-Day",
         "NHC · CPAC 2-Day",
         "NHC · CPAC 7-Day",
         "NHC · 5-Day Cone",

@@ -1,4 +1,4 @@
-"""Refresh official NHC / CPHC graphics into media and OBS."""
+"""Refresh official NHC EPAC + CPHC graphics into media and OBS."""
 
 from __future__ import annotations
 

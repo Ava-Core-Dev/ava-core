@@ -647,6 +647,7 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
             if key == "hawaii":
                 cone = next((p for n, p in current_files().items() if "5day_cone" in n), None)
                 two = current_files().get("cpac_2day")
+                epac_two = current_files().get("epac_2day")
                 if cone:
                     await _ensure_input(
                         obs, scene, "HT NHC Cone", "image_source",
@@ -660,6 +661,13 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
                     )
                     await _fit(obs, scene, "HT NHC 2Day")
                     await _enable_item(obs, scene, "HT NHC 2Day", False)
+                if epac_two:
+                    await _ensure_input(
+                        obs, scene, "HT NHC EPAC 2Day", "image_source",
+                        {"file": str(epac_two), "unload": False},
+                    )
+                    await _fit(obs, scene, "HT NHC EPAC 2Day")
+                    await _enable_item(obs, scene, "HT NHC EPAC 2Day", False)
             if key != "world" and board.get("goes"):
                 await _browser(obs, scene, f"HT Sat {key}", board["goes"])
                 await _enable_item(obs, scene, f"HT Sat {key}", False)
