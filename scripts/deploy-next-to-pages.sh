@@ -10,7 +10,8 @@ ACCT="${CLOUDFLARE_ACCOUNT_ID:-d2daf26398a805b29e12ddba2b2228cf}"
 
 cd "$APP_DIR"
 npm run build
-OUT="$APP_DIR/.pages-out"
+OUT_ROOT="${AVA_PAGES_OUT_BASE:-/tmp}"
+OUT="$OUT_ROOT/$(basename "$APP_DIR")-pages-out"
 rm -rf "$OUT"
 mkdir -p "$OUT/_next"
 cp -a .next/static "$OUT/_next/static"

@@ -24,6 +24,7 @@ dist/
 .next/
 next-env.d.ts
 .vercel/
+**/.pages-out/
 
 # Secrets — never commit
 .env
