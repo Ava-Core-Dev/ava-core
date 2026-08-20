@@ -1,8 +1,8 @@
-"""Kīlauea Watch OBS mode: NWS radar + V1/V2/V3 USGS stills via local Ava pages.
+"""Kīlauea Watch OBS: auto embed link updater for USGS V1/V2/V3 live YouTube feeds.
 
-Uses the same catalog as the Kīlauea Alerts app (Root Record live-streams API),
-falls back to the official USGS V1/V2/V3 IDs, and refreshes still URLs on a timer.
-OBS never loads YouTube embeds (Error 150 in CEF).
+`refresh_catalog()` resolves current live video IDs from Root Record + YouTube.
+`push_embeds_to_current_collection()` writes those into OBS browser sources.
+Local `/obs/kilauea-cam` prefers LIVE YouTube embed; USGS still is fallback only.
 """
 
 from __future__ import annotations
@@ -307,8 +307,8 @@ async def apply_kilauea_kit(obs: Any | None = None) -> dict:
 
 
 async def push_embeds_to_current_collection() -> dict:
-    """Update cam URLs on whatever collection is open (no collection switch)."""
-    from apps.core.services.obs_studio import ObsClient
+    """Auto embed link updater — refresh live YouTube IDs and push into OBS browser sources."""
+    from apps.core.services.obs_studio import ObsClient, KILAUEA_WATCH
 
     data = await refresh_catalog()
     obs = ObsClient()
@@ -316,16 +316,21 @@ async def push_embeds_to_current_collection() -> dict:
         return {"ok": False, "detail": "obs_unreachable"}
     changed = 0
     try:
-        v1 = next((c for c in data.get("cams") or [] if c["id"] == "usgs_v1"), None)
+        v = int(time.time())
         lst = await obs.try_req("GetInputList") or {}
         names = {i.get("inputName") for i in lst.get("inputs") or []}
-        mapping = {}
-        if v1:
-            obs_url = v1.get("obs_url") or _obs_url_for_cam(v1)
-            mapping["HVO Kilauea"] = obs_url
-            mapping["KV Cam V1"] = obs_url
+        mapping: dict[str, str] = {}
         for cam in data.get("cams") or []:
-            mapping[cam["input"]] = cam.get("obs_url") or _obs_url_for_cam(cam)
+            # Local LIVE page (YouTube when live, still fallback) — cache-bust so OBS CEF reloads
+            obs_url = f"{obs_cam_url(str(cam.get('id') or 'usgs_v1'))}&v={v}"
+            mapping[cam["input"]] = obs_url
+            if cam.get("id") == "usgs_v1":
+                mapping["HVO Kilauea"] = obs_url
+                mapping["KV Cam V1"] = obs_url
+            elif cam.get("id") == "usgs_v2":
+                mapping["KV Cam V2"] = obs_url
+            elif cam.get("id") == "usgs_v3":
+                mapping["KV Cam V3"] = obs_url
         if data.get("radar"):
             mapping["KV Radar"] = data["radar"]
         for name, url in mapping.items():
@@ -333,10 +338,59 @@ async def push_embeds_to_current_collection() -> dict:
                 continue
             st = await obs.try_req("GetInputSettings", {"inputName": name}) or {}
             settings = dict(st.get("inputSettings") or {})
-            if settings.get("url") != url:
-                settings["url"] = url
-                await obs.try_req("SetInputSettings", {"inputName": name, "inputSettings": settings})
-                changed += 1
-        return {"ok": True, "changed": changed, "cams": data.get("cams")}
+            settings["url"] = url
+            settings["width"] = 1920
+            settings["height"] = 1080
+            settings["shutdown"] = True
+            settings["restart_when_active"] = True
+            await obs.try_req("SetInputSettings", {"inputName": name, "inputSettings": settings})
+            changed += 1
+
+        # Daily collection: kill still-only fill; keep live cam + isolated desk cards
+        scenes = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
+        if KILAUEA_WATCH in scenes:
+            items = await obs.try_req("GetSceneItemList", {"sceneName": KILAUEA_WATCH}) or {}
+            for it in items.get("sceneItems") or []:
+                src = it.get("sourceName") or ""
+                if src in ("HVO Still", "Kilauea Overlay"):
+                    await obs.try_req(
+                        "RemoveSceneItem",
+                        {"sceneName": KILAUEA_WATCH, "sceneItemId": it["sceneItemId"]},
+                    )
+            # Ensure HVO Kilauea is fitted on canvas
+            from apps.core.services.obs_studio import _fit, _ensure_input
+
+            v1 = next((c for c in data.get("cams") or [] if c.get("id") == "usgs_v1"), None)
+            if v1:
+                await _ensure_input(
+                    obs,
+                    KILAUEA_WATCH,
+                    "HVO Kilauea",
+                    "browser_source",
+                    {
+                        "url": mapping.get("HVO Kilauea") or obs_cam_url("usgs_v1"),
+                        "width": 1920,
+                        "height": 1080,
+                        "shutdown": True,
+                        "restart_when_active": True,
+                        "css": "body{margin:0;overflow:hidden;background:#000;}",
+                    },
+                )
+                await _fit(obs, KILAUEA_WATCH, "HVO Kilauea")
+
+        return {
+            "ok": True,
+            "changed": changed,
+            "cams": [
+                {
+                    "id": c.get("id"),
+                    "kind": c.get("kind"),
+                    "live": c.get("live"),
+                    "video": c.get("youtube_video_id"),
+                    "url": c.get("url"),
+                }
+                for c in data.get("cams") or []
+            ],
+        }
     finally:
         await obs.close()

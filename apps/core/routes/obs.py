@@ -588,7 +588,11 @@ async def api_kilauea_desk(cam: str = "usgs_v1"):
         hit = next((c for c in DEFAULT_CAMS if c.get("id") == cam), DEFAULT_CAMS[0])
     return {
         "ok": True,
-        "cam": hit,
+        "cam": {
+            **hit,
+            "embed_url": hit.get("url") if hit.get("kind") == "youtube" or hit.get("live") else None,
+            "live": bool(hit.get("live") or hit.get("kind") == "youtube"),
+        },
         "cams": cams or DEFAULT_CAMS,
         "ts": data.get("ts"),
         "watch": _watch_from_state(_kilauea_state()),
