@@ -1,0 +1,23 @@
+# PRINT DIRECTORY - FULL FILE CONTEXT
+# Generated: 2026-08-19T20:32:05.810028
+# Platform: Linux-7.0.0-29-generic-x86_64-with-glibc2.43
+# Root: /home/ava-core/ava/ava-core-v2/tools/Automated New Python Scripts Confirmed Working for Automation Drag and Drop
+#
+# Every reachable file and directory is listed recursively.
+# Text content preview is limited to the first 20 lines.
+# Binary files are inventoried without binary dumps.
+#====================================================================================================
+
+ROOT
+  Path: /home/ava-core/ava/ava-core-v2/tools/Automated New Python Scripts Confirmed Working for Automation Drag and Drop
+  Modified: 2026-08-19 20:32:05
+  Permissions: 0o775
+  Owner: ava-core
+
+#====================================================================================================
+# SCAN COMPLETE
+# Total entries: 1
+# Directories: 1
+# Files: 0
+# Errors: 0
+# Finished: 2026-08-19T20:32:05.814349
