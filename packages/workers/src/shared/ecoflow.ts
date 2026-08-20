@@ -93,11 +93,69 @@ function packPower(data: Record<string, unknown>) {
   const pv = wattsOf(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts");
   const acIn = wattsOf(data, "inv.inputWatts", "inv.acInWatts");
   const acOut = wattsOf(data, "inv.outputWatts", "inv.outWatts");
+  const pdIn = wattsOf(data, "pd.wattsInSum", "pd.inputWatts");
   const pdOut = wattsOf(data, "pd.wattsOutSum", "pd.outputWatts");
   const usb = ["pd.usb1Watts", "pd.usb2Watts", "pd.typec1Watts", "pd.typec2Watts", "pd.carWatts"]
     .reduce((s, k) => s + wattsOf(data, k), 0);
   const dcOut = Math.max(usb, Math.max(0, pdOut - acOut));
-  return { pv_w: pv, ac_in_w: acIn, ac_out_w: acOut, dc_out_w: Math.round(dcOut * 10) / 10, watts_in: pv, watts_out: Math.round(dcOut * 10) / 10 };
+  const acCharge = Math.max(acIn, Math.max(0, pdIn - pv));
+  const discharge = Math.max(acOut, pdOut);
+  return {
+    pv_w: pv,
+    ac_in_w: acIn,
+    ac_out_w: acOut,
+    ac_charge_w: Math.round(acCharge * 10) / 10,
+    discharge_w: Math.round(discharge * 10) / 10,
+    dc_out_w: Math.round(dcOut * 10) / 10,
+    watts_in: pv,
+    watts_out: Math.round(dcOut * 10) / 10,
+  };
+}
+
+function isDelta(d: Record<string, unknown>): boolean {
+  const sn = String(d.sn || "");
+  const lab = String(d.label || "").toUpperCase();
+  return sn.startsWith("R331") || lab.includes("DELTA");
+}
+
+function isRiver(d: Record<string, unknown>): boolean {
+  const sn = String(d.sn || "");
+  const lab = String(d.label || "").toUpperCase();
+  return sn.startsWith("R621") || lab.includes("RIVER");
+}
+
+function sameWatts(a: number, b: number): boolean {
+  if (a < 20 || b < 20) return false;
+  return Math.abs(a - b) <= Math.max(40, 0.12 * Math.max(a, b));
+}
+
+function applyAcRoles(devices: Array<Record<string, unknown>>): void {
+  for (const d of devices) {
+    d.ac_role = null;
+    d.transfer_sure = false;
+  }
+  const delta = devices.find(isDelta);
+  const river = devices.find(isRiver);
+  const pair = (src: Record<string, unknown>, dst: Record<string, unknown>): boolean => {
+    const srcOut = Math.max(Number(src.ac_out_w || 0), Number(src.discharge_w || 0));
+    const dstIn = Math.max(Number(dst.ac_in_w || 0), Number(dst.ac_charge_w || 0));
+    if (!sameWatts(srcOut, dstIn)) return false;
+    src.ac_role = "transfer_out";
+    dst.ac_role = "transfer_in";
+    src.transfer_sure = true;
+    dst.transfer_sure = true;
+    src.transfer_w = Math.round(srcOut * 10) / 10;
+    dst.transfer_w = Math.round(dstIn * 10) / 10;
+    return true;
+  };
+  if (delta && river && (pair(delta, river) || pair(river, delta))) return;
+  for (const d of devices) {
+    const aco = Number(d.ac_out_w || 0);
+    const aci = Number(d.ac_in_w || 0);
+    if (aco >= 1100) d.ac_role = "appliances";
+    else if (aci > 20) d.ac_role = "generator";
+    else if (aco > 20) d.ac_role = "ac_out";
+  }
 }
 
 function pickSoc(data: Record<string, unknown>): number | null {
@@ -148,32 +206,24 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
     const pwr = packPower(data);
     const live = q.ok && Object.keys(data).length > 0;
     if (live && soc != null) banks.push(soc);
-    const acOut = pwr.ac_out_w;
-    const acIn = pwr.ac_in_w;
-    const ac_role = acOut >= 1100 ? "appliances" : acIn > 20 ? "generator" : acOut > 20 ? "transfer_out" : null;
     devices.push({
       label: SN_LABELS[sn] || sn.slice(-6),
       sn,
       soc,
       online: live,
-      ac_role,
       ...pwr,
     });
   }
-  const taking = devices.filter((d) => Number(d.ac_in_w) > 20);
-  const sending = devices.filter((d) => Number(d.ac_out_w) > 20);
-  for (const d of devices) {
-    if (d.ac_role === "appliances") continue;
-    if (Number(d.ac_in_w) > 20 && sending.length) d.ac_role = "transfer_in";
-    else if (Number(d.ac_out_w) > 20 && taking.length) d.ac_role = "transfer_out";
-  }
+  applyAcRoles(devices);
   const battery = banks.length ? Math.round((banks.reduce((a, b) => a + b, 0) / banks.length) * 10) / 10 : null;
   const pv = devices.reduce((s, d) => s + Number(d.pv_w || 0), 0);
   const dc = devices.reduce((s, d) => s + Number(d.dc_out_w || 0), 0);
   const acInSum = devices.reduce((s, d) => s + Number(d.ac_in_w || 0), 0);
   const acOutSum = devices.reduce((s, d) => s + Number(d.ac_out_w || 0), 0);
   const appliance = devices.reduce((s, d) => s + (d.ac_role === "appliances" ? Number(d.ac_out_w) : 0), 0);
-  const transfer = devices.reduce((s, d) => s + (d.ac_role === "transfer_out" ? Number(d.ac_out_w) : 0), 0);
+  const transfer = devices.reduce((s, d) => s + (d.ac_role === "transfer_out" ? Number(d.transfer_w || d.ac_out_w) : 0), 0);
+  const srcLab = devices.find((d) => d.ac_role === "transfer_out")?.label;
+  const dstLab = devices.find((d) => d.ac_role === "transfer_in")?.label;
   const generator = devices.reduce((s, d) => s + (d.ac_role === "generator" ? Number(d.ac_in_w) : 0), 0);
   const snap = {
     battery_pct: battery,
@@ -181,7 +231,7 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
     solar_in_w: Math.round(pv * 10) / 10,
     load_w: Math.round(dc * 10) / 10,
     power_w: Math.round(pv * 10) / 10,
-    state: appliance ? "appliances" : transfer ? "AC transfer" : generator ? "generator" : pv > 20 ? "PV charging" : dc > 20 ? "DC load" : "idle",
+    state: appliance ? "appliances" : srcLab && dstLab ? `transfer ${srcLab} → ${dstLab}` : transfer ? "AC transfer" : generator ? "generator" : pv > 20 ? "PV charging" : dc > 20 ? "DC load" : "idle",
     devices,
     totals: {
       solar_in_w: Math.round(pv * 10) / 10,

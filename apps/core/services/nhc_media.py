@@ -186,6 +186,10 @@ async def _download_image(client: httpx.AsyncClient, url: str, saved: list[dict]
     arch = media_archive() / name
     await _save_bytes(arch, r.content)
     rec = {"url": url, "archive": str(arch), "bytes": len(r.content)}
+    # Thumbnails are 60px nav icons — keep in archive only.
+    if "_sm" in urlparse(url).path or len(r.content) < 8_000:
+        saved.append(rec)
+        return
     stable = _stable_name(url)
     if stable:
         dest = media_current() / stable

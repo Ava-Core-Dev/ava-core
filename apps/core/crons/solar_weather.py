@@ -160,14 +160,15 @@ def _watts(raw) -> float:
 def _pack_power(data: dict | None) -> dict:
     """Split PV vs AC. AC is never counted as solar.
 
-    AC in  = generator or receiving a pack-to-pack transfer.
-    AC out ≥ 1.1 kW = appliances; otherwise AC out is a transfer (e.g. Delta → River).
-    DC out = USB / car / leftover PD that is not the inverter.
+    AC in  = generator, unless it matches the other pack's discharge (transfer).
+    Matched Delta discharge ≈ River charge is always pack-to-pack transfer.
+    Unmatched AC out ≥ 1.1 kW = appliances. DC out = USB / car leftover.
     """
     data = data or {}
     pv = _watts(_num(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts"))
     ac_in = _watts(_num(data, "inv.inputWatts", "inv.acInWatts"))
     ac_out = _watts(_num(data, "inv.outputWatts", "inv.outWatts"))
+    pd_in = _watts(_num(data, "pd.wattsInSum", "pd.inputWatts"))
     pd_out = _watts(_num(data, "pd.wattsOutSum", "pd.outputWatts"))
     usb = 0.0
     for k in (
@@ -176,34 +177,78 @@ def _pack_power(data: dict | None) -> dict:
     ):
         usb += _watts(_num(data, k))
     dc_out = max(usb, max(0.0, pd_out - ac_out))
+    # AC charge into the pack (PV already counted separately).
+    ac_charge = max(ac_in, max(0.0, pd_in - pv))
+    discharge = max(ac_out, pd_out)
     return {
         "pv_w": pv,
         "ac_in_w": ac_in,
         "ac_out_w": ac_out,
+        "ac_charge_w": round(ac_charge, 1),
+        "discharge_w": round(discharge, 1),
         "dc_out_w": round(dc_out, 1),
         "watts_in": pv,
         "watts_out": round(dc_out, 1),
     }
 
 
+def _is_delta(d: dict) -> bool:
+    sn = str(d.get("sn") or "")
+    lab = str(d.get("label") or "").upper()
+    return sn.startswith("R331") or "DELTA" in lab
+
+
+def _is_river(d: dict) -> bool:
+    sn = str(d.get("sn") or "")
+    lab = str(d.get("label") or "").upper()
+    return sn.startswith("R621") or "RIVER" in lab
+
+
+def _same_watts(a: float, b: float) -> bool:
+    """Inverter loss is a few percent; matching discharge vs charge is a transfer."""
+    a, b = float(a or 0), float(b or 0)
+    if a < 20 or b < 20:
+        return False
+    slack = max(40.0, 0.12 * max(a, b))
+    return abs(a - b) <= slack
+
+
 def _apply_ac_roles(devices: list[dict]) -> None:
-    taking = [d for d in devices if float(d.get("ac_in_w") or 0) > 20]
-    sending = [d for d in devices if float(d.get("ac_out_w") or 0) > 20]
+    for d in devices:
+        d["ac_role"] = None
+        d["transfer_sure"] = False
+    delta = next((d for d in devices if _is_delta(d)), None)
+    river = next((d for d in devices if _is_river(d)), None)
+
+    def _pair(src: dict, dst: dict) -> bool:
+        src_out = max(float(src.get("ac_out_w") or 0), float(src.get("discharge_w") or 0))
+        dst_in = max(float(dst.get("ac_in_w") or 0), float(dst.get("ac_charge_w") or 0))
+        if not _same_watts(src_out, dst_in):
+            return False
+        src["ac_role"] = "transfer_out"
+        dst["ac_role"] = "transfer_in"
+        src["transfer_sure"] = True
+        dst["transfer_sure"] = True
+        src["transfer_w"] = round(src_out, 1)
+        dst["transfer_w"] = round(dst_in, 1)
+        return True
+
+    matched = False
+    if delta and river:
+        matched = _pair(delta, river) or _pair(river, delta)
+
+    if matched:
+        return
+    # No matched pair — leftover AC is generator (in) or appliances (out ≥ 1.1 kW).
     for d in devices:
         aco = float(d.get("ac_out_w") or 0)
         aci = float(d.get("ac_in_w") or 0)
         if aco >= APPLIANCE_AC_W:
             d["ac_role"] = "appliances"
-        elif aci > 20 and sending:
-            d["ac_role"] = "transfer_in"
-        elif aco > 20 and taking:
-            d["ac_role"] = "transfer_out"
         elif aci > 20:
             d["ac_role"] = "generator"
         elif aco > 20:
-            d["ac_role"] = "transfer_out"
-        else:
-            d["ac_role"] = None
+            d["ac_role"] = "ac_out"
 
 
 def _bank_state(devices: list[dict]) -> str:
@@ -550,7 +595,7 @@ def _attach_rollups(snap: dict) -> dict:
     ac_in = sum(float(d.get("ac_in_w") or 0) for d in devices)
     ac_out = sum(float(d.get("ac_out_w") or 0) for d in devices)
     appliance = sum(float(d.get("ac_out_w") or 0) for d in devices if d.get("ac_role") == "appliances")
-    transfer = sum(float(d.get("ac_out_w") or 0) for d in devices if d.get("ac_role") == "transfer_out")
+    transfer = sum(float(d.get("transfer_w") or d.get("ac_out_w") or 0) for d in devices if d.get("ac_role") == "transfer_out")
     generator = sum(float(d.get("ac_in_w") or 0) for d in devices if d.get("ac_role") == "generator")
     socs = [float(d["soc"]) for d in devices if d.get("soc") is not None and d.get("online") is not False]
     snap["solar_in_w"] = round(pv, 1)
