@@ -343,7 +343,7 @@ def _history_averages() -> dict:
                     pv_recent.append(float(solar))
                 if soc is not None and 5 < float(soc) <= 100:
                     soc_recent.append(float(soc))
-            if wall.date() == today and 6 <= wall.hour < 12 and solar is not None:
+            if wall.date() == today and 5 <= wall.hour < 12 and solar is not None:
                 solar_morn.append(float(solar))
     return {
         "load_1h_w": _mean(load_recent),

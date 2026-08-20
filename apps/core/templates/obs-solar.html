@@ -73,7 +73,7 @@
       <div class="row"><span>Load 12h</span><span class="v" id="avgLoad">—</span></div>
       <div class="row"><span>PV 12h</span><span class="v solar" id="avgPv">—</span></div>
       <div class="row"><span>PV morning</span><span class="v solar" id="avgMorn">—</span></div>
-      <div class="row"><span>SOC logged</span><span class="v" id="avgSoc">—</span></div>
+      <div class="row"><span>Bank avg</span><span class="v" id="avgSoc">—</span></div>
     </div>
   </div>
   <div class="rail right">
@@ -142,7 +142,7 @@ async function paint(){
     document.getElementById('avgLoad').textContent=watts(avg.load_1h_w);
     document.getElementById('avgPv').textContent=watts(avg.solar_1h_w);
     document.getElementById('avgMorn').textContent=watts(avg.solar_morning_w);
-    document.getElementById('avgSoc').textContent=pct(avg.soc_1h_pct ?? tot.bank_avg_pct);
+    document.getElementById('avgSoc').textContent=pct(tot.bank_avg_pct ?? avg.soc_1h_pct);
     document.getElementById('hostK').textContent='Root server · '+(host.host||'ava-core');
     document.getElementById('cpu').textContent=(host.cpu_pct!=null?host.cpu_pct.toFixed(0)+'%':'—');
     document.getElementById('loadAvg').textContent=

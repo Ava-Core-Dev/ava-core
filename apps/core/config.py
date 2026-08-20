@@ -117,6 +117,7 @@ MEDIA_SUBDIRS = (
     "public",
     "private/1-1/discord", "private/1-1/slack", "private/1-1/telegram",
     "private/life-story", "private/profiling", "private/accounts",
+    "private/users",
 )
 
 # ── Server ─────────────────────────────────────────────────────────────────────
