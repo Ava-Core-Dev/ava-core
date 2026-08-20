@@ -32,7 +32,7 @@ function Poster({ goal }: { goal: PublicGoal }) {
     ? `${usd(raised)}${target ? ` of ${usd(target)}` : " raised"}${goal.token_symbol ? ` · $${goal.token_symbol}` : ""}`
     : `${pct}% complete${goal.target_date_est ? ` · est ${goal.target_date_est}` : ""}`;
   return (
-    <Link href={`/goals/${goal.id}`} className={styles.poster}>
+    <Link href={`/goals/view?id=${encodeURIComponent(goal.id)}`} className={styles.poster}>
       <div
         className={styles.posterImg}
         style={goal.image_url ? { backgroundImage: `url(${goal.image_url})` } : undefined}

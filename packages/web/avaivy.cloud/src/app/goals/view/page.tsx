@@ -1,21 +1,23 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { GOALS_API, goalProgressPct, usd, type PublicGoal } from "@/lib/goals-api";
 import styles from "../goals.module.css";
 import DonatePanel from "@/components/goals/DonatePanel";
 
 function GoalBody() {
-  const params = useParams();
   const search = useSearchParams();
-  const id = String(params?.id || "");
+  const id = String(search.get("id") || "");
   const donated = search.get("donated");
   const [goal, setGoal] = useState<PublicGoal | null>(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setErr("Missing goal id.");
+      return;
+    }
     let cancelled = false;
     void (async () => {
       try {
@@ -85,7 +87,7 @@ function GoalBody() {
   );
 }
 
-export default function AvaGoalPage() {
+export default function GoalViewPage() {
   return (
     <Suspense fallback={<p className={styles.empty}>Loading goal…</p>}>
       <GoalBody />

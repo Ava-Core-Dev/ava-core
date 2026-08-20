@@ -85,7 +85,7 @@ export default function NewAvaGoalPage() {
       }
       const created = res.json.goal as { id?: string } | undefined;
       const id = String(created?.id || "");
-      if (id) router.push(`/goals/${id}`);
+      if (id) router.push(`/goals/view?id=${encodeURIComponent(id)}`);
       else setErr("Created, but no id came back.");
     } catch (ex) {
       setErr(ex instanceof Error ? ex.message : "failed");
