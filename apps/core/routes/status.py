@@ -35,6 +35,9 @@ async def api_status():
     mem = psutil.virtual_memory()
     uptime = int(time.time() - _start_time)
     heartbeat_age = last_success_age_s()
+    from apps.core.services.broadcast import live_payload
+
+    live = await live_payload()
 
     return {
         "version": "2.0.0",
@@ -44,6 +47,8 @@ async def api_status():
         "cpu_pct": cpu,
         "mem_pct": round(mem.percent, 1),
         "heartbeat_age_s": round(heartbeat_age, 1) if heartbeat_age is not None else None,
+        "streaming": bool(live.get("streaming")),
+        "live": live,
         "config": {
             "port": config.AVA_PORT,
             "env": config.AVA_ENV,
@@ -51,6 +56,13 @@ async def api_status():
             "voice_mode": config.VOICE_MODE,
         },
     }
+
+
+@router.get("/api/live")
+async def api_live():
+    from apps.core.services.broadcast import live_payload
+
+    return await live_payload()
 
 
 @router.get("/api/solar")

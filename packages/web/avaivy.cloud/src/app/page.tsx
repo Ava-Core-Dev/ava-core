@@ -1,3 +1,4 @@
+import LivePlayer from "@/components/LivePlayer";
 import styles from "./page.module.css";
 import StatusCard from "@/components/StatusCard";
 import ChatWidget from "@/components/ChatWidget";
@@ -36,11 +37,19 @@ export default async function Home() {
             />
             {online ? "Online" : "Offline"}
           </span>
+          {status?.streaming && (
+            <a href="/live" className="badge badge-offline" style={{ textDecoration: "none" }}>
+              <span className={styles.dot} style={{ background: "var(--red)" }} />
+              Live
+            </a>
+          )}
           {status?.cpu_pct != null && (
             <span className="badge badge-amber">CPU {status.cpu_pct}%</span>
           )}
         </div>
       </section>
+
+      <LivePlayer variant="home" />
 
       <section className={styles.cards}>
         {cards.map((card) => (

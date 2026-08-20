@@ -1,7 +1,14 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import content from "@/content.json";
 import styles from "@/app/page.module.css";
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
+  const path = usePathname();
+  if (path === "/live/embed") {
+    return <>{children}</>;
+  }
   const { site, nav, footer } = content;
   return (
     <div className={styles.main}>

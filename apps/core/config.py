@@ -354,8 +354,14 @@ POLL_INTERVAL    = int(os.getenv("POLL_INTERVAL", "30"))
 ENABLE_SCHEDULER = os.getenv("ENABLE_SCHEDULER", "true").lower() in {"1", "true", "yes", "on"}
 
 # ── YouTube ───────────────────────────────────────────────────────────────────
-YOUTUBE_API_KEY    = os.getenv("YOUTUBE_API_KEY", "").strip()
-YOUTUBE_CHANNEL_ID = os.getenv("YOUTUBE_CHANNEL_ID", "").strip()
+YOUTUBE_API_KEY     = os.getenv("YOUTUBE_API_KEY", "").strip()
+YOUTUBE_CHANNEL_ID  = (
+    os.getenv("YOUTUBE_CHANNEL_ID", "").strip() or "UC6M7U4fXAWuVYhgm_veKecA"
+)
+YOUTUBE_CHANNEL_URL = (
+    os.getenv("YOUTUBE_CHANNEL_URL", "").strip()
+    or "https://www.youtube.com/@AvaIvyRootMC/live"
+)
 
 
 def ensure_dirs() -> None:

@@ -95,6 +95,7 @@ Layout and styling live next to each page:
 |---|---|
 | Home page structure | `packages/web/avaivy.cloud/src/app/page.tsx` |
 | Home page styling | `packages/web/avaivy.cloud/src/app/page.module.css` |
+| Live watch / embed | `packages/web/avaivy.cloud/src/app/live/page.tsx` |
 | Status page | `packages/web/avaivy.cloud/src/app/status/page.tsx` |
 | Goals board | `packages/web/avaivy.cloud/src/goals.json` |
 | Colors + global styles | `packages/web/avaivy.cloud/src/app/globals.css` |
@@ -135,7 +136,8 @@ The websites hold no data of their own. They read it live from Ava on the home
 machine, through the Cloudflare tunnel:
 
 ```
-avaivy.cloud  ──►  https://ava-origin.rootmc.net/api/status    (CPU, uptime, memory)
+avaivy.cloud  ──►  https://ava-origin.rootmc.net/api/status    (CPU, uptime, memory, streaming)
+              ──►  https://ava-origin.rootmc.net/api/live      (OBS live + YouTube embed URLs)
               ──►  https://ava-origin.rootmc.net/api/activity  (crons, Ollama, jobs)
               ──►  https://ava-origin.rootmc.net/api/solar     (solar report)
 ```

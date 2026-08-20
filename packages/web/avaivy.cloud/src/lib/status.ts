@@ -17,6 +17,8 @@ export interface HostStatus {
   cpu_pct: number;
   mem_pct: number;
   heartbeat_age_s: number | null;
+  streaming?: boolean;
+  live?: { streaming?: boolean; scene?: string | null };
   config?: Record<string, unknown>;
 }
 

@@ -2,6 +2,7 @@
 
 export const LINKS = {
   home: "https://avaivy.cloud",
+  live: "https://avaivy.cloud/live",
   status: "https://avaivy.cloud/status",
   media: "https://avaivy.cloud/media",
   goals: "https://avaivy.cloud/status/goals",
@@ -28,7 +29,7 @@ export const GREETING =
 
 export const DIRECTORY =
   `I don't have a tight public card for that yet — here's the map. ` +
-  `Me: ${LINKS.home} · host: ${LINKS.status} · files: ${LINKS.media} · ` +
+  `Me: ${LINKS.home} · live: ${LINKS.live} · host: ${LINKS.status} · files: ${LINKS.media} · ` +
   `RootMC join ${LINKS.play} (${LINKS.rootmc}) · solar/Kīlauea ${LINKS.record} · goals ${LINKS.goals}. ` +
   `Want me to think it through live? Log in at ${LINKS.mcLogin} (same account as ${LINKS.login}). ` +
   `Public answers stay free either way.`;
@@ -119,6 +120,13 @@ const TOPICS: Topic[] = [
     id: "context",
     keys: ["context", "ops"],
     reply: `Live ops context: ${LINKS.context}. Host pulse: ${LINKS.status}.`,
+  },
+  {
+    id: "live",
+    keys: ["live", "stream", "streaming", "youtube", "broadcast", "watch", "on air"],
+    reply:
+      `When OBS is streaming, watch here: ${LINKS.live}. YouTube channel is also @AvaIvyRootMC. ` +
+      `The home page only shows the player while I am actually live.`,
   },
   {
     id: "status",
