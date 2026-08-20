@@ -24,6 +24,8 @@ AMBIENT_SCENES = [
     "Main",
     "Ambient Playlist",
     "Weather Board",
+    "Radar",
+    "Satellite",
     "Kilauea Watch",
     "Solar Dashboard",
     "Economy Board",
@@ -41,6 +43,8 @@ SCENE_MEDIA = {
     "Main": ("Daily Loop", "vlc"),
     "Ambient Playlist": ("Daily Loop", "vlc"),
     "Weather Board": ("NWS Hawaii", "ffmpeg"),
+    "Radar": ("NWS Radar", "image"),
+    "Satellite": ("Hawaii IR", "image"),
     "Kilauea Watch": ("Kilauea Audio", "ffmpeg"),
     "Solar Dashboard": ("Solar Audio", "ffmpeg"),
     "Economy Board": ("Economy Audio", "ffmpeg"),
@@ -162,14 +166,35 @@ def _item(path: Path, selected: bool = False) -> dict:
 
 
 def playlist_paths() -> list[Path]:
-    """Unique videos for VLC — longer files first, then the rest of the library."""
+    """PG-13 daily loop only — unnamed Grok gens and random YouTube stay out."""
     media = config.MEDIA_DIR
+    deny = (
+        "generated_video",
+        "grok-video",
+        "ava-gen-",
+        "nsfw",
+        "nude",
+        "explicit",
+        "ambient-mix",  # mix was built from the gen dump
+        "jNQXAC9IVRw",
+    )
+    allow_name = (
+        "morning_broadcast",
+        "nws-hawaii",
+        "earthquake",
+        "ara-report",
+        "peakactivity",
+        "going-back-to-bed",
+        "good-morning",
+        "meadow",
+        "hologram",
+        "desk-ops",
+        "idle",
+    )
     roots = [
         media / "video" / "current",
         media / "video" / "appearance",
-        media / "video" / "clips",
         media / "video" / "reports",
-        media / "video" / "youtube",
     ]
     seen: set[int] = set()
     files: list[Path] = []
@@ -177,6 +202,11 @@ def playlist_paths() -> list[Path]:
         if not root.is_dir():
             continue
         for p in sorted(root.glob("*.mp4")) + sorted(root.glob("*.webm")):
+            name = p.name.lower()
+            if any(d in name for d in deny):
+                continue
+            if root.name == "appearance" and not any(a in name for a in allow_name):
+                continue
             try:
                 sz = p.stat().st_size
             except OSError:
@@ -185,17 +215,15 @@ def playlist_paths() -> list[Path]:
                 continue
             seen.add(sz)
             files.append(p)
-    mix = media / "video" / "current" / "ambient-mix.mp4"
-    if mix.is_file() and mix.stat().st_size not in seen:
-        files.insert(0, mix)
-    # Prefer long current reports at the front of the VLC list
+
     def _rank(p: Path) -> tuple[int, str]:
         name = p.name.lower()
-        if "morning_broadcast" in name or "ambient-mix" in name:
+        if "morning_broadcast" in name:
             return (0, name)
         if "current" in str(p.parent):
             return (1, name)
         return (2, name)
+
     files.sort(key=_rank)
     return files
 
@@ -206,6 +234,30 @@ def write_playlist_m3u(paths: list[Path] | None = None) -> Path:
     items = paths or playlist_paths()
     dest.write_text("#EXTM3U\n" + "\n".join(str(p) for p in items) + "\n")
     return dest
+
+
+NWS_RADAR_URL = (
+    "https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOm51bGwsImNlbnRlciI6"
+    "Wy0xNTcuNzI0LDIwLjg3NV0sImxvY2F0aW9uIjpudWxsLCJ6b29tIjo3LjI4NDE4OTAxNzQ4OTc3M30s"
+    "ImFuaW1hdGluZyI6dHJ1ZSwiYmFzZSI6InN0YW5kYXJkIiwiYXJ0Y2MiOmZhbHNlLCJjb3VudHkiOmZhbHNl"
+    "LCJjd2EiOmZhbHNlLCJyZmMiOmZhbHNlLCJzdGF0ZSI6ZmFsc2UsIm1lbnUiOnRydWUsInNob3J0RnVzZWRP"
+    "bmx5IjpmYWxzZSwib3BhY2l0eSI6eyJhbGVydHMiOjAuOCwibG9jYWwiOjAuNiwibG9jYWxTdGF0aW9ucyI6"
+    "MC44LCJuYXRpb25hbCI6MC42fX0%3D"
+)
+WINDY_RADAR_URL = "https://www.windy.com/-Weather-radar-radar?radar,20.808,-157.736,6,p:cities"
+WINDY_HURRICANE_URL = "https://www.windy.com/-Hurricane-tracker/hurricanes?950h,19.929,-155.800,6,p:cities"
+WINDY_CLOUDS_URL = "https://www.windy.com/-High-clouds-hclouds?hclouds,21.545,-156.761,6,p:cities"
+HAWAII_IR_URL = "https://www.weather.gov/images/hfo/satellite/Hawaii_IR_loop.gif"
+GOES_HI_URL = "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/hi/GEOCOLOR/GOES18-HI-GEOCOLOR-1000x1000.gif"
+_SKIP_STRETCH = {
+    "Ava Audio",
+    "Economy Audio",
+    "Solar Audio",
+    "Kilauea Audio",
+    "Dev Audio",
+    "Goals Audio",
+    "Solana QR",
+}
 
 
 async def _ensure_input(
@@ -258,7 +310,7 @@ async def _fit(obs: ObsClient, scene: str, source: str, w: int = 1920, h: int = 
             "sceneName": scene,
             "sceneItemId": sid,
             "sceneItemTransform": {
-                "boundsType": "OBS_BOUNDS_SCALE_INNER",
+                "boundsType": "OBS_BOUNDS_STRETCH",
                 "boundsAlignment": 0,
                 "boundsWidth": float(w),
                 "boundsHeight": float(h),
@@ -284,6 +336,69 @@ async def _enable_item(obs: ObsClient, scene: str, source: str, on: bool) -> boo
             )
             return True
     return False
+
+
+async def _stretch_all(obs: ObsClient) -> int:
+    """Stretch every visible canvas source to 1920×1080 (OBS Bounds: Stretch)."""
+    n = 0
+    scenes = [s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []]
+    for scene in scenes:
+        items = await obs.try_req("GetSceneItemList", {"sceneName": scene}) or {}
+        for it in items.get("sceneItems") or []:
+            name = str(it.get("sourceName") or "")
+            if not name or name in _SKIP_STRETCH:
+                continue
+            await _fit(obs, scene, name)
+            n += 1
+    return n
+
+
+async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
+    """Pull NWS radar / IR / Windy / hurricane from the Untitled weather collection."""
+    own = obs is None
+    if own:
+        obs = ObsClient()
+        if not await obs.connect():
+            return {"ok": False, "detail": "obs_unreachable"}
+    try:
+        existing = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
+        for scene in ("Radar", "Satellite", "Weather Board"):
+            if scene not in existing:
+                await obs.try_req("CreateScene", {"sceneName": scene})
+        browsers = [
+            ("Radar", "NWS Radar", NWS_RADAR_URL, True),
+            ("Radar", "Windy Hawaii", WINDY_RADAR_URL, False),
+            ("Radar", "Hurricane Tracker", WINDY_HURRICANE_URL, False),
+            ("Satellite", "Hawaii IR", HAWAII_IR_URL, True),
+            ("Satellite", "GOES Hawaii", GOES_HI_URL, False),
+            ("Satellite", "Windy Clouds", WINDY_CLOUDS_URL, False),
+            ("Weather Board", "Hawaii IR", HAWAII_IR_URL, False),
+        ]
+        for scene, name, url, vis in browsers:
+            await _ensure_input(
+                obs,
+                scene,
+                name,
+                "browser_source",
+                {
+                    "url": url,
+                    "width": 1920,
+                    "height": 1080,
+                    "shutdown": True,
+                    "restart_when_active": True,
+                    "css": "body { margin: 0; overflow: hidden; }",
+                },
+            )
+            await _fit(obs, scene, name)
+            await _enable_item(obs, scene, name, vis)
+        await _enable_item(obs, "Weather Board", "Windy Hawaii", False)
+        await _enable_item(obs, "Weather Board", "NWS Hawaii", True)
+        await _fit(obs, "Weather Board", "NWS Hawaii")
+        stretched = await _stretch_all(obs) if own else 0
+        return {"ok": True, "stretched": stretched}
+    finally:
+        if own:
+            await obs.close()
 
 
 async def apply_solana_qr_scene(
@@ -339,7 +454,7 @@ async def apply_solana_qr_scene(
                     "sceneName": "Support Ava",
                     "sceneItemId": it["sceneItemId"],
                     "sceneItemTransform": {
-                        "boundsType": "OBS_BOUNDS_SCALE_INNER",
+                        "boundsType": "OBS_BOUNDS_STRETCH",
                         "boundsAlignment": 0,
                         "boundsWidth": 640.0,
                         "boundsHeight": 640.0,
@@ -474,20 +589,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 audio=True,
             )
             await _fit(obs, "Weather Board", "NWS Hawaii")
-        await _ensure_input(
-            obs,
-            "Weather Board",
-            "Windy Hawaii",
-            "browser_source",
-            {
-                "url": "https://www.windy.com/-Weather-radar-radar?radar,20.808,-157.736,6,p:cities",
-                "width": 1920,
-                "height": 1080,
-                "shutdown": True,
-                "restart_when_active": True,
-            },
-        )
-        await _fit(obs, "Weather Board", "Windy Hawaii")
+        await apply_weather_radar(obs)
 
         # Kilauea
         await _ensure_input(
@@ -722,6 +824,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             await _fit(obs, "Ambient Playlist", "Daily Loop")
 
         await apply_solana_qr_scene(obs, origin=origin, thumb=thumb if thumb.is_file() else bg)
+        await _stretch_all(obs)
 
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})
 
@@ -771,6 +874,7 @@ async def apply_ambient_playlist() -> dict:
         )
         await _fit(obs, "Main", "Daily Loop")
         await _fit(obs, "Ambient Playlist", "Daily Loop")
+        await _stretch_all(obs)
         return {"ok": True, "count": len(paths), "m3u": str(m3u), "files": [p.name for p in paths[:20]]}
     except Exception as e:
         return {"ok": False, "detail": str(e)[:240], "count": len(paths)}
