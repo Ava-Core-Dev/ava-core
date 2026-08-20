@@ -38,17 +38,70 @@ function resolveDefaultAvaHandoff() {
 /** Default Ava handoff — prefers OptiPlex SSD. Override with AVA_HANDOFF. */
 export const DEFAULT_AVA_HANDOFF = resolveDefaultAvaHandoff();
 
-/** Reuse RootMC realm-api env loader without publishing a package. */
+/**
+ * Minimal `.env` parser for the public standalone core (no realm-api sibling).
+ * Only supports `KEY=value` lines and `#` comments — enough to boot without
+ * secrets. The private realm-api loader is preferred whenever it is present.
+ */
+function parseDotEnvFile(filePath) {
+  const env = {};
+  let raw = "";
+  try {
+    raw = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return env;
+  }
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let val = trimmed.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (key) env[key] = val;
+  }
+  return env;
+}
+
+/**
+ * Load environment for the core runtime.
+ *
+ * Prefers the private RootMC realm-api loader when the sibling tree is present
+ * (OptiPlex / private mirror). In this public `ava-core` subset that sibling
+ * does not exist, so we fall back to reading a plain `.env` file (if any) and
+ * otherwise rely on the process environment. This lets the public HTTP core
+ * host without Discord / secrets, matching the documented behavior.
+ */
 export async function loadEnv() {
   const loaderPath = path.resolve(
     __dirname,
     "../../rootmc-realm-api/scripts/lib/rootmc-env.mjs",
   );
-  if (!fs.existsSync(loaderPath)) {
-    throw new Error(`Missing env loader at ${loaderPath}`);
+  let env;
+  if (fs.existsSync(loaderPath)) {
+    const m = await import(pathToFileURL(loaderPath).href);
+    env = m.loadRootMcEnv();
+  } else {
+    // Public / standalone core — no private realm-api sibling.
+    const candidates = [
+      process.env.ROOTMC_ENV_FILE,
+      path.join(WORKSPACE_ROOT, ".env"),
+      path.resolve(__dirname, "..", ".env"),
+    ].filter(Boolean);
+    env = {};
+    for (const candidate of candidates) {
+      if (candidate && fs.existsSync(candidate)) {
+        env = parseDotEnvFile(candidate);
+        break;
+      }
+    }
   }
-  const m = await import(pathToFileURL(loaderPath).href);
-  const env = m.loadRootMcEnv();
   // Mirror into process.env so modules (EcoFlow, etc.) can read without a pass-through.
   for (const [k, v] of Object.entries(env || {})) {
     if (v == null || v === "") continue;
