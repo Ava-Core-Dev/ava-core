@@ -383,6 +383,114 @@ async def _enable_item(obs: ObsClient, scene: str, source: str, on: bool) -> boo
     return False
 
 
+SKIP_LOWER_THIRD = {
+    "Main",
+    "Solar Dashboard",
+    "Quake Overlay",
+    "Support Ava",
+    "Kilauea Watch",
+}
+
+
+async def apply_scene_overlays(obs: Any | None = None, origin: str | None = None) -> dict:
+    """Add lower-third + director audio to daily scenes that only had media."""
+    origin = origin or f"http://127.0.0.1:{config.AVA_PORT}"
+    own = False
+    if obs is None:
+        obs = ObsClient()
+        if not await obs.connect():
+            return {"ok": False, "detail": "obs_unreachable"}
+        own = True
+    placed: list[str] = []
+    try:
+        existing = {
+            s.get("sceneName")
+            for s in (await obs.req("GetSceneList")).get("scenes") or []
+        }
+        targets = [
+            s
+            for s in [*LOOP_SCENES, "Be right back"]
+            if s in existing and s not in SKIP_LOWER_THIRD
+        ]
+        first = targets[0] if targets else None
+        if first:
+            await _ensure_input(
+                obs,
+                first,
+                "Ava Lower",
+                "browser_source",
+                {
+                    "url": f"{origin}/obs/lower-third",
+                    "width": 1920,
+                    "height": 1080,
+                    "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
+                    "reroute_audio": False,
+                    "shutdown": False,
+                    "restart_when_active": False,
+                },
+            )
+            await _ensure_input(
+                obs,
+                first,
+                "Ava Reactions",
+                "browser_source",
+                {
+                    "url": f"{origin}/obs/reactions",
+                    "width": 1920,
+                    "height": 1080,
+                    "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
+                    "shutdown": False,
+                    "restart_when_active": False,
+                },
+            )
+        for scene in targets:
+            await _ensure_input(
+                obs,
+                scene,
+                "Ava Lower",
+                "browser_source",
+                {
+                    "url": f"{origin}/obs/lower-third",
+                    "width": 1920,
+                    "height": 1080,
+                    "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
+                    "shutdown": False,
+                },
+            )
+            await _ensure_input(
+                obs,
+                scene,
+                "Ava Audio",
+                "browser_source",
+                {
+                    "url": f"{origin}/obs/audio-stream",
+                    "width": 2,
+                    "height": 2,
+                    "reroute_audio": True,
+                    "shutdown": False,
+                    "restart_when_active": True,
+                },
+                audio=True,
+            )
+            await _ensure_input(
+                obs,
+                scene,
+                "Ava Reactions",
+                "browser_source",
+                {
+                    "url": f"{origin}/obs/reactions",
+                    "width": 1920,
+                    "height": 1080,
+                    "shutdown": False,
+                },
+            )
+            placed.append(scene)
+        return {"ok": True, "scenes": placed}
+    finally:
+        if own:
+            await obs.close()
+
+
 async def _stretch_all(obs: ObsClient) -> int:
     """Stretch every visible canvas source to 1920×1080 (OBS Bounds: Stretch)."""
     n = 0
@@ -897,6 +1005,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             await _fit(obs, "Ambient Playlist", "Daily Loop")
 
         await apply_solana_qr_scene(obs, origin=origin, thumb=thumb if thumb.is_file() else bg)
+        await apply_scene_overlays(obs, origin=origin)
         await _stretch_all(obs)
 
         await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})

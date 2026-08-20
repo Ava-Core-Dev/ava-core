@@ -199,6 +199,96 @@ refresh(); setInterval(refresh, 15000);
 </html>""")
 
 
+@router.get("/lower-third", response_class=HTMLResponse)
+async def obs_lower_third():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/>
+<title>Ava lower third</title>
+<style>
+html,body{{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;
+  color:#fff;font-family:Segoe UI,Helvetica Neue,system-ui,sans-serif}}
+#bar{{position:fixed;left:28px;right:28px;bottom:22px;display:flex;justify-content:space-between;
+  align-items:center;gap:18px;background:rgba(8,10,14,.82);border:1px solid rgba(245,158,11,.28);
+  border-radius:16px;padding:12px 20px}}
+.live{{display:flex;align-items:center;gap:8px;letter-spacing:.1em;font-size:13px;font-weight:800}}
+.dot{{width:10px;height:10px;border-radius:50%;background:#8a8a8a}}
+.brand{{font-size:20px;font-weight:800}}
+.brand span{{color:#f59e0b}}
+.meta{{opacity:.85;font-size:15px;text-align:right}}
+</style></head>
+<body>
+<div id="bar">
+  <div>
+    <div class="live"><span class="dot" id="dot"></span><span id="mode">AVA</span></div>
+    <div class="brand">Ava Ivy <span>·</span> HI Pacific Root Server</div>
+  </div>
+  <div class="meta">
+    <div id="time"></div>
+    <div>play.rootmc.net · <span id="scene">—</span></div>
+  </div>
+</div>
+<script>
+function tick(){{
+  document.getElementById('time').textContent = new Date().toLocaleTimeString('en-US',{{
+    hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Pacific/Honolulu'
+  }}) + ' HST';
+}}
+tick(); setInterval(tick, 1000);
+async function refresh(){{
+  try {{
+    const s = await fetch('{origin}/api/obs/status').then(r=>r.json());
+    document.getElementById('scene').textContent = s.scene || '—';
+    document.getElementById('dot').style.background = s.streaming ? '#e10600' : '#8a8a8a';
+    const m = (s.mode||'daily').toUpperCase();
+    document.getElementById('mode').textContent = s.streaming ? ('LIVE · '+m) : m;
+  }} catch(e){{}}
+}}
+refresh(); setInterval(refresh, 8000);
+</script>
+</body></html>""")
+
+
+@router.get("/hurricane", response_class=HTMLResponse)
+async def obs_hurricane():
+    path = Path(__file__).resolve().parent.parent / "templates" / "obs-hurricane.html"
+    return HTMLResponse(path.read_text(encoding="utf-8") if path.is_file() else "<p>hurricane overlay missing</p>")
+
+
+@router.get("/reactions", response_class=HTMLResponse)
+async def obs_reactions():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    return HTMLResponse(f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+html,body{{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;
+font-family:Segoe UI,system-ui,sans-serif;color:#fff}}
+#toast{{position:fixed;top:120px;right:36px;max-width:520px;opacity:0;transform:translateY(-8px);
+transition:opacity .25s,transform .25s;background:rgba(8,12,18,.9);border:1px solid rgba(6,182,212,.4);
+border-radius:14px;padding:14px 18px;font-size:22px;font-weight:700}}
+#toast.on{{opacity:1;transform:none}}
+</style></head>
+<body>
+<div id="toast"></div>
+<script>
+let last = 0;
+async function poll(){{
+  try {{
+    const r = await fetch('{origin}/api/obs/reaction-last').then(x=>x.json());
+    if (r && r.ts && r.ts !== last && r.id) {{
+      last = r.ts;
+      const el = document.getElementById('toast');
+      el.textContent = (r.label || r.id).replaceAll('_',' ');
+      el.classList.add('on');
+      setTimeout(()=>el.classList.remove('on'), 4200);
+    }}
+  }} catch(e){{}}
+}}
+poll(); setInterval(poll, 800);
+</script>
+</body></html>""")
+
+
 @router.get("/quake-overlay", response_class=HTMLResponse)
 async def obs_quake_overlay():
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
