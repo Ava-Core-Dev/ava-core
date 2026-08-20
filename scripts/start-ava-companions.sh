@@ -36,11 +36,12 @@ else
   systemctl --user disable --now ava-weather-gifs.service >/dev/null 2>&1 || true
 fi
 
-# OBS for Stream Director websocket :4455 — do not auto-start the live stream.
+# OBS for Stream Director websocket :4455 — show the main window (not tray-only).
+# Do not auto-start the live stream.
 if command -v obs-studio >/dev/null 2>&1; then
   if ! pgrep -x obs >/dev/null 2>&1 && ! pgrep -f 'obs-studio' >/dev/null 2>&1; then
-    echo "starting OBS (tray)"
-    nohup obs-studio --minimize-to-tray --disable-missing-files-check >/dev/null 2>&1 &
+    echo "starting OBS (main window)"
+    nohup obs-studio --disable-missing-files-check >/dev/null 2>&1 &
   else
     echo "OBS already running"
   fi
