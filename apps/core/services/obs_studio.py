@@ -19,33 +19,41 @@ log = logging.getLogger("ava.obs_studio")
 
 COLLECTION = "Ava Daily Broadcast"
 HURRICANE_COLLECTION = "Ava Hurricane Tracker"
-MC_SCENE = "RootMC Live"
+# Daily loop: Scene N - topic (OBS display names).
+WEATHER_BOARD = "Scene 1 - Weather Board"
+STORM_DESK = "Scene 2 - Storm Desk"
+KILAUEA_WATCH = "Scene 3 - Kilauea Watch"
+QUAKE_DESK = "Scene 4 - Quake Desk"
+SOLAR_DASHBOARD = "Scene 5 - Solar Dashboard"
+ECONOMY_BOARD = "Scene 6 - Economy Board"
+MC_SCENE = "Scene 7 - RootMC Live"
+DEV_UPDATES = "Scene 8 - Dev Updates"
+GOALS_REPORT = "Scene 9 - Goals Report"
+SUPPORT_AVA = "Scene 10 - Support Ava"
 MC_SHARE = 0.75
 QUAKE_GLOBAL = "Quake · Global"
 QUAKE_ISLAND = "Quake · Big Island"
-QUAKE_DESK = "Quake Desk"
-STORM_DESK = "Storm Desk"
-DEFAULT_START_SCENE = "Weather Board"
+DEFAULT_START_SCENE = WEATHER_BOARD
 # Hard cap: 10 topical scenes × ~60s each for the daily loop.
 AMBIENT_SCENES = [
-    "Weather Board",   # local NWS / island weather
+    WEATHER_BOARD,     # local NWS / island weather
     STORM_DESK,        # NHC + Pacific storm products
-    "Kilauea Watch",   # volcano
+    KILAUEA_WATCH,     # volcano
     QUAKE_DESK,        # seismicity
-    "Solar Dashboard", # power / EcoFlow
-    "Economy Board",   # desk economics
+    SOLAR_DASHBOARD,   # power / EcoFlow
+    ECONOMY_BOARD,     # desk economics
     MC_SCENE,          # Minecraft / RootMC
-    "Dev Updates",     # build / code desk
-    "Goals Report",    # mission / goals
-    "Support Ava",     # donate / follow
+    DEV_UPDATES,       # build / code desk
+    GOALS_REPORT,      # mission / goals
+    SUPPORT_AVA,       # donate / follow
 ]
 
 
 def weather_scene_pool() -> list[str]:
     return [
-        "Weather Board",
+        WEATHER_BOARD,
         STORM_DESK,
-        "Kilauea Watch",
+        KILAUEA_WATCH,
     ]
 
 
@@ -53,16 +61,16 @@ LOOP_SCENES = list(AMBIENT_SCENES)
 
 # Primary media per scene — rotator waits for this to finish before leaving.
 SCENE_MEDIA = {
-    "Weather Board": ("Narration · Weather Board", "ffmpeg"),
+    WEATHER_BOARD: ("Narration · Weather Board", "ffmpeg"),
     STORM_DESK: ("Narration · Storm Desk", "ffmpeg"),
-    "Kilauea Watch": ("Narration · Kilauea Watch", "ffmpeg"),
+    KILAUEA_WATCH: ("Narration · Kilauea Watch", "ffmpeg"),
     QUAKE_DESK: ("Narration · Quake Desk", "ffmpeg"),
-    "Solar Dashboard": ("Narration · Solar Dashboard", "ffmpeg"),
-    "Economy Board": ("Narration · Economy Board", "ffmpeg"),
+    SOLAR_DASHBOARD: ("Narration · Solar Dashboard", "ffmpeg"),
+    ECONOMY_BOARD: ("Narration · Economy Board", "ffmpeg"),
     MC_SCENE: ("Narration · RootMC Live", "ffmpeg"),
-    "Dev Updates": ("Narration · Dev Updates", "ffmpeg"),
-    "Goals Report": ("Narration · Goals Report", "ffmpeg"),
-    "Support Ava": ("Narration · Support Ava", "ffmpeg"),
+    DEV_UPDATES: ("Narration · Dev Updates", "ffmpeg"),
+    GOALS_REPORT: ("Narration · Goals Report", "ffmpeg"),
+    SUPPORT_AVA: ("Narration · Support Ava", "ffmpeg"),
     QUAKE_GLOBAL: ("Quake Global Map", "browser"),
     QUAKE_ISLAND: ("Quake Island Map", "browser"),
 }
@@ -411,12 +419,12 @@ async def _enable_item(obs: ObsClient, scene: str, source: str, on: bool) -> boo
 
 
 SKIP_LOWER_THIRD = {
-    "Solar Dashboard",
+    SOLAR_DASHBOARD,
     QUAKE_GLOBAL,
     QUAKE_ISLAND,
     QUAKE_DESK,
-    "Support Ava",
-    "Kilauea Watch",
+    SUPPORT_AVA,
+    KILAUEA_WATCH,
 }
 
 
@@ -593,18 +601,18 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
             return {"ok": False, "detail": "obs_unreachable"}
     try:
         existing = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
-        for scene in ("Weather Board", STORM_DESK):
+        for scene in (WEATHER_BOARD, STORM_DESK):
             if scene not in existing:
                 await obs.try_req("CreateScene", {"sceneName": scene})
         from apps.core.services.nhc_media import live_url, NHC_OUTLOOK_SCENES
         browsers = [
-            ("Weather Board", "NWS Radar", NWS_RADAR_URL, False),
-            ("Weather Board", "Hawaii IR", HAWAII_IR_URL, False),
-            ("Weather Board", "GOES Hawaii", GOES_HI_URL, False),
-            ("Storm Desk", "Hurricane Tracker", WINDY_HURRICANE_URL, False),
-            ("Storm Desk", "Windy Kilauea", WINDY_KILAUEA_URL, False),
-            ("Storm Desk", "MKWC Vog", HI_VOG_URL, False),
-            ("Storm Desk", "HI SO2 Index", HI_SO2_URL, False),
+            (WEATHER_BOARD, "NWS Radar", NWS_RADAR_URL, False),
+            (WEATHER_BOARD, "Hawaii IR", HAWAII_IR_URL, False),
+            (WEATHER_BOARD, "GOES Hawaii", GOES_HI_URL, False),
+            (STORM_DESK, "Hurricane Tracker", WINDY_HURRICANE_URL, False),
+            (STORM_DESK, "Windy Kilauea", WINDY_KILAUEA_URL, False),
+            (STORM_DESK, "MKWC Vog", HI_VOG_URL, False),
+            (STORM_DESK, "HI SO2 Index", HI_SO2_URL, False),
         ]
         for i, (_scene, name, slug) in enumerate(NHC_OUTLOOK_SCENES):
             browsers.append((STORM_DESK, name, live_url(slug), i == 1))
@@ -625,10 +633,10 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
             )
             await _fit(obs, scene, name)
             await _enable_item(obs, scene, name, vis)
-        await _enable_item(obs, "Weather Board", "NWS Hawaii", True)
-        await _fit(obs, "Weather Board", "NWS Hawaii")
+        await _enable_item(obs, WEATHER_BOARD, "NWS Hawaii", True)
+        await _fit(obs, WEATHER_BOARD, "NWS Hawaii")
         stretched = await _stretch_all(obs) if own else 0
-        return {"ok": True, "stretched": stretched, "topics": ["Weather Board", STORM_DESK]}
+        return {"ok": True, "stretched": stretched, "topics": [WEATHER_BOARD, STORM_DESK]}
     finally:
         if own:
             await obs.close()
@@ -653,16 +661,16 @@ async def apply_solana_qr_scene(
     still = thumb if thumb and thumb.is_file() else Path(config.DAILY_BROADCAST_THUMB)
     try:
         scenes = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
-        if "Support Ava" not in scenes:
-            await obs.try_req("CreateScene", {"sceneName": "Support Ava"})
+        if SUPPORT_AVA not in scenes:
+            await obs.try_req("CreateScene", {"sceneName": SUPPORT_AVA})
         if still.is_file():
             await _ensure_input(
-                obs, "Support Ava", "Support Still", "image_source", {"file": str(still)}
+                obs, SUPPORT_AVA, "Support Still", "image_source", {"file": str(still)}
             )
-            await _fit(obs, "Support Ava", "Support Still")
+            await _fit(obs, SUPPORT_AVA, "Support Still")
         await _ensure_input(
             obs,
-            "Support Ava",
+            SUPPORT_AVA,
             "Solana Copy",
             "browser_source",
             {
@@ -673,18 +681,18 @@ async def apply_solana_qr_scene(
                 "reroute_audio": False,
             },
         )
-        await _fit(obs, "Support Ava", "Solana Copy")
+        await _fit(obs, SUPPORT_AVA, "Solana Copy")
         await _ensure_input(
-            obs, "Support Ava", "Solana QR", "image_source", {"file": str(qr)}
+            obs, SUPPORT_AVA, "Solana QR", "image_source", {"file": str(qr)}
         )
-        items = await obs.try_req("GetSceneItemList", {"sceneName": "Support Ava"}) or {}
+        items = await obs.try_req("GetSceneItemList", {"sceneName": SUPPORT_AVA}) or {}
         for it in items.get("sceneItems") or []:
             if it.get("sourceName") != "Solana QR":
                 continue
             await obs.try_req(
                 "SetSceneItemTransform",
                 {
-                    "sceneName": "Support Ava",
+                    "sceneName": SUPPORT_AVA,
                     "sceneItemId": it["sceneItemId"],
                     "sceneItemTransform": {
                         "boundsType": "OBS_BOUNDS_STRETCH",
@@ -697,7 +705,7 @@ async def apply_solana_qr_scene(
                     },
                 },
             )
-        return {"ok": True, "scene": "Support Ava", "qr": str(qr)}
+        return {"ok": True, "scene": SUPPORT_AVA, "qr": str(qr)}
     finally:
         if own:
             await obs.close()
@@ -753,7 +761,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         if nws.is_file():
             await _ensure_input(
                 obs,
-                "Weather Board",
+                WEATHER_BOARD,
                 "NWS Hawaii",
                 "ffmpeg_source",
                 {
@@ -766,9 +774,9 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 },
                 audio=True,
             )
-            await _fit(obs, "Weather Board", "NWS Hawaii")
+            await _fit(obs, WEATHER_BOARD, "NWS Hawaii")
         await apply_weather_radar(obs)
-        await _overlay_browser(obs, "Weather Board", "Weather Overlay", f"{origin}/obs/weather-board")
+        await _overlay_browser(obs, WEATHER_BOARD, "Weather Overlay", f"{origin}/obs/weather-board")
 
         # Kilauea — local USGS still page (never YouTube embed in OBS)
         from apps.core.services.kilauea_cams import load_catalog, obs_cam_url
@@ -778,7 +786,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         v1_url = (v1 or {}).get("obs_url") or obs_cam_url("usgs_v1")
         await _ensure_input(
             obs,
-            "Kilauea Watch",
+            KILAUEA_WATCH,
             "HVO Kilauea",
             "browser_source",
             {
@@ -789,11 +797,11 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 "restart_when_active": True,
             },
         )
-        await _fit(obs, "Kilauea Watch", "HVO Kilauea")
+        await _fit(obs, KILAUEA_WATCH, "HVO Kilauea")
         if kilauea_html.is_file():
             await _ensure_input(
                 obs,
-                "Kilauea Watch",
+                KILAUEA_WATCH,
                 "Kilauea Overlay",
                 "browser_source",
                 {
@@ -807,7 +815,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             )
         await _overlay_browser(
             obs,
-            "Kilauea Watch",
+            KILAUEA_WATCH,
             "Kilauea Desk",
             f"{origin}/obs/kilauea-desk?cam=usgs_v1",
         )
@@ -816,16 +824,16 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         still_solar = thumb
         await _ensure_input(
             obs,
-            "Solar Dashboard",
+            SOLAR_DASHBOARD,
             "Solar Still",
             "image_source",
             {"file": str(still_solar)},
         )
-        await _fit(obs, "Solar Dashboard", "Solar Still")
+        await _fit(obs, SOLAR_DASHBOARD, "Solar Still")
         if solar_mp3.is_file():
             await _ensure_input(
                 obs,
-                "Solar Dashboard",
+                SOLAR_DASHBOARD,
                 "Solar Audio",
                 "ffmpeg_source",
                 {
@@ -839,7 +847,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             )
         await _ensure_input(
             obs,
-            "Solar Dashboard",
+            SOLAR_DASHBOARD,
             "Solar HUD",
             "browser_source",
             {
@@ -855,16 +863,16 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
         # Economy / RootMC
         await _ensure_input(
             obs,
-            "Economy Board",
+            ECONOMY_BOARD,
             "Economy Still",
             "image_source",
             {"file": str(goals_img if goals_img.is_file() else thumb)},
         )
-        await _fit(obs, "Economy Board", "Economy Still")
+        await _fit(obs, ECONOMY_BOARD, "Economy Still")
         if eco_mp3.is_file():
             await _ensure_input(
                 obs,
-                "Economy Board",
+                ECONOMY_BOARD,
                 "Economy Audio",
                 "ffmpeg_source",
                 {
@@ -876,10 +884,10 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 },
                 audio=True,
             )
-        await _overlay_browser(obs, "Economy Board", "Economy Overlay", f"{origin}/obs/economy-board")
+        await _overlay_browser(obs, ECONOMY_BOARD, "Economy Overlay", f"{origin}/obs/economy-board")
         await _ensure_input(
             obs,
-            "RootMC Live",
+            MC_SCENE,
             "Ava Ivy Cloud",
             "browser_source",
             {
@@ -890,50 +898,50 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 "restart_when_active": True,
             },
         )
-        await _fit(obs, "RootMC Live", "Ava Ivy Cloud")
+        await _fit(obs, MC_SCENE, "Ava Ivy Cloud")
         from apps.core.services.minecraft_live import offline_thumb
         mc_thumb = offline_thumb() or Path(config.DAILY_BROADCAST_THUMB)
         await _ensure_input(
             obs,
-            "RootMC Live",
+            MC_SCENE,
             "MC Offline Thumb",
             "image_source",
             {"file": str(mc_thumb)},
         )
-        await _fit(obs, "RootMC Live", "MC Offline Thumb")
+        await _fit(obs, MC_SCENE, "MC Offline Thumb")
         kinds = ((await obs.try_req("GetInputKindList")) or {}).get("inputKinds") or []
         if "xcomposite_input" in kinds:
             await _ensure_input(
                 obs,
-                "RootMC Live",
+                MC_SCENE,
                 "MC Game",
                 "xcomposite_input",
                 {"capture_window": "Minecraft", "show_cursor": False},
             )
-            await _fit(obs, "RootMC Live", "MC Game")
+            await _fit(obs, MC_SCENE, "MC Game")
         elif "pipewire-screen-capture-source" in kinds:
             await _ensure_input(
                 obs,
-                "RootMC Live",
+                MC_SCENE,
                 "MC Game",
                 "pipewire-screen-capture-source",
                 {},
             )
-            await _fit(obs, "RootMC Live", "MC Game")
+            await _fit(obs, MC_SCENE, "MC Game")
 
         # Goals / Dev
         await _ensure_input(
             obs,
-            "Goals Report",
+            GOALS_REPORT,
             "Goals Image",
             "image_source",
             {"file": str(goals_img if goals_img.is_file() else thumb)},
         )
-        await _fit(obs, "Goals Report", "Goals Image")
+        await _fit(obs, GOALS_REPORT, "Goals Image")
         if statement.is_file():
             await _ensure_input(
                 obs,
-                "Goals Report",
+                GOALS_REPORT,
                 "Goals Audio",
                 "ffmpeg_source",
                 {
@@ -945,20 +953,20 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 },
                 audio=True,
             )
-        await _overlay_browser(obs, "Goals Report", "Goals Overlay", f"{origin}/obs/goals-report")
+        await _overlay_browser(obs, GOALS_REPORT, "Goals Overlay", f"{origin}/obs/goals-report")
         await _ensure_input(
             obs,
-            "Dev Updates",
+            DEV_UPDATES,
             "Dev Image",
             "image_source",
             {"file": str(dev_img if dev_img.is_file() else thumb)},
         )
-        await _fit(obs, "Dev Updates", "Dev Image")
-        await _overlay_browser(obs, "Dev Updates", "Dev Overlay", f"{origin}/obs/dev-updates")
+        await _fit(obs, DEV_UPDATES, "Dev Image")
+        await _overlay_browser(obs, DEV_UPDATES, "Dev Overlay", f"{origin}/obs/dev-updates")
         if intro.is_file():
             await _ensure_input(
                 obs,
-                "Dev Updates",
+                DEV_UPDATES,
                 "Dev Audio",
                 "ffmpeg_source",
                 {
@@ -1123,13 +1131,13 @@ async def apply_current_scene_media() -> dict:
     wired: dict[str, str] = {}
     try:
         jobs = [
-            ("Weather Board", "NWS Hawaii", cur_v / "nws-hawaii-current.mp4", True),
-            ("Kilauea Watch", "Kilauea Audio", cur_a / "Kilauea_Current.mp3", False),
-            ("Solar Dashboard", "Solar Audio", cur_a / "solar-weather-current.mp3", False),
-            ("Economy Board", "Economy Audio", desk if desk.is_file() else cur_a / "ara-report-current.mp3", False),
-            ("Economy Board", "Economy Video", cur_v / "ara-report-current.mp4", True),
-            ("Goals Report", "Goals Audio", statement if statement.is_file() else cur_a / "Morning_Broadcast_Current.mp3", False),
-            ("Dev Updates", "Dev Audio", dev_cur if dev_cur.exists() else reports / "ava_intro_what_she_does_ara.mp3", False),
+            (WEATHER_BOARD, "NWS Hawaii", cur_v / "nws-hawaii-current.mp4", True),
+            (KILAUEA_WATCH, "Kilauea Audio", cur_a / "Kilauea_Current.mp3", False),
+            (SOLAR_DASHBOARD, "Solar Audio", cur_a / "solar-weather-current.mp3", False),
+            (ECONOMY_BOARD, "Economy Audio", desk if desk.is_file() else cur_a / "ara-report-current.mp3", False),
+            (ECONOMY_BOARD, "Economy Video", cur_v / "ara-report-current.mp4", True),
+            (GOALS_REPORT, "Goals Audio", statement if statement.is_file() else cur_a / "Morning_Broadcast_Current.mp3", False),
+            (DEV_UPDATES, "Dev Audio", dev_cur if dev_cur.exists() else reports / "ava_intro_what_she_does_ara.mp3", False),
         ]
         for scene, name, path, vis in jobs:
             if not path.is_file():
@@ -1140,11 +1148,11 @@ async def apply_current_scene_media() -> dict:
             if vis:
                 await _fit(obs, scene, name)
             wired[name] = path.name
-        await _enable_item(obs, "Goals Report", "Goals Audio", True)
-        await _enable_item(obs, "Goals Report", "Goals Image", False)
-        await _enable_item(obs, "Goals Report", "Goals Video", False)
-        await _enable_item(obs, "Economy Board", "Economy Still", False)
-        await _enable_item(obs, "Economy Board", "Economy Video", True)
+        await _enable_item(obs, GOALS_REPORT, "Goals Audio", True)
+        await _enable_item(obs, GOALS_REPORT, "Goals Image", False)
+        await _enable_item(obs, GOALS_REPORT, "Goals Video", False)
+        await _enable_item(obs, ECONOMY_BOARD, "Economy Still", False)
+        await _enable_item(obs, ECONOMY_BOARD, "Economy Video", True)
         return {"ok": True, "wired": wired, "desk_brief": desk.name if desk.is_file() else None}
     finally:
         await obs.close()
@@ -1219,9 +1227,9 @@ async def rotate_loop_scene() -> dict:
             return {"ok": True, "scene": cur, "held": "mode_collection", "mode": mode}
 
         if mode != "all" and watch.get("erupting"):
-            if cur != "Kilauea Watch":
-                await obs.req("SetCurrentProgramScene", {"sceneName": "Kilauea Watch"})
-            return {"ok": True, "scene": "Kilauea Watch", "held": "eruption"}
+            if cur != KILAUEA_WATCH:
+                await obs.req("SetCurrentProgramScene", {"sceneName": KILAUEA_WATCH})
+            return {"ok": True, "scene": KILAUEA_WATCH, "held": "eruption"}
         if mode != "all" and mc.get("ingame"):
             share = mc_share()
             if share < MC_SHARE:
@@ -1264,7 +1272,7 @@ async def rotate_loop_scene() -> dict:
         if mode == "all":
             base_pool = scene_list
         elif mode == "kilauea":
-            base_pool = ["Kilauea Watch", "Weather Board", "Storm Desk"]
+            base_pool = [KILAUEA_WATCH, WEATHER_BOARD, STORM_DESK]
         elif mode == "hurricane":
             base_pool = hurricane_scene_pool()
         elif mode == "weather":
