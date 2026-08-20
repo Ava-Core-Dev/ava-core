@@ -53,6 +53,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "minecraft") refreshMinecraft();
     if (btn.dataset.page === "stream") refreshStreamOps();
     if (btn.dataset.page === "sites") refreshSitesPage();
+    if (btn.dataset.page === "backgrounds") refreshBackgroundsPage();
     if (btn.dataset.page === "automation") refreshAutomationPage();
     if (btn.dataset.page === "terminal") refreshTerminalLive();
     if (btn.dataset.page === "settings") {
@@ -2828,6 +2829,212 @@ async function refreshSitesPage() {
   }
 }
 
+const bgState = { catalog: null, key: "solar", paths: [] };
+
+function bgThumbUrl(rel) {
+  const base = brainBaseUrl();
+  return `${base}/api/media/public/file?path=${encodeURIComponent(rel)}`;
+}
+
+function renderBgSelected() {
+  const box = $("bg-selected");
+  if (!box) return;
+  if (!bgState.paths.length) {
+    box.innerHTML = `<p class="hint-inline">No images in rotation yet — click library tiles to add.</p>`;
+    return;
+  }
+  box.innerHTML = bgState.paths
+    .map((rel, i) => {
+      const name = escapeHtml(rel.split("/").pop() || rel);
+      return `<div class="bg-selected-row" data-i="${i}">
+        <img src="${escapeHtml(bgThumbUrl(rel))}" alt=""/>
+        <div class="name">${name}</div>
+        <div class="row">
+          <button type="button" data-bg-up="${i}" ${i === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" data-bg-down="${i}" ${i >= bgState.paths.length - 1 ? "disabled" : ""}>↓</button>
+          <button type="button" data-bg-rm="${i}">×</button>
+        </div>
+      </div>`;
+    })
+    .join("");
+  box.querySelectorAll("[data-bg-rm]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.getAttribute("data-bg-rm"));
+      bgState.paths.splice(i, 1);
+      renderBgSelected();
+      renderBgLibrary();
+    });
+  });
+  box.querySelectorAll("[data-bg-up]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.getAttribute("data-bg-up"));
+      if (i < 1) return;
+      const t = bgState.paths[i - 1];
+      bgState.paths[i - 1] = bgState.paths[i];
+      bgState.paths[i] = t;
+      renderBgSelected();
+    });
+  });
+  box.querySelectorAll("[data-bg-down]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const i = Number(btn.getAttribute("data-bg-down"));
+      if (i >= bgState.paths.length - 1) return;
+      const t = bgState.paths[i + 1];
+      bgState.paths[i + 1] = bgState.paths[i];
+      bgState.paths[i] = t;
+      renderBgSelected();
+    });
+  });
+}
+
+function renderBgLibrary() {
+  const box = $("bg-library");
+  if (!box) return;
+  const lib = bgState.catalog?.library || [];
+  if (!lib.length) {
+    box.innerHTML = `<p class="hint-inline">No images in media/images/character/</p>`;
+    return;
+  }
+  const selected = new Set(bgState.paths);
+  box.innerHTML = lib
+    .map((item) => {
+      const on = selected.has(item.path) ? " on" : "";
+      return `<button type="button" class="bg-card${on}" data-bg-add="${escapeHtml(item.path)}">
+        <img src="${escapeHtml(bgThumbUrl(item.path))}" alt=""/>
+        <span>${escapeHtml(item.name)}</span>
+      </button>`;
+    })
+    .join("");
+  box.querySelectorAll("[data-bg-add]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const p = btn.getAttribute("data-bg-add");
+      if (!p) return;
+      if (bgState.paths.includes(p)) {
+        bgState.paths = bgState.paths.filter((x) => x !== p);
+      } else {
+        bgState.paths.push(p);
+      }
+      renderBgSelected();
+      renderBgLibrary();
+    });
+  });
+}
+
+function fillBgPageSelect() {
+  const sel = $("bg-page");
+  if (!sel) return;
+  const pages = bgState.catalog?.pages || [];
+  const keys = pages.map((p) => p.key);
+  if (!keys.includes(bgState.key) && bgState.key) keys.unshift(bgState.key);
+  sel.innerHTML = keys
+    .map((k) => {
+      const page = pages.find((p) => p.key === k);
+      const label = page?.label ? `${k} — ${page.label}` : k;
+      return `<option value="${escapeHtml(k)}"${k === bgState.key ? " selected" : ""}>${escapeHtml(label)}</option>`;
+    })
+    .join("");
+}
+
+function loadBgPageIntoForm(key) {
+  bgState.key = key || "solar";
+  const page = (bgState.catalog?.pages || []).find((p) => p.key === bgState.key);
+  $("bg-label").value = page?.label || bgState.key;
+  $("bg-sites").value = (page?.sites || []).join(", ");
+  $("bg-cycle").value = String(page?.cycle_seconds ?? 18);
+  bgState.paths = [...(page?.paths || [])];
+  fillBgPageSelect();
+  renderBgSelected();
+  renderBgLibrary();
+}
+
+async function refreshBackgroundsPage() {
+  if (!$("page-backgrounds")) return;
+  const base = brainBaseUrl();
+  try {
+    const j = await fetch(`${base}/api/site-backgrounds`, { cache: "no-store" }).then((r) => r.json());
+    bgState.catalog = j;
+    $("bg-dir").textContent = `Folder: ${j.character_dir || "media/images/character"} · config ${j.config_path || ""}`;
+    if (!bgState.key && j.pages?.[0]?.key) bgState.key = j.pages[0].key;
+    loadBgPageIntoForm(bgState.key || "solar");
+    $("bg-status").textContent = `Loaded ${j.pages?.length || 0} pages · ${j.library?.length || 0} character images`;
+  } catch (e) {
+    $("bg-status").textContent = String(e);
+  }
+}
+
+function wireBackgroundsPage() {
+  if (!$("page-backgrounds")) return;
+  $("bg-refresh")?.addEventListener("click", refreshBackgroundsPage);
+  $("bg-page")?.addEventListener("change", (ev) => {
+    loadBgPageIntoForm(ev.target.value);
+  });
+  $("bg-open-folder")?.addEventListener("click", async () => {
+    try {
+      if (window.avaDesktop?.mediaOpen) {
+        // open media root; operator can drill into images/character
+        await window.avaDesktop.mediaOpen();
+      }
+      $("bg-status").textContent = "Opened media folder — go to images/character/";
+    } catch (e) {
+      $("bg-status").textContent = String(e?.message || e);
+    }
+  });
+  $("bg-create")?.addEventListener("click", () => {
+    const key = String($("bg-new-key")?.value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-_]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (!key) {
+      $("bg-status").textContent = "Enter a page key first.";
+      return;
+    }
+    bgState.key = key;
+    if (!bgState.catalog) bgState.catalog = { pages: [], library: [] };
+    if (!bgState.catalog.pages.some((p) => p.key === key)) {
+      bgState.catalog.pages.push({
+        key,
+        label: key,
+        sites: [],
+        cycle_seconds: 18,
+        paths: [],
+      });
+    }
+    loadBgPageIntoForm(key);
+    $("bg-status").textContent = `Editing new page “${key}” — set images and Save.`;
+  });
+  $("bg-save")?.addEventListener("click", async () => {
+    const key = String($("bg-page")?.value || bgState.key || "").trim();
+    if (!key) {
+      $("bg-status").textContent = "Pick or create a page key.";
+      return;
+    }
+    const body = {
+      label: $("bg-label")?.value || key,
+      sites: String($("bg-sites")?.value || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      cycle_seconds: Number($("bg-cycle")?.value || 0),
+      paths: [...bgState.paths],
+    };
+    try {
+      const r = await fetch(`${brainBaseUrl()}/api/site-backgrounds/${encodeURIComponent(key)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json();
+      $("bg-status").textContent = JSON.stringify(j, null, 2);
+      await refreshBackgroundsPage();
+      bgState.key = key;
+      loadBgPageIntoForm(key);
+    } catch (e) {
+      $("bg-status").textContent = String(e);
+    }
+  });
+}
+
 const sitesMedia = { images: [], audio: [] };
 
 function renderSitesMediaChips() {
@@ -2899,6 +3106,7 @@ async function sitesAttachMedia(kind) {
 async function bootSitesPage() {
   if (!$("page-sites")) return;
   renderSitesMediaChips();
+  wireBackgroundsPage();
   $("sites-refresh")?.addEventListener("click", refreshSitesPage);
   $("sites-add-image")?.addEventListener("click", () => sitesAttachMedia("images"));
   $("sites-add-sound")?.addEventListener("click", () => sitesAttachMedia("audio"));
