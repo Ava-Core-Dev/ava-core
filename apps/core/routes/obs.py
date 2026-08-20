@@ -415,3 +415,57 @@ async def api_obs_setup_daily():
 async def api_obs_reaction(body: ReactionBody):
     rid = body.reactionId or body.id or ""
     return {"ok": True, "id": rid, "detail": "ack"}
+
+
+@api_router.get("/solar-desk")
+async def api_obs_solar_desk():
+    solar: dict = {}
+    try:
+        from apps.core.crons.solar_weather import live_snapshot
+        solar = await live_snapshot() or {}
+    except Exception as e:
+        solar = {"error": str(e)[:200]}
+    host = {}
+    try:
+        from apps.core.routes.status import api_status
+        host = await api_status()
+    except Exception:
+        host = {}
+    weather = {}
+    try:
+        from apps.core.routes.realworld import api_weather
+        weather = await api_weather()
+        if hasattr(weather, "body"):
+            weather = {}
+    except Exception:
+        weather = {}
+    if not weather.get("conditions") and solar.get("conditions"):
+        weather = {**weather, "conditions": solar.get("conditions")}
+    kilauea = _watch_from_state(_kilauea_state())
+    shutdown = {}
+    for p in (
+        config.DATA_DIR / "state" / "projected-shutdown.json",
+        Path.home() / "ava" / "data" / "state" / "projected-shutdown.json",
+    ):
+        if p.is_file():
+            try:
+                shutdown = json.loads(p.read_text())
+                break
+            except Exception:
+                pass
+    return {
+        "ok": True,
+        "solar": solar,
+        "host": host,
+        "weather": weather if isinstance(weather, dict) else {},
+        "kilauea": kilauea,
+        "shutdown": shutdown,
+    }
+
+
+@router.get("/solar-dashboard", response_class=HTMLResponse)
+async def obs_solar_dashboard():
+    origin = f"http://127.0.0.1:{config.AVA_PORT}"
+    path = Path(__file__).resolve().parent.parent / "templates" / "obs-solar.html"
+    html = path.read_text(encoding="utf-8")
+    return HTMLResponse(html.replace("__ORIGIN__", origin))

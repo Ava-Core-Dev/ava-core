@@ -113,7 +113,7 @@ async def live_snapshot() -> dict:
     base_url = os.getenv("AVA_ECOFLOW_BASE_URL", "https://api-a.ecoflow.com")
     serial_nos = [s.strip() for s in os.getenv("AVA_ECOFLOW_SN", "").split(",") if s.strip()]
     if not (access_key and secret_key and serial_nos):
-        return {}
+        return _quota_snapshot()
 
     banks: list[float] = []
     watts_in = 0.0
@@ -124,9 +124,9 @@ async def live_snapshot() -> dict:
         for i, sn in enumerate(serial_nos):
             label = labels[i] if i < len(labels) else f"Device {i + 1}"
             data = await _fetch_ecoflow_device(client, base_url, access_key, secret_key, sn)
-            soc = _num(data, "bmsMaster.soc", "pd.soc")
+            soc = _soc_from_quota(data) if data else None
             inn = _num(data, "mppt.inWatts", "pd.inputWatts") or 0
-            out = _num(data, "pd.outputWatts") or 0
+            out = _num(data, "pd.outputWatts", "inv.outputWatts") or 0
             if soc is not None:
                 banks.append(soc)
             watts_in += inn
@@ -151,10 +151,11 @@ async def live_snapshot() -> dict:
         "source": "ecoflow_live",
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    if battery is None:
+    if battery is None or (battery is not None and battery < 8):
         disk = _quota_snapshot()
-        if disk.get("battery_pct") is not None:
-            disk["source"] = "ecoflow_quota_cache"
+        if disk.get("battery_pct") is not None and (
+            battery is None or disk["battery_pct"] > battery
+        ):
             return disk
     return live
 

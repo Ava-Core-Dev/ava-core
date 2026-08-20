@@ -386,9 +386,12 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             "Solar HUD",
             "browser_source",
             {
-                "url": f"{origin}/obs/hud",
+                "url": f"{origin}/obs/solar-dashboard",
                 "width": 1920,
                 "height": 1080,
+                "css": "body { background-color: rgba(0,0,0,0); margin: 0; overflow: hidden; }",
+                "shutdown": False,
+                "restart_when_active": True,
             },
         )
 
