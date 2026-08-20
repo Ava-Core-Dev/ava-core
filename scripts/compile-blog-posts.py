@@ -53,6 +53,7 @@ def main() -> int:
         moved += 1
     print(f"inbox promoted: {moved}")
     print("Next: regenerate site blogs (write-blog-timeline.py / Next POSTS) and deploy.")
+    print("Set category + published (ISO with offset) in frontmatter; bump ARCHIVE_REVISED.")
     print("Templates: media/documents/reports/templates/")
     return 0
 
