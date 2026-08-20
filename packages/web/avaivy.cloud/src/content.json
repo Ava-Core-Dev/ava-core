@@ -19,8 +19,7 @@
     { "label": "Timeline", "href": "/timeline" },
     { "label": "Context", "href": "/context" },
     { "label": "RootMC", "href": "https://rootmc.net" },
-    { "label": "Root Record", "href": "https://rootrecord.info" },
-    { "label": "Sign in", "href": "/login" }
+    { "label": "Root Record", "href": "https://rootrecord.info" }
   ],
   "cards": [
     {
@@ -78,8 +77,9 @@
       { "label": "RootMC", "href": "https://rootmc.net" },
       { "label": "Root Record", "href": "https://rootrecord.info" },
       { "label": "Public index", "href": "/media" },
-      { "label": "About Developer", "href": "https://alexrs94.site" }
+      { "label": "About Developer", "href": "https://alexrs94.site" },
+      { "label": "Build your own website", "href": "https://rootrecord.info/website-hosting" }
     ],
-    "tagline": "Powered by the sun · Big Island, Hawaiʻi"
+    "tagline": "Built by Ava on the Root Record · Powered by the sun · Big Island, Hawaiʻi"
   }
 }

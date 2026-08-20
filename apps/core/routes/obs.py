@@ -674,8 +674,13 @@ async def api_obs_solar_desk():
             "mem_total_gb": round(mem.total / (1024 ** 3), 1),
         }
         try:
-            from apps.core.crons.solar_weather import record_host_sample
-            record_host_sample()
+            from apps.core.crons.solar_weather import record_host_sample, _host_temp_c
+            sample = record_host_sample()
+            temp = (sample or {}).get("temp_c")
+            if temp is None:
+                temp = _host_temp_c()
+            if temp is not None:
+                host["temp_c"] = temp
         except Exception:
             pass
     except Exception:

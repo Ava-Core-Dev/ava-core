@@ -1,0 +1,94 @@
+.authBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.authEmail {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authBtn {
+  background: transparent;
+  border: 1px solid var(--border, var(--line, #27364f));
+  color: var(--text);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.authBtn:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.primary {
+  background: var(--accent, #63b3ff);
+  border-color: transparent;
+  color: #061018;
+  font-weight: 600;
+}
+
+.authModal {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(320px, 90vw);
+  background: var(--surface, #131c2b);
+  border: 1px solid var(--border, var(--line, #27364f));
+  border-radius: 12px;
+  padding: 14px;
+  z-index: 80;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.authModal h3 {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.brandLine {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.authModal label {
+  display: block;
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.authModal input {
+  width: 100%;
+  margin-top: 4px;
+  background: var(--bg, #0a0e14);
+  color: var(--text);
+  border: 1px solid var(--border, var(--line, #27364f));
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.status {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.authActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}

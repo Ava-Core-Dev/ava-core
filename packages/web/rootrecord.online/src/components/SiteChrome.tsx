@@ -1,4 +1,8 @@
+"use client";
+
 import styles from "@/app/page.module.css";
+import { AuthBar } from "@/components/AuthBar";
+import { goalsFetch } from "@/lib/goals-api";
 
 const NAV = [
   { href: "/", label: "Live" },
@@ -10,7 +14,7 @@ const NAV = [
   { href: "/dev", label: "Dev" },
   { href: "https://avaivy.cloud", label: "Ava Ivy" },
   { href: "https://rootmc.net", label: "RootMC" },
-  { href: "https://rootrecord.info", label: "Wiki" },
+  { href: "https://rootrecord.info", label: "Root Record" },
 ];
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
@@ -24,8 +28,19 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
           </a>
           <nav className={styles.nav}>
             {NAV.map((item) => (
-              <a key={item.href} href={item.href}>{item.label}</a>
+              <a key={item.href} href={item.href}>
+                {item.label}
+              </a>
             ))}
+            <AuthBar
+              brandLabel="rootrecord.online"
+              onAccountOk={async (email, password) => {
+                await goalsFetch("/api/auth/login", {
+                  method: "POST",
+                  body: JSON.stringify({ email, password }),
+                });
+              }}
+            />
           </nav>
         </div>
       </header>

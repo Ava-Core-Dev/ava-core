@@ -36,6 +36,18 @@ def _label_for_sn(sn: str, listed: str | None = None) -> str:
     return SN_LABELS.get(str(sn).strip()) or listed or str(sn)[-6:]
 
 
+def _device_role(sn_or_label: str) -> str:
+    """Map SN / label → delta | river | other (for history series)."""
+    key = str(sn_or_label or "").strip()
+    lab = SN_LABELS.get(key) or key
+    upper = lab.upper()
+    if key.startswith("R331") or "DELTA" in upper:
+        return "delta"
+    if key.startswith("R621") or "RIVER" in upper:
+        return "river"
+    return "other"
+
+
 def _sort_devices(devices: list[dict]) -> list[dict]:
     rank = {"DELTA 2": 0, "Delta 2": 0, "RIVER 2 Pro": 1, "River 2 Pro": 1}
     return sorted(devices, key=lambda d: rank.get(str(d.get("label") or ""), 9))
@@ -496,18 +508,28 @@ def _soc_from_quota(data: dict) -> float | None:
     return None
 
 
-def _ecoflow_root() -> Path | None:
+def _ecoflow_roots() -> list[Path]:
+    """All EcoFlow data trees that have quota or history (newest first)."""
     from apps.core import config
     repo_data = Path(__file__).resolve().parents[3] / "data" / "ecoflow"
-    roots = [
+    candidates = [
         config.DATA_DIR / "ecoflow",
         config.AVA_HOME / "data" / "ecoflow",
         repo_data,
         Path.home() / "ava" / "data" / "ecoflow",
+        Path("/home/ava-core/ava/ava-core-v2/data/ecoflow"),
+        Path("/home/ava-core/ava/data/ecoflow"),
     ]
-    # Prefer the tree with the newest quota or history samples.
     scored: list[tuple[float, Path]] = []
-    for p in roots:
+    seen: set[Path] = set()
+    for p in candidates:
+        try:
+            rp = p.resolve()
+        except OSError:
+            rp = p
+        if rp in seen or not p.exists():
+            continue
+        seen.add(rp)
         mtimes: list[float] = []
         q = p / "quota"
         if q.is_dir():
@@ -521,10 +543,13 @@ def _ecoflow_root() -> Path | None:
             )
         if mtimes:
             scored.append((max(mtimes), p))
-    if not scored:
-        return next((p for p in roots if (p / "history").is_dir()), None)
     scored.sort(reverse=True)
-    return scored[0][1]
+    return [p for _m, p in scored]
+
+
+def _ecoflow_root() -> Path | None:
+    roots = _ecoflow_roots()
+    return roots[0] if roots else None
 
 
 def _mean(vals: list[float]) -> float | None:
@@ -594,7 +619,7 @@ def _host_history_paths() -> list[Path]:
 
 
 def record_host_sample(*, force: bool = False) -> dict | None:
-    """Append one CPU/RAM sample (~1/min). Safe to call from desk/API/cron."""
+    """Append one CPU/RAM/temp sample (~1/min). Safe to call from desk/API/cron."""
     global _last_host_sample_at
     now = time.time()
     if not force and now - _last_host_sample_at < _HOST_SAMPLE_MIN_GAP_S:
@@ -608,11 +633,14 @@ def record_host_sample(*, force: bool = False) -> dict | None:
     # interval=None returns 0.0 on the first call in a process — use a short block.
     cpu = float(psutil.cpu_percent(interval=0.1))
     mem = psutil.virtual_memory()
+    temp_c = _host_temp_c()
     row = {
         "at": int(now * 1000),
         "cpu_pct": round(cpu, 2),
         "mem_pct": round(float(mem.percent), 2),
     }
+    if temp_c is not None:
+        row["temp_c"] = round(temp_c, 2)
     out = config.DATA_DIR / "host" / "history.jsonl"
     try:
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -623,6 +651,41 @@ def record_host_sample(*, force: bool = False) -> dict | None:
         log.debug("host sample write skipped: %s", e)
         return None
     return row
+
+
+def _host_temp_c() -> float | None:
+    """Best-effort CPU package / board temperature (°C)."""
+    try:
+        import psutil
+        temps = psutil.sensors_temperatures() or {}
+    except Exception:
+        return None
+    prefer = ("coretemp", "k10temp", "zenpower", "cpu_thermal", "acpitz", "dell_smm")
+    for name in prefer:
+        entries = temps.get(name) or []
+        for e in entries:
+            label = (getattr(e, "label", None) or "").lower()
+            cur = getattr(e, "current", None)
+            if cur is None:
+                continue
+            try:
+                val = float(cur)
+            except (TypeError, ValueError):
+                continue
+            if "package" in label or "tctl" in label or not label:
+                return val
+        if entries:
+            try:
+                return float(entries[0].current)
+            except (TypeError, ValueError, IndexError):
+                pass
+    for entries in temps.values():
+        for e in entries:
+            try:
+                return float(e.current)
+            except (TypeError, ValueError, AttributeError):
+                continue
+    return None
 
 
 def _cpu_from_row(row: dict) -> float | None:
@@ -639,8 +702,36 @@ def _cpu_from_row(row: dict) -> float | None:
     return None
 
 
-def _iter_host_cpu_rows(*, tail: int = 2000):
-    """Yield (at_ms, cpu_pct) from host/biz cpu history files."""
+def _mem_from_row(row: dict) -> float | None:
+    for key in ("mem_pct", "ram_pct", "hostRam", "ram"):
+        v = row.get(key)
+        if v is None or v == "":
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= n <= 100:
+            return round(n, 2)
+    return None
+
+
+def _temp_from_row(row: dict) -> float | None:
+    for key in ("temp_c", "cpu_temp_c", "cpuTempC", "temp"):
+        v = row.get(key)
+        if v is None or v == "":
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if -20 <= n <= 120:
+            return round(n, 2)
+    return None
+
+
+def _iter_host_metric_rows(*, tail: int = 2000):
+    """Yield (at_ms, cpu_pct, mem_pct, temp_c) from host history files."""
     for path in _host_history_paths():
         if not path.is_file():
             continue
@@ -648,7 +739,6 @@ def _iter_host_cpu_rows(*, tail: int = 2000):
             raw = path.read_bytes()
         except OSError:
             continue
-        # Legacy biz writer sometimes pads with NULs
         text = raw.replace(b"\x00", b"").decode("utf-8", errors="replace")
         lines = text.splitlines()[-tail:]
         for line in lines:
@@ -660,7 +750,9 @@ def _iter_host_cpu_rows(*, tail: int = 2000):
             except Exception:
                 continue
             cpu = _cpu_from_row(row)
-            if cpu is None:
+            mem = _mem_from_row(row)
+            temp = _temp_from_row(row)
+            if cpu is None and mem is None and temp is None:
                 continue
             at_ms = _parse_history_at_ms(row, int(time.time() * 1000))
             if at_ms is None:
@@ -671,39 +763,50 @@ def _iter_host_cpu_rows(*, tail: int = 2000):
                         at_ms *= 1000
                 except (TypeError, ValueError):
                     continue
-            yield at_ms, cpu
+            yield at_ms, cpu, mem, temp
 
 
-def _host_cpu_by_minute(hours: float, now_ms: int) -> dict[int, float]:
+def _host_metrics_by_minute(hours: float, now_ms: int) -> dict[int, dict[str, float]]:
     window_ms = now_ms - int(hours * 3600_000)
-    by_min: dict[int, float] = {}
-    for at_ms, cpu in _iter_host_cpu_rows(tail=max(400, int(hours * 60) + 120)):
+    by_min: dict[int, dict[str, float]] = {}
+    for at_ms, cpu, mem, temp in _iter_host_metric_rows(tail=max(400, int(hours * 60) + 120)):
         if at_ms < window_ms:
             continue
         minute = (at_ms // 60_000) * 60_000
-        by_min[minute] = cpu  # latest sample in that minute wins
+        slot = by_min.setdefault(minute, {})
+        if cpu is not None:
+            slot["cpu_pct"] = cpu
+        if mem is not None:
+            slot["mem_pct"] = mem
+        if temp is not None:
+            slot["temp_c"] = temp
     return by_min
 
 
 def history_points(hours: float = 12) -> dict:
-    """Bank + host time series for the last N hours (solar_w, load_w, soc, cpu_pct)."""
-    hours = max(0.25, min(float(hours or 12), 72))
-    # Opportunistic sample so the chart grows even before the minute cron fires.
+    """Bank + per-pack (Delta / River) + host time series for the last N hours."""
+    hours = max(0.25, min(float(hours or 12), 168))
     record_host_sample()
-    root = _ecoflow_root()
-    hist = root / "history" if root else None
     now_ms = int(time.time() * 1000)
     window_ms = now_ms - int(hours * 3600_000)
-    # ~1 sample/min/device × hours × devices, with headroom
     tail = max(800, int(hours * 60 * 4) + 200)
-    # minute_ms -> device -> latest sample fields
+    # Merge every EcoFlow history tree so Delta + River both appear even if
+    # samples live under different data roots.
     buckets: dict[int, dict[str, dict[str, float | None]]] = {}
-    if hist and hist.is_dir():
+    sample_at: dict[tuple[int, str], int] = {}
+    for root in _ecoflow_roots():
+        hist = root / "history"
+        if not hist.is_dir():
+            continue
         for device, row in _iter_history_rows(hist, tail=tail):
             at_ms = _parse_history_at_ms(row, now_ms)
             if at_ms is None or at_ms < window_ms:
                 continue
             minute = (at_ms // 60_000) * 60_000
+            key = (minute, device)
+            prev = sample_at.get(key)
+            if prev is not None and at_ms < prev:
+                continue
             solar = row.get("solarW")
             out = row.get("outW")
             soc = row.get("soc")
@@ -712,31 +815,162 @@ def history_points(hours: float = 12) -> dict:
                     "solar_w": float(solar) if solar is not None else None,
                     "load_w": float(out) if out is not None else None,
                     "soc": float(soc) if soc is not None else None,
+                    "role": _device_role(device),
                 }
             except (TypeError, ValueError):
                 continue
             buckets.setdefault(minute, {})[device] = sample
-    cpu_by_min = _host_cpu_by_minute(hours, now_ms)
-    minutes = sorted(set(buckets) | set(cpu_by_min))
+            sample_at[key] = at_ms
+    host_by_min = _host_metrics_by_minute(hours, now_ms)
+    minutes = sorted(set(buckets) | set(host_by_min))
     points: list[dict] = []
     for minute in minutes:
-        samples = list(buckets.get(minute, {}).values())
+        by_dev = buckets.get(minute, {})
+        samples = list(by_dev.values())
         solar_vals = [s["solar_w"] for s in samples if s["solar_w"] is not None]
         load_vals = [s["load_w"] for s in samples if s["load_w"] is not None]
         soc_vals = [
             s["soc"] for s in samples
             if s["soc"] is not None and 0 <= float(s["soc"]) <= 100
         ]
+
+        def role_val(role: str, key: str) -> float | None:
+            vals = [
+                float(s[key]) for s in samples
+                if s.get("role") == role and s.get(key) is not None
+            ]
+            if key == "soc":
+                vals = [v for v in vals if 0 <= v <= 100]
+            if not vals:
+                return None
+            return round(sum(vals) / len(vals), 1) if key == "soc" else round(sum(vals), 1)
+
         t = datetime.fromtimestamp(minute / 1000, tz=timezone.utc).isoformat().replace("+00:00", "Z")
-        cpu = cpu_by_min.get(minute)
+        host = host_by_min.get(minute) or {}
         points.append({
             "t": t,
             "solar_w": round(sum(solar_vals), 1) if solar_vals else None,
+            "delta_solar_w": role_val("delta", "solar_w"),
+            "river_solar_w": role_val("river", "solar_w"),
             "load_w": round(sum(load_vals), 1) if load_vals else None,
             "soc": round(sum(soc_vals) / len(soc_vals), 1) if soc_vals else None,
-            "cpu_pct": round(cpu, 2) if cpu is not None else None,
+            "delta_soc": role_val("delta", "soc"),
+            "river_soc": role_val("river", "soc"),
+            "cpu_pct": host.get("cpu_pct"),
+            "mem_pct": host.get("mem_pct"),
+            "temp_c": host.get("temp_c"),
         })
     return {"ok": True, "points": points, "hours": hours}
+
+
+def _series_stats(points: list[dict], key: str) -> dict:
+    vals = []
+    for p in points:
+        v = p.get(key)
+        if v is None or v == "":
+            continue
+        try:
+            vals.append(float(v))
+        except (TypeError, ValueError):
+            continue
+    if not vals:
+        return {"avg": None, "min": None, "max": None, "samples": 0, "sum": None}
+    return {
+        "avg": round(sum(vals) / len(vals), 2),
+        "min": round(min(vals), 2),
+        "max": round(max(vals), 2),
+        "samples": len(vals),
+        "sum": round(sum(vals), 2),
+    }
+
+
+def _energy_wh(points: list[dict], key: str) -> float | None:
+    """Approx Wh from ~1-minute average-watt samples."""
+    vals = []
+    for p in points:
+        v = p.get(key)
+        if v is None:
+            continue
+        try:
+            vals.append(float(v))
+        except (TypeError, ValueError):
+            continue
+    if not vals:
+        return None
+    return round(sum(vals) / 60.0, 2)
+
+
+def history_rollups() -> dict:
+    """Averages / min / max / energy totals for several windows."""
+    windows = (("1h", 1), ("6h", 6), ("12h", 12), ("24h", 24), ("7d", 168))
+    full = history_points(168)
+    points = list(full.get("points") or [])
+    now_ms = int(time.time() * 1000)
+    out: dict[str, dict] = {}
+    for label, hours in windows:
+        cut = now_ms - int(hours * 3600_000)
+        subset = []
+        for p in points:
+            t = p.get("t") or ""
+            try:
+                # 2026-08-20T22:20:00Z
+                at = datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() * 1000
+            except Exception:
+                continue
+            if at >= cut:
+                subset.append(p)
+        out[label] = {
+            "hours": hours,
+            "points": len(subset),
+            "solar_w": _series_stats(subset, "solar_w"),
+            "delta_solar_w": _series_stats(subset, "delta_solar_w"),
+            "river_solar_w": _series_stats(subset, "river_solar_w"),
+            "load_w": _series_stats(subset, "load_w"),
+            "soc": _series_stats(subset, "soc"),
+            "delta_soc": _series_stats(subset, "delta_soc"),
+            "river_soc": _series_stats(subset, "river_soc"),
+            "cpu_pct": _series_stats(subset, "cpu_pct"),
+            "mem_pct": _series_stats(subset, "mem_pct"),
+            "temp_c": _series_stats(subset, "temp_c"),
+            "solar_wh": _energy_wh(subset, "solar_w"),
+            "load_wh": _energy_wh(subset, "load_w"),
+        }
+    # Lifetime host metrics if present
+    try:
+        from apps.core import config
+        life_path = config.DATA_DIR / "state" / "host-metrics" / "lifetime.json"
+        if life_path.is_file():
+            life = json_loads(life_path.read_text(encoding="utf-8"))
+            n = int(life.get("sample_total") or 0)
+            if n > 0:
+                out["lifetime"] = {
+                    "hours": None,
+                    "points": n,
+                    "cpu_pct": {
+                        "avg": round(float(life.get("cpu_sum") or 0) / n, 2),
+                        "min": None,
+                        "max": None,
+                        "samples": n,
+                        "sum": round(float(life.get("cpu_sum") or 0), 2),
+                    },
+                    "mem_pct": {
+                        "avg": round(float(life.get("ram_sum") or 0) / n, 2),
+                        "min": None,
+                        "max": None,
+                        "samples": n,
+                        "sum": round(float(life.get("ram_sum") or 0), 2),
+                    },
+                    "solar_w": _series_stats([], "solar_w"),
+                    "load_w": _series_stats([], "load_w"),
+                    "soc": _series_stats([], "soc"),
+                    "temp_c": _series_stats([], "temp_c"),
+                    "solar_wh": None,
+                    "load_wh": None,
+                    "note": "Host CPU/RAM lifetime samples from desk metrics",
+                }
+    except Exception:
+        pass
+    return {"ok": True, "windows": out}
 
 
 def _history_averages() -> dict:

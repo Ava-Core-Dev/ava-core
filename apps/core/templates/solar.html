@@ -3,24 +3,28 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ava Ivy — Solar</title>
+<title>Ava Ivy — Solar Status</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
   :root {
     --bg: #0a0e14;
-    --surface: rgba(17,24,39,.82);
+    --surface: rgba(17,24,39,.86);
     --border: #1f2937;
     --accent: #f59e0b;
     --cyan: #06b6d4;
     --text: #e5e7eb;
     --muted: #9ca3af;
     --green: #10b981;
+    --violet: #a78bfa;
+    --rose: #fb7185;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--text);
+  html { scroll-behavior: smooth; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: Inter, system-ui, sans-serif; }
+  body { min-height: 100dvh; }
   .bg {
     position: fixed; inset: 0; background: #0a0e14 center/cover no-repeat;
     transition: opacity .8s ease; z-index: 0;
@@ -32,13 +36,20 @@
       linear-gradient(90deg, rgba(10,14,20,.78) 0%, rgba(10,14,20,.22) 42%, rgba(10,14,20,.22) 58%, rgba(10,14,20,.78) 100%),
       linear-gradient(180deg, rgba(10,14,20,.55) 0%, transparent 18%, transparent 78%, rgba(10,14,20,.7) 100%);
   }
+  /* Locked lander — stays fixed; scroll content below */
+  .lander {
+    position: fixed; inset: 0; z-index: 2;
+    display: flex; flex-direction: column;
+    pointer-events: none;
+  }
+  .lander * { pointer-events: auto; }
   .top {
-    position: relative; z-index: 3;
     display: flex; justify-content: space-between; align-items: center; gap: 16px;
     padding: 14px 22px;
-    background: rgba(10,14,20,.88);
+    background: rgba(10,14,20,.9);
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(12px);
+    flex-shrink: 0;
   }
   .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); text-decoration: none; }
   .mark { color: var(--accent); }
@@ -48,73 +59,196 @@
   .clock { text-align: right; font-variant-numeric: tabular-nums; }
   .clock .d { font-size: 11px; color: var(--muted); }
   .clock .t { font-size: 18px; font-weight: 700; letter-spacing: .04em; }
-  .stage { position: relative; z-index: 2; min-height: calc(100dvh - 56px); }
-  .rail {
-    position: absolute; top: 18px; width: min(420px, 34vw);
-    display: flex; flex-direction: column; gap: 12px;
+  .warn-banner {
+    display: none; flex-shrink: 0;
+    margin: 0; padding: .75rem 1.1rem;
+    border-bottom: 1px solid rgba(245,158,11,.45);
+    background: linear-gradient(90deg, rgba(120,53,15,.92), rgba(30,20,10,.9));
+    color: #ffedd5;
   }
-  .left { left: 18px; }
-  .right { right: 18px; }
+  .warn-banner.show { display: block; }
+  .warn-banner.cat-maintenance { border-color: rgba(6,182,212,.45); background: linear-gradient(90deg, rgba(8,47,73,.94), rgba(10,20,30,.9)); color: #e0f2fe; }
+  .warn-banner.cat-unexpected, .warn-banner.cat-power { border-color: rgba(251,113,133,.5); background: linear-gradient(90deg, rgba(76,5,25,.94), rgba(20,10,14,.9)); color: #ffe4e6; }
+  .warn-banner .wb-kicker { font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
+  .warn-banner .wb-title { font-size: 1.02rem; font-weight: 700; margin: .15rem 0; }
+  .warn-banner .wb-detail { font-size: .88rem; opacity: .9; margin: 0; }
+  .warn-banner .wb-row { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: flex-start; justify-content: space-between; }
+  .warn-banner .wb-eta { font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 700; }
+  .stage {
+    position: relative; flex: 1; min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(280px, 36vw) 1fr minmax(280px, 36vw);
+    gap: 12px;
+    padding: 14px 16px 72px;
+    align-items: start;
+  }
+  .rail {
+    position: relative; top: auto; left: auto; right: auto; width: auto;
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: calc(100dvh - 140px); overflow: auto;
+  }
+  .left { order: 1; }
+  .center {
+    order: 2;
+    display: flex; flex-direction: column; gap: 10px;
+    min-width: 0;
+    max-height: calc(100dvh - 140px); overflow: auto;
+  }
+  .right { order: 3; }
+  .hero-card {
+    background: linear-gradient(165deg, rgba(17,24,39,.55), rgba(10,14,20,.72));
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 18px;
+    padding: 18px 20px 16px;
+    backdrop-filter: blur(14px);
+    text-align: center;
+  }
+  .hero-card .eyebrow {
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  }
+  .hero-card .hero-title {
+    margin: 8px 0 4px; font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+    letter-spacing: -0.03em; font-weight: 800;
+  }
+  .hero-card .hero-sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .hero-metrics {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .hero-metrics .m {
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 10px 8px;
+  }
+  .hero-metrics .m .n { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .hero-metrics .m .x {
+    margin-top: 4px; font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: clamp(1.1rem, 2vw, 1.55rem); font-weight: 700;
+  }
+  .pack-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .pack {
+    background: rgba(17,24,39,.72); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 14px; text-align: left;
+  }
+  .pack h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--cyan); }
+  .pack .big { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pack .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     backdrop-filter: blur(10px);
   }
   .k {
     font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 10px;
+    color: var(--muted); margin-bottom: 8px;
   }
+  .k .win { font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 11px; float: right; }
   .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 5px 0; }
   .row span:first-child { color: var(--muted); font-size: 13px; }
-  .v { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 18px; font-weight: 600; }
+  .v { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 17px; font-weight: 600; }
   .solar { color: var(--accent); }
   .cyan { color: var(--cyan); }
   .ok { color: var(--green); }
   .warn { color: var(--accent); }
-  .ringwrap { display: flex; gap: 8px; justify-content: space-between; }
-  .ring { flex: 1; text-align: center; }
+  .ringwrap { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+  .ring { flex: 1; text-align: center; min-width: 96px; }
   .gauge {
-    width: 108px; height: 108px; margin: 0 auto 6px; border-radius: 50%;
+    width: 96px; height: 96px; margin: 0 auto 6px; border-radius: 50%;
     background: conic-gradient(var(--cyan) var(--p), rgba(255,255,255,.08) 0);
     display: grid; place-items: center;
   }
   .gauge > div {
-    width: 78px; height: 78px; border-radius: 50%; background: rgba(10,14,20,.94);
-    display: grid; place-items: center; font-size: 22px; font-weight: 800;
+    width: 70px; height: 70px; border-radius: 50%; background: rgba(10,14,20,.94);
+    display: grid; place-items: center; font-size: 20px; font-weight: 800;
   }
-  .lab { font-size: 13px; font-weight: 650; }
+  .lab { font-size: 12px; font-weight: 650; }
   .sub { opacity: .7; font-size: 11px; line-height: 1.3; margin-top: 4px; }
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .tile { background: rgba(255,255,255,.04); border-radius: 10px; padding: 8px 10px; }
   .tile .n { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  .tile .x { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .tile .x { font-size: 17px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; font-family: "JetBrains Mono", ui-monospace, monospace; }
   .bottom {
-    position: absolute; left: 18px; right: 18px; bottom: 16px;
+    position: absolute; left: 16px; right: 16px; bottom: 12px;
     display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px;
     font-size: 13px; color: var(--muted);
   }
   .flow { display: flex; gap: 16px; color: var(--text); }
   .flow b { color: var(--accent); }
-  .chart-card .k { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-  .chart-card .k .win { font-weight: 500; letter-spacing: 0; text-transform: none; font-size: 11px; }
   .chart {
-    width: 100%; height: 88px; display: block;
+    width: 100%; height: 72px; display: block;
     background: rgba(255,255,255,.03); border-radius: 8px;
   }
-  .chart + .chart { margin-top: 10px; }
+  .chart + .chart-meta { margin-bottom: 8px; }
   .chart-meta {
     display: flex; justify-content: space-between; gap: 8px;
-    font-size: 11px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums;
+    font-size: 11px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums;
   }
   .chart-meta b { color: var(--text); font-weight: 600; }
+  .chart-meta .leg { font-weight: 600; }
+  .leg-s-total { color: #f59e0b; }
+  .leg-s-delta { color: #38bdf8; }
+  .leg-s-river { color: #c084fc; }
+  .leg-b-bank { color: #22d3ee; }
+  .leg-b-delta { color: #34d399; }
+  .leg-b-river { color: #a78bfa; }
+  .notif-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; }
+  .notif-list li {
+    border-top: 1px solid rgba(255,255,255,.06);
+    padding: 8px 0; font-size: 12px;
+  }
+  .notif-list li:first-child { border-top: 0; padding-top: 0; }
+  .notif-list .lvl { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .notif-list .lvl.warn, .notif-list .lvl.warning, .notif-list .lvl.error { color: var(--rose); }
+  .notif-list .ttl { font-weight: 600; margin: 2px 0; }
+  .notif-list .det { color: var(--muted); }
+  .scroll-hint {
+    position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%);
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    background: rgba(10,14,20,.7); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 12px; z-index: 4;
+  }
+  .scroll-hint a { color: var(--cyan); text-decoration: none; }
+  /* Spacer so page can scroll under fixed lander */
+  .lander-spacer { height: 100dvh; position: relative; z-index: 0; }
+  .stats {
+    position: relative; z-index: 5;
+    background: linear-gradient(180deg, rgba(10,14,20,.92), #0a0e14 40px);
+    border-top: 1px solid var(--border);
+    padding: 28px 22px 64px;
+    min-height: 70dvh;
+  }
+  .stats h2 { margin: 0 0 8px; font-size: 1.35rem; }
+  .stats .lead { color: var(--muted); margin: 0 0 22px; max-width: 62ch; }
+  .windows {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
+  }
+  .win-card {
+    background: rgba(17,24,39,.95);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .win-card h3 {
+    margin: 0 0 10px; font-size: .95rem; letter-spacing: .06em; text-transform: uppercase; color: var(--cyan);
+  }
+  .win-card table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .win-card th, .win-card td { text-align: left; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .win-card th { color: var(--muted); font-weight: 500; }
+  .win-card td { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .win-card .note { font-size: 11px; color: var(--muted); margin-top: 8px; }
   @media (max-width: 900px) {
-    .rail { position: relative; width: auto; left: auto; right: auto; top: auto; margin: 12px 12px 0; }
-    .stage { display: flex; flex-direction: column; padding-bottom: 80px; }
+    .lander { position: relative; min-height: 100dvh; }
+    .lander-spacer { display: none; }
+    .stage { display: flex; flex-direction: column; padding-bottom: 24px; overflow: visible; grid-template-columns: 1fr; }
+    .rail, .center { position: relative; width: auto; left: auto; right: auto; top: auto; margin: 0; max-height: none; }
     .bottom { position: relative; margin: 12px; left: auto; right: auto; bottom: auto; }
+    .scroll-hint { display: none; }
     .veil { background: linear-gradient(180deg, rgba(10,14,20,.45), rgba(10,14,20,.72)); }
+    .hero-metrics { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -122,76 +256,149 @@
   <div class="bg" id="bgA"></div>
   <div class="bg dim" id="bgB"></div>
   <div class="veil"></div>
-  <header class="top">
-    <a class="logo" href="https://avaivy.cloud/"><span class="mark">◈</span> Ava Ivy</a>
-    <nav class="nav" aria-label="Sites and desk">
-      <a href="https://avaivy.cloud/status" data-match="/status">Status</a>
-      <a href="https://avaivy.cloud/solar" data-match="/solar">Solar</a>
-      <a href="https://avaivy.cloud/goals">Goals</a>
-      <a href="https://avaivy.cloud/live">Live</a>
-      <a href="https://avaivy.cloud/blog">Blog</a>
-      <a href="https://rootrecord.online/">Root Record</a>
-      <a href="https://rootmc.net/">RootMC</a>
-      <a href="https://alexrs94.site/">alexrs94</a>
-      <a href="https://rootrecord.info/ava/">Wiki</a>
-      <a href="https://g.rootrecord.info/">Goals site</a>
-    </nav>
-    <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
-  </header>
-  <div class="stage">
-    <div class="rail left">
-      <div class="card">
-        <div class="k">Battery bank</div>
-        <div class="ringwrap" id="rings"></div>
-      </div>
-      <div class="card chart-card">
-        <div class="k">History <span class="win" id="histWin">12h</span></div>
-        <svg class="chart" id="chartSolar" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="Solar watts over time"></svg>
-        <div class="chart-meta"><span>Solar W</span><span id="histSolarMeta">—</span></div>
-        <svg class="chart" id="chartSoc" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="Battery percent over time"></svg>
-        <div class="chart-meta"><span>Battery %</span><span id="histSocMeta">—</span></div>
-        <svg class="chart" id="chartCpu" viewBox="0 0 320 88" preserveAspectRatio="none" aria-label="CPU percent over time"></svg>
-        <div class="chart-meta"><span>CPU %</span><span id="histCpuMeta">—</span></div>
-      </div>
-      <div class="card">
-        <div class="k">Totals now</div>
-        <div class="split">
-          <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
-          <div class="tile"><div class="n">DC load</div><div class="x" id="load">—</div></div>
-          <div class="tile"><div class="n">Transfer</div><div class="x cyan" id="xfer">—</div></div>
-          <div class="tile"><div class="n">Generator</div><div class="x cyan" id="gen">—</div></div>
-          <div class="tile"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
-          <div class="tile"><div class="n">Bank avg</div><div class="x" id="bankAvg">—</div></div>
+
+  <div class="lander" id="lander">
+    <header class="top">
+      <a class="logo" href="https://avaivy.cloud/"><span class="mark">◈</span> Ava Ivy</a>
+      <nav class="nav" aria-label="Sites and desk">
+        <a href="https://avaivy.cloud/" data-match="/">Home</a>
+        <a href="https://avaivy.cloud/status" data-match="/status">Status</a>
+        <a href="https://avaivy.cloud/solar" data-match="/solar">Solar</a>
+        <a href="https://avaivy.cloud/goals">Goals</a>
+        <a href="https://avaivy.cloud/live">Live</a>
+        <a href="https://avaivy.cloud/blog">Blog</a>
+        <a href="https://avaivy.cloud/wiki/">Wiki</a>
+        <a href="https://rootrecord.info/">Root Record</a>
+        <a href="https://rootmc.net/">RootMC</a>
+        <a href="#averages">Averages</a>
+      </nav>
+      <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
+    </header>
+
+    <div class="warn-banner" id="warnBanner" role="status" aria-live="polite" hidden>
+      <div class="wb-row">
+        <div>
+          <span class="wb-kicker" id="wbKicker">Notice</span>
+          <div class="wb-title" id="wbTitle">—</div>
+          <p class="wb-detail" id="wbDetail"></p>
         </div>
-        <div class="row" style="margin-top:10px"><span>State</span><span class="v cyan" id="state" style="font-size:14px;text-align:right;max-width:250px">—</span></div>
+        <div class="wb-eta" id="wbEta"></div>
       </div>
     </div>
-    <div class="rail right">
-      <div class="card">
-        <div class="k" id="hostK">Root server</div>
-        <div class="row"><span>CPU</span><span class="v" id="cpu">—</span></div>
-        <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
-        <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div>
+
+    <div class="stage">
+      <div class="rail left">
+        <div class="card">
+          <div class="k">Battery bank</div>
+          <div class="ringwrap" id="rings"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="k">History <span class="win" id="histWin">12h</span></div>
+          <svg class="chart" id="chartSolar" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="Solar watts — total, Delta, River"></svg>
+          <div class="chart-meta"><span>Solar W · <span class="leg leg-s-total">Total</span> · <span class="leg leg-s-delta">Delta</span> · <span class="leg leg-s-river">River</span></span><span id="histSolarMeta">—</span></div>
+          <svg class="chart" id="chartSoc" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="Battery percent — bank, Delta, River"></svg>
+          <div class="chart-meta"><span>Battery % · <span class="leg leg-b-bank">Bank</span> · <span class="leg leg-b-delta">Delta</span> · <span class="leg leg-b-river">River</span></span><span id="histSocMeta">—</span></div>
+          <svg class="chart" id="chartCpu" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="CPU percent"></svg>
+          <div class="chart-meta"><span>CPU %</span><span id="histCpuMeta">—</span></div>
+          <svg class="chart" id="chartRam" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="RAM percent"></svg>
+          <div class="chart-meta"><span>RAM %</span><span id="histRamMeta">—</span></div>
+          <svg class="chart" id="chartTemp" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="CPU temperature"></svg>
+          <div class="chart-meta"><span>CPU °C</span><span id="histTempMeta">—</span></div>
+        </div>
+        <div class="card">
+          <div class="k">Totals now</div>
+          <div class="split">
+            <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
+            <div class="tile"><div class="n">DC load</div><div class="x" id="load">—</div></div>
+            <div class="tile"><div class="n">Transfer</div><div class="x cyan" id="xfer">—</div></div>
+            <div class="tile"><div class="n">Generator</div><div class="x cyan" id="gen">—</div></div>
+            <div class="tile"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
+            <div class="tile"><div class="n">Bank avg</div><div class="x" id="bankAvg">—</div></div>
+          </div>
+          <div class="row" style="margin-top:10px"><span>State</span><span class="v cyan" id="state" style="font-size:14px;text-align:right;max-width:250px">—</span></div>
+        </div>
       </div>
-      <div class="card">
-        <div class="k">Site + volcano</div>
-        <div class="row"><span>Weather</span><span class="v" id="wx" style="font-size:15px">—</span></div>
-        <div class="row"><span>Kīlauea</span><span class="v warn" id="kila">—</span></div>
+
+      <div class="center" id="centerStage">
+        <div class="hero-card">
+          <div class="eyebrow">HI Pacific Solar Root Server</div>
+          <div class="hero-title">Live power desk</div>
+          <p class="hero-sub">Bank · packs · host — center stage while the art cycles behind.</p>
+          <div class="hero-metrics">
+            <div class="m"><div class="n">PV in</div><div class="x solar" id="heroPv">—</div></div>
+            <div class="m"><div class="n">Bank</div><div class="x cyan" id="heroBank">—</div></div>
+            <div class="m"><div class="n">DC load</div><div class="x" id="heroLoad">—</div></div>
+            <div class="m"><div class="n">CPU</div><div class="x" id="heroCpu">—</div></div>
+            <div class="m"><div class="n">RAM</div><div class="x" id="heroRam">—</div></div>
+            <div class="m"><div class="n">Temp</div><div class="x" id="heroTemp">—</div></div>
+          </div>
+        </div>
+        <div class="pack-row">
+          <div class="pack">
+            <h4>Delta 2</h4>
+            <div class="big" id="packDeltaSoc">—</div>
+            <div class="meta">PV <span id="packDeltaPv">—</span> · <span id="packDeltaState">—</span></div>
+          </div>
+          <div class="pack">
+            <h4>River 2 Pro</h4>
+            <div class="big" id="packRiverSoc">—</div>
+            <div class="meta">PV <span id="packRiverPv">—</span> · <span id="packRiverState">—</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="k">Now</div>
+          <div class="row"><span>Transfer</span><span class="v cyan" id="heroXfer">—</span></div>
+          <div class="row"><span>Generator</span><span class="v" id="heroGen">—</span></div>
+          <div class="row"><span>State</span><span class="v cyan" id="heroState" style="font-size:13px;max-width:220px;text-align:right">—</span></div>
+          <div class="row"><span>Weather</span><span class="v" id="heroWx" style="font-size:14px">—</span></div>
+          <div class="row"><span>Kīlauea</span><span class="v warn" id="heroKila">—</span></div>
+        </div>
       </div>
-    </div>
-    <div class="bottom">
-      <div>Ava Ivy · ground PV · avaivy.cloud/solar</div>
-      <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
-      <div id="src">source —</div>
+
+      <div class="rail right">
+        <div class="card">
+          <div class="k" id="hostK">Root server</div>
+          <div class="row"><span>CPU</span><span class="v" id="cpu">—</span></div>
+          <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
+          <div class="row"><span>Temp</span><span class="v" id="temp">—</span></div>
+          <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div>
+        </div>
+        <div class="card">
+          <div class="k">Site + volcano</div>
+          <div class="row"><span>Weather</span><span class="v" id="wx" style="font-size:15px">—</span></div>
+          <div class="row"><span>Kīlauea</span><span class="v warn" id="kila">—</span></div>
+        </div>
+        <div class="card">
+          <div class="k">Notifications <span class="win" id="notifCount">0</span></div>
+          <ul class="notif-list" id="notifList"><li class="det">Loading…</li></ul>
+        </div>
+      </div>
+      <div class="scroll-hint"><a href="#averages">Scroll for averages ↓</a></div>
+      <div class="bottom">
+        <div>Ava Ivy · ground PV · locked lander</div>
+        <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
+        <div id="src">source —</div>
+      </div>
     </div>
   </div>
+
+  <div class="lander-spacer" aria-hidden="true"></div>
+
+  <section class="stats" id="averages">
+    <h2>Averages &amp; totals</h2>
+    <p class="lead">Every timeframe Ava has on hand — averages, min/max, and energy totals under the locked lander. Updated with the history feed.</p>
+    <div class="windows" id="windows"></div>
+  </section>
+
 <script>
 const HOST = location.hostname;
 const ON_AVA = HOST === "avaivy.cloud" || HOST.endsWith(".avaivy.cloud") || HOST === "localhost" || HOST === "127.0.0.1";
 const API = ON_AVA ? "" : "https://avaivy.cloud";
 const path = location.pathname.replace(/\/$/, "") || "/";
 document.querySelectorAll(".nav a[data-match]").forEach((a) => {
-  if (path === a.getAttribute("data-match") || path.endsWith(a.getAttribute("data-match"))) a.classList.add("on");
+  const m = a.getAttribute("data-match");
+  if (m === "/" && (path === "/" || path === "")) a.classList.add("on");
+  else if (m !== "/" && (path === m || path.endsWith(m))) a.classList.add("on");
 });
 const FALLBACK_BGS = [
   API + "/api/media/public/file?path=images/character/ava-solar-ground-pv-night.png",
@@ -234,7 +441,7 @@ async function loadConfiguredBackgrounds(){
     CYCLE_MS = sec > 0 ? sec * 1000 : 0;
     clearInterval(bgTimer);
     if (CYCLE_MS > 0 && BGS.length > 1) bgTimer = setInterval(cycleBg, CYCLE_MS);
-  } catch (_) { /* keep fallbacks */ }
+  } catch (_) {}
 }
 void loadConfiguredBackgrounds();
 
@@ -261,8 +468,18 @@ function ring(d){
 function watts(v){ if(v==null||v==="") return "—"; return Math.round(Number(v))+" W"; }
 function pct(v){ if(v==null||v==="") return "—"; return Number(v).toFixed(0)+"%"; }
 function dur(s){ s=Number(s)||0; if(!s) return "—"; const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60); return d? d+"d "+h+"h" : h+"h "+m+"m"; }
+function fmtNum(v, unit){
+  if (v == null || v === "") return "—";
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  if (unit === "%") return n.toFixed(0) + "%";
+  if (unit === "°C") return n.toFixed(1) + "°C";
+  if (unit === "Wh") return (n >= 1000 ? (n/1000).toFixed(2)+" kWh" : Math.round(n)+" Wh");
+  if (unit === "W") return Math.round(n) + " W";
+  return String(n);
+}
 
-const CHART_W = 320, CHART_H = 88, CHART_PAD = 6;
+const CHART_W = 320, CHART_H = 72, CHART_PAD = 6;
 function linePath(vals, yMin, yMax){
   const n = vals.length;
   if (!n) return "";
@@ -277,7 +494,15 @@ function linePath(vals, yMin, yMax){
   return d;
 }
 function drawChart(svg, vals, color, fixedMin, fixedMax){
-  const known = vals.filter((v) => v != null && !Number.isNaN(v));
+  return drawMultiChart(svg, [{ vals, color }], fixedMin, fixedMax);
+}
+function drawMultiChart(svg, series, fixedMin, fixedMax){
+  const known = [];
+  (series || []).forEach((s) => {
+    (s.vals || []).forEach((v) => {
+      if (v != null && !Number.isNaN(v)) known.push(v);
+    });
+  });
   let yMin = fixedMin != null ? fixedMin : (known.length ? Math.min(...known) : 0);
   let yMax = fixedMax != null ? fixedMax : (known.length ? Math.max(...known) : 1);
   if (yMax <= yMin) yMax = yMin + 1;
@@ -286,38 +511,161 @@ function drawChart(svg, vals, color, fixedMin, fixedMax){
     yMin = Math.max(0, yMin - pad);
     yMax = yMax + pad;
   }
-  const path = linePath(vals, yMin, yMax);
   const gridY = [0.25, 0.5, 0.75].map((f) => {
     const y = CHART_PAD + f * (CHART_H - 2 * CHART_PAD);
     return `<line x1="${CHART_PAD}" y1="${y.toFixed(1)}" x2="${CHART_W - CHART_PAD}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>`;
   }).join("");
-  svg.innerHTML = gridY + (path
-    ? `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`
-    : `<text x="160" y="48" text-anchor="middle" fill="#9ca3af" font-size="11">no data</text>`);
-  return { yMin, yMax, last: known.length ? known[known.length - 1] : null };
+  const paths = (series || []).map((s) => {
+    const path = linePath(s.vals || [], yMin, yMax);
+    if (!path) return "";
+    const w = s.width != null ? s.width : 2;
+    const op = s.opacity != null ? s.opacity : 1;
+    return `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="${w}" stroke-opacity="${op}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`;
+  }).join("");
+  svg.innerHTML = gridY + (paths
+    ? paths
+    : `<text x="160" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">no data</text>`);
+  const lasts = (series || []).map((s) => {
+    const k = (s.vals || []).filter((v) => v != null && !Number.isNaN(v));
+    return k.length ? k[k.length - 1] : null;
+  });
+  return { yMin, yMax, last: lasts[0] != null ? lasts[0] : null, lasts };
 }
+
+function renderWindows(rollups){
+  const root = document.getElementById("windows");
+  const order = ["1h","6h","12h","24h","7d","lifetime"];
+  const labels = { "1h":"1 hour", "6h":"6 hours", "12h":"12 hours", "24h":"24 hours", "7d":"7 days", lifetime:"Lifetime" };
+  const keys = order.filter((k) => rollups && rollups[k]);
+  if (!keys.length) {
+    root.innerHTML = `<div class="win-card"><h3>Waiting</h3><p class="note">History is still collecting. Charts above fill first; averages appear here.</p></div>`;
+    return;
+  }
+  root.innerHTML = keys.map((k) => {
+    const w = rollups[k];
+    const row = (label, st, unit, extra) => {
+      if (!st || !st.samples) return `<tr><th>${label}</th><td colspan="3">—</td></tr>`;
+      return `<tr><th>${label}</th><td>avg ${fmtNum(st.avg, unit)}</td><td>min ${fmtNum(st.min, unit)}</td><td>max ${fmtNum(st.max, unit)}${extra||""}</td></tr>`;
+    };
+    return `<article class="win-card">
+      <h3>${labels[k] || k} · ${w.points || 0} pts</h3>
+      <table>
+        ${row("Solar total", w.solar_w, "W")}
+        ${row("Solar Delta", w.delta_solar_w, "W")}
+        ${row("Solar River", w.river_solar_w, "W")}
+        ${row("Load", w.load_w, "W")}
+        ${row("Bank %", w.soc, "%")}
+        ${row("Delta %", w.delta_soc, "%")}
+        ${row("River %", w.river_soc, "%")}
+        ${row("CPU", w.cpu_pct, "%")}
+        ${row("RAM", w.mem_pct, "%")}
+        ${row("Temp", w.temp_c, "°C")}
+        <tr><th>Energy in</th><td colspan="3">${fmtNum(w.solar_wh, "Wh")}</td></tr>
+        <tr><th>Energy out</th><td colspan="3">${fmtNum(w.load_wh, "Wh")}</td></tr>
+      </table>
+      ${w.note ? `<p class="note">${w.note}</p>` : ""}
+    </article>`;
+  }).join("");
+}
+
 async function paintHistory(){
   try {
     const j = await (await fetch(API + "/api/solar/history?hours=12", { cache: "no-store" })).json();
     const pts = Array.isArray(j.points) ? j.points : [];
     const hours = j.hours != null ? j.hours : 12;
     document.getElementById("histWin").textContent = hours + "h · " + pts.length + " pts";
-    const solarVals = pts.map((p) => p.solar_w == null ? null : Number(p.solar_w));
-    const socVals = pts.map((p) => p.soc == null ? null : Number(p.soc));
+    const solarTotal = pts.map((p) => p.solar_w == null ? null : Number(p.solar_w));
+    const solarDelta = pts.map((p) => p.delta_solar_w == null ? null : Number(p.delta_solar_w));
+    const solarRiver = pts.map((p) => p.river_solar_w == null ? null : Number(p.river_solar_w));
+    const socBank = pts.map((p) => p.soc == null ? null : Number(p.soc));
+    const socDelta = pts.map((p) => p.delta_soc == null ? null : Number(p.delta_soc));
+    const socRiver = pts.map((p) => p.river_soc == null ? null : Number(p.river_soc));
     const cpuVals = pts.map((p) => p.cpu_pct == null ? null : Number(p.cpu_pct));
-    const sMeta = drawChart(document.getElementById("chartSolar"), solarVals, "#f59e0b", 0, null);
-    const bMeta = drawChart(document.getElementById("chartSoc"), socVals, "#06b6d4", 0, 100);
+    const ramVals = pts.map((p) => p.mem_pct == null ? null : Number(p.mem_pct));
+    const tempVals = pts.map((p) => p.temp_c == null ? null : Number(p.temp_c));
+    const sMeta = drawMultiChart(document.getElementById("chartSolar"), [
+      { vals: solarTotal, color: "#f59e0b", width: 2.4 },
+      { vals: solarDelta, color: "#38bdf8", width: 1.8 },
+      { vals: solarRiver, color: "#c084fc", width: 1.8 },
+    ], 0, null);
+    const bMeta = drawMultiChart(document.getElementById("chartSoc"), [
+      { vals: socBank, color: "#22d3ee", width: 2.4 },
+      { vals: socDelta, color: "#34d399", width: 1.8 },
+      { vals: socRiver, color: "#a78bfa", width: 1.8 },
+    ], 0, 100);
     const cMeta = drawChart(document.getElementById("chartCpu"), cpuVals, "#10b981", 0, 100);
-    document.getElementById("histSolarMeta").innerHTML = sMeta.last != null
-      ? `<b>${Math.round(sMeta.last)} W</b> · max ${Math.round(sMeta.yMax)}`
-      : "—";
-    document.getElementById("histSocMeta").innerHTML = bMeta.last != null
-      ? `<b>${bMeta.last.toFixed(0)}%</b>`
-      : "—";
-    document.getElementById("histCpuMeta").innerHTML = cMeta.last != null
-      ? `<b>${cMeta.last.toFixed(0)}%</b>`
-      : "—";
+    const rMeta = drawChart(document.getElementById("chartRam"), ramVals, "#a78bfa", 0, 100);
+    const tMeta = drawChart(document.getElementById("chartTemp"), tempVals, "#fb7185", null, null);
+    const fmtLast = (v, unit) => v == null ? "—" : (unit === "%" ? Math.round(v) + "%" : Math.round(v) + " W");
+    document.getElementById("histSolarMeta").innerHTML =
+      `<b class="leg-s-total">${fmtLast(sMeta.lasts[0], "W")}</b>` +
+      ` · <span class="leg-s-delta">${fmtLast(sMeta.lasts[1], "W")}</span>` +
+      ` · <span class="leg-s-river">${fmtLast(sMeta.lasts[2], "W")}</span>` +
+      (sMeta.yMax != null ? ` · max ${Math.round(sMeta.yMax)}` : "");
+    document.getElementById("histSocMeta").innerHTML =
+      `<b class="leg-b-bank">${fmtLast(bMeta.lasts[0], "%")}</b>` +
+      ` · <span class="leg-b-delta">${fmtLast(bMeta.lasts[1], "%")}</span>` +
+      ` · <span class="leg-b-river">${fmtLast(bMeta.lasts[2], "%")}</span>`;
+    document.getElementById("histCpuMeta").innerHTML = cMeta.last != null ? `<b>${cMeta.last.toFixed(0)}%</b>` : "—";
+    document.getElementById("histRamMeta").innerHTML = rMeta.last != null ? `<b>${rMeta.last.toFixed(0)}%</b>` : "—";
+    document.getElementById("histTempMeta").innerHTML = tMeta.last != null ? `<b>${tMeta.last.toFixed(1)}°C</b>` : "—";
+    if (j.rollups) renderWindows(j.rollups);
+    else {
+      const r = await (await fetch(API + "/api/solar/rollups", { cache: "no-store" })).json();
+      if (r.windows) renderWindows(r.windows);
+    }
   } catch (_) {}
+}
+
+async function paintBanner(){
+  try {
+    const b = await (await fetch(API + "/api/disruption-banner", { cache: "no-store" })).json();
+    const el = document.getElementById("warnBanner");
+    if (!b || !b.show) {
+      el.classList.remove("show");
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.classList.add("show");
+    el.className = "warn-banner show cat-" + (b.category || "weather");
+    document.getElementById("wbKicker").textContent = (b.categoryLabel || "Notice") + " · desk toggle";
+    document.getElementById("wbTitle").textContent = b.title || "Service notice";
+    document.getElementById("wbDetail").textContent = b.detail || "";
+    let eta = "";
+    if (b.untilMs) {
+      const left = Number(b.untilMs) - Date.now();
+      if (left > 0) {
+        const h = Math.floor(left / 3600000);
+        const m = Math.floor((left % 3600000) / 60000);
+        eta = `Clears ${b.untilLabel || ""} · ${h}h ${m}m`;
+      } else eta = b.untilLabel || "";
+    }
+    document.getElementById("wbEta").textContent = eta;
+  } catch (_) {}
+}
+
+async function paintNotifications(){
+  try {
+    const j = await (await fetch(API + "/api/desk/notifications?limit=30", { cache: "no-store" })).json();
+    const items = Array.isArray(j.items) ? j.items : [];
+    document.getElementById("notifCount").textContent = String(items.length);
+    const ul = document.getElementById("notifList");
+    if (!items.length) {
+      ul.innerHTML = `<li class="det">No active notifications</li>`;
+      return;
+    }
+    ul.innerHTML = items.slice(0, 20).map((it) => {
+      const lvl = String(it.level || "info");
+      return `<li>
+        <div class="lvl ${lvl}">${lvl} · ${it.source || "desk"}</div>
+        <div class="ttl">${(it.title || "").replace(/</g,"&lt;")}</div>
+        ${it.detail ? `<div class="det">${String(it.detail).replace(/</g,"&lt;")}</div>` : ""}
+      </li>`;
+    }).join("");
+  } catch (_) {
+    document.getElementById("notifList").innerHTML = `<li class="det">Notifications offline</li>`;
+  }
 }
 
 async function paint(){
@@ -342,6 +690,7 @@ async function paint(){
     document.getElementById("hostK").textContent = "Root server · "+(host.host||"ava-core");
     document.getElementById("cpu").textContent = host.cpu_pct!=null ? host.cpu_pct.toFixed(0)+"%" : "—";
     document.getElementById("ram").textContent = host.mem_pct!=null ? host.mem_pct.toFixed(0)+"%" : "—";
+    document.getElementById("temp").textContent = host.temp_c!=null ? Number(host.temp_c).toFixed(1)+"°C" : "—";
     document.getElementById("up").textContent = dur(host.boot_uptime_s||host.uptime_s);
     const temp = wx.temperature_f!=null ? wx.temperature_f+"°" : "";
     const fc = (wx.forecast||wx.conditions||"").replace(/\s+/g," ").trim().slice(0,32);
@@ -352,11 +701,52 @@ async function paint(){
     document.getElementById("flowBank").textContent = pct(tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById("flowOut").textContent = watts(load);
     document.getElementById("src").textContent = (solar.source||"ground PV")+(solar.updated_at?(" · "+String(solar.updated_at).slice(11,19)+"Z"):"");
+
+    // Center stage mirrors
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("heroPv", watts(pv));
+    set("heroBank", pct(tot.bank_avg_pct ?? solar.battery_pct));
+    set("heroLoad", watts(load));
+    set("heroCpu", host.cpu_pct!=null ? host.cpu_pct.toFixed(0)+"%" : "—");
+    set("heroRam", host.mem_pct!=null ? host.mem_pct.toFixed(0)+"%" : "—");
+    set("heroTemp", host.temp_c!=null ? Number(host.temp_c).toFixed(1)+"°C" : "—");
+    set("heroXfer", watts(tot.transfer_w));
+    set("heroGen", watts(tot.generator_w));
+    set("heroState", solar.state || "—");
+    set("heroWx", document.getElementById("wx").textContent);
+    set("heroKila", document.getElementById("kila").textContent);
+    const delta = devices.find((d) => /delta/i.test(String(d.label||""))) || null;
+    const river = devices.find((d) => /river/i.test(String(d.label||""))) || null;
+    set("packDeltaSoc", delta && delta.soc!=null ? Math.round(Number(delta.soc))+"%" : "—");
+    set("packRiverSoc", river && river.soc!=null ? Math.round(Number(river.soc))+"%" : "—");
+    set("packDeltaPv", watts(delta && (delta.pv_w ?? delta.solar_w)));
+    set("packRiverPv", watts(river && (river.pv_w ?? river.solar_w)));
+    set("packDeltaState", delta ? (delta.online===false ? "offline" : "online") : "—");
+    set("packRiverState", river ? (river.online===false ? "offline" : "online") : "—");
   } catch(e) {}
 }
+
+// Expose live CPU temp on host card via history last point when status omits it
+async function paintHostTempFallback(){
+  try {
+    const j = await (await fetch(API + "/api/solar/history?hours=1", { cache: "no-store" })).json();
+    const pts = j.points || [];
+    for (let i = pts.length - 1; i >= 0; i--) {
+      if (pts[i].temp_c != null) {
+        const el = document.getElementById("temp");
+        if (el.textContent === "—") el.textContent = Number(pts[i].temp_c).toFixed(1) + "°C";
+        break;
+      }
+    }
+  } catch (_) {}
+}
+
 tick(); setInterval(tick, 1000);
 paint(); setInterval(paint, 8000);
 paintHistory(); setInterval(paintHistory, 60000);
+paintBanner(); setInterval(paintBanner, 15000);
+paintNotifications(); setInterval(paintNotifications, 20000);
+setTimeout(paintHostTempFallback, 1500);
 </script>
 </body>
 </html>

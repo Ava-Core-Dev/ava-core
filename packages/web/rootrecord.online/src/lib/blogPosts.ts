@@ -16,7 +16,7 @@ export type BlogPost = {
 
 export const HOME_BRAND: BlogPost["brand"] = "Root Record";
 export const PAGE_SIZE = 8;
-export const ARCHIVE_REVISED = "2026-08-20 12:04:21 HST";
+export const ARCHIVE_REVISED = "2026-08-20 12:49:12 HST";
 
 export const CATEGORIES: { id: string; label: string }[] = [
   { id: "runtime", label: "Runtime" },

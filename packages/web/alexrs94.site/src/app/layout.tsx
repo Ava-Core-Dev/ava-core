@@ -1,6 +1,8 @@
+import { AuthBar } from "@/components/AuthBar";
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
+/* AuthBar styles live in AuthBar.module.css */
 
 export const metadata: Metadata = {
   title: "alexrs94.site",
@@ -20,18 +22,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/">Home</Link>
               <Link href="/media">Media</Link>
               <Link href="/blog">Blog</Link>
+              <Link href="/studio">Studio</Link>
               <a href="https://www.youtube.com/@HIqualityviews">YouTube</a>
-              <a href="https://rootrecord.info">Root Record</a>
-              <a href="https://avaivy.cloud">Ava Ivy</a>
-              <a href="https://rootmc.net">RootMC</a>
+              <AuthBar />
             </nav>
           </header>
           {children}
           <footer className="footer">
-            Built on the Big Island ·{" "}
-            <a href="https://avaivy.cloud">Ava Ivy live desk</a>
+            Built by <a href="https://avaivy.cloud">Ava</a> on the{" "}
+            <a href="https://rootrecord.info">Root Record</a>
             {" · "}
-            About Developer site for Root Record / RootMC.
+            <a href="https://rootrecord.info/website-hosting">Build your own website</a>
           </footer>
         </div>
       </body>
