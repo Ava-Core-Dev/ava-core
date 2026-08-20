@@ -13,7 +13,7 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from typing import Any
+from pathlib import Path
 
 import httpx
 
@@ -135,7 +135,7 @@ async def live_snapshot() -> dict:
 
     battery = round(sum(banks) / len(banks), 1) if banks else None
     state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
-    return {
+    live = {
         "voltage": None,
         "current": None,
         "power_w": round(watts_in, 1),
@@ -146,10 +146,114 @@ async def live_snapshot() -> dict:
         "panel_temp_c": None,
         "bank_pct": battery,
         "solar_in_w": round(watts_in, 1),
+        "load_w": round(watts_out, 1),
         "devices": devices,
         "source": "ecoflow_live",
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
+    if battery is None:
+        disk = _quota_snapshot()
+        if disk.get("battery_pct") is not None:
+            disk["source"] = "ecoflow_quota_cache"
+            return disk
+    return live
+
+
+def _quota_snapshot() -> dict:
+    """On-disk EcoFlow quota files when the cloud API is down."""
+    from apps.core import config
+
+    roots = [
+        Path.home() / "ava" / "data" / "ecoflow",
+        config.DATA_DIR / "ecoflow",
+        config.AVA_HOME / "data" / "ecoflow",
+    ]
+    root = next((p for p in roots if (p / "quota").is_dir()), None)
+    if root is None:
+        return {}
+    names = {}
+    listing = root / "devices" / "list.json"
+    if listing.is_file():
+        try:
+            payload = json_loads(listing.read_text())
+            for d in payload.get("devices") or []:
+                names[str(d.get("sn") or "")] = d.get("productName") or d.get("sn")
+        except Exception:
+            pass
+    devices = []
+    banks = []
+    watts_in = 0.0
+    watts_out = 0.0
+    newest = 0
+    for qf in sorted((root / "quota").glob("*.json")):
+        try:
+            raw = json_loads(qf.read_text())
+        except Exception:
+            continue
+        newest = max(newest, int(raw.get("at") or 0))
+        data = ((raw.get("body") or {}).get("data") or raw.get("data") or {})
+        if not isinstance(data, dict):
+            continue
+        sn = qf.stem
+        label = names.get(sn) or sn
+        soc = _soc_from_quota(data)
+        inn = _num(data, "mppt.inWatts", "pd.inputWatts", "pd.wattsInSum") or 0
+        out = _num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") or 0
+        remain = _num(data, "bms_emsStatus.dsgRemainTime", "pd.remainTime")
+        if soc is not None:
+            banks.append(soc)
+        watts_in += inn
+        watts_out += out
+        devices.append({
+            "label": label,
+            "sn": sn,
+            "soc": soc,
+            "watts_in": inn,
+            "watts_out": out,
+            "remain_min": remain,
+            "temp_c": _num(data, "bms_bmsStatus.temp", "mppt.mpptTemp"),
+            "online": True,
+        })
+    if not devices:
+        return {}
+    battery = round(sum(banks) / len(banks), 1) if banks else None
+    updated = None
+    if newest > 1_000_000_000_000:
+        newest = newest / 1000
+    if newest:
+        updated = datetime.fromtimestamp(newest, tz=timezone.utc).isoformat()
+    state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
+    return {
+        "power_w": round(watts_in, 1),
+        "battery_pct": battery,
+        "state": state,
+        "bank_pct": battery,
+        "solar_in_w": round(watts_in, 1),
+        "load_w": round(watts_out, 1),
+        "devices": devices,
+        "source": "ecoflow_quota_cache",
+        "updated_at": updated or datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def json_loads(text: str):
+    import json
+    return json.loads(text)
+
+
+def _soc_from_quota(data: dict) -> float | None:
+    bp = _num(data, "pd.bpPowerSoc")
+    bms = _num(data, "bms_bmsStatus.soc", "bms_bmsStatus.f32ShowSoc", "bmsMaster.soc")
+    pd = _num(data, "pd.soc")
+    if bms is not None and 0 <= bms <= 100:
+        return round(bms, 1)
+    if bp is not None and 5 < bp <= 100:
+        return round(bp, 1)
+    if pd is not None and 5 < pd <= 100:
+        return round(pd, 1)
+    if bp is not None:
+        return round(bp, 1)
+    return pd
 
 
 # ── Main cron ─────────────────────────────────────────────────────────────────
