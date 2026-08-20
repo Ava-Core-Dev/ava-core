@@ -129,7 +129,28 @@ async def ops_page(request: Request):
         return _deny()
     if not OPS_HTML.is_file():
         return JSONResponse({"ok": False, "detail": "ops.html missing"}, status_code=500)
-    return FileResponse(OPS_HTML, media_type="text/html")
+    return FileResponse(
+        OPS_HTML,
+        media_type="text/html",
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@router.get("/api/ops/ollama")
+async def ops_ollama(request: Request):
+    if not _local(request):
+        return _deny()
+    t0 = time.monotonic()
+    up, models = await ollama_svc.tags(force=True)
+    return {
+        "ok": up,
+        "working": up,
+        "url": "http://127.0.0.1:11434",
+        "models": models,
+        "rewrite_model": "qwen3:8b",
+        "ms": int((time.monotonic() - t0) * 1000),
+        "hint": "Local Ava is answering." if up else "Ollama is down. Start it, then refresh.",
+    }
 
 
 @router.post("/api/ops/blog")
@@ -191,20 +212,56 @@ async def ops_upload(request: Request, kind: str = Form("audio"), file: UploadFi
 async def ops_rewrite(body: RewriteIn, request: Request):
     if not _local(request):
         return _deny()
-    text = ollama_svc.chat_sync(
-        [
-            {
-                "role": "system",
-                "content": "Rewrite clearly for a public blog. Do not invent dates, watts, or names. Keep facts. Short sentences.",
-            },
-            {"role": "user", "content": body.text},
-        ],
-        model="qwen3:8b",
-        timeout=90,
+    up, models = await ollama_svc.tags(force=True)
+    if not up:
+        return {
+            "ok": False,
+            "working": False,
+            "detail": "Ollama is not running. Local Ava cannot rewrite until it is up.",
+        }
+    want_live = body.include_live or bool(WANTS_LIVE.search(body.text or ""))
+    facts = await _live_facts() if want_live else ""
+    system = (
+        "You rewrite operator notes for Ava Ivy, the Root Server on the Big Island of Hawaiʻi.\n"
+        "Current calendar year is 2026.\n"
+        "A 3- or 4-digit number next to a date (1947, 0730, 19:47) is a CLOCK TIME, never a year. "
+        "1947 on Aug 19 means 19:47 HST on 19 Aug 2026.\n"
+        "Spellings: avay/ava = Ava. Do not invent watts, percents, or host names.\n"
+        "If LIVE FACTS are provided, you MUST include those exact numbers in the rewrite. "
+        "That is the scan. Do not say you scanned unless those numbers appear.\n"
+        "Write a short public-ready note. Short sentences."
     )
+    user = body.text
+    if facts:
+        user = f"OPERATOR DRAFT:\n{body.text}\n\nLIVE FACTS (use these numbers):\n{facts}"
+    t0 = time.monotonic()
+    raw = await asyncio.to_thread(
+        ollama_svc.chat_sync,
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        model="qwen3:8b",
+        timeout=120,
+    )
+    ms = int((time.monotonic() - t0) * 1000)
+    text = _clean_ollama(raw or "")
     if not text:
-        return {"ok": False, "detail": "Local Ava (Ollama) is not answering. Is it running?"}
-    return {"ok": True, "text": text.strip()}
+        return {
+            "ok": False,
+            "working": True,
+            "model": "qwen3:8b",
+            "ms": ms,
+            "models": models,
+            "detail": "Ollama answered empty. Try again.",
+        }
+    return {
+        "ok": True,
+        "working": True,
+        "text": text,
+        "model": "qwen3:8b",
+        "ms": ms,
+        "models": models,
+        "facts_included": bool(facts),
+        "facts": facts,
+    }
 
 
 @router.post("/api/ops/sync-blogs")

@@ -1,8 +1,8 @@
-"""Kīlauea Watch OBS mode: NWS radar + V1/V2/V3 YouTube embeds.
+"""Kīlauea Watch OBS mode: NWS radar + V1/V2/V3 USGS stills via local Ava pages.
 
 Uses the same catalog as the Kīlauea Alerts app (Root Record live-streams API),
-falls back to the official USGS V1/V2/V3 IDs, and re-resolves the embed URL on
-a timer so a new USGS livestream session replaces a dead VOD.
+falls back to the official USGS V1/V2/V3 IDs, and refreshes still URLs on a timer.
+OBS never loads YouTube embeds (Error 150 in CEF).
 """
 
 from __future__ import annotations
@@ -79,6 +79,15 @@ def _embed(video_id: str) -> str:
     return f"https://www.youtube.com/embed/{quote(vid)}?{YOUTUBE_Q}"
 
 
+def obs_cam_url(cam_id: str) -> str:
+    """Local browser source URL — USGS still page served from this Ava desk."""
+    return f"http://127.0.0.1:{config.AVA_PORT}/obs/kilauea-cam?cam={quote(cam_id)}"
+
+
+def _obs_url_for_cam(row: dict) -> str:
+    return obs_cam_url(str(row.get("id") or "usgs_v1"))
+
+
 def _still(url: str) -> str:
     return f"{url}?t={int(time.time())}"
 
@@ -140,12 +149,14 @@ async def refresh_catalog() -> dict:
         vid, live = await asyncio.to_thread(_resolve_youtube, row["youtube_video_id"])
         row["youtube_video_id"] = vid
         row["live"] = live
+        row["still_url"] = _still(row["still"])
         if live and vid:
             row["url"] = row.get("embed_url_remote") or _embed(vid)
             row["kind"] = "youtube"
         else:
-            row["url"] = _still(row["still"])
+            row["url"] = row["still_url"]
             row["kind"] = "still"
+        row["obs_url"] = _obs_url_for_cam(row)
         cams.append(row)
 
     from apps.core.services.obs_studio import NWS_RADAR_URL
@@ -265,7 +276,7 @@ async def apply_kilauea_kit(obs: Any | None = None) -> dict:
             scene = cam["scene"]
             if scene not in existing:
                 await obs.try_req("CreateScene", {"sceneName": scene})
-            await _browser(obs, scene, cam["input"], cam["url"])
+            await _browser(obs, scene, cam["input"], cam.get("obs_url") or _obs_url_for_cam(cam))
             await _browser(
                 obs,
                 scene,
@@ -310,10 +321,11 @@ async def push_embeds_to_current_collection() -> dict:
         names = {i.get("inputName") for i in lst.get("inputs") or []}
         mapping = {}
         if v1:
-            mapping["HVO Kilauea"] = v1["url"]
-            mapping["KV Cam V1"] = v1["url"]
+            obs_url = v1.get("obs_url") or _obs_url_for_cam(v1)
+            mapping["HVO Kilauea"] = obs_url
+            mapping["KV Cam V1"] = obs_url
         for cam in data.get("cams") or []:
-            mapping[cam["input"]] = cam["url"]
+            mapping[cam["input"]] = cam.get("obs_url") or _obs_url_for_cam(cam)
         if data.get("radar"):
             mapping["KV Radar"] = data["radar"]
         for name, url in mapping.items():

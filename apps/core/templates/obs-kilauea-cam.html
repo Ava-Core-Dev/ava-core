@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Kīlauea cam</title>
+<style>
+  html,body{margin:0;padding:0;width:1920px;height:1080px;overflow:hidden;background:#000;
+    color:#fff;font-family:"Segoe UI",Inter,system-ui,sans-serif;}
+  #cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#0a0a0a;}
+  .badge{position:fixed;top:24px;left:24px;background:rgba(8,8,10,.75);border:1px solid rgba(251,113,133,.35);
+    border-radius:12px;padding:8px 14px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;}
+  .foot{position:fixed;left:24px;right:24px;bottom:20px;display:flex;justify-content:space-between;
+    font-size:15px;background:rgba(8,8,10,.72);border-radius:12px;padding:10px 16px;}
+</style>
+</head>
+<body>
+  <img id="cam" alt="USGS HVO cam" />
+  <div class="badge" id="label">USGS · loading</div>
+  <div class="foot">
+    <span id="title">HVO webcam</span>
+    <span id="ts">—</span>
+  </div>
+<script>
+const origin = location.origin;
+const cam = new URLSearchParams(location.search).get('cam') || 'usgs_v1';
+let stillUrl = '';
+async function refreshMeta(){
+  try{
+    const d = await fetch(origin+'/api/obs/kilauea-desk?cam='+encodeURIComponent(cam)).then(r=>r.json());
+    const c = d.cam || {};
+    stillUrl = c.still || '';
+    document.getElementById('label').textContent = (c.id||cam).toUpperCase()+' · STILL';
+    document.getElementById('title').textContent = c.title || 'Kīlauea';
+    document.getElementById('ts').textContent = d.ts || '';
+  }catch(e){}
+}
+function paintStill(){
+  if(!stillUrl) return;
+  const img = document.getElementById('cam');
+  img.src = stillUrl + (stillUrl.includes('?')?'&':'?') + 't=' + Date.now();
+}
+refreshMeta().then(paintStill);
+setInterval(refreshMeta, 15000);
+setInterval(paintStill, 12000);
+</script>
+</body>
+</html>
