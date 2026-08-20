@@ -1,0 +1,28 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-20T17:29:02.264Z
+new_messages: 2
+after: 1539892048465891408
+
+========================================================================
+
+--- 2026-08-20T17:27:47.528Z | Ava
+**Solar midnight close report** - HST day **2026-08-19**
+
+Bank blend: **4%**
+- **Delta 2**: not live
+- **River 2 Pro**: SOC 4% - in 0W - out 68W - solar 0W
+
+Morning cycle avg (today only): **~0W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/solar (or the Ava status host) d…
+
+--- 2026-08-20T17:28:53.846Z | Ava
+Endgame vibe: HI Pacific Solar Root Server scales toward an off-grid data center - watts in, RootMC out.
+
+- Ava
+
+========================================================================
