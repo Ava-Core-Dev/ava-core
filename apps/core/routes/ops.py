@@ -1,11 +1,17 @@
 """Local operator desk — localhost only. No Cursor required."""
 from __future__ import annotations
 
+import asyncio
+import platform
 import re
 import subprocess
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
+import psutil
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -55,6 +61,61 @@ class BlogIn(BaseModel):
 
 class RewriteIn(BaseModel):
     text: str = Field(min_length=1, max_length=20000)
+    include_live: bool = True
+
+
+HST = ZoneInfo("Pacific/Honolulu")
+THINK_RE = re.compile(r"<think>.*?</think>", re.S | re.I)
+WANTS_LIVE = re.compile(
+    r"\b(scan|power|metric|ecoflow|solar|battery|watt|cpu|online|status|host)\b",
+    re.I,
+)
+
+
+def _clean_ollama(text: str) -> str:
+    return THINK_RE.sub("", text or "").strip()
+
+
+async def _live_facts() -> str:
+    now = datetime.now(HST).strftime("%Y-%m-%d %H:%M:%S HST")
+    cpu = psutil.cpu_percent(interval=0.15)
+    mem = psutil.virtual_memory()
+    lines = [
+        f"Clock now: {now} (year is {datetime.now(HST).year}, not 1947).",
+        f"Ava core: online on {platform.node()}.",
+        f"Host CPU {cpu:.0f}%. RAM {mem.percent:.0f}% used.",
+    ]
+    try:
+        from apps.core.crons.solar_weather import live_snapshot
+
+        solar = await live_snapshot()
+        batt = solar.get("battery_pct")
+        pv = solar.get("solar_in_w") or solar.get("power_w")
+        load = solar.get("load_w")
+        src = solar.get("source") or "unknown"
+        state = solar.get("state") or ""
+        parts = [f"Power source: {src}"]
+        if batt is not None:
+            parts.append(f"battery {batt}%")
+        if pv is not None:
+            parts.append(f"solar in {pv} W")
+        if load is not None:
+            parts.append(f"load {load} W")
+        if state:
+            parts.append(f"state {state}")
+        lines.append("EcoFlow / solar: " + ", ".join(parts) + ".")
+        devices = solar.get("devices") or []
+        for d in devices[:6]:
+            label = d.get("label") or d.get("sn") or "unit"
+            soc = d.get("soc")
+            online = "online" if d.get("online") else "offline"
+            pv_w = d.get("pv_w")
+            extra = f", PV {pv_w} W" if pv_w is not None else ""
+            soc_s = f"{soc}%" if soc is not None else "n/a"
+            lines.append(f"  - {label}: {online}, SOC {soc_s}{extra}")
+    except Exception as e:
+        lines.append(f"Solar snapshot unavailable: {e}")
+    return "\n".join(lines)
 
 
 def _slug(title: str) -> str:
