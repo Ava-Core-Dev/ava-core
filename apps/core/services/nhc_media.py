@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,11 +31,28 @@ STORMS_URL = f"{BASE}/CurrentStorms.json"
 EPAC_HOME = f"{BASE}/?epac="
 CPAC_HOME = f"{BASE}/?cpac"
 UA = "AvaIvy/2.0 (https://avaivy.cloud; nhc-media)"
+import time
+
 CANONICAL_TWO = (
     f"{BASE}/xgtwo/resize/xgtwo_pac_2d0_w1920.png",
     f"{BASE}/xgtwo/resize/xgtwo_pac_7d0_w1920.png",
     f"{BASE}/xgtwo/resize/xgtwo_cpac_2d0_w1920.png",
     f"{BASE}/xgtwo/resize/xgtwo_cpac_7d0_w1920.png",
+)
+# Same-path NOAA files; cache-bust so OBS reloads current ink on every fetch.
+NHC_LIVE = {
+    "epac_2day": CANONICAL_TWO[0],
+    "epac_7day": CANONICAL_TWO[1],
+    "cpac_2day": CANONICAL_TWO[2],
+    "cpac_7day": CANONICAL_TWO[3],
+    "epac_home": EPAC_HOME,
+    "cpac_home": CPAC_HOME,
+}
+NHC_OUTLOOK_SCENES = (
+    ("NHC · EPAC 2-Day", "NHC EPAC 2Day", "epac_2day"),
+    ("NHC · EPAC 7-Day", "NHC EPAC 7Day", "epac_7day"),
+    ("NHC · CPAC 2-Day", "NHC CPAC 2Day", "cpac_2day"),
+    ("NHC · CPAC 7-Day", "NHC CPAC 7Day", "cpac_7day"),
 )
 EPAC_TEXT = (
     ("MIATWOEP", "outlook.html"),
@@ -121,6 +139,19 @@ def load_manifest() -> dict:
 def current_files() -> dict[str, Path]:
     root = media_current()
     return {p.stem: p for p in root.iterdir() if p.is_file()}
+
+
+def live_url(slug: str) -> str:
+    """Always-current NHC URL. Query t= forces OBS/browser to drop a cached still."""
+    base = NHC_LIVE.get(slug) or ""
+    if not base:
+        return ""
+    sep = "&" if "?" in base else "?"
+    return f"{base}{sep}t={int(time.time())}"
+
+
+def nhc_outlook_scenes() -> list[str]:
+    return [scene for scene, _, _ in NHC_OUTLOOK_SCENES]
 
 
 def _abs(url: str) -> str:
@@ -400,12 +431,12 @@ def _first(files: dict[str, Path], needle: str) -> Path | None:
 
 
 def nhc_scene_names() -> list[str]:
-    return [
-        "NHC · EPAC 2-Day",
-        "NHC · EPAC 7-Day",
-        "NHC · CPAC 2-Day",
-        "NHC · CPAC 7-Day",
-        "NHC · 5-Day Cone",
-        "NHC · Wind Field",
-        "NHC · Wind History",
-    ]
+    names = nhc_outlook_scenes()
+    files = current_files()
+    if _first(files, "_5day_cone"):
+        names.append("NHC · 5-Day Cone")
+    if _first(files, "_current_wind"):
+        names.append("NHC · Wind Field")
+    if _first(files, "_wind_history"):
+        names.append("NHC · Wind History")
+    return names
