@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 import logging
 import os
 import time
@@ -20,12 +21,14 @@ import httpx
 
 log = logging.getLogger("ava.cron.solar_weather")
 
-# EcoFlow's device-list productName is reversed vs the packs on the desk.
-# R331 (listed as DELTA 2) is the River; R621 (listed as RIVER 2 Pro) is the Delta.
+# Physical labels (2026-08-02 rename). Do not use EcoFlow productName — it is swapped.
+# R331 = Delta 2 (cucumbers). R621 = River 2 Pro (shackas).
 SN_LABELS = {
-    "R331ZAB5SG6S2858": "RIVER 2 Pro",
-    "R621ZA16XH6K1155": "DELTA 2",
+    "R331ZAB5SG6S2858": "DELTA 2",
+    "R621ZA16XH6K1155": "RIVER 2 Pro",
 }
+ECO_STALE_S = 3 * 60
+_LIVE_CACHE: dict[str, Any] = {}
 
 
 def _label_for_sn(sn: str, listed: str | None = None) -> str:
@@ -39,48 +42,68 @@ def _sort_devices(devices: list[dict]) -> list[dict]:
 
 # ── EcoFlow API helpers ────────────────────────────────────────────────────────
 
-def _ecoflow_headers(access_key: str, secret_key: str, params: dict) -> dict:
-    """Build EcoFlow HMAC-SHA256 auth headers."""
-    nonce     = str(int(time.time() * 1000) % 1_000_000).zfill(6)
+def _ecoflow_sign(access_key: str, secret_key: str, params: dict) -> dict:
+    """Official Open API HMAC. Query params first, then accessKey/nonce/timestamp.
+
+    GET must not send Content-Type: application/json (EcoFlow 8521).
+    """
+    nonce = str(int(100000 + (time.time() * 1000) % 900000))
     timestamp = str(int(time.time() * 1000))
-
-    # Sorted query string for signing
-    sign_str = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
-    sign_str = f"accessKey={access_key}&nonce={nonce}&timestamp={timestamp}&{sign_str}"
-
+    flat = {k: v for k, v in params.items() if v is not None and v != ""}
+    param_qs = "&".join(f"{k}={flat[k]}" for k in sorted(flat))
+    header_qs = "&".join(
+        f"{k}={v}" for k, v in sorted(
+            {"accessKey": access_key, "nonce": nonce, "timestamp": timestamp}.items()
+        )
+    )
+    sign_str = f"{param_qs}&{header_qs}" if param_qs else header_qs
     sig = hmac.new(secret_key.encode(), sign_str.encode(), "sha256").hexdigest()
-
     return {
         "accessKey": access_key,
-        "nonce":     nonce,
+        "nonce": nonce,
         "timestamp": timestamp,
-        "sign":      sig,
+        "sign": sig,
+        "Accept": "application/json",
+        "User-Agent": "AvaIvy/2.0 (EcoFlow OpenAPI)",
     }
+
+
+async def _ecoflow_get(client: httpx.AsyncClient, base_url: str, access_key: str,
+                       secret_key: str, path: str, params: dict | None = None) -> dict[str, Any]:
+    params = params or {}
+    headers = _ecoflow_sign(access_key, secret_key, params)
+    try:
+        r = await client.get(
+            f"{base_url.rstrip('/')}{path}",
+            params=params or None,
+            headers=headers,
+            timeout=15,
+        )
+        if r.status_code != 200:
+            log.warning("EcoFlow HTTP %s %s", r.status_code, path)
+            return {}
+        d = r.json()
+        if str(d.get("code") or "0") not in {"0", "None"}:
+            log.warning("EcoFlow API %s code=%s msg=%s", path, d.get("code"), d.get("message"))
+            return {}
+        return d
+    except Exception as e:
+        log.warning("EcoFlow fetch failed %s: %s", path, e)
+        return {}
 
 
 async def _fetch_ecoflow_device(client: httpx.AsyncClient, base_url: str,
                                 access_key: str, secret_key: str,
                                 sn: str) -> dict[str, Any]:
-    """Fetch quota data for one EcoFlow device."""
-    params = {"sn": sn}
-    headers = _ecoflow_headers(access_key, secret_key, params)
-    try:
-        r = await client.get(
-            f"{base_url}/iot-service/v1/device/quota/all",
-            params=params,
-            headers=headers,
-            timeout=15,
-        )
-        if r.status_code == 200:
-            d = r.json()
-            if d.get("code") == "0":
-                return d.get("data", {})
-            log.warning("EcoFlow API error sn=%s code=%s msg=%s",
-                        sn, d.get("code"), d.get("message"))
-        else:
-            log.warning("EcoFlow HTTP %s sn=%s", r.status_code, sn)
-    except Exception as e:
-        log.warning("EcoFlow fetch failed sn=%s: %s", sn, e)
+    d = await _ecoflow_get(
+        client, base_url, access_key, secret_key,
+        "/iot-open/sign/device/quota/all",
+        {"sn": sn},
+    )
+    data = d.get("data") if d else {}
+    if isinstance(data, dict) and data:
+        _write_quota(sn, d)
+        return data
     return {}
 
 
@@ -125,34 +148,77 @@ def _num(data: dict, *keys: str):
 
 async def live_snapshot() -> dict:
     """Dashboard-shaped EcoFlow snapshot. Empty dict if keys/devices missing."""
+    now = time.time()
+    cached = _LIVE_CACHE.get("snap")
+    cached_at = float(_LIVE_CACHE.get("at") or 0)
+    if cached and now - cached_at < 45:
+        return cached
+
     access_key = os.getenv("AVA_ECOFLOW_ACCESS_KEY", "")
     secret_key = os.getenv("AVA_ECOFLOW_SECRET_KEY", "")
     base_url = os.getenv("AVA_ECOFLOW_BASE_URL", "https://api-a.ecoflow.com")
     serial_nos = [s.strip() for s in os.getenv("AVA_ECOFLOW_SN", "").split(",") if s.strip()]
     if not (access_key and secret_key and serial_nos):
-        return _quota_snapshot()
+        snap = _quota_snapshot()
+        _LIVE_CACHE.update({"snap": snap, "at": now})
+        return snap
 
+    online_map: dict[str, bool | None] = {}
     banks: list[float] = []
     watts_in = 0.0
     watts_out = 0.0
     devices: list[dict] = []
+    any_live = False
     async with httpx.AsyncClient() as client:
+        listing = await _ecoflow_get(
+            client, base_url, access_key, secret_key,
+            "/iot-open/sign/device/list", {},
+        )
+        raw_list = listing.get("data")
+        rows = raw_list if isinstance(raw_list, list) else (
+            (raw_list or {}).get("devices") or (raw_list or {}).get("list") or []
+        )
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            sn = str(row.get("sn") or "")
+            flag = row.get("online", row.get("status"))
+            if flag in (0, False, "0", "offline"):
+                online_map[sn] = False
+            elif flag in (1, True, "1", "online"):
+                online_map[sn] = True
         for i, sn in enumerate(serial_nos):
             label = _label_for_sn(sn, f"Device {i + 1}")
             data = await _fetch_ecoflow_device(client, base_url, access_key, secret_key, sn)
+            listed_on = online_map.get(sn)
+            live = bool(data) and listed_on is not False
             soc = _soc_from_quota(data) if data else None
-            inn = _num(data, "mppt.inWatts", "pd.inputWatts") or 0
-            out = _num(data, "pd.outputWatts", "inv.outputWatts") or 0
-            if soc is not None:
+            inn = _num(data, "mppt.inWatts", "pd.wattsInSum", "pd.inputWatts") or 0
+            out = _num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") or 0
+            if live and soc is not None:
                 banks.append(soc)
-            watts_in += inn
-            watts_out += out
-            devices.append({"label": label, "sn": sn, "soc": soc, "watts_in": inn, "watts_out": out, "online": bool(data)})
+                watts_in += inn
+                watts_out += out
+                any_live = True
+            devices.append({
+                "label": label,
+                "sn": sn,
+                "soc": soc,
+                "watts_in": inn,
+                "watts_out": out,
+                "online": live,
+            })
     devices = _sort_devices(devices)
+
+    if not any_live:
+        disk = _quota_snapshot()
+        if disk:
+            _LIVE_CACHE.update({"snap": disk, "at": now})
+            return disk
 
     battery = round(sum(banks) / len(banks), 1) if banks else None
     state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
-    live = {
+    live = _attach_rollups({
         "voltage": None,
         "current": None,
         "power_w": round(watts_in, 1),
@@ -167,27 +233,62 @@ async def live_snapshot() -> dict:
         "devices": devices,
         "source": "ecoflow_live",
         "updated_at": datetime.now(timezone.utc).isoformat(),
-    }
-    if battery is None or (battery is not None and battery < 8):
-        disk = _quota_snapshot()
-        if disk.get("battery_pct") is not None and (
-            battery is None or disk["battery_pct"] > battery
-        ):
-            return _attach_rollups(disk)
-    return _attach_rollups(live)
+    })
+    await _push_ecoflow_d1(live)
+    _LIVE_CACHE.update({"snap": live, "at": now})
+    return live
+
+
+def _write_quota(sn: str, body: dict) -> None:
+    from apps.core import config
+
+    root = config.DATA_DIR / "ecoflow" / "quota"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / f"{sn}.json").write_text(
+            json.dumps({"at": int(time.time() * 1000), "status": 200, "body": body}),
+            encoding="utf-8",
+        )
+    except OSError as e:
+        log.warning("quota write %s: %s", sn, e)
+
+
+async def _push_ecoflow_d1(snap: dict) -> None:
+    """Keep the last live snapshot in the heartbeat D1 so CF can serve it offline."""
+    try:
+        from apps.core import heartbeat
+        from apps.core import config
+
+        if not config.CF_D1_HEARTBEAT_DB_ID:
+            return
+        payload = json.dumps(snap, default=str)[:120_000]
+        sql = (
+            "CREATE TABLE IF NOT EXISTS ava_ecoflow ("
+            "host TEXT PRIMARY KEY, ts TEXT NOT NULL, json TEXT NOT NULL)"
+        )
+        upsert = (
+            "INSERT INTO ava_ecoflow (host, ts, json) VALUES (?1, ?2, ?3) "
+            "ON CONFLICT(host) DO UPDATE SET ts = excluded.ts, json = excluded.json"
+        )
+        modes = heartbeat._auth_modes()
+        if not modes:
+            return
+        async with httpx.AsyncClient(timeout=10) as client:
+            headers = modes[0][1]
+            await heartbeat._d1_query(client, sql, headers=headers)
+            await heartbeat._d1_query(
+                client, upsert,
+                [ "ava-core", datetime.now(timezone.utc).isoformat(), payload],
+                headers,
+            )
+    except Exception as e:
+        log.debug("ecoflow D1 push skipped: %s", e)
 
 
 def _quota_snapshot() -> dict:
-    """On-disk EcoFlow quota files when the cloud API is down."""
-    from apps.core import config
-
-    roots = [
-        Path.home() / "ava" / "data" / "ecoflow",
-        config.DATA_DIR / "ecoflow",
-        config.AVA_HOME / "data" / "ecoflow",
-    ]
-    root = next((p for p in roots if (p / "quota").is_dir()), None)
-    if root is None:
+    """Newest on-disk EcoFlow quota files when the cloud API is down."""
+    root = _ecoflow_root()
+    if root is None or not (root / "quota").is_dir():
         return {}
     names = {}
     listing = root / "devices" / "list.json"
@@ -214,15 +315,19 @@ def _quota_snapshot() -> dict:
         if not isinstance(data, dict):
             continue
         sn = qf.stem
+        at = int(raw.get("at") or 0)
+        at_s = at / 1000.0 if at > 1_000_000_000_000 else float(at)
+        age_s = time.time() - at_s if at_s else 10**9
+        fresh = age_s <= ECO_STALE_S
         label = _label_for_sn(sn, names.get(sn))
         soc = _soc_from_quota(data)
         inn = _num(data, "mppt.inWatts", "pd.inputWatts", "pd.wattsInSum") or 0
         out = _num(data, "pd.outputWatts", "inv.outputWatts", "pd.wattsOutSum") or 0
         remain = _num(data, "bms_emsStatus.dsgRemainTime", "pd.remainTime")
-        if soc is not None:
+        if fresh and soc is not None:
             banks.append(soc)
-        watts_in += inn
-        watts_out += out
+            watts_in += inn
+            watts_out += out
         devices.append({
             "label": label,
             "sn": sn,
@@ -231,7 +336,8 @@ def _quota_snapshot() -> dict:
             "watts_out": out,
             "remain_min": remain,
             "temp_c": _num(data, "bms_bmsStatus.temp", "mppt.mpptTemp"),
-            "online": True,
+            "online": fresh,
+            "age_s": int(age_s),
         })
     if not devices:
         return {}
@@ -251,39 +357,52 @@ def _quota_snapshot() -> dict:
         "solar_in_w": round(watts_in, 1),
         "load_w": round(watts_out, 1),
         "devices": devices,
-        "source": "ecoflow_quota_cache",
+        "source": "ecoflow_quota_cache" if any(d.get("online") for d in devices) else "ecoflow_quota_stale",
         "updated_at": updated or datetime.now(timezone.utc).isoformat(),
     })
 
 
 def json_loads(text: str):
-    import json
     return json.loads(text)
 
 
 def _soc_from_quota(data: dict) -> float | None:
-    bp = _num(data, "pd.bpPowerSoc")
-    bms = _num(data, "bms_bmsStatus.soc", "bms_bmsStatus.f32ShowSoc", "bmsMaster.soc")
-    pd = _num(data, "pd.soc")
-    if bms is not None and 0 <= bms <= 100:
-        return round(bms, 1)
-    if bp is not None and 5 < bp <= 100:
-        return round(bp, 1)
-    if pd is not None and 5 < pd <= 100:
-        return round(pd, 1)
-    if bp is not None:
-        return round(bp, 1)
-    return pd
+    """Real pack SOC. Never use pd.bpPowerSoc — that is backup-reserve %, not charge."""
+    for key in (
+        "bms_bmsStatus.soc",
+        "bms_bmsStatus.f32ShowSoc",
+        "bmsMaster.soc",
+        "pd.soc",
+        "soc",
+        "bmsBattSoc",
+        "cmsBattSoc",
+    ):
+        v = _num(data, key)
+        if v is not None and 0 <= v <= 100:
+            return round(v, 1)
+    return None
 
 
 def _ecoflow_root() -> Path | None:
     from apps.core import config
     roots = [
-        Path.home() / "ava" / "data" / "ecoflow",
         config.DATA_DIR / "ecoflow",
         config.AVA_HOME / "data" / "ecoflow",
+        Path.home() / "ava" / "data" / "ecoflow",
     ]
-    return next((p for p in roots if (p / "quota").is_dir() or (p / "history").is_dir()), None)
+    scored: list[tuple[float, Path]] = []
+    for p in roots:
+        q = p / "quota"
+        if not q.is_dir():
+            continue
+        files = list(q.glob("*.json"))
+        if not files:
+            continue
+        scored.append((max(f.stat().st_mtime for f in files), p))
+    if not scored:
+        return next((p for p in roots if (p / "history").is_dir()), None)
+    scored.sort(reverse=True)
+    return scored[0][1]
 
 
 def _mean(vals: list[float]) -> float | None:

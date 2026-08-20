@@ -103,10 +103,11 @@ function tick(){
   document.getElementById('date').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'Pacific/Honolulu'});
   document.getElementById('time').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Pacific/Honolulu'})+' HST';
 }
-function ring(label,pct,wattsOut){
+function ring(label,pct,wattsOut,online){
   const p=Math.max(0,Math.min(100,Number(pct)||0));
-  const w=(wattsOut!=null && wattsOut!=='') ? `<div style="opacity:.7;font-size:13px">${Math.round(Number(wattsOut)||0)} W out</div>` : '';
-  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div class="lab">${label}</div>${w}</div>`;
+  const stale = online===false ? '<div style="opacity:.7;font-size:13px">offline / last known</div>' : '';
+  const w=(wattsOut!=null && wattsOut!=='' && online!==false) ? `<div style="opacity:.7;font-size:13px">${Math.round(Number(wattsOut)||0)} W out</div>` : '';
+  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div class="lab">${label}</div>${w}${stale}</div>`;
 }
 function watts(v){ if(v==null||v==='') return '—'; return Math.round(Number(v))+' W'; }
 function pct(v){ if(v==null||v==='') return '—'; return Number(v).toFixed(0)+'%'; }
@@ -129,7 +130,7 @@ async function paint(){
     const k=s.kilauea||{};
     const devices=solar.devices||[];
     document.getElementById('rings').innerHTML = devices.length
-      ? devices.map(d=>ring(d.label||'pack', d.soc, d.watts_out)).join('')
+      ? devices.map(d=>ring(d.label||'pack', d.soc, d.watts_out, d.online)).join('')
       : ring('Bank', solar.battery_pct);
     const pv = tot.solar_in_w ?? solar.solar_in_w ?? solar.power_w;
     const load = tot.load_w ?? solar.load_w;
@@ -165,7 +166,7 @@ async function paint(){
     document.getElementById('flowIn').textContent=watts(pv);
     document.getElementById('flowBank').textContent=pct(tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById('flowOut').textContent=watts(load);
-    document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV');
+    document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV')+(solar.updated_at?(' · '+String(solar.updated_at).slice(11,19)+'Z'):'');
   }catch(e){}
 }
 tick(); setInterval(tick,1000);

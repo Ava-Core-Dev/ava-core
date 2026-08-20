@@ -109,6 +109,9 @@ class Scheduler:
         s.add_job(self._run("kilauea_cams"), IntervalTrigger(minutes=5),
                   id="kilauea-cams", name="Kīlauea V1/V2/V3 embed refresh", misfire_grace_time=90)
 
+        s.add_job(self._run("ecoflow_quota"), IntervalTrigger(minutes=2),
+                  id="ecoflow-quota", name="EcoFlow quota refresh", misfire_grace_time=60)
+
         s.add_job(self._run("user_qrcodes"), IntervalTrigger(hours=6),
                   id="user-qrcodes", name="User QR backfill", misfire_grace_time=120)
 
