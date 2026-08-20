@@ -567,7 +567,11 @@ async def obs_solana_qr():
     return HTMLResponse(path.read_text(encoding="utf-8"))
 
 
-@router.get("/solar-dashboard", response_class=HTMLResponse)
+@router.get("/solar", response_class=HTMLResponse)
+async def obs_solar_public():
+    path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
+    html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar desk missing</p>"
+    return HTMLResponse(html)
 async def obs_solar_dashboard():
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     path = Path(__file__).resolve().parent.parent / "templates" / "obs-solar.html"
