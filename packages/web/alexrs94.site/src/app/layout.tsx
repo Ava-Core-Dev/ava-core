@@ -18,23 +18,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="nav">
               <Link href="/">Home</Link>
-              <Link href="/status">Status</Link>
-              <Link href="/solar">Solar</Link>
               <Link href="/media">Media</Link>
               <Link href="/blog">Blog</Link>
               <a href="https://www.youtube.com/@HIqualityviews">YouTube</a>
-              <a href="https://rootrecord.online">Root Record</a>
+              <a href="https://rootrecord.info">Root Record</a>
               <a href="https://avaivy.cloud">Ava Ivy</a>
               <a href="https://rootmc.net">RootMC</a>
             </nav>
           </header>
           {children}
           <footer className="footer">
-            Built on the Big Island · Public foundation live, details growing over time.
+            Built on the Big Island ·{" "}
+            <a href="https://avaivy.cloud">Ava Ivy live desk</a>
+            {" · "}
+            About Developer site for Root Record / RootMC.
           </footer>
         </div>
       </body>
     </html>
   );
 }
-

@@ -395,8 +395,24 @@ def main() -> int:
         print("No markdown posts yet. Run: python3 sync-blogs.py --seed", file=sys.stderr)
         return 1
 
-    emit_ts(AVA_TS, "Ava", AVA_CATS, ava, revised)
-    emit_ts(RR_TS, "Root Record", RR_CATS, rr, revised)
+    # Ava Ivy + Root Record share one merged public feed; alex / RootMC stay isolated.
+    merged_ava_rr = sorted(
+        list(ava) + list(rr),
+        key=lambda p: (p.get("published") or p.get("date") or "", p.get("slug") or ""),
+        reverse=True,
+    )
+    merged_cats = list({**dict(AVA_CATS), **dict(RR_CATS)}.items())
+    # preserve order: ava cats then rr-only
+    seen = set()
+    ordered_cats: list[tuple[str, str]] = []
+    for pair in list(AVA_CATS) + list(RR_CATS):
+        if pair[0] in seen:
+            continue
+        seen.add(pair[0])
+        ordered_cats.append(pair)
+
+    emit_ts(AVA_TS, "Ava", ordered_cats, merged_ava_rr, revised)
+    emit_ts(RR_TS, "Root Record", ordered_cats, merged_ava_rr, revised)
     emit_ts(ALEX_TS, "Alex", ALEX_CATS, alex, revised)
     RMC_JSON.write_text(json.dumps(rmc_json_from_md(rmc, revised), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     subprocess.run([sys.executable, str(RMC_GEN)], check=True)
