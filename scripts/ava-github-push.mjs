@@ -246,9 +246,12 @@ function commitIfDirty(dir, message) {
   };
 }
 
-function pushBranch(dir, localRef, remoteBranch) {
+function pushBranch(dir, localRef, remoteBranch, { setUpstream = false } = {}) {
   const isProtected = /^(main|master)$/i.test(remoteBranch);
-  let push = git(dir, ["push", "-u", "origin", `${localRef}:${remoteBranch}`]);
+  const args = setUpstream
+    ? ["push", "-u", "origin", `${localRef}:${remoteBranch}`]
+    : ["push", "origin", `${localRef}:${remoteBranch}`];
+  let push = git(dir, args);
   if (!push.ok && /rejected|non-fast-forward|behind/i.test(push.stderr + push.stdout)) {
     if (isProtected) {
       const pull = git(dir, [
@@ -266,15 +269,14 @@ function pushBranch(dir, localRef, remoteBranch) {
           note: "refusing force-push on main/master",
         };
       }
-      push = git(dir, ["push", "-u", "origin", `${localRef}:${remoteBranch}`]);
+      push = git(dir, args);
     } else {
       // Dev branch may diverge; still never --force on main. For `dev`, allow
       // a non-destructive update via +ref only when AVA_GITHUB_PUSH_FORCE_DEV=1.
       if (String(process.env.AVA_GITHUB_PUSH_FORCE_DEV || "") === "1") {
-        push = git(dir, ["push", "-u", "origin", `+${localRef}:${remoteBranch}`]);
+        push = git(dir, ["push", "origin", `+${localRef}:${remoteBranch}`]);
       } else {
-        // Fast-forward only: tip of default onto dev when possible
-        push = git(dir, ["push", "-u", "origin", `${localRef}:${remoteBranch}`]);
+        push = git(dir, args);
       }
     }
   }
@@ -292,11 +294,11 @@ function pushBranch(dir, localRef, remoteBranch) {
 function pushDefaultAndDev(dir, defaultBranch, alsoDev) {
   const head = git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]).stdout || defaultBranch;
   const results = [];
-  const primary = pushBranch(dir, "HEAD", head);
+  const primary = pushBranch(dir, "HEAD", head, { setUpstream: true });
   results.push({ target: head, ...primary });
   if (alsoDev && !/^dev$/i.test(head)) {
-    // Keep a rolling `dev` pointer at the same commit (no force on first create).
-    const dev = pushBranch(dir, "HEAD", "dev");
+    // Keep a rolling `dev` pointer at the same commit (do not set upstream).
+    const dev = pushBranch(dir, "HEAD", "dev", { setUpstream: false });
     results.push({ target: "dev", ...dev });
   }
   const ok = results.every((r) => r.ok);
