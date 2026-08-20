@@ -161,6 +161,7 @@ class StreamDirector:
         self._paused_position: float = 0.0
         self._running = False
         self._obs_ws: Any | None = None
+        self._obs_lock = asyncio.Lock()
         self._sse_listeners: list[asyncio.Queue] = []
 
     # ── Public API ────────────────────────────────────────────────────────────
@@ -212,31 +213,34 @@ class StreamDirector:
         from apps.core import config
         if not config.OBS_WS_URL:
             return False
-        try:
-            self._obs_ws = await websockets.connect(config.OBS_WS_URL, ping_interval=20)
-            # OBS WebSocket 5.x Hello → Identify handshake
-            hello = json.loads(await self._obs_ws.recv())
-            auth = hello.get("d", {}).get("authentication")
-            identify: dict = {"op": 1, "d": {"rpcVersion": 1}}
-            if auth and config.OBS_WS_PASSWORD:
-                import base64, hashlib
-                challenge = auth["challenge"]
-                salt = auth["salt"]
-                secret = base64.b64encode(
-                    hashlib.sha256((config.OBS_WS_PASSWORD + salt).encode()).digest()
-                ).decode()
-                auth_str = base64.b64encode(
-                    hashlib.sha256((secret + challenge).encode()).digest()
-                ).decode()
-                identify["d"]["authentication"] = auth_str
-            await self._obs_ws.send(json.dumps(identify))
-            identified = json.loads(await self._obs_ws.recv())
-            log.info("OBS WebSocket connected  op=%s", identified.get("op"))
-            return True
-        except Exception as e:
-            log.warning("OBS WebSocket connect failed: %s", e)
-            self._obs_ws = None
-            return False
+        async with self._obs_lock:
+            if self._obs_ws is not None:
+                return True
+            try:
+                self._obs_ws = await websockets.connect(config.OBS_WS_URL, ping_interval=20)
+                # OBS WebSocket 5.x Hello → Identify handshake
+                hello = json.loads(await self._obs_ws.recv())
+                auth = hello.get("d", {}).get("authentication")
+                identify: dict = {"op": 1, "d": {"rpcVersion": 1}}
+                if auth and config.OBS_WS_PASSWORD:
+                    import base64, hashlib
+                    challenge = auth["challenge"]
+                    salt = auth["salt"]
+                    secret = base64.b64encode(
+                        hashlib.sha256((config.OBS_WS_PASSWORD + salt).encode()).digest()
+                    ).decode()
+                    auth_str = base64.b64encode(
+                        hashlib.sha256((secret + challenge).encode()).digest()
+                    ).decode()
+                    identify["d"]["authentication"] = auth_str
+                await self._obs_ws.send(json.dumps(identify))
+                identified = json.loads(await self._obs_ws.recv())
+                log.info("OBS WebSocket connected  op=%s", identified.get("op"))
+                return True
+            except Exception as e:
+                log.warning("OBS WebSocket connect failed: %s", e)
+                self._obs_ws = None
+                return False
 
     async def _obs_request(self, request_type: str, data: dict | None = None) -> dict | None:
         if not self._obs_ws:
@@ -247,9 +251,18 @@ class StreamDirector:
             payload = {"op": 6, "d": {"requestType": request_type,
                                        "requestId": req_id,
                                        "requestData": data or {}}}
-            await self._obs_ws.send(json.dumps(payload))
-            resp = json.loads(await asyncio.wait_for(self._obs_ws.recv(), timeout=5))
-            return resp.get("d", {})
+            async with self._obs_lock:
+                if not self._obs_ws:
+                    return None
+                await self._obs_ws.send(json.dumps(payload))
+                while True:
+                    raw = json.loads(await asyncio.wait_for(self._obs_ws.recv(), timeout=5))
+                    if raw.get("op") != 7:
+                        continue
+                    body = raw.get("d", {})
+                    if body.get("requestId") != req_id:
+                        continue
+                    return body
         except Exception as e:
             log.warning("OBS request %s failed: %s", request_type, e)
             self._obs_ws = None
