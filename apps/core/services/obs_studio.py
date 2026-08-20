@@ -102,6 +102,7 @@ DEFAULT_MODE_DWELL_S = {
     "weather": 60,
     "kilauea": 60,
     "hurricane": 60,
+    "all": 60,
 }
 
 
@@ -1271,11 +1272,11 @@ async def rotate_loop_scene() -> dict:
         if coll.get("switched"):
             return {"ok": True, "scene": cur, "held": "mode_collection", "mode": mode}
 
-        if watch.get("erupting"):
+        if mode != "all" and watch.get("erupting"):
             if cur != "Kilauea Watch":
                 await obs.req("SetCurrentProgramScene", {"sceneName": "Kilauea Watch"})
             return {"ok": True, "scene": "Kilauea Watch", "held": "eruption"}
-        if mc.get("ingame"):
+        if mode != "all" and mc.get("ingame"):
             share = mc_share()
             if share < MC_SHARE:
                 record_tick(True)
@@ -1283,7 +1284,7 @@ async def rotate_loop_scene() -> dict:
                     await obs.req("SetCurrentProgramScene", {"sceneName": MC_SCENE})
                 return {"ok": True, "scene": MC_SCENE, "held": "minecraft", "share": share}
             record_tick(False)
-        elif cur == MC_SCENE:
+        elif mode != "all" and cur == MC_SCENE:
             await obs.req("SetCurrentProgramScene", {"sceneName": DEFAULT_START_SCENE})
             return {"ok": True, "scene": DEFAULT_START_SCENE, "held": "mc_offline"}
 
@@ -1314,7 +1315,9 @@ async def rotate_loop_scene() -> dict:
             for s in (await obs.req("GetSceneList")).get("scenes") or []
             if s.get("sceneName")
         ]
-        if mode == "kilauea":
+        if mode == "all":
+            base_pool = scene_list
+        elif mode == "kilauea":
             base_pool = kilauea_scene_pool()
         elif mode == "hurricane":
             base_pool = hurricane_scene_pool()

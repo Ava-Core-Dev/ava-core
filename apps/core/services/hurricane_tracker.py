@@ -73,6 +73,8 @@ def current_mode() -> str:
         return "kilauea"
     if mode in {"weather", "wx", "noaa"}:
         return "weather"
+    if mode in {"all", "everything", "full"}:
+        return "all"
     return "daily"
 
 
@@ -84,6 +86,8 @@ def write_mode(mode: str, extra: dict | None = None) -> dict:
         stored = "kilauea"
     elif raw in {"weather", "wx", "noaa"}:
         stored = "weather"
+    elif raw in {"all", "everything", "full"}:
+        stored = "all"
     else:
         stored = "daily"
     payload = {
@@ -741,6 +745,8 @@ async def set_mode(mode: str) -> dict:
         want = "kilauea"
     elif raw in {"weather", "wx", "noaa"}:
         want = "weather"
+    elif raw in {"all", "everything", "full"}:
+        want = "all"
     else:
         want = "daily"
     write_mode(want)
@@ -763,7 +769,7 @@ async def set_mode(mode: str) -> dict:
                 await asyncio.sleep(1.2)
         wx = await apply_weather_radar(obs)
         nhc = await apply_nhc_obs_scenes(obs)
-        start = "NHC · EPAC 2-Day" if want == "weather" else "Main"
+        start = "NHC · EPAC 2-Day" if want == "weather" else "Weather Board"
         await obs.try_req("SetCurrentProgramScene", {"sceneName": start})
         return {
             "ok": True,

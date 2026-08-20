@@ -2433,6 +2433,8 @@ async function refreshStreamOps() {
         ? "MODE HURRICANE"
         : mode === "kilauea"
           ? "MODE KILAUEA"
+          : mode === "all"
+            ? "MODE ALL SCENES"
           : mode === "weather"
             ? "MODE WEATHER"
             : "MODE DAILY";
@@ -2444,6 +2446,7 @@ async function refreshStreamOps() {
     document.querySelectorAll(".stream-modes button").forEach((b) => b.classList.remove("on"));
     const modeBtn = {
       daily: $("stream-mode-daily"),
+      all: $("stream-mode-all"),
       weather: $("stream-mode-weather"),
       kilauea: $("stream-mode-kilauea"),
       hurricane: $("stream-mode-hurricane"),
@@ -2581,6 +2584,7 @@ async function bootStreamOps() {
   $("stream-watch-enter").onclick = () => streamAction("watch-enter");
   $("stream-watch-exit").onclick = () => streamAction("watch-exit");
   $("stream-mode-daily") && ($("stream-mode-daily").onclick = () => streamAction("mode-daily"));
+  $("stream-mode-all") && ($("stream-mode-all").onclick = () => streamAction("mode-all"));
   $("stream-mode-weather") && ($("stream-mode-weather").onclick = () => streamAction("mode-weather"));
   $("stream-mode-kilauea") && ($("stream-mode-kilauea").onclick = () => streamAction("mode-kilauea"));
   $("stream-mode-hurricane") && ($("stream-mode-hurricane").onclick = () => streamAction("mode-hurricane"));
@@ -2636,6 +2640,7 @@ function sceneKey(scenes) {
 function modeLabel(mode) {
   return {
     daily: "Daily",
+    all: "All scenes",
     weather: "Weather",
     kilauea: "Kilauea",
     hurricane: "Hurricane",
@@ -2743,7 +2748,7 @@ function renderStreamRotationEditors(scenes, cfg) {
   const sceneDwell = cfg.scene_dwell_s || {};
   modeHost.innerHTML = "";
   sceneHost.innerHTML = "";
-  for (const mode of ["daily", "weather", "kilauea", "hurricane"]) {
+  for (const mode of ["daily", "all", "weather", "kilauea", "hurricane"]) {
     const lbl = document.createElement("label");
     lbl.className = "mc-follow";
     lbl.textContent = `${modeLabel(mode)} `;
