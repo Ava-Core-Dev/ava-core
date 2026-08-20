@@ -18,6 +18,8 @@ from apps.core import config
 log = logging.getLogger("ava.obs_studio")
 
 COLLECTION = "Ava Daily Broadcast"
+HURRICANE_COLLECTION = "Ava Hurricane Tracker"
+HURRICANE_DWELL_S = 42
 MC_SCENE = "RootMC Live"
 MC_SHARE = 0.75
 AMBIENT_SCENES = [
@@ -1042,7 +1044,46 @@ async def rotate_loop_scene() -> dict:
     if not await obs.connect():
         return {"ok": False, "detail": "obs_unreachable"}
     try:
+        from apps.core.services.hurricane_tracker import (
+            current_mode,
+            ensure_mode_collection,
+            hurricane_scene_pool,
+        )
+        import time as _time
+
+        mode = current_mode()
+        coll = await ensure_mode_collection(obs)
         cur = (await obs.req("GetCurrentProgramScene")).get("currentProgramSceneName")
+        if coll.get("switched"):
+            return {"ok": True, "scene": cur, "held": "mode_collection", "mode": mode}
+
+        if mode == "hurricane":
+            pool = hurricane_scene_pool()
+            st = _load_rotate()
+            if st.get("scene") != cur:
+                _save_rotate(cur)
+                elapsed = 0.0
+            else:
+                elapsed = _time.time() - float(st.get("since") or _time.time())
+            if elapsed < MIN_DWELL_S:
+                return {"ok": True, "scene": cur, "held": "min_dwell", "mode": mode, "elapsed_s": round(elapsed, 1)}
+            if elapsed < HURRICANE_DWELL_S:
+                return {
+                    "ok": True,
+                    "scene": cur,
+                    "held": "hurricane_dwell",
+                    "mode": mode,
+                    "elapsed_s": round(elapsed, 1),
+                    "need_s": HURRICANE_DWELL_S,
+                }
+            if cur not in pool:
+                nxt = pool[0] if pool else "HT · Florida"
+            else:
+                nxt = pool[(pool.index(cur) + 1) % len(pool)]
+            await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
+            _save_rotate(nxt)
+            return {"ok": True, "scene": nxt, "from": cur, "mode": "hurricane"}
+
         if watch.get("erupting"):
             if cur != "Kilauea Watch":
                 await obs.req("SetCurrentProgramScene", {"sceneName": "Kilauea Watch"})
