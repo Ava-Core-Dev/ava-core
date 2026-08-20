@@ -92,6 +92,7 @@ export default function DevPage() {
             <li>Rebuild with <code>python3 scripts/sync-blogs.py</code></li>
             <li>Publish RootMC with <code>bash scripts/publish-rootmc.sh</code></li>
             <li>Auto-push timer sends repo updates to GitHub every two minutes</li>
+            <li>Review report drafts at local desk, then publish from queue</li>
           </ul>
         </article>
 
@@ -102,6 +103,17 @@ export default function DevPage() {
             <li><a href="https://rootmc.net">rootmc.net</a> — Minecraft network + changelog</li>
             <li><a href="https://avaivy.cloud">avaivy.cloud</a> — Ava platform + status</li>
             <li><a href="https://rootrecord.info">rootrecord.info</a> — public wiki</li>
+            <li><code>packages/web/alexrs94.site</code> — isolated personal site foundation</li>
+          </ul>
+        </article>
+
+        <article className={blog.card}>
+          <h2>Tutorial quick links</h2>
+          <ul className={blog.sources}>
+            <li><code>/home/ava-core/ava/START-HERE.md</code> — non-coder operations guide</li>
+            <li><code>ava-core-v2/EDITING.md</code> — website editing and publishing notes</li>
+            <li><code>ava-core-v2/docs/architecture.md</code> — runtime and domain map</li>
+            <li><code>scripts/ensure-ava-runtime.sh</code> — auto-heal runtime watchdog check</li>
           </ul>
         </article>
       </div>

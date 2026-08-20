@@ -21,6 +21,13 @@ Stale or missing = Ava is offline = CF runs fallback logic.
 | `avaivy.cloud` | `ava-api` | Ava API + public identity site |
 | `rootrecord.online` | `rootrecord-api` | Kilauea, NWS, USGS, hourly ops |
 | `rootmc.info` | `rootmc-api` | Minecraft API (economy, RCON, players) |
+| `alexrs94.site` | (foundation) | Personal site (solar + media + YouTube) |
+
+## Report publishing policy
+
+Automations generate report drafts and save them locally first.
+Operator review is required before public posting.
+Draft queue endpoint: `/api/reports/queue`.
 
 ## Service architecture
 

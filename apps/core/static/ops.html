@@ -22,7 +22,7 @@
 </head>
 <body>
   <h1>Ava desk</h1>
-  <p class="muted">This page only works on the Ava machine (<code>127.0.0.1</code>). No Cursor. No paid API. Local Ava (Ollama) can rewrite words. Auto-push still sends website files to GitHub every 2 minutes.</p>
+  <p class="muted">This page only works on the Ava machine (<code>127.0.0.1</code>). No Cursor required. Local Ava (Ollama) can rewrite words. Website files still auto-push to GitHub every 2 minutes.</p>
 
   <section>
     <h2>1. New blog post</h2>
@@ -72,11 +72,21 @@
     <h2>4. Publish</h2>
     <button type="button" id="sync">Rebuild blogs only</button>
     <button type="button" class="secondary" id="publish">Publish RootMC to the internet</button>
-    <p class="muted">Ava Ivy and Root Record websites update after GitHub auto-push (about 2 minutes) if Vercel is connected. RootMC needs the Publish button.</p>
+    <p class="muted">Ava Ivy and Root Record update from GitHub sync. RootMC uses the Publish button.</p>
   </section>
 
   <section>
-    <h2>5. Words on the home page</h2>
+    <h2>5. Report review</h2>
+    <p class="muted">Automations create report drafts. Review, then publish what you want to share.</p>
+    <button type="button" id="queue-refresh">Load pending drafts</button>
+    <label>Draft filename
+      <input id="queue-name" placeholder="2026-08-19T221500-summary-cron.md" />
+    </label>
+    <button type="button" class="secondary" id="queue-publish">Publish selected draft</button>
+  </section>
+
+  <section>
+    <h2>6. Words on the home page</h2>
     <ul>
       <li>Ava headline / nav: <code>ava-core-v2/packages/web/avaivy.cloud/src/content.json</code></li>
       <li>Goals: <code>.../src/goals.json</code></li>
@@ -125,6 +135,15 @@
     document.getElementById("publish").onclick = async () => {
       show("Publishing RootMC…");
       show(await post("/api/ops/publish-rootmc", {}));
+    };
+    document.getElementById("queue-refresh").onclick = async () => {
+      const res = await fetch("/api/reports/queue");
+      show(await res.json());
+    };
+    document.getElementById("queue-publish").onclick = async () => {
+      const name = document.getElementById("queue-name").value.trim();
+      if (!name) { show("Enter a draft filename first."); return; }
+      show(await post(`/api/reports/queue/${encodeURIComponent(name)}/publish`, {}));
     };
   </script>
 </body>
