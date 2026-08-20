@@ -61,3 +61,9 @@
   font-size: 14px;
 }
 .pager a { color: var(--accent, #06b6d4); }
+.audioBox { margin: 0 0 1.5rem; }
+.audioBox figure { margin: 0 0 1rem; }
+.audioBox figcaption { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.audioBox audio { width: 100%; }
+.sources { font-size: 13px; color: var(--muted); margin-top: 1.5rem; }
+.sources li { margin: 0 0 4px; }

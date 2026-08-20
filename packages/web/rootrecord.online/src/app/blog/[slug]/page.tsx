@@ -1,5 +1,5 @@
 import blog from "../blog.module.css";
-import { POSTS, getPost, neighbors } from "@/lib/blogPosts";
+import { POSTS, getPost, neighbors, mediaUrl } from "@/lib/blogPosts";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -35,6 +35,18 @@ export default async function BlogPostPage({
       <p className={blog.eyebrow}>Root Record · {post.brand}</p>
       <h1 className={blog.title}>{post.title}</h1>
       <p className={blog.lead}>{post.teaser}</p>
+      {post.audio && post.audio.length > 0 ? (
+        <div className={blog.audioBox}>
+          {post.audio.map((src) => (
+            <figure key={src}>
+              <figcaption>Listen — {src.split("/").pop()}</figcaption>
+              <audio controls preload="none" src={mediaUrl(src)}>
+                <a href={mediaUrl(src)}>Download audio</a>
+              </audio>
+            </figure>
+          ))}
+        </div>
+      ) : null}
       <article className={blog.prose}>
         {post.paragraphs.map((t, i) => (
           <p key={i}>{t}</p>
@@ -49,6 +61,15 @@ export default async function BlogPostPage({
         {post.after?.map((t, i) => (
           <p key={`a${i}`}>{t}</p>
         ))}
+        {post.sources && post.sources.length > 0 ? (
+          <ul className={blog.sources}>
+            {post.sources.map((href) => (
+              <li key={href}>
+                <a href={href}>{href}</a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </article>
       <nav className={blog.pager} aria-label="Adjacent updates">
         <Link href="/blog">All updates</Link>

@@ -12,6 +12,12 @@ export type BlogPost = {
   published?: string;
 };
 
+const MEDIA_FILE = "https://avaivy.cloud/api/media/public/file?path=";
+
+export function mediaUrl(rel: string): string {
+  return MEDIA_FILE + encodeURIComponent(rel.replace(/^\/+/, ""));
+}
+
 /** Newest first. Dates only from changelogs, Goals notes, archives, and public announcements. */
 export const POSTS: BlogPost[] = [
   {

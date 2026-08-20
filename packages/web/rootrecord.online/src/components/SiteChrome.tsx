@@ -4,6 +4,7 @@ const NAV = [
   { href: "/", label: "Live" },
   { href: "/goals", label: "Goals" },
   { href: "/blog", label: "Updates" },
+  { href: "/timeline", label: "Timeline" },
   { href: "https://avaivy.cloud", label: "Ava Ivy" },
   { href: "https://rootmc.net", label: "RootMC" },
   { href: "https://rootrecord.info", label: "Wiki" },
