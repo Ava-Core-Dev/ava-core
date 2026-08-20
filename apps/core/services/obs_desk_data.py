@@ -58,13 +58,16 @@ def _post_date(meta: dict[str, str], path: Path) -> str:
         return "1970-01-01"
 
 
-def latest_blog_across_sites() -> dict[str, Any]:
-    best: dict[str, Any] | None = None
+def _iter_blog_posts() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
     for brand in ("ava", "rootrecord", "rootmc"):
         root = POSTS / brand
         if not root.is_dir():
             continue
         for path in root.glob("*.md"):
+            # READMEs are indexes, not desk notifications
+            if path.name.upper() == "README.MD":
+                continue
             try:
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError:
@@ -73,18 +76,32 @@ def latest_blog_across_sites() -> dict[str, Any]:
             title = meta.get("title") or path.stem.replace("-", " ").title()
             teaser = meta.get("teaser") or meta.get("description") or ""
             dt = _post_date(meta, path)
-            row = {
-                "site": brand,
-                "site_label": SITE_LABELS.get(brand, brand),
-                "slug": path.stem,
-                "title": title,
-                "teaser": teaser[:280],
-                "date": dt,
-                "path": str(path),
-            }
-            if best is None or row["date"] > best["date"]:
-                best = row
-    return best or {"title": "No posts yet", "site_label": "—", "date": "—", "teaser": ""}
+            rows.append(
+                {
+                    "site": brand,
+                    "site_label": SITE_LABELS.get(brand, brand),
+                    "slug": path.stem,
+                    "title": title,
+                    "teaser": teaser[:280],
+                    "date": dt,
+                    "path": str(path),
+                }
+            )
+    rows.sort(key=lambda r: (r.get("date") or "", r.get("slug") or ""), reverse=True)
+    return rows
+
+
+def latest_blog_across_sites() -> dict[str, Any]:
+    rows = _iter_blog_posts()
+    if not rows:
+        return {"title": "No posts yet", "site_label": "—", "date": "—", "teaser": ""}
+    return rows[0]
+
+
+def recent_blogs_across_sites(limit: int = 6) -> list[dict[str, Any]]:
+    """Newest posts across ava / rootrecord / rootmc for the Dev Updates desk."""
+    n = max(1, min(int(limit or 6), 12))
+    return _iter_blog_posts()[:n]
 
 
 def _economy_stats_candidates() -> list[Path]:

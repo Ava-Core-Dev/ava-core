@@ -981,10 +981,12 @@ async def api_obs_economy_desk():
 
 
 @api_router.get("/dev-updates-desk")
-async def api_obs_dev_updates_desk():
-    from apps.core.services.obs_desk_data import latest_blog_across_sites
+async def api_obs_dev_updates_desk(limit: int = 6):
+    from apps.core.services.obs_desk_data import latest_blog_across_sites, recent_blogs_across_sites
 
-    return {"ok": True, **latest_blog_across_sites()}
+    items = recent_blogs_across_sites(limit=limit)
+    newest = items[0] if items else latest_blog_across_sites()
+    return {"ok": True, "count": len(items), "items": items, **newest}
 
 
 @api_router.get("/quake-desk")
