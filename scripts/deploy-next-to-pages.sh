@@ -15,7 +15,7 @@ rm -rf "$OUT"
 mkdir -p "$OUT/_next"
 cp -a .next/static "$OUT/_next/static"
 
-python3 <<'PY' "$APP_DIR"
+python3 - "$APP_DIR" <<'PY'
 import shutil, sys
 from pathlib import Path
 
