@@ -126,6 +126,7 @@ for _route in (
     "realworld",
     "media",
     "blog",
+    "ops",
     "vercel_builds",
 ):
     try:

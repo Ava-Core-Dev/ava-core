@@ -51,6 +51,10 @@ def main() -> int:
         shutil.move(str(path), str(dest))
         print(f"published {dest}")
         moved += 1
+    if moved:
+        import subprocess
+        sync = Path(__file__).resolve().parent / "sync-blogs.py"
+        subprocess.run([sys.executable, str(sync)], check=False)
     print(f"inbox promoted: {moved}")
     print("Next: regenerate site blogs (write-blog-timeline.py / Next POSTS) and deploy.")
     print("Set category + published (ISO with offset) in frontmatter; bump ARCHIVE_REVISED.")

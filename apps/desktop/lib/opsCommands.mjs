@@ -11,7 +11,7 @@ const CRON_BUTTONS = [
   ["system-performance", "System performance", "Host CPU / memory / disk snapshot"],
   ["player-economy-report", "Player economy", "Player economy + Kīlauea multiplier"],
   ["morning-report", "Morning report", "The 10:00 HST morning report"],
-  ["merged-morning-summary", "Merged morning summary", "Grok synthesis → #updates"],
+  ["merged-morning-summary", "Merged morning summary", "Local Ava if Grok is out → #updates"],
   ["economy-brief", "Economy brief", "The 15:00 HST economy brief"],
   ["overnight-relay", "Late-night relay", "Late-night status check-in"],
   ["heartbeat", "Heartbeat write", "Force a Cloudflare D1 heartbeat write"],
@@ -20,6 +20,29 @@ const CRON_BUTTONS = [
 ];
 
 export const OPS_COMMAND_GROUPS = [
+  {
+    id: "desk",
+    label: "Desk · no Cursor",
+    commands: [
+      {
+        id: "ops-sync-blogs",
+        label: "Rebuild blogs from markdown",
+        kind: "http",
+        method: "POST",
+        path: "/api/ops/sync-blogs",
+        detail: "Reads media/documents/reports/posts/ and rebuilds the three blogs",
+      },
+      {
+        id: "ops-publish-rootmc",
+        label: "Publish RootMC website",
+        kind: "http",
+        method: "POST",
+        path: "/api/ops/publish-rootmc",
+        detail: "Upload rootmc.net HTML (blog included) to Cloudflare Pages",
+        confirm: "Publish RootMC to the internet now?",
+      },
+    ],
+  },
   {
     id: "crons",
     label: "Crons · run now (Python core)",

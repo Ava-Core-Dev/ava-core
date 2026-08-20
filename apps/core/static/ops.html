@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ava desk — no Cursor</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: system-ui, sans-serif; background:#0a0e14; color:#e5e7eb; max-width: 52rem; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.6rem; margin: 0 0 .35rem; }
+    .muted { color:#9ca3af; font-size: .95rem; }
+    section { background:#111827; border:1px solid #1f2937; border-radius:16px; padding:1rem 1.1rem; margin: 1rem 0; }
+    label { display:block; font-size:.8rem; color:#9ca3af; margin:.6rem 0 .25rem; }
+    input, select, textarea { width:100%; box-sizing:border-box; background:#0a0e14; color:inherit; border:1px solid #374151; border-radius:8px; padding:.55rem .7rem; font: inherit; }
+    textarea { min-height: 8rem; }
+    button { margin-top:.75rem; margin-right:.4rem; background:#06b6d4; color:#0a0e14; border:0; border-radius:999px; padding:.5rem 1rem; font-weight:700; cursor:pointer; }
+    button.secondary { background:#1f2937; color:#e5e7eb; }
+    pre { white-space:pre-wrap; background:#0a0e14; padding:.75rem; border-radius:8px; font-size:.8rem; }
+    a { color:#22d3ee; }
+    ul { padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>Ava desk</h1>
+  <p class="muted">This page only works on the Ava machine (<code>127.0.0.1</code>). No Cursor. No paid API. Local Ava (Ollama) can rewrite words. Auto-push still sends website files to GitHub every 2 minutes.</p>
+
+  <section>
+    <h2>1. New blog post</h2>
+    <p class="muted">Pick the site that owns the topic. Minecraft → RootMC. Solar / volcano / Goals → Root Record. Runtime / Discord / “I” → Ava.</p>
+    <label>Site
+      <select id="brand">
+        <option value="ava">Ava Ivy (avaivy.cloud)</option>
+        <option value="rootmc">RootMC (rootmc.net)</option>
+        <option value="rootrecord">Root Record (rootrecord.online)</option>
+      </select>
+    </label>
+    <label>Category
+      <input id="category" placeholder="runtime  or  economy  or  solar" />
+    </label>
+    <label>Title <input id="title" /></label>
+    <label>Short teaser <input id="teaser" /></label>
+    <label>Date (YYYY-MM-DD or YYYY-MM) <input id="date" placeholder="2026-08-19" /></label>
+    <label>Full timestamp if you know it (ISO) <input id="published" placeholder="2026-08-19T19:30:00-10:00" /></label>
+    <label>Body (plain English). For RootMC you may paste simple HTML.
+      <textarea id="body"></textarea>
+    </label>
+    <button type="button" id="save">Save post + rebuild blogs</button>
+  </section>
+
+  <section>
+    <h2>2. Upload a file</h2>
+    <p class="muted">Audio for a post, a photo, a report PDF. Goes into <code>media/</code> on this computer.</p>
+    <label>Kind
+      <select id="kind">
+        <option value="audio">Audio (reports)</option>
+        <option value="images">Image</option>
+        <option value="documents">Document</option>
+      </select>
+    </label>
+    <label>File <input id="file" type="file" /></label>
+    <button type="button" id="upload">Upload</button>
+  </section>
+
+  <section>
+    <h2>3. Rewrite with local Ava</h2>
+    <p class="muted">Uses Ollama on this box. Does not use Cursor or xAI credits.</p>
+    <label>Draft <textarea id="draft"></textarea></label>
+    <button type="button" id="rewrite">Rewrite clearly</button>
+  </section>
+
+  <section>
+    <h2>4. Publish</h2>
+    <button type="button" id="sync">Rebuild blogs only</button>
+    <button type="button" class="secondary" id="publish">Publish RootMC to the internet</button>
+    <p class="muted">Ava Ivy and Root Record websites update after GitHub auto-push (about 2 minutes) if Vercel is connected. RootMC needs the Publish button.</p>
+  </section>
+
+  <section>
+    <h2>5. Words on the home page</h2>
+    <ul>
+      <li>Ava headline / nav: <code>ava-core-v2/packages/web/avaivy.cloud/src/content.json</code></li>
+      <li>Goals: <code>.../src/goals.json</code></li>
+      <li>Public wallets: <code>.../src/wallets.json</code></li>
+      <li>Blog posts folder: <code>media/documents/reports/posts/</code></li>
+      <li>Longer guide: <code>/home/ava-core/ava/START-HERE.md</code></li>
+    </ul>
+    <p class="muted">Open those files in Text Editor. Save. Auto-push handles GitHub.</p>
+  </section>
+
+  <pre id="out">Ready.</pre>
+  <script>
+    const out = document.getElementById("out");
+    function show(x) { out.textContent = typeof x === "string" ? x : JSON.stringify(x, null, 2); }
+    async function post(url, body, isForm) {
+      const res = await fetch(url, isForm ? { method: "POST", body } : {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      const t = await res.text();
+      try { return JSON.parse(t); } catch { return t; }
+    }
+    document.getElementById("save").onclick = async () => {
+      show(await post("/api/ops/blog", {
+        brand: document.getElementById("brand").value,
+        category: document.getElementById("category").value,
+        title: document.getElementById("title").value,
+        teaser: document.getElementById("teaser").value,
+        date: document.getElementById("date").value,
+        published: document.getElementById("published").value,
+        body: document.getElementById("body").value,
+      }));
+    };
+    document.getElementById("upload").onclick = async () => {
+      const f = document.getElementById("file").files[0];
+      if (!f) { show("Pick a file first."); return; }
+      const fd = new FormData();
+      fd.append("kind", document.getElementById("kind").value);
+      fd.append("file", f);
+      show(await post("/api/ops/upload", fd, true));
+    };
+    document.getElementById("rewrite").onclick = async () => {
+      show("Rewriting on this computer…");
+      show(await post("/api/ops/rewrite", { text: document.getElementById("draft").value }));
+    };
+    document.getElementById("sync").onclick = async () => show(await post("/api/ops/sync-blogs", {}));
+    document.getElementById("publish").onclick = async () => {
+      show("Publishing RootMC…");
+      show(await post("/api/ops/publish-rootmc", {}));
+    };
+  </script>
+</body>
+</html>

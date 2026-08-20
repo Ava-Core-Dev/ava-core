@@ -1,5 +1,10 @@
 # Editing Ava without Cursor
 
+**Start here on the Ava machine:** http://127.0.0.1:8787/ops  
+and `/home/ava-core/ava/START-HERE.md`
+
+Everything below can also be done from a browser on any device, for free.
+
 Everything in this file can be done from a browser on any device, for free.
 No terminal, no CLI, no AI agent required.
 

@@ -36,6 +36,7 @@ PUBLIC_PREFIXES = (
     "images/thumbnails/",
     "images/thumnails/",
     "images/channels/",
+    "images/uploads/",
     "documents/reports/",
     "documents/docs/",
     "documents/plans/",
