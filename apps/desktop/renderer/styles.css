@@ -1268,6 +1268,23 @@ code { color: var(--accent); }
 }
 .report-pill.warn { color: #e8b86d; }
 .report-pill.info { color: var(--muted); }
+.attach-bar { display: flex; flex-direction: column; gap: 0.35rem; }
+.attach-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; min-height: 1.4rem; }
+.attach-chips .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.15rem 0.35rem 0.15rem 0.55rem;
+  font-size: 0.78rem;
+  background: rgba(255,255,255,0.03);
+}
+.attach-chips .chip button {
+  padding: 0.05rem 0.35rem;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
 @media (max-width: 900px) {
   .fin-line { grid-template-columns: 1fr; }
 }
