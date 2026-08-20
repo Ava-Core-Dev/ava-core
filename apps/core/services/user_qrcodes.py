@@ -159,8 +159,10 @@ async def _load_accounts() -> list[dict]:
         if body.get("success"):
             rows = _d1_rows(body)
             used_db = db_id
+            log.info("user qr D1 ok db=%s rows=%s", db_id[:8], len(rows))
             break
         last_err = body.get("errors")
+        log.warning("user qr D1 skip db=%s: %s", (db_id or "")[:8], last_err)
     if last_err and not rows:
         log.warning("user qr D1 query failed: %s", last_err)
     linked: dict[str, str] = {}

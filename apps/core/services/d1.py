@@ -21,8 +21,25 @@ def auth_headers() -> dict[str, str]:
     return headers
 
 
-def _auth_modes() -> list[dict[str, str]]:
+def _is_account_db(db_id: str) -> bool:
+    return bool(db_id and config.CF_D1_ACCOUNT_DB_ID and db_id == config.CF_D1_ACCOUNT_DB_ID)
+
+
+def _account_id_for(db_id: str) -> str:
+    if _is_account_db(db_id) and config.CF_D1_ACCOUNT_ACCOUNT_ID:
+        return config.CF_D1_ACCOUNT_ACCOUNT_ID
+    return config.CF_ACCOUNT_ID
+
+
+def _auth_modes(db_id: str = "") -> list[dict[str, str]]:
     modes: list[dict[str, str]] = []
+    if _is_account_db(db_id) and config.CF_D1_ACCOUNT_EMAIL and config.CF_D1_ACCOUNT_API_KEY:
+        modes.append({
+            "Content-Type": "application/json",
+            "X-Auth-Email": config.CF_D1_ACCOUNT_EMAIL,
+            "X-Auth-Key": config.CF_D1_ACCOUNT_API_KEY,
+        })
+        return modes
     if config.CF_EMAIL and config.CF_GLOBAL_API_KEY:
         modes.append({
             "Content-Type": "application/json",
@@ -37,24 +54,26 @@ def _auth_modes() -> list[dict[str, str]]:
     return modes or [auth_headers()]
 
 
-def _url(db_id: str) -> str:
+def _url(db_id: str, account_id: str | None = None) -> str:
+    acc = account_id or _account_id_for(db_id)
     return (
-        f"https://api.cloudflare.com/client/v4/accounts/{config.CF_ACCOUNT_ID}"
+        f"https://api.cloudflare.com/client/v4/accounts/{acc}"
         f"/d1/database/{db_id}/query"
     )
 
 
 async def query(db_id: str, sql: str, params: list | None = None) -> dict:
     """Run one SQL statement. Returns the CF JSON body (success/errors/result)."""
-    if not db_id or not config.CF_ACCOUNT_ID:
+    account_id = _account_id_for(db_id)
+    if not db_id or not account_id:
         return {"success": False, "errors": [{"message": "d1 not configured"}]}
     payload: dict = {"sql": sql}
     if params:
         payload["params"] = params
     last: dict = {"success": False, "errors": [{"message": "d1 not configured"}]}
     async with httpx.AsyncClient(timeout=30) as client:
-        for headers in _auth_modes():
-            res = await client.post(_url(db_id), json=payload, headers=headers)
+        for headers in _auth_modes(db_id):
+            res = await client.post(_url(db_id, account_id), json=payload, headers=headers)
             try:
                 body = res.json()
             except Exception:
