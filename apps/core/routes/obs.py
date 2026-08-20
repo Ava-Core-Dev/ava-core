@@ -428,9 +428,23 @@ async def api_obs_solar_desk():
     host = {}
     try:
         from apps.core.routes.status import api_status
+        import time as _time
+        import psutil
         host = await api_status()
+        mem = psutil.virtual_memory()
+        load = psutil.getloadavg()
+        host = {
+            **host,
+            "boot_uptime_s": int(_time.time() - psutil.boot_time()),
+            "cpu_count": psutil.cpu_count() or 1,
+            "load_1": round(load[0], 2),
+            "load_5": round(load[1], 2),
+            "load_15": round(load[2], 2),
+            "mem_used_gb": round(mem.used / (1024 ** 3), 1),
+            "mem_total_gb": round(mem.total / (1024 ** 3), 1),
+        }
     except Exception:
-        host = {}
+        host = host or {}
     weather = {}
     try:
         from apps.core.routes.realworld import api_weather

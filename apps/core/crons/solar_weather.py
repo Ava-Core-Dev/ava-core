@@ -14,6 +14,7 @@ import os
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -172,8 +173,8 @@ async def live_snapshot() -> dict:
         if disk.get("battery_pct") is not None and (
             battery is None or disk["battery_pct"] > battery
         ):
-            return disk
-    return live
+            return _attach_rollups(disk)
+    return _attach_rollups(live)
 
 
 def _quota_snapshot() -> dict:
@@ -242,7 +243,7 @@ def _quota_snapshot() -> dict:
     if newest:
         updated = datetime.fromtimestamp(newest, tz=timezone.utc).isoformat()
     state = "charging" if watts_in > 20 else ("discharging" if watts_out > 20 else "idle")
-    return {
+    return _attach_rollups({
         "power_w": round(watts_in, 1),
         "battery_pct": battery,
         "state": state,
@@ -252,7 +253,7 @@ def _quota_snapshot() -> dict:
         "devices": devices,
         "source": "ecoflow_quota_cache",
         "updated_at": updated or datetime.now(timezone.utc).isoformat(),
-    }
+    })
 
 
 def json_loads(text: str):
@@ -273,6 +274,102 @@ def _soc_from_quota(data: dict) -> float | None:
     if bp is not None:
         return round(bp, 1)
     return pd
+
+
+def _ecoflow_root() -> Path | None:
+    from apps.core import config
+    roots = [
+        Path.home() / "ava" / "data" / "ecoflow",
+        config.DATA_DIR / "ecoflow",
+        config.AVA_HOME / "data" / "ecoflow",
+    ]
+    return next((p for p in roots if (p / "quota").is_dir() or (p / "history").is_dir()), None)
+
+
+def _mean(vals: list[float]) -> float | None:
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+
+def _history_averages() -> dict:
+    """1h and morning (06–12 HST) averages from EcoFlow history jsonl."""
+    root = _ecoflow_root()
+    hist = root / "history" if root else None
+    if not hist or not hist.is_dir():
+        return {}
+    now_ms = int(time.time() * 1000)
+    window_ms = now_ms - 12 * 3600_000
+    try:
+        from zoneinfo import ZoneInfo
+        hst = ZoneInfo("Pacific/Honolulu")
+    except Exception:
+        hst = timezone.utc
+    today = datetime.now(hst).date()
+    solar_morn: list[float] = []
+    load_recent: list[float] = []
+    pv_recent: list[float] = []
+    soc_recent: list[float] = []
+    for path in hist.glob("*.jsonl"):
+        if path.name.endswith("-minutes.jsonl"):
+            continue
+        try:
+            lines = path.read_text(errors="replace").splitlines()[-400:]
+        except OSError:
+            continue
+        for line in lines:
+            line = line.strip().strip("\x00")
+            if not line.startswith("{"):
+                continue
+            try:
+                row = json_loads(line)
+            except Exception:
+                continue
+            at = int(row.get("at") or 0)
+            if at > 10_000_000_000:
+                at_s = at / 1000.0
+            else:
+                at_s = float(at)
+            at_ms = int(at_s * 1000) if at_s < now_ms / 10 else int(at)
+            solar = row.get("solarW")
+            out = row.get("outW")
+            soc = row.get("soc")
+            try:
+                wall = datetime.fromtimestamp(at_ms / 1000, tz=hst)
+            except Exception:
+                continue
+            if at_ms >= window_ms:
+                if out is not None:
+                    load_recent.append(float(out))
+                if solar is not None:
+                    pv_recent.append(float(solar))
+                if soc is not None and 5 < float(soc) <= 100:
+                    soc_recent.append(float(soc))
+            if wall.date() == today and 6 <= wall.hour < 12 and solar is not None:
+                solar_morn.append(float(solar))
+    return {
+        "load_1h_w": _mean(load_recent),
+        "solar_1h_w": _mean(pv_recent),
+        "soc_1h_pct": _mean(soc_recent),
+        "solar_morning_w": _mean(solar_morn),
+        "samples_1h": len(load_recent),
+    }
+
+
+def _attach_rollups(snap: dict) -> dict:
+    if not snap:
+        return snap
+    devices = snap.get("devices") or []
+    pv = sum(float(d.get("watts_in") or 0) for d in devices)
+    load = sum(float(d.get("watts_out") or 0) for d in devices)
+    socs = [float(d["soc"]) for d in devices if d.get("soc") is not None]
+    snap["totals"] = {
+        "solar_in_w": round(pv, 1),
+        "load_w": round(load, 1),
+        "net_w": round(pv - load, 1),
+        "bank_avg_pct": round(sum(socs) / len(socs), 1) if socs else snap.get("battery_pct"),
+        "packs": len(devices),
+    }
+    snap["averages"] = _history_averages()
+    return snap
 
 
 # ── Main cron ─────────────────────────────────────────────────────────────────
