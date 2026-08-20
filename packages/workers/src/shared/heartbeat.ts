@@ -64,4 +64,11 @@ export async function initHeartbeatTable(env: HeartbeatEnv): Promise<void> {
       read_at INTEGER
     )`
   );
+  await env.AVA_HEARTBEAT_DB.exec(
+    `CREATE TABLE IF NOT EXISTS ava_ecoflow (
+      host TEXT PRIMARY KEY,
+      ts TEXT NOT NULL,
+      json TEXT NOT NULL
+    )`
+  );
 }

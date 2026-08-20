@@ -28,6 +28,7 @@ SN_LABELS = {
     "R621ZA16XH6K1155": "RIVER 2 Pro",
 }
 ECO_STALE_S = 3 * 60
+APPLIANCE_AC_W = 1100
 _LIVE_CACHE: dict[str, Any] = {}
 
 
@@ -112,22 +113,23 @@ def _extract_battery(data: dict, label: str) -> str:
     if not data:
         return f"{label}: offline"
 
-    # Delta 2 / Delta Pro field names
-    soc     = data.get("bmsMaster.soc") or data.get("pd.soc")
-    watts_in  = data.get("mppt.inWatts") or data.get("pd.inputWatts", 0)
-    watts_out = data.get("pd.outputWatts", 0)
-    watts_ac  = data.get("inv.inputWatts", 0)
+    pwr = _pack_power(data)
+    soc = _soc_from_quota(data)
     remain_time = data.get("pd.remainTime")
 
     parts = [f"{label}:"]
     if soc is not None:
         parts.append(f"SOC {soc}%")
-    if watts_in:
-        parts.append(f"in {watts_in}W")
-    if watts_out:
-        parts.append(f"out {watts_out}W")
-    if watts_ac:
-        parts.append(f"AC {watts_ac}W")
+    if pwr["pv_w"]:
+        parts.append(f"PV {pwr['pv_w']:.0f}W")
+    if pwr["ac_in_w"]:
+        parts.append(f"AC in {pwr['ac_in_w']:.0f}W")
+    if pwr["ac_out_w"] >= APPLIANCE_AC_W:
+        parts.append(f"appliances {pwr['ac_out_w']:.0f}W")
+    elif pwr["ac_out_w"]:
+        parts.append(f"AC out {pwr['ac_out_w']:.0f}W")
+    if pwr["dc_out_w"]:
+        parts.append(f"DC {pwr['dc_out_w']:.0f}W")
     if remain_time is not None:
         h, m = divmod(int(remain_time), 60)
         parts.append(f"~{h}h{m:02d}m remain")
@@ -144,6 +146,84 @@ def _num(data: dict, *keys: str):
             except (TypeError, ValueError):
                 continue
     return None
+
+
+def _watts(raw) -> float:
+    if raw is None:
+        return 0.0
+    n = float(raw)
+    if abs(n) >= 10_000:
+        n = n / 1000.0
+    return round(max(0.0, n), 1)
+
+
+def _pack_power(data: dict | None) -> dict:
+    """Split PV vs AC. AC is never counted as solar.
+
+    AC in  = generator or receiving a pack-to-pack transfer.
+    AC out ≥ 1.1 kW = appliances; otherwise AC out is a transfer (e.g. Delta → River).
+    DC out = USB / car / leftover PD that is not the inverter.
+    """
+    data = data or {}
+    pv = _watts(_num(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts"))
+    ac_in = _watts(_num(data, "inv.inputWatts", "inv.acInWatts"))
+    ac_out = _watts(_num(data, "inv.outputWatts", "inv.outWatts"))
+    pd_out = _watts(_num(data, "pd.wattsOutSum", "pd.outputWatts"))
+    usb = 0.0
+    for k in (
+        "pd.usb1Watts", "pd.usb2Watts", "pd.qcUsb1Watts",
+        "pd.typec1Watts", "pd.typec2Watts", "pd.carWatts",
+    ):
+        usb += _watts(_num(data, k))
+    dc_out = max(usb, max(0.0, pd_out - ac_out))
+    return {
+        "pv_w": pv,
+        "ac_in_w": ac_in,
+        "ac_out_w": ac_out,
+        "dc_out_w": round(dc_out, 1),
+        "watts_in": pv,
+        "watts_out": round(dc_out, 1),
+    }
+
+
+def _apply_ac_roles(devices: list[dict]) -> None:
+    taking = [d for d in devices if float(d.get("ac_in_w") or 0) > 20]
+    sending = [d for d in devices if float(d.get("ac_out_w") or 0) > 20]
+    for d in devices:
+        aco = float(d.get("ac_out_w") or 0)
+        aci = float(d.get("ac_in_w") or 0)
+        if aco >= APPLIANCE_AC_W:
+            d["ac_role"] = "appliances"
+        elif aci > 20 and sending:
+            d["ac_role"] = "transfer_in"
+        elif aco > 20 and taking:
+            d["ac_role"] = "transfer_out"
+        elif aci > 20:
+            d["ac_role"] = "generator"
+        elif aco > 20:
+            d["ac_role"] = "transfer_out"
+        else:
+            d["ac_role"] = None
+
+
+def _bank_state(devices: list[dict]) -> str:
+    bits: list[str] = []
+    roles = {d.get("ac_role") for d in devices}
+    if "appliances" in roles:
+        bits.append("appliances")
+    src = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_out"), None)
+    dst = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_in"), None)
+    if src and dst:
+        bits.append(f"transfer {src} → {dst}")
+    elif "transfer_out" in roles or "transfer_in" in roles:
+        bits.append("AC transfer")
+    if "generator" in roles:
+        bits.append("generator")
+    if sum(float(d.get("pv_w") or 0) for d in devices) > 20:
+        bits.append("PV charging")
+    if sum(float(d.get("dc_out_w") or 0) for d in devices) > 20:
+        bits.append("DC load")
+    return " · ".join(bits) or "idle"
 
 
 async def live_snapshot() -> dict:

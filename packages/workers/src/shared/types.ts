@@ -6,6 +6,10 @@ export interface AvaEnv {
   LIVE_DB?: Hyperdrive;
   AVA_OPERATOR_KEY?: string;
   AVA_ORIGIN_URL?: string;  // e.g. https://ava-origin.rootmc.net
+  AVA_ECOFLOW_ACCESS_KEY?: string;
+  AVA_ECOFLOW_SECRET_KEY?: string;
+  AVA_ECOFLOW_SN?: string;
+  AVA_ECOFLOW_BASE_URL?: string;
 }
 
 export interface ScheduledEvent {
