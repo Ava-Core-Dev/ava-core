@@ -54,27 +54,18 @@ def set_manual_hidden(scenes: list[str]) -> dict[str, Any]:
 
 
 async def refresh_auto_hide() -> dict[str, Any]:
-    """Compute auto-hidden scenes from live desk state."""
-    from apps.core.services.minecraft_live import client_running
+    """Compute auto-hidden scenes from live desk state.
+
+    Daily mode keeps a hard 10-topic loop; do not auto-drop RootMC / Storm /
+    Quake desks from that capped set — offline thumbs still tell the story.
+    """
     from apps.core.services.obs_desk_data import quake_has_global_event, quake_has_island_event
 
     vis = load_visibility()
     auto: set[str] = set()
 
-    if not client_running():
-        auto.add(MC_SCENE)
-
-    try:
-        from apps.core.services.hurricane_tracker import load_storms
-
-        # Storm Desk stays in the 10-scene loop; only auto-hide legacy NHC scene names
-        # if they somehow reappear outside the capped daily set.
-        storms = load_storms().get("storms") or []
-        _ = storms  # presence tracked elsewhere; Storm Desk always carries products
-    except Exception as e:
-        log.debug("nhc auto-hide: %s", e)
-
-    # Quake Desk is the daily topic scene; legacy split scenes stay optional.
+    # Legacy split quake scenes (not in the 10-topic daily set) may still exist
+    # in other collections — hide when quiet.
     if not await quake_has_global_event():
         auto.add(QUAKE_GLOBAL)
     if not await quake_has_island_event():

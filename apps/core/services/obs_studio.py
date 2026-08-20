@@ -1295,20 +1295,19 @@ async def rotate_loop_scene() -> dict:
         if mode == "all":
             base_pool = scene_list
         elif mode == "kilauea":
-            base_pool = kilauea_scene_pool()
+            base_pool = ["Kilauea Watch", "Weather Board", "Storm Desk"]
         elif mode == "hurricane":
             base_pool = hurricane_scene_pool()
         elif mode == "weather":
             base_pool = weather_scene_pool()
         else:
-            base_pool = AMBIENT_SCENES
-        merged_pool: list[str] = []
-        for scene_name in [*base_pool, *scene_list]:
-            if scene_name and scene_name not in merged_pool:
-                merged_pool.append(scene_name)
-        pool = visible_pool(merged_pool)
+            base_pool = list(AMBIENT_SCENES)
+        # Cap the daily rotator at the explicit topic list — do not re-expand
+        # from every leftover OBS scene name.
+        pool = visible_pool(base_pool)
         if not pool:
             pool = [DEFAULT_START_SCENE]
+        # Prefer topic order; if current isn't in pool, jump to first topic.
         if cur not in pool:
             nxt = pool[0]
         else:
@@ -1319,7 +1318,7 @@ async def rotate_loop_scene() -> dict:
         if nxt_media:
             await _restart_media(obs, nxt_media)
         _save_rotate(nxt)
-        return {"ok": True, "scene": nxt, "from": cur, "ingame": bool(mc.get("ingame"))}
+        return {"ok": True, "scene": nxt, "from": cur, "ingame": bool(mc.get("ingame")), "dwell_s": dwell_s, "pool": pool}
     finally:
         await obs.close()
 
