@@ -45,10 +45,18 @@ AMBIENT_SCENES = [
     "Dev Updates",
     "Support Ava",
 ]
-LOOP_SCENES = [
-    *AMBIENT_SCENES,
-    MC_SCENE,
-]
+def weather_scene_pool() -> list[str]:
+    from apps.core.services.nhc_media import nhc_outlook_scenes
+
+    return [
+        "Weather Board",
+        "Radar",
+        "Satellite",
+        *nhc_outlook_scenes(),
+        "SO2 Index",
+        "Vog Map",
+        "Windy Big Island",
+    ]
 
 # Primary media per scene — rotator waits for this to finish before leaving.
 SCENE_MEDIA = {
@@ -60,10 +68,10 @@ SCENE_MEDIA = {
     "SO2 Index": ("HI SO2 Index", "image"),
     "Vog Map": ("MKWC Vog", "image"),
     "Windy Big Island": ("Windy Kilauea", "image"),
-    "NHC · EPAC 2-Day": ("NHC EPAC 2Day", "image"),
-    "NHC · EPAC 7-Day": ("NHC EPAC 7Day", "image"),
-    "NHC · CPAC 2-Day": ("NHC CPAC 2Day", "image"),
-    "NHC · CPAC 7-Day": ("NHC CPAC 7Day", "image"),
+    "NHC · EPAC 2-Day": ("NHC EPAC 2Day", "browser"),
+    "NHC · EPAC 7-Day": ("NHC EPAC 7Day", "browser"),
+    "NHC · CPAC 2-Day": ("NHC CPAC 2Day", "browser"),
+    "NHC · CPAC 7-Day": ("NHC CPAC 7Day", "browser"),
     "NHC · 5-Day Cone": ("NHC 5Day Cone", "image"),
     "NHC · Wind Field": ("NHC Wind", "image"),
     "NHC · Wind History": ("NHC Wind History", "image"),
@@ -430,6 +438,24 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
         await _enable_item(obs, "Weather Board", "Windy Hawaii", False)
         await _enable_item(obs, "Weather Board", "NWS Hawaii", True)
         await _fit(obs, "Weather Board", "NWS Hawaii")
+        from apps.core.services.nhc_media import apply_nhc_obs_scenes, live_url, NHC_OUTLOOK_SCENES
+
+        for _scene, name, slug in NHC_OUTLOOK_SCENES:
+            await _ensure_input(
+                obs,
+                "Weather Board",
+                name,
+                "browser_source",
+                {
+                    "url": live_url(slug),
+                    "width": 1920,
+                    "height": 1080,
+                    "shutdown": True,
+                    "restart_when_active": True,
+                },
+            )
+            await _enable_item(obs, "Weather Board", name, False)
+        await apply_nhc_obs_scenes(obs)
         stretched = await _stretch_all(obs) if own else 0
         return {"ok": True, "stretched": stretched}
     finally:
@@ -1154,6 +1180,33 @@ async def rotate_loop_scene() -> dict:
             _save_rotate(nxt)
             return {"ok": True, "scene": nxt, "from": cur, "mode": "hurricane"}
 
+        if mode == "weather":
+            pool = weather_scene_pool()
+            st = _load_rotate()
+            if st.get("scene") != cur:
+                _save_rotate(cur)
+                elapsed = 0.0
+            else:
+                elapsed = _time.time() - float(st.get("since") or _time.time())
+            if elapsed < MIN_DWELL_S:
+                return {"ok": True, "scene": cur, "held": "min_dwell", "mode": mode, "elapsed_s": round(elapsed, 1)}
+            if elapsed < IMAGE_DWELL_S:
+                return {
+                    "ok": True,
+                    "scene": cur,
+                    "held": "weather_dwell",
+                    "mode": mode,
+                    "elapsed_s": round(elapsed, 1),
+                    "need_s": IMAGE_DWELL_S,
+                }
+            if cur not in pool:
+                nxt = pool[0]
+            else:
+                nxt = pool[(pool.index(cur) + 1) % len(pool)]
+            await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
+            _save_rotate(nxt)
+            return {"ok": True, "scene": nxt, "from": cur, "mode": "weather"}
+
         if watch.get("erupting"):
             if cur != "Kilauea Watch":
                 await obs.req("SetCurrentProgramScene", {"sceneName": "Kilauea Watch"})
@@ -1199,7 +1252,7 @@ async def rotate_loop_scene() -> dict:
                         "elapsed_s": round(elapsed, 1),
                         "need_s": VLC_MIN_DWELL_S,
                     }
-            elif kind == "image":
+            elif kind in {"image", "browser"}:
                 if elapsed < IMAGE_DWELL_S:
                     return {
                         "ok": True,
@@ -1330,7 +1383,7 @@ async def update_all_scene_collections() -> dict:
             if name != home:
                 await obs.req("SetCurrentSceneCollection", {"sceneCollectionName": name})
                 await asyncio.sleep(1.8)
-            if name in {"All Islands Weather", "Untitled", "test"}:
+            if name in {"All Islands Weather", "Untitled", "test", COLLECTION}:
                 await apply_weather_radar(obs)
             stats = await _retarget_collection_inputs(obs)
             scenes = [s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []]

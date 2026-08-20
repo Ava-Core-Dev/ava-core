@@ -31,7 +31,6 @@ STORMS_URL = f"{BASE}/CurrentStorms.json"
 EPAC_HOME = f"{BASE}/?epac="
 CPAC_HOME = f"{BASE}/?cpac"
 UA = "AvaIvy/2.0 (https://avaivy.cloud; nhc-media)"
-import time
 
 CANONICAL_TWO = (
     f"{BASE}/xgtwo/resize/xgtwo_pac_2d0_w1920.png",
@@ -382,7 +381,7 @@ async def ingest() -> dict[str, Any]:
 
 
 async def apply_nhc_obs_scenes(obs=None) -> dict:
-    """Put latest NHC stills on the open OBS collection as dedicated scenes."""
+    """Point the open OBS collection at live NHC URLs (always current)."""
     from apps.core.services.obs_studio import ObsClient, _ensure_input, _fit
 
     files = current_files()
@@ -391,19 +390,41 @@ async def apply_nhc_obs_scenes(obs=None) -> dict:
         obs = ObsClient()
         if not await obs.connect():
             return {"ok": False, "detail": "obs_unreachable"}
-    scenes = [
-        ("NHC · EPAC 2-Day", "NHC EPAC 2Day", files.get("epac_2day")),
-        ("NHC · EPAC 7-Day", "NHC EPAC 7Day", files.get("epac_7day")),
-        ("NHC · CPAC 2-Day", "NHC CPAC 2Day", files.get("cpac_2day")),
-        ("NHC · CPAC 7-Day", "NHC CPAC 7Day", files.get("cpac_7day")),
-        ("NHC · 5-Day Cone", "NHC 5Day Cone", _first(files, "_5day_cone")),
-        ("NHC · Wind Field", "NHC Wind", _first(files, "_current_wind")),
-        ("NHC · Wind History", "NHC Wind History", _first(files, "_wind_history")),
-    ]
     created = []
     try:
         existing = {s.get("sceneName") for s in (await obs.req("GetSceneList")).get("scenes") or []}
-        for scene, name, path in scenes:
+        for scene, name, slug in NHC_OUTLOOK_SCENES:
+            url = live_url(slug)
+            if scene not in existing:
+                await obs.try_req("CreateScene", {"sceneName": scene})
+            lst = await obs.try_req("GetInputList") or {}
+            kinds = {i.get("inputName"): i.get("inputKind") for i in lst.get("inputs") or []}
+            if kinds.get(name) == "image_source":
+                await _ensure_input(
+                    obs, scene, name, "image_source", {"file": url, "unload": False},
+                )
+            else:
+                await _ensure_input(
+                    obs,
+                    scene,
+                    name,
+                    "browser_source",
+                    {
+                        "url": url,
+                        "width": 1920,
+                        "height": 1080,
+                        "shutdown": True,
+                        "restart_when_active": True,
+                    },
+                )
+            await _fit(obs, scene, name)
+            created.append(scene)
+        extras = [
+            ("NHC · 5-Day Cone", "NHC 5Day Cone", _first(files, "_5day_cone")),
+            ("NHC · Wind Field", "NHC Wind", _first(files, "_current_wind")),
+            ("NHC · Wind History", "NHC Wind History", _first(files, "_wind_history")),
+        ]
+        for scene, name, path in extras:
             if not path or not path.is_file():
                 continue
             if scene not in existing:
@@ -417,7 +438,12 @@ async def apply_nhc_obs_scenes(obs=None) -> dict:
             )
             await _fit(obs, scene, name)
             created.append(scene)
-        return {"ok": True, "scenes": created, "files": {k: str(v) for k, v in files.items()}}
+        return {
+            "ok": True,
+            "scenes": created,
+            "live": {slug: NHC_LIVE[slug] for slug in ("epac_2day", "epac_7day", "cpac_2day", "cpac_7day")},
+            "files": {k: str(v) for k, v in files.items()},
+        }
     finally:
         if own:
             await obs.close()

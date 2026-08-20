@@ -71,6 +71,8 @@ def current_mode() -> str:
         return "hurricane"
     if mode in {"kilauea", "volcano", "kv"}:
         return "kilauea"
+    if mode in {"weather", "wx", "noaa"}:
+        return "weather"
     return "daily"
 
 
@@ -80,6 +82,8 @@ def write_mode(mode: str, extra: dict | None = None) -> dict:
         stored = "hurricane"
     elif raw in {"kilauea", "volcano", "kv"}:
         stored = "kilauea"
+    elif raw in {"weather", "wx", "noaa"}:
+        stored = "weather"
     else:
         stored = "daily"
     payload = {
@@ -646,8 +650,9 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
             await _browser(obs, scene, f"HT Map {key}", map_url)
             if key == "hawaii":
                 cone = next((p for n, p in current_files().items() if "5day_cone" in n), None)
-                two = current_files().get("cpac_2day")
-                epac_two = current_files().get("epac_2day")
+                from apps.core.services.nhc_media import live_url
+                two = live_url("cpac_2day")
+                epac_two = live_url("epac_2day")
                 if cone:
                     await _ensure_input(
                         obs, scene, "HT NHC Cone", "image_source",
@@ -656,15 +661,15 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
                     await _fit(obs, scene, "HT NHC Cone")
                 if two:
                     await _ensure_input(
-                        obs, scene, "HT NHC 2Day", "image_source",
-                        {"file": str(two), "unload": False},
+                        obs, scene, "HT NHC 2Day", "browser_source",
+                        {"url": two, "width": 1920, "height": 1080, "shutdown": True, "restart_when_active": True},
                     )
                     await _fit(obs, scene, "HT NHC 2Day")
                     await _enable_item(obs, scene, "HT NHC 2Day", False)
                 if epac_two:
                     await _ensure_input(
-                        obs, scene, "HT NHC EPAC 2Day", "image_source",
-                        {"file": str(epac_two), "unload": False},
+                        obs, scene, "HT NHC EPAC 2Day", "browser_source",
+                        {"url": epac_two, "width": 1920, "height": 1080, "shutdown": True, "restart_when_active": True},
                     )
                     await _fit(obs, scene, "HT NHC EPAC 2Day")
                     await _enable_item(obs, scene, "HT NHC EPAC 2Day", False)
@@ -726,13 +731,16 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
 
 
 async def set_mode(mode: str) -> dict:
-    from apps.core.services.obs_studio import COLLECTION, ObsClient
+    from apps.core.services.obs_studio import COLLECTION, ObsClient, apply_weather_radar
+    from apps.core.services.nhc_media import apply_nhc_obs_scenes
 
     raw = str(mode or "daily").lower()
     if raw in {"hurricane", "hurricanes", "tracker"}:
         want = "hurricane"
     elif raw in {"kilauea", "volcano", "kv"}:
         want = "kilauea"
+    elif raw in {"weather", "wx", "noaa"}:
+        want = "weather"
     else:
         want = "daily"
     write_mode(want)
@@ -753,8 +761,17 @@ async def set_mode(mode: str) -> dict:
             if cols.get("currentSceneCollectionName") != COLLECTION:
                 await obs.req("SetCurrentSceneCollection", {"sceneCollectionName": COLLECTION})
                 await asyncio.sleep(1.2)
-            await obs.try_req("SetCurrentProgramScene", {"sceneName": "Main"})
-        return {"ok": True, "mode": "daily", "collection": COLLECTION}
+        wx = await apply_weather_radar(obs)
+        nhc = await apply_nhc_obs_scenes(obs)
+        start = "NHC · EPAC 2-Day" if want == "weather" else "Main"
+        await obs.try_req("SetCurrentProgramScene", {"sceneName": start})
+        return {
+            "ok": True,
+            "mode": want,
+            "collection": COLLECTION,
+            "weather": wx,
+            "nhc": nhc,
+        }
     finally:
         await obs.close()
 

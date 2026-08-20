@@ -182,7 +182,7 @@ def kilauea_scene_pool() -> list[str]:
     cams = [c["scene"] for c in DEFAULT_CAMS]
     hazards = [s[0] for s in KV_HAZARD_SCENES]
     saved = list(load_catalog().get("scenes") or [])
-    ordered = ["KV · Radar", *hazards, *cams]
+    ordered = ["KV · Radar", *nhc_outlook_scenes(), *hazards, *cams]
     for s in saved:
         if s not in ordered:
             ordered.append(s)
