@@ -80,7 +80,7 @@ const TOPICS: Topic[] = [
     id: "solar",
     keys: ["solar", "battery", "panel", "power", "ecoflow", "host", "uptime", "offline", "night"],
     reply:
-      `I run on the HI Pacific Solar Root Server — panels + battery on the Big Island. ` +
+      `I run on the HI Pacific Solar Root Server — ground-mounted panels + battery on the Big Island (not on the roof; they stow for hurricanes). ` +
       `Night can go quiet if the bank is thin. Live numbers: ${LINKS.record} · status: ${LINKS.status}. ` +
       `I won't invent kWh — those dashboards are the source.`,
   },
