@@ -69,6 +69,16 @@ contextBridge.exposeInMainWorld("avaDesktop", {
   releaseStatus: (kind) => ipcRenderer.invoke("ava:release-status", { kind }),
   releaseAction: (kind, action, targets) =>
     ipcRenderer.invoke("ava:release-action", { kind, action, targets }),
+  gitSyncPrefs: () => ipcRenderer.invoke("ava:git-sync-prefs"),
+  gitSyncPrefsSave: (patch) => ipcRenderer.invoke("ava:git-sync-prefs-save", patch || {}),
+  gitStatus: () => ipcRenderer.invoke("ava:git-status"),
+  gitCheck: () => ipcRenderer.invoke("ava:git-check"),
+  gitPull: () => ipcRenderer.invoke("ava:git-pull"),
+  onGitSync: (cb) => {
+    const handler = (_e, payload) => cb(payload);
+    ipcRenderer.on("ava:git-sync", handler);
+    return () => ipcRenderer.removeListener("ava:git-sync", handler);
+  },
   onOpsLine: (cb) => {
     const handler = (_e, payload) => cb(payload);
     ipcRenderer.on("ava:ops-line", handler);

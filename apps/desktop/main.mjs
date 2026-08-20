@@ -67,6 +67,11 @@ import {
   brainOrigin,
   operatorHeaders,
 } from "./lib/connectionConfig.mjs";
+import {
+  loadGitSyncPrefs,
+  saveGitSyncPrefs,
+  runGitLiveSync,
+} from "./lib/gitLiveSync.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONTEXT_LIMIT = 150;
@@ -179,6 +184,63 @@ function appendLine(line) {
   sendOps("ava:ops-line", { line: String(line).replace(/\r?\n$/, "") });
 }
 
+let gitSyncTimer = null;
+let lastGitSync = null;
+
+function broadcastGitSync(result) {
+  lastGitSync = { ...result, at: new Date().toISOString() };
+  sendOps("ava:git-sync", lastGitSync);
+}
+
+async function runGitSyncMode(mode, { stream = false, autoPull } = {}) {
+  const prefs = loadGitSyncPrefs(AVA_HOME);
+  const doAuto = autoPull != null ? Boolean(autoPull) : prefs.autoPull;
+  if (stream) {
+    sendOps("ava:ops-start", {
+      id: `git-${mode}`,
+      label: mode === "pull" ? "Pull GitHub → live /ava" : "Check GitHub updates",
+      detail: `scripts/git-pull-live.sh ${mode}`,
+    });
+    appendLine(`$ bash scripts/git-pull-live.sh ${mode}`);
+  }
+  const result = await runGitLiveSync(mode, {
+    avaHome: AVA_HOME,
+    autoPull: doAuto,
+    onLine: stream ? (line) => appendLine(line) : undefined,
+  });
+  broadcastGitSync(result);
+  if (stream) {
+    sendOps("ava:ops-done", {
+      id: `git-${mode}`,
+      code: result.ok ? 0 : result.exitCode || 1,
+    });
+  }
+  return result;
+}
+
+function scheduleGitAutoCheck() {
+  if (gitSyncTimer) clearInterval(gitSyncTimer);
+  gitSyncTimer = null;
+  const prefs = loadGitSyncPrefs(AVA_HOME);
+  if (!prefs.autoCheck) return;
+  const tick = () => {
+    runGitSyncMode("check", { autoPull: prefs.autoPull }).catch((err) => {
+      broadcastGitSync({
+        ok: false,
+        action: "check",
+        detail: err?.message || String(err),
+        behind: 0,
+        ahead: 0,
+        dirty: false,
+        pulled: false,
+      });
+    });
+  };
+  // First check shortly after launch, then on interval.
+  setTimeout(tick, 20_000);
+  gitSyncTimer = setInterval(tick, prefs.intervalMs);
+}
+
 app.whenReady().then(async () => {
   // Start Ava Core + Voice with the GUI. Closing the window does not stop origin.
   try {
@@ -188,6 +250,7 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+  scheduleGitAutoCheck();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       startAvaSession().finally(() => createWindow());
@@ -802,6 +865,27 @@ ipcMain.handle("ava:ops-catalog", async () => ({
   running: runningOpsId,
 }));
 
+ipcMain.handle("ava:git-sync-prefs", async () => ({
+  ok: true,
+  prefs: loadGitSyncPrefs(AVA_HOME),
+  last: lastGitSync,
+  repo: AVA_HOME,
+}));
+
+ipcMain.handle("ava:git-sync-prefs-save", async (_e, patch = {}) => {
+  const prefs = saveGitSyncPrefs(AVA_HOME, patch || {});
+  scheduleGitAutoCheck();
+  return { ok: true, prefs };
+});
+
+ipcMain.handle("ava:git-status", async () => runGitSyncMode("status", { autoPull: false }));
+
+ipcMain.handle("ava:git-check", async () =>
+  runGitSyncMode("check", { stream: true, autoPull: false }),
+);
+
+ipcMain.handle("ava:git-pull", async () => runGitSyncMode("pull", { stream: true, autoPull: false }));
+
 ipcMain.handle("ava:activity", async (_e, opts = {}) => {
   const limit = Number(opts.limit) || 220;
   const brain = await brainJson(`/api/activity?limit=${limit}`, { timeoutMs: 12000 });
@@ -865,6 +949,15 @@ ipcMain.handle("ava:ops-run", async (_e, { id }) => {
   const cmd = opsCommandById(String(id || ""));
   if (!cmd) return { ok: false, detail: "unknown_command" };
   if (runningOps) return { ok: false, detail: `busy:${runningOpsId}` };
+
+  if (cmd.kind === "git-pull") {
+    const result = await runGitSyncMode("pull", { stream: true, autoPull: false });
+    return { ok: result.ok, detail: result.detail, result };
+  }
+  if (cmd.kind === "git-check") {
+    const result = await runGitSyncMode("check", { stream: true, autoPull: false });
+    return { ok: result.ok, detail: result.detail, result };
+  }
 
   // URL launcher — open in system browser
   if (cmd.kind === "url" && cmd.url) {

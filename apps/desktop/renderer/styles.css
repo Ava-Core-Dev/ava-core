@@ -45,6 +45,7 @@ header {
 .conn-pill.ok { border-color: rgba(110, 231, 168, 0.45); color: var(--accent); }
 .conn-pill.remote { border-color: rgba(125, 211, 252, 0.4); color: #7dd3fc; }
 .conn-pill.warn { border-color: rgba(251, 191, 36, 0.45); color: #fbbf24; }
+.conn-pill.git-behind { border-color: rgba(251, 191, 36, 0.55); box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25); }
 .conn-modes {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -33,6 +33,19 @@ export const OPS_COMMAND_GROUPS = [
         detail: "Reads media/documents/reports/posts/ and rebuilds the three blogs",
       },
       {
+        id: "ops-git-check",
+        label: "Check GitHub updates",
+        kind: "git-check",
+        detail: "Fetch origin and report if live ava-core-v2 is behind (auto-check also runs)",
+      },
+      {
+        id: "ops-git-pull",
+        label: "Pull GitHub → live /ava",
+        kind: "git-pull",
+        detail: "ff-only pull into ava-core-v2 so Vercel/GitHub deploys match this desk",
+        confirm: "Pull latest GitHub commits into the live ava-core-v2 tree now?",
+      },
+      {
         id: "ops-publish-rootmc",
         label: "Publish RootMC website",
         kind: "http",
