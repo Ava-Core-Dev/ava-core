@@ -42,8 +42,8 @@
   }
   .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--text); text-decoration: none; }
   .mark { color: var(--accent); }
-  .nav { display: flex; gap: 18px; flex-wrap: wrap; }
-  .nav a { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .nav { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .nav a { color: var(--muted); font-size: 12px; text-decoration: none; white-space: nowrap; }
   .nav a:hover, .nav a.on { color: var(--text); }
   .clock { text-align: right; font-variant-numeric: tabular-nums; }
   .clock .d { font-size: 11px; color: var(--muted); }
@@ -111,13 +111,18 @@
   <div class="bg dim" id="bgB"></div>
   <div class="veil"></div>
   <header class="top">
-    <a class="logo" href="/"><span class="mark">◈</span> Ava Ivy</a>
-    <nav class="nav">
-      <a href="/live">Live</a>
-      <a href="/status">Status</a>
-      <a class="on" href="/solar">Solar</a>
-      <a href="/status/goals">Goals</a>
-      <a href="https://rootmc.net">RootMC</a>
+    <a class="logo" href="https://avaivy.cloud/"><span class="mark">◈</span> Ava Ivy</a>
+    <nav class="nav" aria-label="Sites and desk">
+      <a href="https://avaivy.cloud/status" data-match="/status">Status</a>
+      <a href="https://avaivy.cloud/solar" data-match="/solar">Solar</a>
+      <a href="https://avaivy.cloud/status/goals">Goals</a>
+      <a href="https://avaivy.cloud/live">Live</a>
+      <a href="https://avaivy.cloud/blog">Blog</a>
+      <a href="https://rootrecord.online/">Root Record</a>
+      <a href="https://rootmc.net/">RootMC</a>
+      <a href="https://alexrs94.site/">alexrs94</a>
+      <a href="https://rootrecord.info/ava/">Wiki</a>
+      <a href="https://g.rootrecord.info/">Goals site</a>
     </nav>
     <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
   </header>
@@ -160,13 +165,20 @@
     </div>
   </div>
 <script>
+const HOST = location.hostname;
+const ON_AVA = HOST === "avaivy.cloud" || HOST.endsWith(".avaivy.cloud") || HOST === "localhost" || HOST === "127.0.0.1";
+const API = ON_AVA ? "" : "https://avaivy.cloud";
+const path = location.pathname.replace(/\/$/, "") || "/";
+document.querySelectorAll(".nav a[data-match]").forEach((a) => {
+  if (path === a.getAttribute("data-match") || path.endsWith(a.getAttribute("data-match"))) a.classList.add("on");
+});
 const BGS = [
-  "/api/media/public/file?path=images/character/ava-solar-ground-pv-night.png",
-  "/api/media/public/file?path=images/character/ava-05-desk-root-server.png",
-  "/api/media/public/file?path=images/character/ava-01-meadow-holograms.png",
-  "/api/media/public/file?path=images/character/ava-hologram-wave.png",
-  "/api/media/public/file?path=images/character/ava-desk-ops.png",
-  "/api/media/public/file?path=images/character/background%20home.jpg",
+  API + "/api/media/public/file?path=images/character/ava-solar-ground-pv-night.png",
+  API + "/api/media/public/file?path=images/character/ava-05-desk-root-server.png",
+  API + "/api/media/public/file?path=images/character/ava-01-meadow-holograms.png",
+  API + "/api/media/public/file?path=images/character/ava-hologram-wave.png",
+  API + "/api/media/public/file?path=images/character/ava-desk-ops.png",
+  API + "/api/media/public/file?path=images/character/background%20home.jpg",
 ];
 let bi = 0, showA = true;
 function setBg(el, url){ el.style.backgroundImage = `url("${url}")`; }
@@ -206,7 +218,7 @@ function pct(v){ if(v==null||v==="") return "—"; return Number(v).toFixed(0)+"
 function dur(s){ s=Number(s)||0; if(!s) return "—"; const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60); return d? d+"d "+h+"h" : h+"h "+m+"m"; }
 async function paint(){
   try {
-    const s = await (await fetch("/api/obs/solar-desk",{cache:"no-store"})).json();
+    const s = await (await fetch(API + "/api/obs/solar-desk",{cache:"no-store"})).json();
     const solar = s.solar||{};
     const tot = solar.totals||{};
     const host = s.host||{};
