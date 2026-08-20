@@ -451,7 +451,7 @@ async def api_volcano_watch_get():
 async def api_volcano_watch_post(body: WatchBody):
     from apps.voice.director import get_director
 
-    scene = "Kilauea Watch" if body.action != "exit" else "Main"
+    scene = "Scene 3 - Kilauea Watch" if body.action != "exit" else "Main"
     if body.action != "exit":
         from apps.core.services.hurricane_tracker import set_mode
 

@@ -2619,13 +2619,23 @@ let streamRotationCfgKey = "";
 
 function sceneShortLabel(scene) {
   const map = {
+    "Scene 1 - Weather Board": "Weather",
     "Weather Board": "Weather",
+    "Scene 5 - Solar Dashboard": "Solar",
     "Solar Dashboard": "Solar",
+    "Scene 6 - Economy Board": "Economy",
     "Economy Board": "Economy",
+    "Scene 9 - Goals Report": "Goals",
     "Goals Report": "Goals",
+    "Scene 8 - Dev Updates": "Dev",
     "Dev Updates": "Dev",
+    "Scene 10 - Support Ava": "Support",
     "Support Ava": "Support",
+    "Scene 7 - RootMC Live": "RootMC",
     "RootMC Live": "RootMC",
+    "Scene 2 - Storm Desk": "Storm",
+    "Scene 3 - Kilauea Watch": "Kilauea",
+    "Scene 4 - Quake Desk": "Quake",
     "Quake · Global": "Quake Global",
     "Quake · Big Island": "Quake HI",
     "Be right back": "BRB",

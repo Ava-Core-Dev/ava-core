@@ -101,7 +101,11 @@ def write_mode(mode: str, extra: dict | None = None) -> dict:
 
 def hurricane_scene_pool() -> list[str]:
     """Daily hurricane mode stays on the single Storm Desk topic scene."""
-    return ["Storm Desk", "Weather Board", "Kilauea Watch"]
+    return [
+        "Scene 2 - Storm Desk",
+        "Scene 1 - Weather Board",
+        "Scene 3 - Kilauea Watch",
+    ]
 
 
 def load_storms() -> dict:
@@ -762,7 +766,7 @@ async def set_mode(mode: str) -> dict:
                 await asyncio.sleep(1.2)
         wx = await apply_weather_radar(obs)
         nhc = await apply_nhc_obs_scenes(obs)
-        start = "NHC · EPAC 2-Day" if want == "weather" else "Weather Board"
+        start = "NHC · EPAC 2-Day" if want == "weather" else "Scene 1 - Weather Board"
         await obs.try_req("SetCurrentProgramScene", {"sceneName": start})
         return {
             "ok": True,
