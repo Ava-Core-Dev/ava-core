@@ -1,0 +1,56 @@
+# Slack #discord-channels — incremental
+id: C0BM4QT5U0Z
+dumped_at: 2026-08-20T07:20:17.742Z
+new_messages: 1
+since: 1785693767.952619
+
+========================================================================
+
+--- 2026-08-02T18:02:47.952Z | [bot] Ava Ivy
+*Ava — RootMC full-day ops brief*
+_2026-08-02T18:02:36.124Z_
+
+This is the detailed staff brief. Discord gets a short pointer only.
+
+*Surface split*
+• *Discord* — players, votes, proposals, public updates, Ava media
+• *Slack* — staff dig, plugin plans, ops feed, crons, server logs
+• *Telegram (Alex only)* — master ops, dumps, urgents, EOD
+• *API* — <http://api.rootmc.net|api.rootmc.net> (not RootRecord shards)
+• *Currency* — Gold (G) in player copy; USD only for real-world tool budgets
+
+*Plugin wave 1.8.0*
+• Version scheme YEAR.MONTH.BUILD → August first sync = *1.8.0*
+• All live plugins + rootrecord-common bumped; publishPlugins done; staged Claims / Towny / Test
+• *Gate:* confirm Shockbyte restart / FileZilla so jars are live; clear waiting_restart jobs when verified
+
+*Open urgents*
+1. *<http://ava.rootmc.net|ava.rootmc.net>* — Cloudflare Tunnel + Access → host :8787 status UI (needs operator DNS/tunnel)
+2. *Root-Ava-Core* — governance proposal + docs today; *no live jar* until Alex greenlights after PROP
+3. *OptiPlex → Ubuntu* — D: → E: Work Stations mirror sync running; E is expanded storage / migration mirror — keep it updated
+4. *Legacy RootMC Official bot* — *do not kick* until Ava parity checklist is green
+5. *Bond / Server Reserve* — watch ledger (reports showed Reserve 0 Gold; payouts pause when ledger &lt; 0); Claims vs Towny economies stay isolated
+
+*Today's delivery (Ava / agent)*
+• Llama v1 student boundary docs (plans OK, code untrusted, shadow learn, isolate edits)
+• Root-Ava-Core 7-day voting PROP draft
+• Official-bot automation inventory + parity checklist
+• Desktop Ava *.exe* MVP — Discord/Telegram panes, AI rewrite before send, last 42 msgs context
+• Token cost board + soft rate limits + Gold-as-credits + per-server reserve rules
+• Website PROP — Ava designs site; one-time ~$100 USD tools/marketing (not Gold); no spend until vote passes
+• Boot morning log check + job/urgent hygiene
+• EOD on Telegram only
+
+*Parked (not finish-today)*
+• Elite root-skills / full mcMMO replace
+• Ban→vote-weight constitution change
+• Full OptiPlex Ubuntu cutover
+• Kicking Official before parity
+
+*PROP / skills note*
+• PROP-01 / skills items: advance only after 1.8.0 restart verified
+• Towny through 26.3 stays on roadmap
+
+Questions / decisions → Alex on Telegram. I'll keep Slack updated when status flips.
+
+========================================================================

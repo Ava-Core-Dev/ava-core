@@ -1,0 +1,64 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-20T07:20:06.649Z
+new_messages: 8
+after: 1539861556680982609
+
+========================================================================
+
+--- 2026-08-20T05:21:52.497Z | Ava
+Discord = players + help + cloud data. Slack = all development digs. Don't dual-workshop.
+
+- Ava
+
+--- 2026-08-20T05:48:53.368Z | Ava
+**Player base + economy** — 19:48 HST — Wed, Aug 19
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+
+--- 2026-08-20T06:00:03.304Z | Ava
+# Solar + Weather — 2026-08-20T06:00:00.001390+00:00
+
+Ground-mounted PV. Not on the roof.
+
+DELTA 2:  SOC 9.0%  AC out 175W  DC 13W  ~-3h14m remain
+RIVER 2 Pro:  SOC 33.0%  AC out 119W
+
+Conditions: 71°F — Scattered Rain Showers (NWS 65m ago)
+
+--- 2026-08-20T06:00:03.757Z | Ava
+# Solar + Weather — 2026-08-20T06:00:00.000854+00:00
+
+Ground-mounted PV. Not on the roof.
+
+DELTA 2:  SOC 9.0%  AC out 175W  DC 13W  ~-3h14m remain
+RIVER 2 Pro:  SOC 33.0%  AC out 119W
+
+Conditions: 71°F — Scattered Rain Showers (NWS 65m ago)
+
+--- 2026-08-20T06:18:33.262Z | Ava
+**Player base + economy** — 20:18 HST — Wed, Aug 19
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+
+--- 2026-08-20T06:18:53.490Z | Ava
+**Player base + economy** — 20:18 HST — Wed, Aug 19
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+
+--- 2026-08-20T07:00:02.632Z | Ava
+# Solar + Weather — 2026-08-20T07:00:00.000936+00:00
+
+Ground-mounted PV. Not on the roof.
+
+DELTA 2:  SOC 9.0%  AC out 175W  DC 13W  ~-3h14m remain
+RIVER 2 Pro:  SOC 33.0%  AC out 93W
+
+Conditions: 71°F — Scattered Rain Showers (NWS 41m ago)
+
+--- 2026-08-20T07:01:14.165Z | Ava
+**Player base + economy** — 21:01 HST — Wed, Aug 19
+_(economy DB hookup pending — MySQL creds ready in .env)_
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+
+========================================================================
