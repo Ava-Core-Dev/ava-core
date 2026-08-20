@@ -12,6 +12,30 @@ export interface ProxyOptions {
   path?: string;
 }
 
+function outboundHeaders(request: Request): Headers {
+  const headers = new Headers(request.headers);
+  // Visitor Host (avaivy.cloud) on a fetch to ava-origin.rootmc.net is a
+  // cross-zone mismatch: 403, or a loop back into this Worker → timeout →
+  // Vercel sleep stub for /solar.
+  for (const name of [
+    "host",
+    "cf-connecting-ip",
+    "cf-ipcountry",
+    "cf-ray",
+    "cf-visitor",
+    "cf-ew-via",
+    "cf-worker",
+    "x-forwarded-for",
+    "x-forwarded-proto",
+    "x-real-ip",
+    "connection",
+    "content-length",
+  ]) {
+    headers.delete(name);
+  }
+  return headers;
+}
+
 /** Fetch a Vercel/Pages frontend without forwarding the visitor Host header. */
 export async function fetchFrontend(
   request: Request,
@@ -19,11 +43,9 @@ export async function fetchFrontend(
 ): Promise<Response> {
   const url = new URL(request.url);
   const target = frontendBase.replace(/\/$/, "") + url.pathname + url.search;
-  const headers = new Headers(request.headers);
-  headers.delete("host");
   return fetch(target, {
     method: request.method,
-    headers,
+    headers: outboundHeaders(request),
     body: request.method !== "GET" && request.method !== "HEAD" ? request.body : undefined,
     redirect: "follow",
   });
@@ -43,10 +65,11 @@ export async function proxyToOrigin(
   try {
     const res = await fetch(target, {
       method: request.method,
-      headers: request.headers,
+      headers: outboundHeaders(request),
       body: request.method !== "GET" && request.method !== "HEAD"
         ? request.body : undefined,
       signal: controller.signal,
+      redirect: "manual",
     });
     clearTimeout(timer);
 

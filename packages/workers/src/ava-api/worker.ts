@@ -53,9 +53,11 @@ export default {
       });
     }
 
+    const origin = env.AVA_ORIGIN_URL || ORIGIN;
+
     if (path === "/solar" || path === "/solar/") {
       return proxyToOrigin(request, {
-        originUrl: ORIGIN,
+        originUrl: origin,
         timeoutMs: 8000,
         offlineFallback: () => fetchFrontend(request, VERCEL_FRONTEND),
       });
