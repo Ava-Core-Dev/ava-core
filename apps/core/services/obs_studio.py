@@ -35,6 +35,22 @@ LOOP_SCENES = [
     MC_SCENE,
 ]
 
+# Primary media per scene — rotator waits for this to finish before leaving.
+SCENE_MEDIA = {
+    "Main": ("Daily Loop", "vlc"),
+    "Ambient Playlist": ("Daily Loop", "vlc"),
+    "Weather Board": ("NWS Hawaii", "ffmpeg"),
+    "Kilauea Watch": ("Kilauea Audio", "ffmpeg"),
+    "Solar Dashboard": ("Solar Audio", "ffmpeg"),
+    "Economy Board": ("Economy Audio", "ffmpeg"),
+    "Goals Report": ("Goals Video", "ffmpeg"),
+    "Dev Updates": ("Dev Audio", "ffmpeg"),
+    "Quake Overlay": ("Quake Loop", "ffmpeg"),
+}
+VLC_MIN_DWELL_S = 180
+MIN_DWELL_S = 12
+MAX_DWELL_S = 900
+
 
 class ObsClient:
     def __init__(self) -> None:

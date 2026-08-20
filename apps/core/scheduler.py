@@ -97,8 +97,8 @@ class Scheduler:
                   CronTrigger(hour="22-23,0-5", minute=0),
                   id="overnight-relay", name="Late-night relay", misfire_grace_time=300)
 
-        s.add_job(self._run("broadcast_loop"), IntervalTrigger(minutes=6),
-                  id="broadcast-loop", name="OBS daily loop rotator", misfire_grace_time=90)
+        s.add_job(self._run("broadcast_loop"), IntervalTrigger(seconds=20),
+                  id="broadcast-loop", name="OBS daily loop rotator", misfire_grace_time=30)
 
         s.add_job(self._run("minecraft_live"), IntervalTrigger(seconds=45),
                   id="minecraft-live", name="Minecraft in-game detect", misfire_grace_time=30)
