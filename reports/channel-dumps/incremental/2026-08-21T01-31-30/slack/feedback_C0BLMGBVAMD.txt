@@ -1,0 +1,21 @@
+# Slack #feedback — incremental
+id: C0BLMGBVAMD
+dumped_at: 2026-08-21T01:31:43.991Z
+new_messages: 1
+since: 1787020274.031539
+
+========================================================================
+
+--- 2026-08-18T02:31:14.031Z | [bot] incoming-webhook
+*In-game feedback* (`FB-20`)
+*Player:* Alexrs94
+*UUID:* `3e660994-b16c-4714-bc15-9081aa928729`
+*Server ID:* `4963895e-0964-48b8-81b7-1f40a966e8be`
+*Server:* RootMC
+
+*Message:*
+she should also only charge when pinging status, not all at once upfront
+
+_Also queued for Ava._
+
+========================================================================

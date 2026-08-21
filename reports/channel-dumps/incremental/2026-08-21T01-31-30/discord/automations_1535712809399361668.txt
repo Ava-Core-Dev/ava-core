@@ -1,0 +1,92 @@
+# Discord #automations — incremental
+id: 1535712809399361668
+dumped_at: 2026-08-21T01:31:36.423Z
+new_messages: 8
+after: 1540138121654436012
+
+========================================================================
+
+--- 2026-08-20T23:48:46.214Z | Ava
+**Player economy (live MySQL)** — 13:48 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,090.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T00:20:18.051Z | Ava
+**Player economy (live MySQL)** — 14:18 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **71 g** · Playtime rewards paid: **3,851.0 g** · Grants paid: **418 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T00:20:30.415Z | Ava
+**AdSense report — boot · 2026-08-20 14:20 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-21T00:20:36.313Z | Ava
+**AdMob report — boot · 2026-08-20 14:20 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-21T00:50:19.471Z | Ava
+**Player economy (live MySQL)** — 14:50 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,090.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T01:00:03.058Z | Ava
+**Daily economy brief**
+**Player economy (live MySQL)** — 15:00 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,090.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — multiplier **×2.0**
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T01:22:35.001Z | Ava
+**AdSense report — boot · 2026-08-20 15:22 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-21T01:22:41.058Z | Ava
+**AdMob report — boot · 2026-08-20 15:22 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+========================================================================

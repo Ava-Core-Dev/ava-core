@@ -20,7 +20,7 @@
     { "label": "Timeline", "href": "/timeline" },
     { "label": "Context", "href": "/context" },
     { "label": "RootMC", "href": "https://rootmc.net" },
-    { "label": "Root Record", "href": "https://rootrecord.info" }
+    { "label": "Root Record", "href": "https://rootrecord.online" }
   ],
   "cards": [
     {
@@ -59,9 +59,16 @@
       "live": ""
     },
     {
+      "title": "Finance",
+      "value": "money board",
+      "sub": "Ledger + Stripe →",
+      "href": "/finance",
+      "live": ""
+    },
+    {
       "title": "Wiki",
       "value": "ops docs",
-      "sub": "Moved from rootrecord.info/ava →",
+      "sub": "Atlas + build notes →",
       "href": "/wiki",
       "live": ""
     }
@@ -76,10 +83,10 @@
       { "label": "Blog", "href": "/blog" },
       { "label": "Wiki", "href": "/wiki" },
       { "label": "RootMC", "href": "https://rootmc.net" },
-      { "label": "Root Record", "href": "https://rootrecord.info" },
+      { "label": "Root Record", "href": "https://rootrecord.online" },
       { "label": "Public index", "href": "/media" },
       { "label": "About Developer", "href": "https://alexrs94.site" },
-      { "label": "Build your own website", "href": "https://rootrecord.info/website-hosting" }
+      { "label": "Build your own website", "href": "https://rootrecord.online/website-hosting" }
     ],
     "tagline": "Built by Ava on the Root Record · Powered by the sun · Big Island, Hawaiʻi"
   }

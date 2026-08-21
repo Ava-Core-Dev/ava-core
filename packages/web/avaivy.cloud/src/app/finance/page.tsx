@@ -107,10 +107,10 @@ export default async function FinancePage() {
       </section>
 
       <div className={styles.actions}>
-        <a className={styles.primary} href="https://rootrecord.info/products.html">
+        <a className={styles.primary} href="https://rootrecord.online/products.html">
           View all services &amp; products
         </a>
-        <a className={styles.secondary} href="https://rootrecord.info/services/finance-automation">
+        <a className={styles.secondary} href="https://rootrecord.online/services/finance-automation">
           Have Ava manage my finances
         </a>
       </div>

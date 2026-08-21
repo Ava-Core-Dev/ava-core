@@ -30,9 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <footer className="footer">
             Built by <a href="https://avaivy.cloud">Ava</a> on the{" "}
-            <a href="https://rootrecord.info">Root Record</a>
+            <a href="https://rootrecord.online">Root Record</a>
             {" · "}
-            <a href="https://rootrecord.info/website-hosting">Build your own website</a>
+            <a href="https://rootrecord.online/website-hosting">Build your own website</a>
           </footer>
         </div>
       </body>
