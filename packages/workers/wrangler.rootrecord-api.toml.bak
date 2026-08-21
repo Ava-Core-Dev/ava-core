@@ -6,8 +6,6 @@ account_id = "d2daf26398a805b29e12ddba2b2228cf"
 routes = [
   { pattern = "rootrecord.online/*", zone_name = "rootrecord.online" },
   { pattern = "api.rootrecord.online/*", zone_name = "rootrecord.online" },
-  { pattern = "api.rootrecord.info/*", zone_name = "rootrecord.info" },
-  { pattern = "rootrecord.info/api/*", zone_name = "rootrecord.info" },
 ]
 
 [[d1_databases]]
