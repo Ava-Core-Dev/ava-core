@@ -1,16 +1,17 @@
 /**
- * rootrecord-api Worker — serves rootrecord.online + .info
- * Marketing + account HTML from CF Pages; /api/* proxies to Ava origin when awake
- * EXCEPT /api/site-config (served by Pages static asset).
+ * rootrecord-api Worker — serves rootrecord.online
+ * Marketing + account HTML from CF Pages; /api/* proxies to Ava origin when awake.
  */
+
 import { avaIsAwake } from "../shared/heartbeat";
 import { fetchFrontend, proxyToOrigin } from "../shared/proxy";
 import { statusJson, statusPage } from "../shared/statusPage";
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://ava-origin.rootmc.net";
-/** CF Pages production for the marketing/account site */
-const PAGES_FRONTEND = "https://rootrecord-info.pages.dev";  // was rootrecord-online
+/** CF Pages production for rootrecord.online (static marketing + account). */
+const PAGES_FRONTEND = "https://rootrecord-online.pages.dev";
+
 const PROXIED_PREFIXES = ["/api/", "/obs/", "/health"];
 
 export default {
@@ -18,15 +19,9 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Let Pages serve the static site-config (account.js needs this)
-    if (path === "/api/site-config" || path === "/api/site-config.json") {
-      return fetchFrontend(request, PAGES_FRONTEND);
-    }
-
     if (path === "/ava/status.json") {
       return statusJson(env);
     }
-
     if (
       path === "/status" ||
       path === "/status/" ||
@@ -48,11 +43,10 @@ export default {
       return proxyToOrigin(request, {
         originUrl: ORIGIN,
         path: path.startsWith("/ava/") ? path.slice("/ava".length) : undefined,
-        offlineFallback: () =>
-          new Response(JSON.stringify({ error: "ava_offline", path }), {
-            status: 503,
-            headers: { "Content-Type": "application/json" },
-          }),
+        offlineFallback: () => new Response(
+          JSON.stringify({ error: "ava_offline", path }),
+          { status: 503, headers: { "Content-Type": "application/json" } },
+        ),
       });
     }
 
