@@ -34,13 +34,12 @@
   </section>
 
   <section>
-    <h2>0b. Google AdSense API</h2>
-    <p class="muted"><strong>Do not</strong> use <code>https://www.example.com/oauth2callback</code> — that is Google’s placeholder. In Cloud Console → Credentials → Authorized redirect URIs, paste:</p>
+    <h2>0b. Google AdSense API (desk reports)</h2>
+    <p class="muted">This is <strong>not</strong> ad tags on public pages — Ava pulls revenue reports via API. OAuth callback is public HTTPS only (tunnel). In Cloud Console → Authorized redirect URIs, paste exactly:</p>
     <ul>
-      <li><code>https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback</code> (primary)</li>
-      <li><code>http://127.0.0.1:8787/api/ops/adsense/oauth/callback</code> (local fallback)</li>
+      <li><code>https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback</code></li>
     </ul>
-    <p class="muted">Full guide: <code>docs/ADSENSE-OAUTH.md</code>. Enable AdSense Management API on the same project, then Connect.</p>
+    <p class="muted">Do <strong>not</strong> use localhost or <code>example.com</code>. Guide: <code>docs/ADSENSE-OAUTH.md</code>.</p>
     <p id="adsense-state" class="muted">Checking…</p>
     <a id="adsense-auth" href="#" target="_blank" rel="noopener">Connect AdSense (browser)</a>
     <button type="button" class="secondary" id="adsense-accounts">List accounts</button>
@@ -48,12 +47,12 @@
   </section>
 
   <section>
-    <h2>0c. Google AdMob API</h2>
-    <p class="muted">Same OAuth client as AdSense (<code>366072724921-baueoii…</code>). Guide: <code>docs/ADMOB-OAUTH.md</code>. In Cloud Console add redirect:</p>
+    <h2>0c. Google AdMob API (desk reports)</h2>
+    <p class="muted">Same OAuth client as AdSense. Public callback only:</p>
     <ul>
       <li><code>https://ava-origin.rootmc.net/api/ops/admob/oauth/callback</code></li>
     </ul>
-    <p class="muted">Enable <strong>AdMob API</strong> + scope <code>admob.readonly</code>. Reports: boot + 21:05 HST EOD.</p>
+    <p class="muted">Enable <strong>AdMob API</strong> + scope <code>admob.readonly</code>. Reports: boot + 21:05 HST EOD. Guide: <code>docs/ADMOB-OAUTH.md</code>.</p>
     <p id="admob-state" class="muted">Checking…</p>
     <a id="admob-auth" href="#" target="_blank" rel="noopener">Connect AdMob (browser)</a>
     <button type="button" class="secondary" id="admob-accounts">List AdMob accounts</button>

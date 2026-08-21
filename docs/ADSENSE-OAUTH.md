@@ -15,29 +15,22 @@ This doc is for **Ava ↔ AdSense API**.
 
 In [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → your OAuth 2.0 Client:
 
-**Application type:** Web application (recommended for our HTTPS tunnel)
+**Application type:** Web application
 
-**Authorized redirect URIs** — add all of these:
+**Authorized redirect URI** — **only** this public HTTPS URL (never localhost):
 
 ```text
 https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback
-http://127.0.0.1:8787/api/ops/adsense/oauth/callback
-http://localhost:8787/api/ops/adsense/oauth/callback
 ```
 
-Optional (local tools / Playground):
-
-```text
-http://localhost:8080/
-http://127.0.0.1:8080/
-```
-
-**Authorized JavaScript origins** (if the form asks):
+**Authorized JavaScript origins:**
 
 ```text
 https://ava-origin.rootmc.net
 https://avaivy.cloud
-http://127.0.0.1:8787
+https://alexrs94.site
+https://rootrecord.online
+https://rootmc.net
 ```
 
 Save. Wait ~1–5 minutes for Google to propagate.
@@ -45,10 +38,10 @@ Save. Wait ~1–5 minutes for Google to propagate.
 ## Connect Ava
 
 1. Enable **AdSense Management API** on the same Google Cloud project.
-2. Open http://127.0.0.1:8787/ops → **Connect AdSense (browser)**  
-   (or open the `auth_url` from `GET http://127.0.0.1:8787/api/ops/adsense/status`).
+2. On the Ava machine open `/ops` → **Connect AdSense (browser)**  
+   (auth URL always uses the public `ava-origin` redirect — Google never sees localhost).
 3. Sign in with the Google account that owns AdSense.
-4. You should land on a “AdSense connected” page; token is saved under `data/secrets/google-adsense-token.json` (never git).
+4. You should land on a “AdSense connected” page via `https://ava-origin.rootmc.net/...`; token is saved under `data/secrets/google-adsense-token.json` (never git).
 5. On `/ops`, click **List accounts** to confirm Ava can call the API.
 
 ## If Google still rejects the redirect

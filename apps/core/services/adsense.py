@@ -27,10 +27,12 @@ SCOPES = [
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 
-# Prefer public HTTPS callback (Cloudflare tunnel → Core). example.com is NEVER valid.
+# Public HTTPS only (Cloudflare tunnel → Core). Never localhost — this is not page ads.
 DEFAULT_PUBLIC_REDIRECT = "https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback"
-DEFAULT_LOCAL_REDIRECT = "http://127.0.0.1:8787/api/ops/adsense/oauth/callback"
-REDIRECT = os.environ.get("GOOGLE_ADSENSE_REDIRECT_URI", DEFAULT_PUBLIC_REDIRECT)
+REDIRECT = os.environ.get("GOOGLE_ADSENSE_REDIRECT_URI", DEFAULT_PUBLIC_REDIRECT).strip() or DEFAULT_PUBLIC_REDIRECT
+if "127.0.0.1" in REDIRECT or "localhost" in REDIRECT:
+    REDIRECT = DEFAULT_PUBLIC_REDIRECT
+
 
 
 def _load_client() -> dict[str, Any]:
@@ -48,13 +50,8 @@ def token_present() -> bool:
 
 def recommended_redirect_uris() -> list[str]:
     """Paste these into Google Cloud Console → Credentials → OAuth client."""
-    return [
-        DEFAULT_PUBLIC_REDIRECT,
-        DEFAULT_LOCAL_REDIRECT,
-        "http://localhost:8787/api/ops/adsense/oauth/callback",
-        "http://localhost:8080/",
-        "http://127.0.0.1:8080/",
-    ]
+    return [DEFAULT_PUBLIC_REDIRECT]
+
 
 
 def status() -> dict[str, Any]:
@@ -68,10 +65,11 @@ def status() -> dict[str, Any]:
         "recommended_redirect_uris": recommended_redirect_uris(),
         "scopes": SCOPES,
         "note": (
-            "Do NOT use https://www.example.com/oauth2callback — that is Google's placeholder. "
-            "Use https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback (Web) "
-            "or http://127.0.0.1:8787/api/ops/adsense/oauth/callback (Desktop/local)."
+            "Desk report OAuth only — not ad tags on public sites. "
+            "Redirect URI must be https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback "
+            "(never localhost / example.com)."
         ),
+
     }
     if client_configured():
         c = _load_client()

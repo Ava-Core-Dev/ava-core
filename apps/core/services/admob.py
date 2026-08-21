@@ -32,8 +32,10 @@ SCOPES = [
 AUTH_URI = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 DEFAULT_PUBLIC_REDIRECT = "https://ava-origin.rootmc.net/api/ops/admob/oauth/callback"
-DEFAULT_LOCAL_REDIRECT = "http://127.0.0.1:8787/api/ops/admob/oauth/callback"
-REDIRECT = os.environ.get("GOOGLE_ADMOB_REDIRECT_URI", DEFAULT_PUBLIC_REDIRECT)
+REDIRECT = os.environ.get("GOOGLE_ADMOB_REDIRECT_URI", DEFAULT_PUBLIC_REDIRECT).strip() or DEFAULT_PUBLIC_REDIRECT
+if "127.0.0.1" in REDIRECT or "localhost" in REDIRECT:
+    REDIRECT = DEFAULT_PUBLIC_REDIRECT
+
 ADMOB_API = "https://admob.googleapis.com/v1"
 
 
@@ -51,13 +53,8 @@ def token_present() -> bool:
 
 
 def recommended_redirect_uris() -> list[str]:
-    return [
-        DEFAULT_PUBLIC_REDIRECT,
-        DEFAULT_LOCAL_REDIRECT,
-        "http://localhost:8787/api/ops/admob/oauth/callback",
-        "http://localhost:8080/",
-        "http://127.0.0.1:8080/",
-    ]
+    return [DEFAULT_PUBLIC_REDIRECT]
+
 
 
 def status() -> dict[str, Any]:
@@ -72,10 +69,11 @@ def status() -> dict[str, Any]:
         "scopes": SCOPES,
         "client_id_expected": "366072724921-baueoiiimj6rramekk6q7c3uq8k9pl5s.apps.googleusercontent.com",
         "note": (
-            "Do NOT use https://www.example.com/oauth2callback. "
-            "Use https://ava-origin.rootmc.net/api/ops/admob/oauth/callback. "
-            "Full guide: docs/ADMOB-OAUTH.md"
+            "Desk report OAuth only — not ad tags on public sites. "
+            "Redirect URI: https://ava-origin.rootmc.net/api/ops/admob/oauth/callback "
+            "(never localhost). Guide: docs/ADMOB-OAUTH.md"
         ),
+
     }
     if client_configured():
         c = _load_client()

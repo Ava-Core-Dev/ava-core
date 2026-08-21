@@ -524,16 +524,12 @@ async def ops_adsense_status(request: Request):
 async def ops_adsense_oauth_callback(
     request: Request, code: str = "", error: str = "", state: str = ""
 ):
-    """Public HTTPS callback (ava-origin tunnel). Exchanges code → desk token only."""
+    """Public HTTPS callback via ava-origin tunnel. Always exchanges with public redirect_uri."""
     from fastapi.responses import HTMLResponse
 
     from apps.core.services import adsense
 
-    # Prefer the public redirect Google was told about; fall back to local if needed.
     redirect_used = adsense.REDIRECT
-    host = (request.headers.get("host") or "").split(":")[0].lower()
-    if host in {"127.0.0.1", "localhost"}:
-        redirect_used = adsense.DEFAULT_LOCAL_REDIRECT
 
     if error:
         return HTMLResponse(
@@ -548,8 +544,8 @@ async def ops_adsense_oauth_callback(
             "<html><body style='font-family:system-ui;background:#0a0e14;color:#e5e7eb;"
             "padding:2rem'>"
             "<h1>AdSense connected</h1>"
-            "<p>Token saved on the Ava desk. You can close this tab and return to "
-            "<a href='http://127.0.0.1:8787/ops' style='color:#22d3ee'>/ops</a> "
+            "<p>Token saved on the Ava desk. Close this tab and open "
+            "<a href='/ops' style='color:#22d3ee'>/ops</a> on the desk machine "
             "→ List accounts.</p>"
             f"<pre>{result}</pre></body></html>"
         )
@@ -557,10 +553,11 @@ async def ops_adsense_oauth_callback(
         return HTMLResponse(
             f"<h1>AdSense OAuth exchange failed</h1><pre>{e}</pre>"
             f"<p>redirect_uri used: {redirect_used}</p>"
-            "<p>In Google Cloud Console, Authorized redirect URIs must include that exact URL "
-            "(not example.com).</p>",
+            "<p>In Google Cloud Console, Authorized redirect URIs must include that exact "
+            "public HTTPS URL (never localhost / example.com).</p>",
             status_code=500,
         )
+
 
 
 @router.get("/api/ops/adsense/accounts")
@@ -612,9 +609,6 @@ async def ops_admob_oauth_callback(
     from apps.core.services import admob
 
     redirect_used = admob.REDIRECT
-    host = (request.headers.get("host") or "").split(":")[0].lower()
-    if host in {"127.0.0.1", "localhost"}:
-        redirect_used = admob.DEFAULT_LOCAL_REDIRECT
 
     if error:
         return HTMLResponse(f"<h1>AdMob OAuth failed</h1><pre>{error}</pre>", status_code=400)
@@ -625,17 +619,19 @@ async def ops_admob_oauth_callback(
         return HTMLResponse(
             "<html><body style='font-family:system-ui;background:#0a0e14;color:#e5e7eb;padding:2rem'>"
             "<h1>AdMob connected</h1>"
-            "<p>Token saved on the Ava desk. Return to "
-            "<a href='http://127.0.0.1:8787/ops' style='color:#22d3ee'>/ops</a> "
+            "<p>Token saved on the Ava desk. Open "
+            "<a href='/ops' style='color:#22d3ee'>/ops</a> on the desk "
             "→ List AdMob accounts / Run AdMob report.</p>"
             f"<pre>{result}</pre></body></html>"
         )
     except Exception as e:
         return HTMLResponse(
             f"<h1>AdMob OAuth exchange failed</h1><pre>{e}</pre>"
-            f"<p>redirect_uri used: {redirect_used}</p>",
+            f"<p>redirect_uri used: {redirect_used}</p>"
+            "<p>Authorized redirect URI must be the public HTTPS URL (never localhost).</p>",
             status_code=500,
         )
+
 
 
 @router.get("/api/ops/admob/accounts")

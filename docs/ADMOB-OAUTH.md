@@ -45,33 +45,21 @@ If the app is in **Testing**, add your Google account under **Test users**.
 **APIs & Services → Credentials →** open the OAuth client  
 `366072724921-baueoiiimj6rramekk6q7c3uq8k9pl5s.apps.googleusercontent.com`
 
-**Authorized redirect URIs** — keep the AdSense ones, and **add**:
-
-```text
-https://ava-origin.rootmc.net/api/ops/admob/oauth/callback
-http://127.0.0.1:8787/api/ops/admob/oauth/callback
-http://localhost:8787/api/ops/admob/oauth/callback
-```
-
-Full set for this desk (AdSense + AdMob):
+**Authorized redirect URIs** — **public HTTPS only** (never localhost):
 
 ```text
 https://ava-origin.rootmc.net/api/ops/adsense/oauth/callback
-http://127.0.0.1:8787/api/ops/adsense/oauth/callback
-http://localhost:8787/api/ops/adsense/oauth/callback
 https://ava-origin.rootmc.net/api/ops/admob/oauth/callback
-http://127.0.0.1:8787/api/ops/admob/oauth/callback
-http://localhost:8787/api/ops/admob/oauth/callback
-http://localhost:8080/
-http://127.0.0.1:8080/
 ```
 
-**Authorized JavaScript origins** (unchanged):
+**Authorized JavaScript origins:**
 
 ```text
 https://ava-origin.rootmc.net
 https://avaivy.cloud
-http://127.0.0.1:8787
+https://alexrs94.site
+https://rootrecord.online
+https://rootmc.net
 ```
 
 Save. Wait 1–5 minutes.
