@@ -13,6 +13,7 @@
     { "label": "Live", "href": "/live" },
     { "label": "Index", "href": "/media" },
     { "label": "Goals", "href": "/goals" },
+    { "label": "Finance", "href": "/finance" },
     { "label": "Wallets", "href": "/wallets" },
     { "label": "Blog", "href": "/blog" },
     { "label": "Wiki", "href": "/wiki" },

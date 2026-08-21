@@ -1,0 +1,4 @@
+# Google AdSense publisher authorization (public sites).
+# Replace pub-XXXXXXXXXXXXXXXX with the live publisher ID when verified.
+# Desk OAuth revenue reports are separate from these page tags.
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
