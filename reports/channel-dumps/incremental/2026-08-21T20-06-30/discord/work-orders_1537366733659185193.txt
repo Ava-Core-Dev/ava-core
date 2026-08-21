@@ -1,0 +1,144 @@
+# Discord #work-orders — incremental
+id: 1537366733659185193
+dumped_at: 2026-08-21T20:06:39.879Z
+new_messages: 11
+after: 1539569759568535624
+
+========================================================================
+
+--- 2026-08-21T06:05:30.483Z | rootrecorddev (1497037418979786823)
+./yt https://youtu.be/BTzPZYx_9kg?si=bgCb3Ebh6hiafuQe isnt working
+
+--- 2026-08-21T06:06:00.397Z | rootrecorddev (1497037418979786823)
+https://www.youtube.com/watch?v=ow6Xk17N5Jk&list=RDow6Xk17N5Jk&start_radio=1
+
+--- 2026-08-21T06:06:44.611Z | rootrecorddev (1497037418979786823)
+Winter is coming
+
+--- 2026-08-21T06:08:00.525Z | rootrecorddev (1497037418979786823)
+maybe /yt had issues bc it was 2hours long lmao
+
+--- 2026-08-21T06:08:22.959Z | rootrecorddev (1497037418979786823)
+ava make note to allow me to download multi hour videos plz
+
+--- 2026-08-21T06:10:30.076Z | rootrecorddev (1497037418979786823)
+Add these to audiofiles https://youtu.be/WF2D5oRACOg?list=RDWF2D5oRACOg
+
+--- 2026-08-21T06:11:59.551Z | rootrecorddev (1497037418979786823)
+https://www.youtube.com/watch?v=Cr1bp2l7B1o&list=RDCr1bp2l7B1o&start_radio=1
+
+--- 2026-08-21T06:12:28.320Z | rootrecorddev (1497037418979786823)
+can make randomized autoplaybackground for desktop
+
+--- 2026-08-21T06:17:25.653Z | rootrecorddev (1497037418979786823)
+(no text)
+[file:message.txt https://cdn.discordapp.com/attachments/1537366733659185193/1540243411326734346/message.txt?ex=6a89e7b5&is=6a889635&hm=fe3e9e74c8442bf4d2ef76fd8171ab39740bb315d1a282591112fae4a63dcbf2&]
+
+--- 2026-08-21T06:20:15.743Z | rootrecorddev (1497037418979786823)
+ai-music-api / generate
+
+Commercial use
+Run with API
+Kie AI Music API is an AI music-generation model that converts text prompts into full vocal and instrumental tracks with natural dynamics and coherent musical progression, and it currently supports the latest V5.5 model for enhanced realism and scalable performance.
+
+Model Type:
+
+Generate
+
+Generate Voice
+
+Extend
+
+Sounds
+
+TimeStamped Lyrics
+
+Check Voice
+
+Generate Persona
+
+Replace Section
+
+Generate Lyrics
+
+Boost Music Style
+
+Cover Generate
+
+Add Vocals
+
+Separate Vocals
+
+Generate Midi From Audio
+
+Mashup
+
+Create Music Video
+
+Upload And Extend Audio
+
+Upload And Cover Audio
+
+Add Instrumental
+
+Convert To Wav Format
+Pricing: Generate Music costs 12 credits per request (≈ $0.06). 
+High-tier top-ups (+10% bonus) bring effective pricing down to ~$0.054 per request.
+Playground
+Similar
+README
+API
+
+COMPANY
+
+Blog
+Sitemap
+Terms of Use
+Privacy Policy
+RESOURCES
+
+Runway Gen-4 Turbo API – Free Trial for Fast, Affordable AI Video Generation
+Runway AI Image-to-Video Generation Gets Smarter and Faster with Runway Gen4 Turbo
+Runway Gen-4 Released: New AI Model for Consistent Video Generation
+GPT-Image-1: OpenAI’s Latest Image Generation API — Free to Try on Kie.ai Today
+The Most Affordable Veo 3 AI API by Kie.ai - Create High-Quality Videos with Audio and Visuals
+FLUX.1 Kontext API – Professional Image Editing at Half the Cost | Free Trial
+Fast and Affordable Veo3 Fast API for Stunning Videos on Kie.ai
+Veo 3 API Pricing Comparison: Most Affordable Google Veo 3 Access from $0.40/Video - Kie.ai
+FLUX.1 Kontext [dev] API: AI Image Editing by Black Forest Labs|Kie.ai
+How to Use Nano Banana API (Gemini-2-5-flash-image-preview) – Free Online Test | Kie.ai
+GLM-5.2 Release: What the First 24 Hours Show
+Grok 4.3 Deep Dive: Release, Pricing, What We Know
+GPT-5.6 Leak: What We Actually Know
+Grok 4.3 Release Deep Dive: What xAI Just Shipped
+Seedance 2.5 Release: What ByteDance Just Shipped
+OpenAI Bidi-1 Voice Model: Leak Deep Dive
+Claude Tag Release: Anthropic's Slack Async Agent
+GPT-5.5 Instant Refresh & Daybreak Deep Dive
+Market
+
+OpenAI Codex
+Kling 3.0 Motion Control
+GPT-5.4
+Claude Haiku 4.5
+Claude Opus 4.6
+Claude Sonnet 4.6
+Qwen Image 2.0
+Wan2.7 Image
+Wan 2.7 Video
+HappyHorse-1.0
+GPT Image 2
+GPT-5.5
+Claude Opus 4.7
+Gemini Omni
+Gemini 3.5 Flash
+Claude Opus 4.8
+Grok Imagine Video 1.5
+Claude Fable 5
+KIE AI
+© 2025 kie.ai Inc. All rights reserved.
+
+--- 2026-08-21T06:20:48.814Z | rootrecorddev (1497037418979786823)
+Can use the music as examples for generation
+
+========================================================================

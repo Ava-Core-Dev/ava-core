@@ -1,0 +1,54 @@
+# Discord #🛰️general🛰️ — incremental
+id: 1516108586307158088
+dumped_at: 2026-08-21T20:06:31.097Z
+new_messages: 15
+after: 1539739548647555163
+
+========================================================================
+
+--- 2026-08-21T19:31:38.225Z | rootrecorddev (1497037418979786823)
+Good morning
+
+--- 2026-08-21T19:31:59.340Z | zuppafredda (788153722198294618)
+good morning
+
+--- 2026-08-21T19:32:27.147Z | rootrecorddev (1497037418979786823)
+Decisions being made today. Have you heard from Sven or kh lately?
+
+--- 2026-08-21T19:32:37.121Z | zuppafredda (788153722198294618)
+no
+
+--- 2026-08-21T19:32:42.045Z | zuppafredda (788153722198294618)
+nothing
+
+--- 2026-08-21T19:32:47.962Z | rootrecorddev (1497037418979786823)
+Alrighty
+
+--- 2026-08-21T19:32:51.978Z | zuppafredda (788153722198294618)
+but I havent been on
+
+--- 2026-08-21T19:32:58.791Z | zuppafredda (788153722198294618)
+I have to study
+
+--- 2026-08-21T19:33:05.903Z | rootrecorddev (1497037418979786823)
+No worries
+
+--- 2026-08-21T19:33:22.516Z | rootrecorddev (1497037418979786823)
+I've been having to work on other things as well
+
+--- 2026-08-21T19:34:30.192Z | rootrecorddev (1497037418979786823)
+Gonna get out of hammock, make coffee, start the day
+
+--- 2026-08-21T19:35:14.105Z | zuppafredda (788153722198294618)
+nice i have to do the opposite
+
+--- 2026-08-21T19:35:26.428Z | zuppafredda (788153722198294618)
+get on the hammock. and end the day
+
+--- 2026-08-21T19:36:30.093Z | rootrecorddev (1497037418979786823)
+Have a good night
+
+--- 2026-08-21T19:36:38.576Z | zuppafredda (788153722198294618)
+thanks
+
+========================================================================

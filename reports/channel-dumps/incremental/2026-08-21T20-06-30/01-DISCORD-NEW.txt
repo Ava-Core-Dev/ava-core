@@ -1,0 +1,373 @@
+# Discord #🛰️general🛰️ — incremental
+id: 1516108586307158088
+dumped_at: 2026-08-21T20:06:31.097Z
+new_messages: 15
+after: 1539739548647555163
+
+========================================================================
+
+--- 2026-08-21T19:31:38.225Z | rootrecorddev (1497037418979786823)
+Good morning
+
+--- 2026-08-21T19:31:59.340Z | zuppafredda (788153722198294618)
+good morning
+
+--- 2026-08-21T19:32:27.147Z | rootrecorddev (1497037418979786823)
+Decisions being made today. Have you heard from Sven or kh lately?
+
+--- 2026-08-21T19:32:37.121Z | zuppafredda (788153722198294618)
+no
+
+--- 2026-08-21T19:32:42.045Z | zuppafredda (788153722198294618)
+nothing
+
+--- 2026-08-21T19:32:47.962Z | rootrecorddev (1497037418979786823)
+Alrighty
+
+--- 2026-08-21T19:32:51.978Z | zuppafredda (788153722198294618)
+but I havent been on
+
+--- 2026-08-21T19:32:58.791Z | zuppafredda (788153722198294618)
+I have to study
+
+--- 2026-08-21T19:33:05.903Z | rootrecorddev (1497037418979786823)
+No worries
+
+--- 2026-08-21T19:33:22.516Z | rootrecorddev (1497037418979786823)
+I've been having to work on other things as well
+
+--- 2026-08-21T19:34:30.192Z | rootrecorddev (1497037418979786823)
+Gonna get out of hammock, make coffee, start the day
+
+--- 2026-08-21T19:35:14.105Z | zuppafredda (788153722198294618)
+nice i have to do the opposite
+
+--- 2026-08-21T19:35:26.428Z | zuppafredda (788153722198294618)
+get on the hammock. and end the day
+
+--- 2026-08-21T19:36:30.093Z | rootrecorddev (1497037418979786823)
+Have a good night
+
+--- 2026-08-21T19:36:38.576Z | zuppafredda (788153722198294618)
+thanks
+
+========================================================================
+
+# Discord #📒updates📒 — incremental
+id: 1520665313631408251
+dumped_at: 2026-08-21T20:06:36.046Z
+new_messages: 2
+after: 1540176680398626886
+
+========================================================================
+
+--- 2026-08-21T06:54:44.611Z | rootrecorddev (1497037418979786823)
+goodnight
+
+--- 2026-08-21T06:56:45.623Z | rootrecorddev (1497037418979786823)
+(no text)
+[file:image.png https://cdn.discordapp.com/attachments/1520665313631408251/1540253309615472640/image.png?ex=6a89f0ed&is=6a889f6d&hm=77e4a5b1f502e5e4eced56c6dd05b5106ac9cf307c9fc5aeefc8caf96c006293&]
+
+========================================================================
+
+# Discord #automations — incremental
+id: 1535712809399361668
+dumped_at: 2026-08-21T20:06:38.276Z
+new_messages: 12
+after: 1540225334308249600
+
+========================================================================
+
+--- 2026-08-21T05:35:19.079Z | Ava
+**Player economy (live MySQL)** — 19:35 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,090.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T06:06:51.137Z | Ava
+**Player economy (live MySQL)** — 20:05 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,090.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T06:07:36.227Z | Ava
+**AdSense report — boot · 2026-08-20 20:07 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-21T06:07:42.356Z | Ava
+**AdMob report — boot · 2026-08-20 20:07 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-21T06:37:25.924Z | Ava
+**Player economy (live MySQL)** — 20:37 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,090.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T07:00:01.470Z | Ava
+**AdSense report — end-of-day close · 2026-08-20 21:00 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-21T07:05:00.410Z | Ava
+**AdMob report — end-of-day close · 2026-08-20 21:05 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-21T07:08:56.910Z | Ava
+**Player economy (live MySQL)** — 21:07 HST — Thu, Aug 20
+Wallets: **75** · Circulating (+): **9,286.6 g** · Net sum: **733.85 g**
+Avg: **9.78 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **71 g** · Playtime rewards paid: **3,851.0 g** · Grants paid: **418 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-21T20:04:46.094Z | Ava
+**AdSense report — boot · 2026-08-21 10:04 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-21T20:04:52.075Z | Ava
+**AdMob report — boot · 2026-08-21 10:04 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-21T20:05:14.607Z | Ava
+**AdSense report — boot · 2026-08-21 10:05 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-21T20:05:20.588Z | Ava
+**AdMob report — boot · 2026-08-21 10:05 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+========================================================================
+
+# Discord #work-orders — incremental
+id: 1537366733659185193
+dumped_at: 2026-08-21T20:06:39.879Z
+new_messages: 11
+after: 1539569759568535624
+
+========================================================================
+
+--- 2026-08-21T06:05:30.483Z | rootrecorddev (1497037418979786823)
+./yt https://youtu.be/BTzPZYx_9kg?si=bgCb3Ebh6hiafuQe isnt working
+
+--- 2026-08-21T06:06:00.397Z | rootrecorddev (1497037418979786823)
+https://www.youtube.com/watch?v=ow6Xk17N5Jk&list=RDow6Xk17N5Jk&start_radio=1
+
+--- 2026-08-21T06:06:44.611Z | rootrecorddev (1497037418979786823)
+Winter is coming
+
+--- 2026-08-21T06:08:00.525Z | rootrecorddev (1497037418979786823)
+maybe /yt had issues bc it was 2hours long lmao
+
+--- 2026-08-21T06:08:22.959Z | rootrecorddev (1497037418979786823)
+ava make note to allow me to download multi hour videos plz
+
+--- 2026-08-21T06:10:30.076Z | rootrecorddev (1497037418979786823)
+Add these to audiofiles https://youtu.be/WF2D5oRACOg?list=RDWF2D5oRACOg
+
+--- 2026-08-21T06:11:59.551Z | rootrecorddev (1497037418979786823)
+https://www.youtube.com/watch?v=Cr1bp2l7B1o&list=RDCr1bp2l7B1o&start_radio=1
+
+--- 2026-08-21T06:12:28.320Z | rootrecorddev (1497037418979786823)
+can make randomized autoplaybackground for desktop
+
+--- 2026-08-21T06:17:25.653Z | rootrecorddev (1497037418979786823)
+(no text)
+[file:message.txt https://cdn.discordapp.com/attachments/1537366733659185193/1540243411326734346/message.txt?ex=6a89e7b5&is=6a889635&hm=fe3e9e74c8442bf4d2ef76fd8171ab39740bb315d1a282591112fae4a63dcbf2&]
+
+--- 2026-08-21T06:20:15.743Z | rootrecorddev (1497037418979786823)
+ai-music-api / generate
+
+Commercial use
+Run with API
+Kie AI Music API is an AI music-generation model that converts text prompts into full vocal and instrumental tracks with natural dynamics and coherent musical progression, and it currently supports the latest V5.5 model for enhanced realism and scalable performance.
+
+Model Type:
+
+Generate
+
+Generate Voice
+
+Extend
+
+Sounds
+
+TimeStamped Lyrics
+
+Check Voice
+
+Generate Persona
+
+Replace Section
+
+Generate Lyrics
+
+Boost Music Style
+
+Cover Generate
+
+Add Vocals
+
+Separate Vocals
+
+Generate Midi From Audio
+
+Mashup
+
+Create Music Video
+
+Upload And Extend Audio
+
+Upload And Cover Audio
+
+Add Instrumental
+
+Convert To Wav Format
+Pricing: Generate Music costs 12 credits per request (≈ $0.06). 
+High-tier top-ups (+10% bonus) bring effective pricing down to ~$0.054 per request.
+Playground
+Similar
+README
+API
+
+COMPANY
+
+Blog
+Sitemap
+Terms of Use
+Privacy Policy
+RESOURCES
+
+Runway Gen-4 Turbo API – Free Trial for Fast, Affordable AI Video Generation
+Runway AI Image-to-Video Generation Gets Smarter and Faster with Runway Gen4 Turbo
+Runway Gen-4 Released: New AI Model for Consistent Video Generation
+GPT-Image-1: OpenAI’s Latest Image Generation API — Free to Try on Kie.ai Today
+The Most Affordable Veo 3 AI API by Kie.ai - Create High-Quality Videos with Audio and Visuals
+FLUX.1 Kontext API – Professional Image Editing at Half the Cost | Free Trial
+Fast and Affordable Veo3 Fast API for Stunning Videos on Kie.ai
+Veo 3 API Pricing Comparison: Most Affordable Google Veo 3 Access from $0.40/Video - Kie.ai
+FLUX.1 Kontext [dev] API: AI Image Editing by Black Forest Labs|Kie.ai
+How to Use Nano Banana API (Gemini-2-5-flash-image-preview) – Free Online Test | Kie.ai
+GLM-5.2 Release: What the First 24 Hours Show
+Grok 4.3 Deep Dive: Release, Pricing, What We Know
+GPT-5.6 Leak: What We Actually Know
+Grok 4.3 Release Deep Dive: What xAI Just Shipped
+Seedance 2.5 Release: What ByteDance Just Shipped
+OpenAI Bidi-1 Voice Model: Leak Deep Dive
+Claude Tag Release: Anthropic's Slack Async Agent
+GPT-5.5 Instant Refresh & Daybreak Deep Dive
+Market
+
+OpenAI Codex
+Kling 3.0 Motion Control
+GPT-5.4
+Claude Haiku 4.5
+Claude Opus 4.6
+Claude Sonnet 4.6
+Qwen Image 2.0
+Wan2.7 Image
+Wan 2.7 Video
+HappyHorse-1.0
+GPT Image 2
+GPT-5.5
+Claude Opus 4.7
+Gemini Omni
+Gemini 3.5 Flash
+Claude Opus 4.8
+Grok Imagine Video 1.5
+Claude Fable 5
+KIE AI
+© 2025 kie.ai Inc. All rights reserved.
+
+--- 2026-08-21T06:20:48.814Z | rootrecorddev (1497037418979786823)
+Can use the music as examples for generation
+
+========================================================================
+
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-21T20:06:40.292Z
+new_messages: 3
+after: 1540121250817507408
+
+========================================================================
+
+--- 2026-08-21T20:05:28.819Z | Ava
+**Solar midnight close report** - HST day **2026-08-20**
+
+Bank blend: **10%**
+- **Delta 2**: SOC 7% - in 137W - out 0W - solar 0W
+- **River 2 Pro**: SOC 12% - in 99W - out 62W - solar 99W
+
+Morning cycle avg (today only): **~99W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net…
+
+--- 2026-08-21T20:05:30.153Z | Ava
+**Solar morning open report** - HST day **2026-08-21**
+
+Bank blend: **10%**
+- **Delta 2**: SOC 7% - in 137W - out 0W - solar 0W
+- **River 2 Pro**: SOC 12% - in 99W - out 62W - solar 99W
+
+Morning cycle avg (today only): **~198W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/…
+
+--- 2026-08-21T20:06:30.396Z | Ava
+Slightly paranoid on purpose: if something's coming for RootMC or the crew, I want to clock it early. Caring loud.
+
+- Ava
+
+========================================================================

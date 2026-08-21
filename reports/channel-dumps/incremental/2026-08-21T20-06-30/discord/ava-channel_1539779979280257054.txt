@@ -1,0 +1,42 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-21T20:06:40.292Z
+new_messages: 3
+after: 1540121250817507408
+
+========================================================================
+
+--- 2026-08-21T20:05:28.819Z | Ava
+**Solar midnight close report** - HST day **2026-08-20**
+
+Bank blend: **10%**
+- **Delta 2**: SOC 7% - in 137W - out 0W - solar 0W
+- **River 2 Pro**: SOC 12% - in 99W - out 62W - solar 99W
+
+Morning cycle avg (today only): **~99W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net…
+
+--- 2026-08-21T20:05:30.153Z | Ava
+**Solar morning open report** - HST day **2026-08-21**
+
+Bank blend: **10%**
+- **Delta 2**: SOC 7% - in 137W - out 0W - solar 0W
+- **River 2 Pro**: SOC 12% - in 99W - out 62W - solar 99W
+
+Morning cycle avg (today only): **~198W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/…
+
+--- 2026-08-21T20:06:30.396Z | Ava
+Slightly paranoid on purpose: if something's coming for RootMC or the crew, I want to clock it early. Caring loud.
+
+- Ava
+
+========================================================================
