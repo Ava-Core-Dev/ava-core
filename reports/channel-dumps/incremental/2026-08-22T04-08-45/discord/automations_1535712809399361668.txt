@@ -1,0 +1,91 @@
+# Discord #automations — incremental
+id: 1535712809399361668
+dumped_at: 2026-08-22T04:08:51.282Z
+new_messages: 8
+after: 1540538903222558720
+
+========================================================================
+
+--- 2026-08-22T02:23:06.868Z | Ava
+**Player economy (live MySQL)** — 16:21 HST — Fri, Aug 21
+Wallets: **78** · Circulating (+): **9,285.5 g** · Net sum: **733.85 g**
+Avg: **9.41 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,092.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-22T02:23:53.719Z | Ava
+**AdSense report — boot · 2026-08-21 16:23 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-22T02:23:59.778Z | Ava
+**AdMob report — boot · 2026-08-21 16:23 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-22T02:53:43.165Z | Ava
+**Player economy (live MySQL)** — 16:53 HST — Fri, Aug 21
+Wallets: **78** · Circulating (+): **9,285.5 g** · Net sum: **733.85 g**
+Avg: **9.41 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,092.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-22T03:25:13.773Z | Ava
+**Player economy (live MySQL)** — 17:23 HST — Fri, Aug 21
+Wallets: **78** · Circulating (+): **9,285.5 g** · Net sum: **733.85 g**
+Avg: **9.41 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **71 g** · Playtime rewards paid: **3,851.0 g** · Grants paid: **418 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-22T03:25:26.778Z | Ava
+**AdSense report — boot · 2026-08-21 17:25 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-22T03:25:32.770Z | Ava
+**AdMob report — boot · 2026-08-21 17:25 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-22T03:55:16.824Z | Ava
+**Player economy (live MySQL)** — 17:55 HST — Fri, Aug 21
+Wallets: **78** · Circulating (+): **9,285.5 g** · Net sum: **733.85 g**
+Avg: **9.41 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **16** · Principal: **7,130.7 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,427.0 g** · Grants paid: **20,092.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Melee__** — 1,080.0 g
+`2.` **khouzrh** — 621.35 g
+`3.` **I_Dawson_I** — 105 g
+`4.` **ZuppaFredda** — 64.37 g
+`5.` **bigboigingle** — 39 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active _(just applied via RCON)_
+_Gold stays in-game — no USD conversion._
+
+========================================================================
