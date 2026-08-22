@@ -1,0 +1,46 @@
+# Discord #automations — incremental
+id: 1535712809399361668
+dumped_at: 2026-08-22T18:20:29.413Z
+new_messages: 5
+after: 1540632479629709312
+
+========================================================================
+
+--- 2026-08-22T08:34:58.111Z | Ava
+**Player economy (live MySQL)** — 22:33 HST — Fri, Aug 21
+Wallets: **79** · Circulating (+): **11,402.3 g** · Net sum: **744.85 g**
+Avg: **9.43 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **3** · Principal: **152,854.4 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,428.0 g** · Grants paid: **20,304.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Alexrs94** — 2,112.1 g
+`2.` **Melee__** — 1,080.0 g
+`3.` **khouzrh** — 621.35 g
+`4.` **I_Dawson_I** — 105 g
+`5.` **ZuppaFredda** — 64.37 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-22T08:35:45.193Z | Ava
+**AdSense report — boot · 2026-08-21 22:35 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-22T08:35:51.228Z | Ava
+**AdMob report — boot · 2026-08-21 22:35 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-22T18:18:48.101Z | Ava
+**AdSense report — boot · 2026-08-22 08:18 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-22T18:18:54.121Z | Ava
+**AdMob report — boot · 2026-08-22 08:18 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+========================================================================

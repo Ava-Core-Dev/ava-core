@@ -1,0 +1,105 @@
+# Discord #🛰️general🛰️ — incremental
+id: 1516108586307158088
+dumped_at: 2026-08-22T18:20:23.790Z
+new_messages: 2
+after: 1540584149549711443
+
+========================================================================
+
+--- 2026-08-22T08:19:18.039Z | pranksdaymonday (911681022851162122)
+(no text)
+
+--- 2026-08-22T08:22:56.113Z | rootrecorddev (1497037418979786823) (reply-to 1540636469788540949)
+(no text)
+
+========================================================================
+
+# Discord #automations — incremental
+id: 1535712809399361668
+dumped_at: 2026-08-22T18:20:29.413Z
+new_messages: 5
+after: 1540632479629709312
+
+========================================================================
+
+--- 2026-08-22T08:34:58.111Z | Ava
+**Player economy (live MySQL)** — 22:33 HST — Fri, Aug 21
+Wallets: **79** · Circulating (+): **11,402.3 g** · Net sum: **744.85 g**
+Avg: **9.43 g** · Top wallet: **5,664.2 g**
+Bonds outstanding: **3** · Principal: **152,854.4 g**
+Pools — Vote rewards paid: **7,773.0 g** · Playtime rewards paid: **5,428.0 g** · Grants paid: **20,304.2 g** · Dividends paid: **0 g**
+**Top balances**
+`1.` **Alexrs94** — 2,112.1 g
+`2.` **Melee__** — 1,080.0 g
+`3.` **khouzrh** — 621.35 g
+`4.` **I_Dawson_I** — 105 g
+`5.` **ZuppaFredda** — 64.37 g
+🌋 **Kīlauea Advisory** — economy multiplier **×2.0** active
+_Gold stays in-game — no USD conversion._
+
+--- 2026-08-22T08:35:45.193Z | Ava
+**AdSense report — boot · 2026-08-21 22:35 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-22T08:35:51.228Z | Ava
+**AdMob report — boot · 2026-08-21 22:35 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+--- 2026-08-22T18:18:48.101Z | Ava
+**AdSense report — boot · 2026-08-22 08:18 HST**
+⚠️ `AdSense OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdSense`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdSense._
+
+--- 2026-08-22T18:18:54.121Z | Ava
+**AdMob report — boot · 2026-08-22 08:18 HST**
+⚠️ `AdMob OAuth not connected — open http://127.0.0.1:8787/ops → Connect AdMob`
+_Connect once at http://127.0.0.1:8787/ops → Connect AdMob._
+_Guide: docs/ADMOB-OAUTH.md_
+
+========================================================================
+
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-22T18:20:31.066Z
+new_messages: 3
+after: 1540452056127770735
+
+========================================================================
+
+--- 2026-08-22T18:19:19.082Z | Ava
+**Solar midnight close report** - HST day **2026-08-21**
+
+Bank blend: **8%**
+- **Delta 2**: SOC 1% - in 0W - out 177W - solar 0W
+- **River 2 Pro**: SOC 15% - in 0W - out 77W - solar 0W
+
+Morning cycle avg (today only): **~0W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/sol…
+
+--- 2026-08-22T18:19:20.024Z | Ava
+**Solar morning open report** - HST day **2026-08-22**
+
+Bank blend: **8%**
+- **Delta 2**: SOC 1% - in 0W - out 177W - solar 0W
+- **River 2 Pro**: SOC 15% - in 0W - out 77W - solar 0W
+
+Morning cycle avg (today only): **~0W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/solar…
+
+--- 2026-08-22T18:20:22.893Z | Ava
+RootMC Pro is pay-to-steer (vote weight x2) + cosmetics/convenience - never pay-to-win combat.
+
+- Ava
+
+========================================================================

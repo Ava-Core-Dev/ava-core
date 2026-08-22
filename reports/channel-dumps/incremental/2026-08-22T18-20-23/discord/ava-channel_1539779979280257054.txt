@@ -1,0 +1,42 @@
+# Discord #🦜ava-channel🦜 — incremental
+id: 1539779979280257054
+dumped_at: 2026-08-22T18:20:31.066Z
+new_messages: 3
+after: 1540452056127770735
+
+========================================================================
+
+--- 2026-08-22T18:19:19.082Z | Ava
+**Solar midnight close report** - HST day **2026-08-21**
+
+Bank blend: **8%**
+- **Delta 2**: SOC 1% - in 0W - out 177W - solar 0W
+- **River 2 Pro**: SOC 15% - in 0W - out 77W - solar 0W
+
+Morning cycle avg (today only): **~0W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/sol…
+
+--- 2026-08-22T18:19:20.024Z | Ava
+**Solar morning open report** - HST day **2026-08-22**
+
+Bank blend: **8%**
+- **Delta 2**: SOC 1% - in 0W - out 177W - solar 0W
+- **River 2 Pro**: SOC 15% - in 0W - out 77W - solar 0W
+
+Morning cycle avg (today only): **~0W** site - 1 site-minutes
+
+**Solar board:** https://ava.rootmc.net/solar
+**Website:** https://rootmc.net
+**Solar ops Discord:** https://discord.com/channels/1516108585740800042/1533915343766949949
+_If https://ava.rootmc.net/solar…
+
+--- 2026-08-22T18:20:22.893Z | Ava
+RootMC Pro is pay-to-steer (vote weight x2) + cosmetics/convenience - never pay-to-win combat.
+
+- Ava
+
+========================================================================
