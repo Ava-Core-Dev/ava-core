@@ -45,42 +45,6 @@ export default {
       return fetchFrontend(request, PAGES_FRONTEND);
     }
 
-    // Account dashboard paths (apps, sessions, prefs, locations) live on account Worker under /api/*
-    const accountApiPaths =
-      path === "/api/me" ||
-      path.startsWith("/api/me/") ||
-      path === "/api/locations" ||
-      path.startsWith("/api/locations/") ||
-      path === "/api/auth" ||
-      path.startsWith("/api/auth/");
-    if (accountApiPaths) {
-      if (request.method === "OPTIONS") {
-        return withCredentialCors(request, new Response(null, { status: 204 }));
-      }
-      const target = new URL(path + url.search, ACCOUNT_API);
-      const headers = new Headers(request.headers);
-      headers.delete("host");
-      const browserOrigin = request.headers.get("Origin");
-      if (browserOrigin) headers.set("Origin", browserOrigin);
-      try {
-        const res = await fetch(target.toString(), {
-          method: request.method,
-          headers,
-          body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
-          redirect: "manual",
-        });
-        return withCredentialCors(request, res);
-      } catch {
-        return withCredentialCors(
-          request,
-          new Response(JSON.stringify({ detail: "account_api_unreachable" }), {
-            status: 502,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-      }
-    }
-
     // Account API proxy (same-origin when called as rootrecord.info/v1/*)
     if (path === "/v1" || path.startsWith("/v1/")) {
       if (request.method === "OPTIONS") {
