@@ -21,23 +21,57 @@ function renderContext(ctx: Record<string, unknown>): string {
 
 export default async function ContextPage() {
   const ctx = await getContext();
-
   return (
     <section className={blog.wrap}>
       <p className={blog.eyebrow}>Ops context</p>
       <h1 className={blog.title}>Ava Context</h1>
-      <p className={blog.lead}>Live operational context — refreshed every 60 seconds.</p>
+      <p className={blog.lead}>
+        Live operational context from the OptiPlex root server — refreshed every 60 seconds.
+        Home tree: <code>/home/ava-core/ava</code>.
+      </p>
+
+      <p style={{ marginBottom: "1.25rem", fontSize: 14, lineHeight: 1.7 }}>
+        <a href="/directory" style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
+          Directory map
+        </a>
+        {" · "}
+        <a href="/directory.md" style={{ color: "var(--muted)", textDecoration: "underline" }}>
+          directory.md
+        </a>
+        {" · "}
+        <a href="/context/dev" style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
+          Developer / agent brain
+        </a>
+        {" · "}
+        <a href="/context/dev.md" style={{ color: "var(--muted)", textDecoration: "underline" }}>
+          context-dev.md
+        </a>
+      </p>
+
       {ctx ? (
-        <pre className={blog.card} style={{ whiteSpace: "pre-wrap", overflowX: "auto", fontFamily: "var(--font-mono)", fontSize: 13, lineHeight: 1.6 }}>
+        <pre
+          className={blog.card}
+          style={{
+            whiteSpace: "pre-wrap",
+            overflowX: "auto",
+            fontFamily: "var(--font-mono)",
+            fontSize: 13,
+            lineHeight: 1.6,
+          }}
+        >
           {renderContext(ctx as Record<string, unknown>)}
         </pre>
       ) : (
         <div className={blog.card} style={{ textAlign: "center", color: "var(--muted)" }}>
           <p style={{ fontSize: "2rem", marginBottom: 12 }}>◈</p>
           <p>Ava is offline — solar night mode.</p>
-          <p style={{ fontSize: 13, marginTop: 8 }}>Context will be available after sunrise.</p>
+          <p style={{ fontSize: 13, marginTop: 8 }}>
+            Live ops context returns after sunrise. Directory and developer pages stay available.
+          </p>
         </div>
       )}
     </section>
   );
 }
+
+<!-- avaivy-cloud-edit001 20260822T024829Z -->
