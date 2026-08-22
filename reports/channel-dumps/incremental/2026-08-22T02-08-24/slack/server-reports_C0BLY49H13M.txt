@@ -1,0 +1,43 @@
+# Slack #server-reports — incremental
+id: C0BLY49H13M
+dumped_at: 2026-08-22T02:08:40.768Z
+new_messages: 1
+since: 1786675641.241589
+
+========================================================================
+
+--- 2026-08-14T02:47:21.241Z | [bot] incoming-webhook
+*Economy Brief*
+_2026-08-12 HST · Slack copy after Discord_
+_daily_economy_intel_
+
+*Economy Brief*
+*2026-08-12 HST*
+
+*Market Overview*
+
+_See Live production below._
+
+*Live production*
+
+<http://_play.rootmc.net|_play.rootmc.net> - RootMC live production (Root-Ava-Core)._
+
+- *Gold in wallets:* *1.4k Gold* (*20* players)
+- *Combined net worth:* *1.5k Gold*
+- *Gold mined (all-time):* *49.7k Gold*
+- *Shop listings:* *28*
+- *Top wallets:* *ZuppaFredda* 308.873 Gold; *Melee__* 275.501 Gold; *Svenj9* 254.196 Gold; *I_Dawson_I* 242 Gold; *Elfrieden* 102.859 Gold
+
+_Linked players: *7*_
+_Playtime: *63* players - top *Alexrs94* at 12d 21h_
+
+*Live stats*
+_Server Reserve  -  synced Aug 4, 3:04 PM HST_
+*Reserve balance*
+- *Balance:* 1.9k Gold
+- *All-time net (ledger):* 890.304 Gold
+- *Avg monthly net:* 445.152 Gold
+*2026-08 month-to-date*
+- *Inflow:* 0 Gold  -  *Outflow:* 0 Gold  -  *Net:* 0 Gold
+
+========================================================================

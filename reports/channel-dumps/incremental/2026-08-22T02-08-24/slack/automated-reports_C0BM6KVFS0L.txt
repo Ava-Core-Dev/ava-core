@@ -1,0 +1,21 @@
+# Slack #automated-reports — incremental
+id: C0BM6KVFS0L
+dumped_at: 2026-08-22T02:08:37.493Z
+new_messages: 1
+since: 1787153787.448509
+
+========================================================================
+
+--- 2026-08-19T15:36:27.448Z | [bot] Ava Ivy
+**Economy brief** - Wed, Aug 19, 05:36 HST
+_live <http://play.rootmc.net|play.rootmc.net> - Root-Economy - not old maps_
+**Root-Economy** - live **<http://play.rootmc.net|play.rootmc.net>** - Shockbyte Root-Ava-Core (not old maps)
+- Wallets: **21** - total **4.7k G** - avg **223.142 G** - top Alexrs94 2.8k G, Melee__ 1.1k G, khouzrh 621.35 G, I_Dawson_I 105 G, ZuppaFredda 64.37 G
+- Treasury ledger: **2495** rows - in **64.7k G** - out **77.1k G** - net **-12.3k G** - bond_issue 44.8k G - bond_redeem 39.7k G - grant 20.1k G - land_fees 15.1k G - vote 7.8k G - playtime 5.4k G
+- Gold found (new map): **1.0k G** - 3 miners
+- Playtime **2026-08**: **12** - pool **14d 15h** - WildEcho94 11d 18h, Alexrs94 1d 9h, ZuppaFredda 15h 37m, Svenj9 12h 15m, I_Dawson_I 3h 56m
+- Gaming bonus: **offline 1.00x - +1% env**
+Board: <https://ava.rootmc.net/economy>
+- Ava
+
+========================================================================
