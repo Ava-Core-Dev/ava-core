@@ -9,7 +9,6 @@ export default function AvaDeveloperContextPage() {
         Operational rules for working on Ava: verify the runtime, patch the smallest useful
         surface, build the real project, and deploy only validated artifacts.
       </p>
-
       <section className="panel">
         <h2>Current operating method</h2>
         <ul>
@@ -21,7 +20,6 @@ export default function AvaDeveloperContextPage() {
           <li>Keep deployment annotations out of TSX/module code unless they use valid syntax.</li>
         </ul>
       </section>
-
       <section className="panel">
         <h2>Failure handling</h2>
         <p>
@@ -30,7 +28,6 @@ export default function AvaDeveloperContextPage() {
           artifact reconstruction complete.
         </p>
       </section>
-
       <section className="panel">
         <h2>Connected surfaces</h2>
         <p>
@@ -45,4 +42,4 @@ export default function AvaDeveloperContextPage() {
       </section>
     </main>
   );
-}
+}\n

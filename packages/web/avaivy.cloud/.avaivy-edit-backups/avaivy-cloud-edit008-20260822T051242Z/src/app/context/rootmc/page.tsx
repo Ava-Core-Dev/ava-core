@@ -9,7 +9,6 @@ export default function RootMCContextPage() {
         Operational context for the RootMC surface as it connects to Ava Ivy, governance,
         player services, Discord, and the Root Record runtime.
       </p>
-
       <section className="panel">
         <h2>Surface split</h2>
         <p>
@@ -18,7 +17,6 @@ export default function RootMCContextPage() {
           integration tree rather than being inferred from a public chat surface.
         </p>
       </section>
-
       <section className="panel">
         <h2>Governance boundary</h2>
         <p>
@@ -28,7 +26,6 @@ export default function RootMCContextPage() {
           UI assumptions.
         </p>
       </section>
-
       <section className="panel">
         <h2>Discovered integration paths</h2>
         <p>The currently discovered runtime candidates are:</p>
@@ -41,7 +38,6 @@ export default function RootMCContextPage() {
           not make them canonical; active runtime ownership should be verified before editing.
         </p>
       </section>
-
       <section className="panel">
         <h2>Ava connection</h2>
         <p>
@@ -57,4 +53,4 @@ export default function RootMCContextPage() {
       </section>
     </main>
   );
-}
+}\n

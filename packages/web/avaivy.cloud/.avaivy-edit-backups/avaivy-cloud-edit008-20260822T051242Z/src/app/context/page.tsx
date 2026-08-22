@@ -9,7 +9,6 @@ export default function AvaContextPage() {
         Live operational context for Ava Ivy and the Root Record runtime. This page is a
         working reference, not a frozen biography.
       </p>
-
       <section className="panel">
         <h2>Runtime</h2>
         <p>
@@ -24,7 +23,6 @@ export default function AvaContextPage() {
           <li>RootMC has its own operational boundary and context surface.</li>
         </ul>
       </section>
-
       <section className="panel">
         <h2>Working boundaries</h2>
         <p>
@@ -37,7 +35,6 @@ export default function AvaContextPage() {
           requested only when needed.
         </p>
       </section>
-
       <section className="panel">
         <h2>Related context</h2>
         <p>
@@ -49,4 +46,4 @@ export default function AvaContextPage() {
       </section>
     </main>
   );
-}
+}\n
