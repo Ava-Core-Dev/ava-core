@@ -104,3 +104,4 @@ One-to-three sentence overview of what each major path does. Generated from the 
 - `files.log` is a full inventory dump (previews capped at 20 lines); this `directory.md` replaces those previews with short purpose statements.
 - For live auth path and operating rules, use **RootRecord-Ava-handoff-context.md** (master handoff).
 < deploy 20260822T021539Z -->
+< deploy 20260822T022313Z -->
