@@ -8,6 +8,7 @@ routes = [
   { pattern = "api.rootrecord.online/*", zone_name = "rootrecord.online" },
   { pattern = "api.rootrecord.info/*", zone_name = "rootrecord.info" },
   { pattern = "rootrecord.info/api/*", zone_name = "rootrecord.info" },
+  { pattern = "rootrecord.info/v1/*", zone_name = "rootrecord.info" },
 ]
 
 [[d1_databases]]
