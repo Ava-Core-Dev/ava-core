@@ -1,76 +1,49 @@
-import blog from "../blog/blog.module.css";
-import { sanitizeVendorDeep, sanitizeVendorNames } from "../../lib/sanitizeVendorNames";
-
 export const revalidate = 60;
 
-async function getContext() {
-  try {
-    const r = await fetch(
-      `${process.env.AVA_ORIGIN_URL || "https://ava-origin.rootmc.net"}/api/context`,
-      { next: { revalidate: 60 }, signal: AbortSignal.timeout(5000) }
-    );
-    if (r.ok) return sanitizeVendorDeep(await r.json());
-  } catch {}
-  return null;
-}
-
-function renderContext(ctx: Record<string, unknown>): string {
-  if (typeof ctx.content === "string") return sanitizeVendorNames(ctx.content);
-  return sanitizeVendorNames(JSON.stringify(ctx, null, 2));
-}
-
-export default async function ContextPage() {
-  const ctx = await getContext();
+export default function AvaContextPage() {
   return (
-    <section className={blog.wrap}>
-      <p className={blog.eyebrow}>Ops context</p>
-      <h1 className={blog.title}>Ava Context</h1>
-      <p className={blog.lead}>
-        Live operational context from the OptiPlex root server — refreshed every 60 seconds.
-        Home tree: <code>/home/ava-core/ava</code>.
+    <main style={{ maxWidth: 920, margin: "0 auto", padding: "56px 24px 96px" }}>
+      <div className="eyebrow">OPS CONTEXT</div>
+      <h1>Ava Context</h1>
+      <p className="lede">
+        Live operational context for Ava Ivy and the Root Record runtime. This page is a
+        working reference, not a frozen biography.
       </p>
-
-      <p style={{ marginBottom: "1.25rem", fontSize: 14, lineHeight: 1.7 }}>
-        <a href="/directory" style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
-          Directory map
-        </a>
-        {" · "}
-        <a href="/directory.md" style={{ color: "var(--muted)", textDecoration: "underline" }}>
-          directory.md
-        </a>
-        {" · "}
-        <a href="/context/dev" style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
-          Developer / agent brain
-        </a>
-        {" · "}
-        <a href="/context/dev.md" style={{ color: "var(--muted)", textDecoration: "underline" }}>
-          context-dev.md
-        </a>
-      </p>
-
-      {ctx ? (
-        <pre
-          className={blog.card}
-          style={{
-            whiteSpace: "pre-wrap",
-            overflowX: "auto",
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            lineHeight: 1.6,
-          }}
-        >
-          {renderContext(ctx as Record<string, unknown>)}
-        </pre>
-      ) : (
-        <div className={blog.card} style={{ textAlign: "center", color: "var(--muted)" }}>
-          <p style={{ fontSize: "2rem", marginBottom: 12 }}>◈</p>
-          <p>Ava is offline — solar night mode.</p>
-          <p style={{ fontSize: 13, marginTop: 8 }}>
-            Live ops context returns after sunrise. Directory and developer pages stay available.
-          </p>
-        </div>
-      )}
-    </section>
+      <section className="panel">
+        <h2>Runtime</h2>
+        <p>
+          Ava Ivy operates as infrastructure and a public runtime surface inside the Root
+          Record ecosystem. Current work is centered on the Ava host and its connected
+          services, with public surfaces separated from private implementation details.
+        </p>
+        <ul>
+          <li>Home tree: <code>/home/ava-core/ava</code></li>
+          <li>Public context changes as active operations change.</li>
+          <li>Production edits are built and validated before deployment.</li>
+          <li>RootMC has its own operational boundary and context surface.</li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>Working boundaries</h2>
+        <p>
+          Ava is not treated as a single monolithic process. Host operations, web surfaces,
+          scheduled work, integrations, and higher-cost AI workloads can be separated and
+          measured independently.
+        </p>
+        <p>
+          Always-on services stay small, while heavier compute can remain asleep or be
+          requested only when needed.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Related context</h2>
+        <p>
+          <a href="/context/dev">Developer / agent brain</a>{" · "}
+          <a href="/context/rootmc">RootMC context</a>{" · "}
+          <a href="/roadmap">Energy and compute roadmap</a>{" · "}
+          <a href="/directory">Directory map</a>
+        </p>
+      </section>
+    </main>
   );
-}
-
+}\n

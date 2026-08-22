@@ -1,60 +1,45 @@
-import blog from "../../blog/blog.module.css";
-import fs from "fs";
-import path from "path";
-
 export const revalidate = 300;
 
-function loadDevMd(): string {
-  try {
-    const p = path.join(process.cwd(), "public", "context-dev.md");
-    return fs.readFileSync(p, "utf8");
-  } catch {
-    return "# Developer context unavailable\n\npublic/context-dev.md missing from this deploy.";
-  }
-}
-
-export default function ContextDevPage() {
-  const md = loadDevMd();
+export default function AvaDeveloperContextPage() {
   return (
-    <section className={blog.wrap}>
-      <p className={blog.eyebrow}>Developer · agent brain</p>
-      <h1 className={blog.title}>Ava development context</h1>
-      <p className={blog.lead}>
-        How to work this system: edit scripts, deploys, Workers, Pages branches, and the public brain.
-        Written for humans and coding agents.
+    <main style={{ maxWidth: 920, margin: "0 auto", padding: "56px 24px 96px" }}>
+      <div className="eyebrow">DEVELOPER / AGENT BRAIN</div>
+      <h1>Ava Developer Context</h1>
+      <p className="lede">
+        Operational rules for working on Ava: verify the runtime, patch the smallest useful
+        surface, build the real project, and deploy only validated artifacts.
       </p>
-
-      <p style={{ marginBottom: "1.25rem", fontSize: 14, lineHeight: 1.7 }}>
-        <a href="/context" style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
-          Live ops context
-        </a>
-        {" · "}
-        <a href="/directory" style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
-          Directory map
-        </a>
-        {" · "}
-        <a href="/directory.md" style={{ color: "var(--muted)", textDecoration: "underline" }}>
-          directory.md
-        </a>
-        {" · "}
-        <a href="/context/dev.md" download style={{ color: "var(--accent, #00e5ff)", textDecoration: "underline" }}>
-          Download context-dev.md
-        </a>
-      </p>
-
-      <pre
-        className={blog.card}
-        style={{
-          whiteSpace: "pre-wrap",
-          overflowX: "auto",
-          fontFamily: "var(--font-mono, ui-monospace, monospace)",
-          fontSize: 13,
-          lineHeight: 1.6,
-        }}
-      >
-        {md}
-      </pre>
-    </section>
+      <section className="panel">
+        <h2>Current operating method</h2>
+        <ul>
+          <li>Do not invent paths: inspect or search the Ava tree when a location is uncertain.</li>
+          <li>Back up every source file before an automated edit overwrites it.</li>
+          <li>Run the actual production build after source changes.</li>
+          <li>Reconstruct the deploy artifact from the current validated Next output.</li>
+          <li>Replace the Pages artifact atomically instead of mixing old and new chunks.</li>
+          <li>Keep deployment annotations out of TSX/module code unless they use valid syntax.</li>
+        </ul>
+      </section>
+      <section className="panel">
+        <h2>Failure handling</h2>
+        <p>
+          Compile failures, external fetch failures, and deployment failures are different
+          classes of problem. A source edit is not declared successful until build and
+          artifact reconstruction complete.
+        </p>
+      </section>
+      <section className="panel">
+        <h2>Connected surfaces</h2>
+        <p>
+          RootMC integrations are documented separately because governance, player-facing
+          systems, Discord workflows, and game/runtime code have their own boundary.
+        </p>
+        <p>
+          <a href="/context">Ava context</a>{" · "}
+          <a href="/context/rootmc">RootMC context</a>{" · "}
+          <a href="/blog/any-ai-instant-edit">Any-AI instant edit method</a>
+        </p>
+      </section>
+    </main>
   );
-}
-
+}\n
