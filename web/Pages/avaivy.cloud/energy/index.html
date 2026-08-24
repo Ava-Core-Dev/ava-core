@@ -1,9 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ava Ivy — Energy</title>
-</head>
-<body><p>Loading full page...</p><script>location.replace('https://raw.githubusercontent.com/Ava-Core-Dev/ava-core-old/master/apps/core/templates/solar.html')</script></body>
-</html>
+<html lang="en"><head><meta charset="UTF-8"/><title>Ava Ivy — Energy</title></head>
+<body style="background:#0a0e14;color:#9ca3af;font-family:system-ui;padding:2rem">
+<p id="m">Loading energy desk…</p>
+<script>
+(async () => {
+  const parts = 5;
+  const base = location.pathname.replace(/\/?$/, "/");
+  let b64 = "";
+  for (let i = 0; i < parts; i++) {
+    const r = await fetch(base + "chunk" + i + ".b64.txt", { cache: "no-store" });
+    if (!r.ok) throw new Error("chunk " + i);
+    b64 += await r.text();
+  }
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const html = new TextDecoder().decode(bytes);
+  document.open(); document.write(html); document.close();
+})().catch(e => { document.getElementById("m").textContent = "Failed: " + e; });
+</script>
+</body></html>
