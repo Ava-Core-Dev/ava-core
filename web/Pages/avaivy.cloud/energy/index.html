@@ -1,22 +1,150 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><title>Ava Ivy — Energy</title></head>
-<body style="background:#0a0e14;color:#9ca3af;font-family:system-ui;padding:2rem">
-<p id="m">Loading energy desk…</p>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Ava Ivy — Energy</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0a0e14;--surface:rgba(17,24,39,.86);--border:#1f2937;--accent:#f59e0b;--cyan:#06b6d4;--text:#e5e7eb;--muted:#9ca3af}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+.top{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--border);background:rgba(10,14,20,.9)}
+.logo{font-weight:700;color:var(--text);text-decoration:none}.mark{color:var(--accent)}
+.nav a{color:var(--muted);font-size:12px;margin:0 8px;text-decoration:none}.nav a.on,.nav a:hover{color:var(--text)}
+.clock{text-align:right;font-variant-numeric:tabular-nums}.clock .d{font-size:11px;color:var(--muted)}.clock .t{font-size:18px;font-weight:700}
+.stage{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:12px;padding:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.k{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.row{display:flex;justify-content:space-between;margin:5px 0}.row span:first-child{color:var(--muted);font-size:13px}
+.v{font-family:JetBrains Mono,monospace;font-weight:600}.solar{color:var(--accent)}.cyan{color:var(--cyan)}
+.ringwrap{display:flex;gap:8px;flex-wrap:wrap}.ring{flex:1;text-align:center;min-width:88px}
+.gauge{width:88px;height:88px;margin:0 auto 6px;border-radius:50%;background:conic-gradient(var(--cyan) var(--p),rgba(255,255,255,.08) 0);display:grid;place-items:center}
+.gauge>div{width:64px;height:64px;border-radius:50%;background:#0a0e14;display:grid;place-items:center;font-weight:800}
+.hero{text-align:center;padding:16px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(165deg,rgba(17,24,39,.55),rgba(10,14,20,.72))}
+.hero h1{margin:6px 0;font-size:1.8rem}.hero .sub{color:var(--muted);font-size:13px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.metrics .m{background:rgba(255,255,255,.04);border-radius:10px;padding:8px}.metrics .n{font-size:10px;color:var(--muted);text-transform:uppercase}.metrics .x{font-family:JetBrains Mono,monospace;font-size:1.15rem;font-weight:700;margin-top:4px}
+.pack-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pack{background:rgba(17,24,39,.72);border:1px solid var(--border);border-radius:12px;padding:12px}
+.pack h4{margin:0 0 4px;color:var(--cyan);font-size:12px;text-transform:uppercase}
+.pack .big{font-size:1.4rem;font-weight:800}
+.chart{width:100%;height:72px;background:rgba(255,255,255,.03);border-radius:8px}
+.chart-meta{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;margin:2px 0 8px}
+.leg-s-total{color:#f59e0b}.leg-s-delta{color:#38bdf8}.leg-s-river{color:#c084fc}
+.leg-b-bank{color:#22d3ee}.leg-b-delta{color:#34d399}.leg-b-river{color:#a78bfa}
+.stats{padding:24px;border-top:1px solid var(--border)}
+.windows{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.win-card{background:rgba(17,24,39,.95);border:1px solid var(--border);border-radius:12px;padding:12px}
+.win-card h3{margin:0 0 8px;font-size:.85rem;color:var(--cyan);text-transform:uppercase}
+.win-card table{width:100%;font-size:12px;border-collapse:collapse}
+.win-card th{color:var(--muted);font-weight:500;text-align:left;padding:3px 0}
+.win-card td{font-family:JetBrains Mono,monospace;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.bottom{margin:12px 16px;padding:10px 16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--muted)}
+.flow b{color:var(--accent)}
+@media(max-width:900px){.stage{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="https://avaivy.cloud/"><span class="mark">◈</span> Ava Ivy</a>
+  <nav class="nav">
+    <a href="https://avaivy.cloud/">Home</a>
+    <a href="https://avaivy.cloud/status">Status</a>
+    <a href="https://avaivy.cloud/energy" class="on">Energy</a>
+    <a href="https://avaivy.cloud/directory/">Directory</a>
+    <a href="#averages">Averages</a>
+  </nav>
+  <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
+</header>
+<div class="stage">
+  <div>
+    <div class="card"><div class="k">Battery bank</div><div class="ringwrap" id="rings"></div></div>
+    <div class="card">
+      <div class="k">History <span id="histWin" style="float:right;font-weight:500;text-transform:none">12h</span></div>
+      <svg class="chart" id="chartSolar" viewBox="0 0 320 72" preserveAspectRatio="none"></svg>
+      <div class="chart-meta"><span>Solar W · <span class="leg-s-total">Total</span> · <span class="leg-s-delta">Delta</span> · <span class="leg-s-river">River</span></span><span id="histSolarMeta">—</span></div>
+      <svg class="chart" id="chartSoc" viewBox="0 0 320 72" preserveAspectRatio="none"></svg>
+      <div class="chart-meta"><span>Battery % · <span class="leg-b-bank">Bank</span> · <span class="leg-b-delta">Delta</span> · <span class="leg-b-river">River</span></span><span id="histSocMeta">—</span></div>
+      <svg class="chart" id="chartCpu" viewBox="0 0 320 72" preserveAspectRatio="none"></svg>
+      <div class="chart-meta"><span>CPU %</span><span id="histCpuMeta">—</span></div>
+      <svg class="chart" id="chartRam" viewBox="0 0 320 72" preserveAspectRatio="none"></svg>
+      <div class="chart-meta"><span>RAM %</span><span id="histRamMeta">—</span></div>
+      <svg class="chart" id="chartTemp" viewBox="0 0 320 72" preserveAspectRatio="none"></svg>
+      <div class="chart-meta"><span>CPU °C</span><span id="histTempMeta">—</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="hero">
+      <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">HI Pacific Solar Root Server</div>
+      <h1>Live energy desk</h1>
+      <p class="sub">Bank · packs · host — charts & averages from the root server.</p>
+      <div class="metrics">
+        <div class="m"><div class="n">PV in</div><div class="x solar" id="heroPv">—</div></div>
+        <div class="m"><div class="n">Bank</div><div class="x cyan" id="heroBank">—</div></div>
+        <div class="m"><div class="n">DC load</div><div class="x" id="heroLoad">—</div></div>
+        <div class="m"><div class="n">CPU</div><div class="x" id="heroCpu">—</div></div>
+        <div class="m"><div class="n">RAM</div><div class="x" id="heroRam">—</div></div>
+        <div class="m"><div class="n">Temp</div><div class="x" id="heroTemp">—</div></div>
+      </div>
+    </div>
+    <div class="pack-row" style="margin-top:10px">
+      <div class="pack"><h4>Delta 2</h4><div class="big" id="packDeltaSoc">—</div><div style="color:var(--muted);font-size:12px">PV <span id="packDeltaPv">—</span> · <span id="packDeltaState">—</span></div></div>
+      <div class="pack"><h4>River 2 Pro</h4><div class="big" id="packRiverSoc">—</div><div style="color:var(--muted);font-size:12px">PV <span id="packRiverPv">—</span> · <span id="packRiverState">—</span></div></div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <div class="k">Totals now</div>
+      <div class="row"><span>PV in</span><span class="v solar" id="solar">—</span></div>
+      <div class="row"><span>DC load</span><span class="v" id="load">—</span></div>
+      <div class="row"><span>Transfer</span><span class="v cyan" id="xfer">—</span></div>
+      <div class="row"><span>Generator</span><span class="v" id="gen">—</span></div>
+      <div class="row"><span>Bank avg</span><span class="v" id="bankAvg">—</span></div>
+      <div class="row"><span>State</span><span class="v cyan" id="state">—</span></div>
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <div class="k" id="hostK">Root server</div>
+      <div class="row"><span>CPU</span><span class="v" id="cpu">—</span></div>
+      <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
+      <div class="row"><span>Temp</span><span class="v" id="temp">—</span></div>
+      <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div>
+    </div>
+    <div class="card">
+      <div class="k">Site + volcano</div>
+      <div class="row"><span>Weather</span><span class="v" id="wx">—</span></div>
+      <div class="row"><span>Kīlauea</span><span class="v" id="kila" style="color:var(--accent)">—</span></div>
+    </div>
+  </div>
+</div>
+<div class="bottom">
+  <div>Ava Ivy · ground PV · energy desk</div>
+  <div class="flow">PV <b id="flowIn">0 W</b> → bank <b id="flowBank">—</b> → DC <b id="flowOut">0 W</b></div>
+  <div id="src">source —</div>
+</div>
+<section class="stats" id="averages">
+  <h2>Averages & totals</h2>
+  <p style="color:var(--muted);margin:0 0 16px">Windows from the history feed.</p>
+  <div class="windows" id="windows"></div>
+</section>
 <script>
-(async () => {
-  const parts = 5;
-  const base = location.pathname.replace(/\/?$/, "/");
-  let b64 = "";
-  for (let i = 0; i < parts; i++) {
-    const r = await fetch(base + "chunk" + i + ".b64.txt", { cache: "no-store" });
-    if (!r.ok) throw new Error("chunk " + i);
-    b64 += await r.text();
-  }
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const html = new TextDecoder().decode(bytes);
-  document.open(); document.write(html); document.close();
-})().catch(e => { document.getElementById("m").textContent = "Failed: " + e; });
+const API=(location.hostname==='avaivy.cloud'||location.hostname.endsWith('.avaivy.cloud')||location.hostname==='localhost')?'':'https://avaivy.cloud';
+function tick(){const n=new Date();
+document.getElementById('date').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'Pacific/Honolulu'});
+document.getElementById('time').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Pacific/Honolulu'})+' HST';}
+function ring(d){const p=Math.max(0,Math.min(100,+d.soc||0));const bits=[];if(d.online===false)bits.push('last known');else{if(d.pv_w>2)bits.push(Math.round(d.pv_w)+' W PV');if(d.dc_out_w>2)bits.push(Math.round(d.dc_out_w)+' W DC');}
+return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div>${d.label||'pack'}</div>${bits.length?`<div style="opacity:.7;font-size:11px">${bits.join('<br>')}</div>`:''}</div>`;}
+function watts(v){return v==null||v===''?'\u2014':Math.round(+v)+' W';}
+function pct(v){return v==null||v===''?'\u2014':(+v).toFixed(0)+'%';}
+function dur(s){s=+s||0;if(!s)return'\u2014';const d=Math.floor(s/86400),h=Math.floor((s%86400)/3600),m=Math.floor((s%3600)/60);return d?d+'d '+h+'h':h+'h '+m+'m';}
+function fmtNum(v,u){if(v==null||v==='')return'\u2014';const n=+v;if(!Number.isFinite(n))return'\u2014';if(u==='%')return n.toFixed(0)+'%';if(u==='\u00b0C')return n.toFixed(1)+'\u00b0C';if(u==='Wh')return n>=1000?(n/1000).toFixed(2)+' kWh':Math.round(n)+' Wh';if(u==='W')return Math.round(n)+' W';return String(n);}
+const CW=320,CH=72,CP=6;
+function linePath(vals,yMin,yMax){const n=vals.length;if(!n)return'';const span=Math.max(yMax-yMin,1e-6);const xAt=i=>CP+(n===1?(CW-2*CP)/2:i*(CW-2*CP)/(n-1));const yAt=v=>CH-CP-((v-yMin)/span)*(CH-2*CP);let d='';vals.forEach((v,i)=>{if(v==null||Number.isNaN(v))return;d+=(d?' L ':'M ')+xAt(i).toFixed(1)+' '+yAt(v).toFixed(1);});return d;}
+function drawMultiChart(svg,series,fixedMin,fixedMax){const known=[];(series||[]).forEach(s=>(s.vals||[]).forEach(v=>{if(v!=null&&!Number.isNaN(v))known.push(v);}));let yMin=fixedMin!=null?fixedMin:(known.length?Math.min(...known):0);let yMax=fixedMax!=null?fixedMax:(known.length?Math.max(...known):1);if(yMax<=yMin)yMax=yMin+1;if(fixedMin==null&&fixedMax==null){const pad=(yMax-yMin)*.08||1;yMin=Math.max(0,yMin-pad);yMax=yMax+pad;}const grid=[.25,.5,.75].map(f=>{const y=CP+f*(CH-2*CP);return `<line x1="${CP}" y1="${y.toFixed(1)}" x2="${CW-CP}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.06)" stroke-width="1"/>`;}).join('');const paths=(series||[]).map(s=>{const p=linePath(s.vals||[],yMin,yMax);return p?`<path d="${p}" fill="none" stroke="${s.color}" stroke-width="${s.width||2}" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`:'';}).join('');svg.innerHTML=grid+(paths||'<text x="160" y="40" text-anchor="middle" fill="#9ca3af" font-size="11">no data</text>');const lasts=(series||[]).map(s=>{const k=(s.vals||[]).filter(v=>v!=null&&!Number.isNaN(v));return k.length?k[k.length-1]:null;});return{lasts,last:lasts[0]};}
+function drawChart(svg,vals,color,a,b){return drawMultiChart(svg,[{vals,color}],a,b);}
+function renderWindows(rollups){const root=document.getElementById('windows');const order=['1h','6h','12h','24h','7d','lifetime'];const labels={'1h':'1 hour','6h':'6 hours','12h':'12 hours','24h':'24 hours','7d':'7 days',lifetime:'Lifetime'};const keys=order.filter(k=>rollups&&rollups[k]);if(!keys.length){root.innerHTML='<div class="win-card"><h3>Waiting</h3><p style="color:var(--muted);font-size:12px">History collecting…</p></div>';return;}root.innerHTML=keys.map(k=>{const w=rollups[k];const row=(label,st,unit)=>{if(!st||!st.samples)return `<tr><th>${label}</th><td colspan="3">\u2014</td></tr>`;return `<tr><th>${label}</th><td>avg ${fmtNum(st.avg,unit)}</td><td>min ${fmtNum(st.min,unit)}</td><td>max ${fmtNum(st.max,unit)}</td></tr>`;};return `<article class="win-card"><h3>${labels[k]||k} \u00b7 ${w.points||0} pts</h3><table>${row('Solar total',w.solar_w,'W')}${row('Solar Delta',w.delta_solar_w,'W')}${row('Solar River',w.river_solar_w,'W')}${row('Load',w.load_w,'W')}${row('Bank %',w.soc,'%')}${row('CPU',w.cpu_pct,'%')}${row('Temp',w.temp_c,'\u00b0C')}<tr><th>Energy in</th><td colspan="3">${fmtNum(w.solar_wh,'Wh')}</td></tr><tr><th>Energy out</th><td colspan="3">${fmtNum(w.load_wh,'Wh')}</td></tr></table></article>`;}).join('');}
+async function paintHistory(){try{const j=await(await fetch(API+'/api/solar/history?hours=12',{cache:'no-store'})).json();const pts=Array.isArray(j.points)?j.points:[];document.getElementById('histWin').textContent=(j.hours||12)+'h \u00b7 '+pts.length+' pts';const sT=pts.map(p=>p.solar_w==null?null:+p.solar_w),sD=pts.map(p=>p.delta_solar_w==null?null:+p.delta_solar_w),sR=pts.map(p=>p.river_solar_w==null?null:+p.river_solar_w);const bB=pts.map(p=>p.soc==null?null:+p.soc),bD=pts.map(p=>p.delta_soc==null?null:+p.delta_soc),bR=pts.map(p=>p.river_soc==null?null:+p.river_soc);const cpu=pts.map(p=>p.cpu_pct==null?null:+p.cpu_pct),ram=pts.map(p=>p.mem_pct==null?null:+p.mem_pct),tmp=pts.map(p=>p.temp_c==null?null:+p.temp_c);const sM=drawMultiChart(document.getElementById('chartSolar'),[{vals:sT,color:'#f59e0b',width:2.4},{vals:sD,color:'#38bdf8',width:1.8},{vals:sR,color:'#c084fc',width:1.8}],0,null);const bM=drawMultiChart(document.getElementById('chartSoc'),[{vals:bB,color:'#22d3ee',width:2.4},{vals:bD,color:'#34d399',width:1.8},{vals:bR,color:'#a78bfa',width:1.8}],0,100);const cM=drawChart(document.getElementById('chartCpu'),cpu,'#10b981',0,100);const rM=drawChart(document.getElementById('chartRam'),ram,'#a78bfa',0,100);const tM=drawChart(document.getElementById('chartTemp'),tmp,'#fb7185',null,null);const fl=(v,u)=>v==null?'\u2014':(u==='%'?Math.round(v)+'%':Math.round(v)+' W');document.getElementById('histSolarMeta').innerHTML=`<b class="leg-s-total">${fl(sM.lasts[0],'W')}</b> \u00b7 <span class="leg-s-delta">${fl(sM.lasts[1],'W')}</span> \u00b7 <span class="leg-s-river">${fl(sM.lasts[2],'W')}</span>`;document.getElementById('histSocMeta').innerHTML=`<b class="leg-b-bank">${fl(bM.lasts[0],'%')}</b> \u00b7 <span class="leg-b-delta">${fl(bM.lasts[1],'%')}</span> \u00b7 <span class="leg-b-river">${fl(bM.lasts[2],'%')}</span>`;document.getElementById('histCpuMeta').innerHTML=cM.last!=null?`<b>${cM.last.toFixed(0)}%</b>`:'\u2014';document.getElementById('histRamMeta').innerHTML=rM.last!=null?`<b>${rM.last.toFixed(0)}%</b>`:'\u2014';document.getElementById('histTempMeta').innerHTML=tM.last!=null?`<b>${tM.last.toFixed(1)}\u00b0C</b>`:'\u2014';if(j.rollups)renderWindows(j.rollups);else{try{const r=await(await fetch(API+'/api/solar/rollups',{cache:'no-store'})).json();if(r.windows)renderWindows(r.windows);}catch(_){}}}catch(_){}}
+async function paint(){try{const s=await(await fetch(API+'/api/obs/solar-desk',{cache:'no-store'})).json();const solar=s.solar||{},tot=solar.totals||{},host=s.host||{},wx=s.weather||{},k=s.kilauea||{},devices=solar.devices||[];document.getElementById('rings').innerHTML=devices.length?devices.map(ring).join(''):ring({label:'Bank',soc:solar.battery_pct,online:true});const pv=tot.solar_in_w??solar.solar_in_w??solar.power_w,load=tot.dc_load_w??tot.load_w??solar.load_w;document.getElementById('solar').textContent=watts(pv);document.getElementById('load').textContent=watts(load);document.getElementById('xfer').textContent=watts(tot.transfer_w);document.getElementById('gen').textContent=watts(tot.generator_w);document.getElementById('bankAvg').textContent=pct(tot.bank_avg_pct??solar.battery_pct);document.getElementById('state').textContent=solar.state||'\u2014';document.getElementById('hostK').textContent='Root server \u00b7 '+(host.host||'ava-core');document.getElementById('cpu').textContent=host.cpu_pct!=null?host.cpu_pct.toFixed(0)+'%':'\u2014';document.getElementById('ram').textContent=host.mem_pct!=null?host.mem_pct.toFixed(0)+'%':'\u2014';document.getElementById('temp').textContent=host.temp_c!=null?(+host.temp_c).toFixed(1)+'\u00b0C':'\u2014';document.getElementById('up').textContent=dur(host.boot_uptime_s||host.uptime_s);const temp=wx.temperature_f!=null?wx.temperature_f+'\u00b0':'';const fc=(wx.forecast||wx.conditions||'').replace(/\s+/g,' ').trim().slice(0,32);document.getElementById('wx').textContent=[temp,fc].filter(Boolean).join(' \u00b7 ')||'\u2014';const lvl=(k.alert_level||'advisory').replace(/^./,c=>c.toUpperCase());document.getElementById('kila').textContent=lvl+' \u00b7 '+(k.erupting?'erupting':'not erupting');document.getElementById('flowIn').textContent=watts(pv);document.getElementById('flowBank').textContent=pct(tot.bank_avg_pct??solar.battery_pct);document.getElementById('flowOut').textContent=watts(load);document.getElementById('src').textContent=(solar.source||'ground PV')+(solar.updated_at?(' \u00b7 '+String(solar.updated_at).slice(11,19)+'Z'):'');const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};set('heroPv',watts(pv));set('heroBank',pct(tot.bank_avg_pct??solar.battery_pct));set('heroLoad',watts(load));set('heroCpu',host.cpu_pct!=null?host.cpu_pct.toFixed(0)+'%':'\u2014');set('heroRam',host.mem_pct!=null?host.mem_pct.toFixed(0)+'%':'\u2014');set('heroTemp',host.temp_c!=null?(+host.temp_c).toFixed(1)+'\u00b0C':'\u2014');const delta=devices.find(d=>/delta/i.test(String(d.label||'')))||null;const river=devices.find(d=>/river/i.test(String(d.label||'')))||null;set('packDeltaSoc',delta&&delta.soc!=null?Math.round(+delta.soc)+'%':'\u2014');set('packRiverSoc',river&&river.soc!=null?Math.round(+river.soc)+'%':'\u2014');set('packDeltaPv',watts(delta&&(delta.pv_w??delta.solar_w)));set('packRiverPv',watts(river&&(river.pv_w??river.solar_w)));set('packDeltaState',delta?(delta.online===false?'offline':'online'):'\u2014');set('packRiverState',river?(river.online===false?'offline':'online'):'\u2014');}catch(e){}}
+tick();setInterval(tick,1000);paint();setInterval(paint,8000);paintHistory();setInterval(paintHistory,60000);
 </script>
-</body></html>
+</body>
+</html>
