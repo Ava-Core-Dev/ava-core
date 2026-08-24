@@ -1,0 +1,19 @@
+# TREE: /home/ava-core/Web/cloudflare
+# Generated: 2026-08-23 13:48:48 UTC
+
+[DIR] cloudflare
+    /home/ava-core/Web/cloudflare
+├── [DIR ] logs
+│       /home/ava-core/Web/cloudflare/logs
+├── [FILE] ava-core-v2.token
+│       /home/ava-core/Web/cloudflare/ava-core-v2.token
+├── [FILE] cloudflare.txt
+│       /home/ava-core/Web/cloudflare/cloudflare.txt
+├── [FILE] cloudflared
+│       /home/ava-core/Web/cloudflare/cloudflared
+├── [FILE] config.yml
+│       /home/ava-core/Web/cloudflare/config.yml
+└── [FILE] tunnel.token
+        /home/ava-core/Web/cloudflare/tunnel.token
+
+# Total entries: 6
