@@ -1,0 +1,59 @@
+{
+  "boot_done": true,
+  "last_fire": {
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-second/1sectest.py": 1787566490.4478714,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow.py": 1787547337.18908,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/ecoflow-enhance.py": 1787547237.0657952,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/ecoflow-1h.py": 1787565241.04835,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/ecoflow-1min.py": 1787566456.3713193,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-week/ecoflow-7d.py": 1787547321.166537,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-8-hours/ecoflow-8h.py": 1787547327.1756663,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow-10s.py": 1787566484.4368694,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-12-hours/ecoflow-12h.py": 1787547357.2128391,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-24-hours/ecoflow-24h.py": 1787547403.2722747,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-month/ecoflow-month.py": 1787547417.2920313,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow_lib.py": 1787566482.4319165,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/ecoflow_lib.py": 1787566446.3473678,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/ecoflow_lib.py": 1787565911.0303426,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-8-hours/ecoflow_lib.py": 1787547905.9168358,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-12-hours/ecoflow_lib.py": 1787547905.9178176,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-24-hours/ecoflow_lib.py": 1787547905.9298456,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-week/ecoflow_lib.py": 1787547905.9309278,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-month/ecoflow_lib.py": 1787547905.9341447,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-15-minutes/ecoflow-15min.py": 1787566051.362553,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-15-minutes/ecoflow_lib.py": 1787566051.3633966,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-4-hours/ecoflow-4h.py": 1787564240.5216525,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-4-hours/ecoflow_lib.py": 1787564240.5224676,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-3-days/ecoflow-3d.py": 1787549839.035848,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-3-days/ecoflow_lib.py": 1787549839.0370908,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-second/system.py": 1787566490.4487448,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/system-min.py": 1787566486.4417756,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/aggregate_minutes_to_hours_Version2.py": 1787566127.5840297,
+    "/home/ava-core/operations/cronologicals/on-time/22:00/fetch_weather.py": 1787558401.6427686,
+    "/home/ava-core/operations/cronologicals/on-time/22:00/system-hourly.py": 1787558401.643546,
+    "/home/ava-core/operations/cronologicals/on-time/23:00/fetch_weather.py": 1787562001.910983,
+    "/home/ava-core/operations/cronologicals/on-time/23:00/system-hourly.py": 1787562001.9117289,
+    "/home/ava-core/operations/cronologicals/on-time/00:00/fetch_weather.py": 1787565601.965832,
+    "/home/ava-core/operations/cronologicals/on-time/00:00/system-hourly.py": 1787565601.9667377
+  },
+  "always_on": {
+    "/home/ava-core/operations/cronologicals/always-on/broadcast.py": {
+      "pid": 158975,
+      "started": 1787549839.0134468,
+      "name": "broadcast.py",
+      "port": 8080
+    },
+    "/home/ava-core/operations/cronologicals/always-on/avaivy_cloudflare_watchdog.py": {
+      "pid": 158974,
+      "started": 1787549839.0115466,
+      "name": "avaivy_cloudflare_watchdog.py",
+      "port": null
+    },
+    "/home/ava-core/operations/cronologicals/always-on/ava_core_audio_player.py": {
+      "pid": 158973,
+      "started": 1787549839.0106103,
+      "name": "ava_core_audio_player.py",
+      "port": null
+    }
+  }
+}

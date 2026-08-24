@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Simple maim wrapper – always saves to /home/ava-core/screenshots
+DIR="/home/ava-core/screenshots"
+mkdir -p "$DIR"
+FILE="$DIR/Screenshot From $(date +%Y-%m-%d\ %H-%M-%S).png"
+
+# -s = select region (comment this out if you prefer full-screen by default)
+maim -s "$FILE"
+
+# Notify
+notify-send "Screenshot saved" "$FILE" -i camera-photo 2>/dev/null || true

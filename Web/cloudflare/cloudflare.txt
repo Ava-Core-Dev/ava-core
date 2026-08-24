@@ -1,0 +1,68 @@
+========================================================================
+DIRECTORY PRINTER — Detailed Report
+Root        : /home/ava-core/Web/cloudflare
+Scan started: 2026-08-23 13:48:48 UTC
+========================================================================
+
+[DIR] /home/ava-core/Web/cloudflare
+  path     : /home/ava-core/Web/cloudflare
+  modified : 2026-08-23 13:03:21 UTC
+  created  : N/A
+  accessed : 2026-08-23 13:07:09 UTC
+  changed  : 2026-08-23 13:03:21 UTC
+  scanned  : 2026-08-23 13:48:48 UTC
+
+  [DIR] logs
+    path     : /home/ava-core/Web/cloudflare/logs
+    modified : 2026-08-23 10:35:41 UTC
+    created  : N/A
+    accessed : 2026-08-23 10:35:41 UTC
+    changed  : 2026-08-23 10:35:41 UTC
+    scanned  : 2026-08-23 13:48:48 UTC
+
+  [FILE] ava-core-v2.token  240.0B
+    path     : /home/ava-core/Web/cloudflare/ava-core-v2.token
+    modified : 2026-08-19 13:21:02 UTC
+    created  : N/A
+    accessed : 2026-08-23 13:07:18 UTC
+    changed  : 2026-08-23 13:03:20 UTC
+    scanned  : 2026-08-23 13:48:48 UTC
+    preview  :
+      eyJhIjoiZDJkYWYyNjM5OGE4MDViMjllMTJkZGJhMmIyMjI4Y2YiLCJ0IjoiNzg3M2E2YWYtNTNlMC00NGZiLTg5ODAtZWIxMDgwYzQ2MzA4IiwicyI6InFTdVdqc2NsaEtuN0xIYVhLcTVwenhQZnVWWkZqSU1TSWFNK1BWSU1NT1FiZ0hXQ3JIVG5uc1RIVFhUTVhn
+
+  [FILE] cloudflared  37.5MB
+    path     : /home/ava-core/Web/cloudflare/cloudflared
+    modified : 2026-08-23 10:35:41 UTC
+    created  : N/A
+    accessed : 2026-08-23 13:07:18 UTC
+    changed  : 2026-08-23 13:03:21 UTC
+    scanned  : 2026-08-23 13:48:48 UTC
+    preview  :
+      [binary/media]
+
+  [FILE] config.yml  872.0B
+    path     : /home/ava-core/Web/cloudflare/config.yml
+    modified : 2026-08-23 10:37:13 UTC
+    created  : N/A
+    accessed : 2026-08-23 13:07:18 UTC
+    changed  : 2026-08-23 13:03:20 UTC
+    scanned  : 2026-08-23 13:48:48 UTC
+    preview  :
+      # Auto-written by Provision-CloudflareTunnel.ps1 (+ Ava status hostname)
+      tunnel: 31a09834-5e86-4c4f-826b-ef4997cfe9b9
+      credentials-file: /home/ava-core/Web/cloudflare/31a09834-5e86-4c4f-826b-ef4997cfe9b9.json
+
+  [FILE] tunnel.token  181.0B
+    path     : /home/ava-core/Web/cloudflare/tunnel.token
+    modified : 2026-08-04 20:17:32 UTC
+    created  : N/A
+    accessed : 2026-08-23 13:07:18 UTC
+    changed  : 2026-08-23 13:03:20 UTC
+    scanned  : 2026-08-23 13:48:48 UTC
+    preview  :
+      eyJhIjoiZjMzNzJiMzAwOTM0MzViYWNjMzViNjk5NzJhYmViMmUiLCJ0IjoiMzFhMDk4MzQtNWU4Ni00YzRmLTgyNmItZWY0OTk3Y2ZlOWI5IiwicyI6IjdFUkF6cGRpaS80aXRUSUtQN1ppQklMcUxQU0c5WVVOTHhrOFpVNXhFeDg9In0=
+
+========================================================================
+Scan finished: 2026-08-23 13:48:48 UTC
+Total entries: 6
+========================================================================

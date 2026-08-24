@@ -1,0 +1,47 @@
+# TREE: /home/ava-core/operations/system-tools/desk/ava_directory_feature
+# Generated: 2026-08-23 21:50:46 UTC
+
+[DIR] ava_directory_feature
+    /home/ava-core/operations/system-tools/desk/ava_directory_feature
+├── [DIR ] ava_directory
+│       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory
+│   ├── [DIR ] operations
+│   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations
+│   │   ├── [DIR ] cronologicals
+│   │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals
+│   │   │   └── [DIR ] always-on
+│   │   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on
+│   │   │       ├── [FILE] broadcast.py
+│   │   │       │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on/broadcast.py
+│   │   │       └── [FILE] directory.enabled
+│   │   │               /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on/directory.enabled
+│   │   └── [DIR ] system-tools
+│   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools
+│   │       └── [DIR ] desk
+│   │               /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk
+│   │           └── [DIR ] ava_core_visual_cli
+│   │                   /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk/ava_core_visual_cli
+│   │               └── [FILE] ava_core_visual_cli.py
+│   │                       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py
+│   ├── [DIR ] Web
+│   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web
+│   │   └── [DIR ] Pages
+│   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages
+│   │       └── [DIR ] avaivy.cloud
+│   │               /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud
+│   │           ├── [DIR ] directory
+│   │           │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory
+│   │           │   ├── [FILE] directory.css
+│   │           │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/directory.css
+│   │           │   ├── [FILE] directory.js
+│   │           │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/directory.js
+│   │           │   └── [FILE] index.html
+│   │           │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/index.html
+│   │           └── [FILE] index.html
+│   │                   /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/index.html
+│   └── [FILE] INSTALL.md
+│           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/INSTALL.md
+└── [FILE] ava_directory_feature.txt
+        /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory_feature.txt
+
+# Total entries: 20

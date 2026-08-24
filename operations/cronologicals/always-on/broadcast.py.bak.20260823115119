@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+import json,mimetypes,sqlite3
+from datetime import datetime,timezone
+from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlparse,parse_qs
+HOST='0.0.0.0'; PORT=8080
+PAGES_ROOT=Path('/home/ava-core/Web/Pages')
+ECO_DIR=Path('/home/ava-core/Database/ecoflow')
+ENHANCED_DB=ECO_DIR/'ecoflow-data-enhanced.db'; LIVE_DB=ECO_DIR/'ecoflow-data.db'
+NAME_MAP={'R331ZAB5SG755642':'security','R621ZA16XH6K1155':'Primary','R331ZAB5SG6S2858':'Backup'}
+
+def cols(db,table):
+    if not db.exists(): return set()
+    try:
+        with sqlite3.connect(db) as c:return {r[1] for r in c.execute(f'PRAGMA table_info({table})')}
+    except Exception:return set()
+def q(db,sql,args=()):
+    if not db.exists(): return []
+    try:
+        with sqlite3.connect(db) as c:
+            c.row_factory=sqlite3.Row
+            return [dict(r) for r in c.execute(sql,args).fetchall()]
+    except Exception as e:
+        print('EcoFlow DB error:',e); return []
+def select_expr(available,name,default='NULL'):
+    return name if name in available else f'{default} AS {name}'
+def latest_enhanced():
+    c=cols(ENHANCED_DB,'minute_summary')
+    if not c:return []
+    wanted=['name','soc_avg','in_w_avg','out_w_avg','solar_w_avg','net_w_avg','soc_delta','energy_in_wh','energy_out_wh','trend','samples','minute_key']
+    fields=', '.join(select_expr(c,x) for x in wanted)
+    group='name' if 'name' in c else 'id'
+    return q(ENHANCED_DB,f'''SELECT {fields} FROM minute_summary WHERE id IN (SELECT MAX(id) FROM minute_summary GROUP BY {group}) ORDER BY CASE name WHEN 'Primary' THEN 1 WHEN 'security' THEN 2 WHEN 'Backup' THEN 3 ELSE 9 END''')
+def history(hours=12):
+    c=cols(ENHANCED_DB,'minute_summary')
+    if not c:return []
+    wanted=['minute_key','name','soc_avg','in_w_avg','out_w_avg','solar_w_avg','net_w_avg','soc_delta','energy_in_wh','energy_out_wh','trend','samples']
+    fields=', '.join(select_expr(c,x) for x in wanted)
+    # minute_key is used because the known collector schema may not have ts.
+    if 'minute_key' in c:
+        # ISO-like minute keys sort chronologically; calculate cutoff in Python and compare directly.
+        cutoff=datetime.now().astimezone().timestamp()-hours*3600
+        rows=q(ENHANCED_DB,f'SELECT {fields} FROM minute_summary ORDER BY minute_key,name')
+        out=[]
+        for r in rows:
+            k=str(r.get('minute_key') or '')
+            try:
+                dt=datetime.fromisoformat(k.replace('Z','+00:00')); stamp=dt.timestamp()
+            except Exception: continue
+            if stamp>=cutoff: out.append(r)
+        return out
+    return []
+def live_now():
+    c=cols(LIVE_DB,'snapshots')
+    if not c:return []
+    wanted=['sn','online','soc','in_w','out_w','solar_w','ts']
+    fields=', '.join(select_expr(c,x) for x in wanted)
+    rows=q(LIVE_DB,f'SELECT {fields} FROM snapshots WHERE id IN (SELECT MAX(id) FROM snapshots GROUP BY sn)')
+    for r in rows:r['name']=NAME_MAP.get(r.get('sn'),r.get('sn'))
+    return rows
+class H(BaseHTTPRequestHandler):
+    def log_message(self,*a): pass
+    def sendb(self,code,b,ct='text/html; charset=utf-8'):
+        self.send_response(code);self.send_header('Content-Type',ct);self.send_header('Content-Length',str(len(b)));self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(b)
+    def js(self,o):self.sendb(200,json.dumps(o,default=str).encode(),'application/json; charset=utf-8')
+    def api(self,path,parsed):
+        if path in ('/api/now','/system/api/now'):
+            self.js({'ts':datetime.now(timezone.utc).isoformat(),'enhanced':latest_enhanced(),'live':live_now()});return True
+        if path in ('/api/debug','/system/api/debug'):
+            self.js({'enhanced_db':str(ENHANCED_DB),'live_db':str(LIVE_DB),'minute_summary_columns':sorted(cols(ENHANCED_DB,'minute_summary')),'snapshots_columns':sorted(cols(LIVE_DB,'snapshots'))});return True
+        if path.startswith('/api/history') or path.startswith('/system/api/history'):
+            try:h=max(1,min(168,int(parse_qs(parsed.query).get('hours',['12'])[0])))
+            except:h=12
+            self.js({'hours':h,'rows':history(h)});return True
+        return False
+    def serve(self,site,rel):
+        root=(PAGES_ROOT/site).resolve(); fp=(root/rel).resolve()
+        if not str(fp).startswith(str(root)) or not root.is_dir():self.sendb(404,b'not found');return
+        if fp.is_dir():fp=fp/'index.html'
+        if fp.is_file():self.sendb(200,fp.read_bytes(),mimetypes.guess_type(str(fp))[0] or 'application/octet-stream')
+        else:self.sendb(404,b'not found')
+    def do_GET(self):
+        u=urlparse(self.path); path=u.path; host=self.headers.get('Host','').split(':',1)[0].lower()
+        if self.api(path,u):return
+        if host in ('avaivy.cloud','www.avaivy.cloud'):
+            self.serve('avaivy.cloud',path.lstrip('/') or 'index.html');return
+        if path in ('/system','/system/'):
+            self.send_response(302);self.send_header('Location','/avaivy.cloud/system/');self.end_headers();return
+        if path in ('/','/index.html'):
+            p=PAGES_ROOT/'index.html'
+            if p.is_file():self.sendb(200,p.read_bytes())
+            else:self.sendb(404,b'not found')
+            return
+        parts=[x for x in path.strip('/').split('/') if x]
+        if not parts:self.sendb(404,b'not found');return
+        self.serve(parts[0],'/'.join(parts[1:]) if len(parts)>1 else 'index.html')
+if __name__=='__main__':
+    print(f'Ava broadcast listening on {PORT}')
+    ThreadingHTTPServer((HOST,PORT),H).serve_forever()

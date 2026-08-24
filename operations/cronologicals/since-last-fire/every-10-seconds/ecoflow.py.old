@@ -1,0 +1,287 @@
+#!/usr/bin/env python3
+"""
+ecoflow.py — Fetch live EcoFlow device data and store in SQLite.
+
+Designed to be dropped into:
+  /home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/
+
+Credentials are read from:
+  /home/ava-core/Credentials/credentials.env
+
+Database written to:
+  /home/ava-core/Database/ecoflow/ecoflow-data.db
+"""
+
+import os
+import sys
+import time
+import json
+import hmac
+import hashlib
+import random
+import sqlite3
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    import requests
+except ImportError:
+    print("ERROR: requests not installed. Run: pip install requests")
+    sys.exit(1)
+
+# ── paths ──────────────────────────────────────────────────────────────
+CRED_FILE = Path("/home/ava-core/Credentials/credentials.env")
+DB_DIR    = Path("/home/ava-core/Database/ecoflow")
+DB_FILE   = DB_DIR / "ecoflow-data.db"
+LOG_DIR   = Path("/home/ava-core/Database/logs")
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# ── logging ────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-7s  %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(LOG_DIR / "ecoflow.log"),
+        logging.StreamHandler(sys.stdout),
+    ],
+)
+log = logging.getLogger("ecoflow")
+
+# ── EcoFlow API ────────────────────────────────────────────────────────
+BASE_URL = "https://api.ecoflow.com"          # US / global
+# BASE_URL = "https://api-e.ecoflow.com"     # Europe if needed
+
+def load_credentials(path: Path) -> dict:
+    """Parse KEY=value // comment style .env file."""
+    creds = {}
+    if not path.exists():
+        log.error(f"Credentials file not found: {path}")
+        return creds
+    for line in path.read_text(errors="ignore").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        # strip trailing // comment
+        if " // " in line:
+            line = line.split(" // ", 1)[0].strip()
+        if "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        creds[k.strip()] = v.strip().strip('"').strip("'")
+    return creds
+
+def find_key(creds: dict, *candidates: str) -> str | None:
+    for c in candidates:
+        if c in creds and creds[c]:
+            return creds[c]
+        # case-insensitive
+        for k, v in creds.items():
+            if k.upper() == c.upper() and v:
+                return v
+    return None
+
+def hmac_sha256(data: str, key: str) -> str:
+    return hmac.new(key.encode("utf-8"), data.encode("utf-8"), hashlib.sha256).hexdigest()
+
+def sign_headers(access_key: str, secret_key: str, params: dict | None = None) -> dict:
+    nonce = str(random.randint(100000, 999999))
+    timestamp = str(int(time.time() * 1000))
+    headers = {
+        "accessKey": access_key,
+        "nonce": nonce,
+        "timestamp": timestamp,
+    }
+    # build sign string: sorted params + sorted auth headers
+    parts = []
+    if params:
+        for k in sorted(params.keys()):
+            parts.append(f"{k}={params[k]}")
+    for k in sorted(headers.keys()):
+        parts.append(f"{k}={headers[k]}")
+    sign_str = "&".join(parts)
+    headers["sign"] = hmac_sha256(sign_str, secret_key)
+    return headers
+
+def api_get(path: str, access_key: str, secret_key: str, params: dict | None = None) -> dict | None:
+    url = f"{BASE_URL}{path}"
+    headers = sign_headers(access_key, secret_key, params)
+    try:
+        r = requests.get(url, headers=headers, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        if str(data.get("code")) not in ("0", "00"):
+            log.warning(f"API returned code={data.get('code')} msg={data.get('message')}")
+        return data
+    except Exception as e:
+        log.error(f"API GET {path} failed: {e}")
+        return None
+
+# ── database ───────────────────────────────────────────────────────────
+def init_db(db_path: Path):
+    DB_DIR.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS snapshots (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts          TEXT    NOT NULL,          -- ISO UTC
+            sn          TEXT    NOT NULL,
+            online      INTEGER,
+            soc         REAL,
+            in_w        REAL,
+            out_w       REAL,
+            solar_w     REAL,
+            raw_json    TEXT,
+            created_at  TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS devices (
+            sn          TEXT PRIMARY KEY,
+            name        TEXT,
+            online      INTEGER,
+            last_seen   TEXT,
+            raw_json    TEXT
+        )
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_snapshots_sn_ts ON snapshots(sn, ts)")
+    conn.commit()
+    return conn
+
+def extract_common(quota: dict) -> dict:
+    """Pull the most useful fields from a quota response (keys vary by model)."""
+    # common key patterns across Delta / River / etc.
+    def g(*keys, default=None):
+        for k in keys:
+            if k in quota:
+                return quota[k]
+        return default
+
+    return {
+        "soc":     g("bms_bmsStatus.soc", "pd.soc", "bmsMaster.soc", "soc"),
+        "in_w":    g("pd.wattsInSum", "inv.inputWatts", "pd.chgWatts", "inWatts"),
+        "out_w":   g("pd.wattsOutSum", "inv.outputWatts", "pd.invOutWatts", "outWatts"),
+        "solar_w": g("mppt.inWatts", "pd.solarWatts", "mppt.pv1InWatts", "solarWatts"),
+    }
+
+# ── main ───────────────────────────────────────────────────────────────
+def main():
+    log.info("ecoflow.py starting")
+
+    creds = load_credentials(CRED_FILE)
+    if not creds:
+        log.error("No credentials loaded — aborting")
+        sys.exit(1)
+
+    access_key = find_key(creds,
+        "AVA_ECOFLOW_ACCESS_KEY", "ECOFLOW_ACCESS_KEY", "ECOFLOW_ACCESSKEY",
+        "ACCESS_KEY", "EF_ACCESS_KEY", "ECOFLOW_KEY", "accessKey")
+    secret_key = find_key(creds,
+        "AVA_ECOFLOW_SECRET_KEY", "ECOFLOW_SECRET_KEY", "ECOFLOW_SECRETKEY",
+        "SECRET_KEY", "EF_SECRET_KEY", "ECOFLOW_SECRET", "secretKey")
+
+    # optional third ID / serial number(s)
+    third_id = find_key(creds,
+        "AVA_ECOFLOW_SN", "ECOFLOW_SN", "ECOFLOW_APP_KEY", "ECOFLOW_APPID",
+        "ECOFLOW_PRODUCT_KEY", "EF_APP_KEY", "APP_KEY", "APP_ID")
+
+    if not access_key or not secret_key:
+        log.error("Could not find EcoFlow accessKey / secretKey in credentials.env")
+        log.info("Looked for: AVA_ECOFLOW_ACCESS_KEY, AVA_ECOFLOW_SECRET_KEY, …")
+        log.info("Available keys: " + ", ".join(sorted(creds.keys())[:40]))
+        sys.exit(1)
+
+    log.info(f"Using accessKey=…{access_key[-6:]}  secretKey=…{secret_key[-6:]}"
+             + (f"  third={third_id}" if third_id else ""))
+
+    # 1) device list
+    log.info("Fetching device list…")
+    device_resp = api_get("/iot-open/sign/device/list", access_key, secret_key)
+    devices = []
+    if device_resp and device_resp.get("data"):
+        devices = device_resp["data"]
+        log.info(f"Found {len(devices)} device(s)")
+        for d in devices:
+            log.info(f"  SN={d.get('sn')}  online={d.get('online')}  name={d.get('deviceName', '')}")
+    else:
+        log.warning("No devices returned from list endpoint")
+
+    # also allow explicit SNs from credentials (in case list fails or extra devices)
+    extra_sns = []
+    for key in ("AVA_ECOFLOW_SN", "ECOFLOW_SN", "ECOFLOW_SN1", "ECOFLOW_SN2",
+                "ECOFLOW_SN3", "DEVICE_SN", "DEVICE_SN1", "DEVICE_SN2"):
+        val = find_key(creds, key)
+        if val:
+            # support comma-separated SNs
+            for part in val.split(","):
+                part = part.strip()
+                if part:
+                    extra_sns.append(part)
+
+    known_sns = {d.get("sn") for d in devices if d.get("sn")}
+    for sn in extra_sns:
+        if sn not in known_sns:
+            devices.append({"sn": sn, "online": None, "deviceName": ""})
+            known_sns.add(sn)
+
+    if not devices:
+        log.error("No devices to query — aborting")
+        sys.exit(1)
+
+    # 2) quota for each device
+    conn = init_db(DB_FILE)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for dev in devices:
+        sn = dev.get("sn")
+        if not sn:
+            continue
+        online = dev.get("online")
+        name = dev.get("deviceName") or ""
+
+        log.info(f"Fetching quota for {sn}…")
+        quota_resp = api_get(
+            "/iot-open/sign/device/quota/all",
+            access_key, secret_key,
+            params={"sn": sn},
+        )
+
+        raw = {}
+        if quota_resp and isinstance(quota_resp.get("data"), dict):
+            raw = quota_resp["data"]
+        else:
+            log.warning(f"No quota data for {sn}")
+
+        common = extract_common(raw)
+        log.info(f"  soc={common['soc']}  in={common['in_w']}W  out={common['out_w']}W  solar={common['solar_w']}W")
+
+        # upsert device
+        conn.execute("""
+            INSERT INTO devices (sn, name, online, last_seen, raw_json)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(sn) DO UPDATE SET
+                name=excluded.name,
+                online=excluded.online,
+                last_seen=excluded.last_seen,
+                raw_json=excluded.raw_json
+        """, (sn, name, online, now_iso, json.dumps(dev)))
+
+        # insert snapshot
+        conn.execute("""
+            INSERT INTO snapshots (ts, sn, online, soc, in_w, out_w, solar_w, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            now_iso, sn, online,
+            common["soc"], common["in_w"], common["out_w"], common["solar_w"],
+            json.dumps(raw),
+        ))
+
+    conn.commit()
+    conn.close()
+    log.info(f"Saved to {DB_FILE}")
+    log.info("ecoflow.py finished")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <title>Ava Ivy — Status</title>
+  <link rel="alternate" type="application/json" href="/api/status" title="Status JSON">
+  <style>
+    :root{--bg:#0b0d12;--card:#14181f;--border:#1e2530;--text:#e8ecf2;--muted:#8b95a8;--accent:#5b9cff;--green:#3dd68c;--red:#ff5c5c;--amber:#f5a524}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:1.25rem;line-height:1.45}
+    .wrap{max-width:920px;margin:0 auto}
+    header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
+    h1{font-size:1.25rem;font-weight:600}
+    .sub{color:var(--muted);font-size:.88rem}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.85rem;margin-bottom:1rem}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem}
+    .card h2{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.45rem}
+    .big{font-size:1.55rem;font-weight:600}
+    .row{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;border-bottom:1px solid var(--border);font-size:.9rem}
+    .row:last-child{border-bottom:none}
+    .ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--amber)}
+    .pill{display:inline-block;font-size:.72rem;padding:.15rem .5rem;border-radius:999px;background:#1a2230;color:var(--muted)}
+    .pill.up{background:#123022;color:var(--green)} .pill.down{background:#2a1515;color:var(--red)}
+    pre{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:.9rem 1rem;overflow:auto;font-size:.78rem;color:var(--muted);margin-top:1rem}
+    footer{margin-top:1.5rem;text-align:center;color:var(--muted);font-size:.75rem}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Ava status</h1>
+      <div class="sub">live origin · <a href="/api/status">/api/status</a> · <a href="/avaivy.cloud/system/">system board</a> · <a href="/directory">directory</a></div>
+    </div>
+    <div class="sub" id="clock">—</div>
+  </header>
+
+  <div class="grid" id="summary"></div>
+  <div class="card" id="services"><h2>Services</h2><div id="svcRows">loading…</div></div>
+  <div class="card" style="margin-top:.85rem"><h2>Energy (latest)</h2><div id="energy">loading…</div></div>
+  <pre id="raw">loading JSON…</pre>
+  <footer>✦ Ava Ivy · read-only status · no secrets</footer>
+</div>
+<script>
+async function load() {
+  const r = await fetch('/api/status', { cache: 'no-store' });
+  const j = await r.json();
+  document.getElementById('clock').textContent = (j.ts || new Date().toISOString()) + ' UTC';
+  document.getElementById('raw').textContent = JSON.stringify(j, null, 2);
+
+  const overall = j.ok ? 'up' : 'down';
+  document.getElementById('summary').innerHTML = `
+    <div class="card"><h2>Overall</h2><div class="big ${j.ok?'ok':'bad'}">${j.ok?'OK':'DEGRADED'}</div>
+      <div style="margin-top:.4rem"><span class="pill ${overall}">${overall}</span></div></div>
+    <div class="card"><h2>Directory</h2><div class="big">${j.directory?.enabled ? 'ON' : 'OFF'}</div>
+      <div class="sub" style="margin-top:.35rem">${j.directory?.root || '—'}</div></div>
+    <div class="card"><h2>Broadcast</h2><div class="big ok">UP</div>
+      <div class="sub" style="margin-top:.35rem">:8080 · this host</div></div>
+    <div class="card"><h2>Units</h2><div class="big">${(j.energy?.units || []).length}</div>
+      <div class="sub" style="margin-top:.35rem">EcoFlow enhanced</div></div>`;
+
+  const rows = (j.services || []).map(s => {
+    const cls = s.ok ? 'ok' : 'bad';
+    const pill = s.ok ? 'up' : 'down';
+    return `<div class="row"><span>${s.name}</span><span class="${cls}"><span class="pill ${pill}">${s.ok?'up':'down'}</span> ${s.detail || ''}</span></div>`;
+  }).join('');
+  document.getElementById('svcRows').innerHTML = rows || '<div class="sub">none</div>';
+
+  const units = j.energy?.units || [];
+  document.getElementById('energy').innerHTML = units.length
+    ? units.map(u => `<div class="row"><span>${u.name}</span><span>SOC ${u.soc_avg ?? '—'}% · in ${u.in_w_avg ?? '—'}W · out ${u.out_w_avg ?? '—'}W · ${u.trend || ''}</span></div>`).join('')
+    : '<div class="sub">no enhanced data</div>';
+}
+load(); setInterval(load, 15000);
+</script>
+</body>
+</html>
