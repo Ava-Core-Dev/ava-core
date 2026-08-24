@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Set
 
 DEFAULT_ROOT = Path("/home/ava-core")
 DEFAULT_OWNER = "Ava-Core-Dev"
@@ -34,8 +34,11 @@ CREDENTIALS_CANDIDATES = [
     Path.home() / "Credentials" / "credentials.env",
 ]
 
-ALWAYS_EXCLUDE = {
-    # Secrets / credentials
+# Easy to edit — one pattern per line in the set below.
+# Patterns match any path component or the final filename (case-insensitive).
+# Prefix with * for suffix match (e.g. *.pem).
+ALWAYS_EXCLUDE: Set[str] = {
+    # --- Secrets / credentials ---
     ".env",
     ".env.local",
     ".env.production",
@@ -49,16 +52,15 @@ ALWAYS_EXCLUDE = {
     "id_ed25519",
     "*.pem",
     "*.key",
-
-    # Known secret-containing files (blocked by GitHub Push Protection)
     "MANIFEST.json",
-    "1o1.py",                       # operations/system-tools/gemini/1o1.py
+    "1o1.py",
 
-    # Oversized mapping files (warnings + slow)
+    # --- Oversized / mapping noise ---
     "file_mapping.json",
     "file_mapping.txt",
+    "files.zip",
 
-    # Tooling / IDE / AI / caches
+    # --- Tooling / IDE / AI / caches ---
     "codex",
     ".codex",
     "cursor",
@@ -73,14 +75,15 @@ ALWAYS_EXCLUDE = {
     "cache",
     "codex-runtimes",
 
-    # Virtualenvs / Python
+    # --- Virtualenvs / Python ---
     "venv",
     ".venv",
     "env",
     "virtualenv",
     "site-packages",
+    "gemini_env",
 
-    # Browser / desktop profiles
+    # --- Browser / desktop profiles ---
     "brave",
     ".brave",
     "BraveSoftware",
@@ -90,7 +93,7 @@ ALWAYS_EXCLUDE = {
     ".mozilla",
     "firefox",
 
-    # Heavy home clutter / runtime data
+    # --- Heavy home clutter / runtime data ---
     ".cargo",
     ".cloudflared",
     ".config",
@@ -109,7 +112,6 @@ ALWAYS_EXCLUDE = {
     "Database",
     "compress",
     "snap",
-    ".gitignore",
     ".bash_logout",
     ".bash_history",
     ".profile",
@@ -117,12 +119,10 @@ ALWAYS_EXCLUDE = {
     ".bashrc",
     ".wget-hsts",
     ".gitignore",
-    "gemini_env/pyvenv.cfg",
-    "gemini_env/.gitignore",
     ".snap",
     ".git-ava-core-backup",
 
-    # Build / runtime junk
+    # --- Build / runtime junk ---
     "node_modules",
     "__pycache__",
     ".pytest_cache",
@@ -141,9 +141,6 @@ ALWAYS_EXCLUDE = {
     "*.sqlite3",
     "secrets",
     "private",
-
-    # Huge binary
-    "files.zip",
 }
 
 
@@ -200,7 +197,6 @@ def should_exclude(path: Path, root: Path) -> bool:
 
 
 def _redact_cmd(cmd: List[str]) -> str:
-    """Hide tokens that appear in git URLs."""
     redacted = []
     for arg in cmd:
         if "x-access-token:" in arg and "@github.com" in arg:
