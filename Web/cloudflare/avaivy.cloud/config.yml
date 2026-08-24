@@ -1,8 +1,0 @@
-tunnel: 03a08580-e6c3-4d07-bb58-8790706b5297
-credentials-file: /home/ava-core/Web/cloudflare/avaivy.cloud/03a08580-e6c3-4d07-bb58-8790706b5297.json
-
-ingress:
-  - hostname: directory.avaivy.cloud
-    service: http://127.0.0.1:8080
-
-  - service: http_status:404

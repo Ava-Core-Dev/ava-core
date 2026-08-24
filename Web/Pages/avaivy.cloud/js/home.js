@@ -1,1 +1,0 @@
-document.addEventListener("DOMContentLoaded",()=>{const status=document.querySelector(".status span");fetch("/api/now",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error();return r.json()}).then(()=>{status.textContent="CORE ONLINE"}).catch(()=>{status.textContent="CORE UNAVAILABLE";document.querySelector(".status i").style.background="#f59e0b"});});

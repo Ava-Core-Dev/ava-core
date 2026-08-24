@@ -1,8 +1,0 @@
-[credential "https://github.com"]
-	helper = 
-	helper = !/home/ava-core/.local/bin/gh auth git-credential
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !/home/ava-core/.local/bin/gh auth git-credential
-[safe]
-	directory = /mnt/wwn-0x50014ee26bf2dcc5-part1/new ava folder ( I will move and rename when done to SSD)/ava

@@ -119,6 +119,7 @@ ALWAYS_EXCLUDE: Set[str] = {
     ".bashrc",
     ".wget-hsts",
     ".gitignore",
+    ".gitconfig",
     ".snap",
     ".git-ava-core-backup",
 
