@@ -11,8 +11,8 @@ let socChart, pwrChart, netChart;
 async function load() {
   let now, hist;
   try {
-    now = await fetch('api/now').then(r => r.json());
-    hist = await fetch('api/history?hours=12').then(r => r.json());
+    now = await fetch('/api/now').then(r => r.json());
+    hist = await fetch('/api/history?hours=12').then(r => r.json());
   } catch (e) {
     document.getElementById('clock').textContent = 'API offline — is broadcast running?';
     return;
