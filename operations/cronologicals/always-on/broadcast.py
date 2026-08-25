@@ -17,6 +17,7 @@ import os
 import sqlite3
 import stat
 import subprocess
+import re
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -249,27 +250,42 @@ def _window_from_query(parsed, default="12h"):
         except Exception: pass
     return default
 
+# Metrics where summing samples is meaningless (rates / levels).
+_RATE_OR_LEVEL_KEYS = {
+    "soc_avg", "solar_w_avg", "in_w_avg", "out_w_avg", "net_w_avg",
+    "cpu", "memory", "recv_bps", "sent_bps",
+}
+# Metrics where a window sum is meaningful (energy amounts over the window).
+_SUMMABLE_KEYS = {
+    "energy_in_wh", "energy_out_wh", "energy_solar_wh",
+}
+
+
+def _percent_change(prev, cur):
+    """Relative change first→last sample. Suppress extremes when baseline ~0."""
+    if prev is None or cur is None:
+        return None
+    try:
+        prev = float(prev)
+        cur = float(cur)
+    except (TypeError, ValueError):
+        return None
+    if abs(prev) < 1e-6:
+        if abs(cur) < 1e-6:
+            return 0.0
+        return None  # avoid -100% / +inf when baseline is ~0
+    return (cur - prev) / abs(prev) * 100.0
+
+
 def _aggregate(rows, keys):
-    out={}
-    for key in keys:
-        vals=[]
-        for r in rows:
-            try:
-                v=float(r.get(key));
-                if v==v and abs(v)!=float("inf"): vals.append(v)
-            except Exception: pass
-        if vals:
-            prev=vals[0]; cur=vals[-1]; avg=sum(vals)/len(vals); total=sum(vals)
-            out[key]={"current":cur,"average":avg,"total":total,"min":min(vals),"max":max(vals),"percent_change":((cur-prev)/abs(prev)*100) if prev else None}
-        else: out[key]={"current":None,"average":None,"total":None,"min":None,"max":None,"percent_change":None}
-    return out
+    """Window stats for dashboard tables.
 
-def _energy_aggregate(rows):
-    """Aggregate energy history without treating watts or SOC as additive totals."""
+    - current / average / min / max: always from samples
+    - total: only for summable energy keys; rates/levels stay null (UI shows —)
+    - percent_change: first→last relative change with near-zero baseline guard
+    """
     out = {}
-
-    # SOC and power are point/rate measurements. Their total is not meaningful.
-    for key in ("soc_avg", "solar_w_avg", "in_w_avg", "out_w_avg", "net_w_avg"):
+    for key in keys:
         vals = []
         for r in rows:
             try:
@@ -281,43 +297,31 @@ def _energy_aggregate(rows):
         if vals:
             prev, cur = vals[0], vals[-1]
             avg = sum(vals) / len(vals)
+            if key in _SUMMABLE_KEYS or key.endswith("_wh"):
+                total = sum(vals)
+            else:
+                # rates (W, B/s) and levels (%) must not be summed
+                total = None
             out[key] = {
                 "current": cur,
                 "average": avg,
-                "total": None,
+                "total": total,
                 "min": min(vals),
                 "max": max(vals),
-                "percent_change": ((cur - prev) / abs(prev) * 100) if prev else None,
+                "percent_change": _percent_change(prev, cur),
+                "sample_count": len(vals),
             }
         else:
-            out[key] = {"current": None, "average": None, "total": None, "min": None, "max": None, "percent_change": None}
-
-    # These fields are per-bucket energy quantities, so summing them over the
-    # selected window is meaningful.
-    for key in ("energy_in_wh", "energy_out_wh", "energy_solar_wh"):
-        vals = []
-        for r in rows:
-            try:
-                v = float(r.get(key))
-                if v == v and abs(v) != float("inf"):
-                    vals.append(v)
-            except Exception:
-                pass
-        if vals:
-            prev, cur = vals[0], vals[-1]
             out[key] = {
-                "current": cur,
-                "average": sum(vals) / len(vals),
-                "total": sum(vals),
-                "min": min(vals),
-                "max": max(vals),
-                "percent_change": ((cur - prev) / abs(prev) * 100) if prev else None,
+                "current": None,
+                "average": None,
+                "total": None,
+                "min": None,
+                "max": None,
+                "percent_change": None,
+                "sample_count": 0,
             }
-        else:
-            out[key] = {"current": None, "average": None, "total": None, "min": None, "max": None, "percent_change": None}
-
     return out
-
 
 def history(hours=12, window=None):
     """Return EcoFlow history for any dashboard window, excluding security."""
@@ -417,64 +421,371 @@ def system_history(hours=12, window=None):
 
 
 def uptime_report():
-    """Observed uptime ratios and percent change for the full dashboard suite."""
-    rows = q(UPTIME_DB, "SELECT source_ts_utc, current_uptime_seconds FROM uptime_events ORDER BY source_ts_utc")
-    events=[]
-    for row in rows:
-        try: events.append((datetime.fromisoformat(str(row["source_ts_utc"]).replace("Z","+00:00")).timestamp(), float(row["current_uptime_seconds"])))
-        except Exception: continue
-    now=datetime.now(timezone.utc).timestamp(); report={}
-    for name,seconds in WINDOW_SECONDS.items():
-        selected=[e for e in events if seconds is None or e[0]>=now-seconds]
-        observed=elapsed=0.0
-        for (ta,ua),(tb,ub) in zip(selected,selected[1:]):
-            span=max(0.0,tb-ta); elapsed+=span
-            if ub>=ua: observed+=min(span,ub-ua)
-        vals=[e[1] for e in selected]; cur=vals[-1] if vals else None; prev=vals[0] if vals else None
-        avail=(observed/elapsed*100) if elapsed else None
-        report[name]={"samples":len(selected),"current_uptime_seconds":cur,"average_uptime_seconds":sum(vals)/len(vals) if vals else None,"observed_seconds":observed,"window_seconds":elapsed,"availability_percent":avail,"percent_change":((cur-prev)/abs(prev)*100) if cur is not None and prev else None,"availability_change":None}
-    return report
+    """Calculate availability using wall-clock time."""
+    rows = q(
+        UPTIME_DB,
+        "SELECT source_ts_utc, current_uptime_seconds "
+        "FROM uptime_events ORDER BY source_ts_utc",
+    )
 
-def uptime_history(window="all"):
-    seconds=_window_seconds(window or "all")
-    now=datetime.now(timezone.utc).timestamp()
-    rows=q(UPTIME_DB, "SELECT source_ts_utc, current_uptime_seconds FROM uptime_events ORDER BY source_ts_utc")
-    out=[]
+    events = []
+
     for row in rows:
         try:
-            ts=datetime.fromisoformat(str(row["source_ts_utc"]).replace("Z","+00:00")).timestamp()
-            if seconds is None or ts>=now-seconds:
-                out.append({"ts":ts,"uptime_seconds":float(row["current_uptime_seconds"])})
-        except Exception: pass
+            ts = datetime.fromisoformat(
+                str(row["source_ts_utc"]).replace("Z", "+00:00")
+            ).timestamp()
+
+            events.append(
+                (ts, float(row["current_uptime_seconds"]))
+            )
+        except Exception:
+            continue
+
+    now = datetime.now(timezone.utc).timestamp()
+    report = {}
+
+    for name, seconds in WINDOW_SECONDS.items():
+
+        start = (
+            events[0][0]
+            if seconds is None and events
+            else now
+            if seconds is None
+            else now - seconds
+        )
+
+        selected = [
+            e for e in events
+            if start <= e[0] <= now
+        ]
+
+        # Include the sample immediately before the window
+        # so the first interval is measurable.
+        prior = [
+            e for e in events
+            if e[0] < start
+        ]
+
+        points = ([prior[-1]] if prior else []) + selected
+
+        online = 0.0
+
+        for (ta, ua), (tb, ub) in zip(points, points[1:]):
+
+            a = max(ta, start)
+            b = min(tb, now)
+
+            if b <= a:
+                continue
+
+            span = b - a
+
+            # Normal collector cadence is ~60 seconds.
+            # A large gap means the collector was offline.
+            if span <= 90 and ub >= ua:
+                online += min(span, ub - ua)
+
+        # Count the live tail only when the collector is fresh.
+        if selected:
+
+            tail = now - selected[-1][0]
+
+            if 0 <= tail <= 90:
+                online += tail
+
+        total = max(0.0, now - start)
+        offline = max(0.0, total - online)
+
+        vals = [e[1] for e in selected]
+
+        current = vals[-1] if vals else None
+        previous = vals[0] if vals else None
+
+        report[name] = {
+            "samples": len(selected),
+            "current_uptime_seconds": current,
+            "average_uptime_seconds":
+                sum(vals) / len(vals) if vals else None,
+            "online_seconds": online,
+            "offline_seconds": offline,
+            "observed_seconds": online,
+            "window_seconds": total,
+            "availability_percent":
+                online / total * 100
+                if total else None,
+            "percent_change":
+                (
+                    (current - previous)
+                    / abs(previous) * 100
+                    if current is not None and previous
+                    else None
+                ),
+        }
+
+    return report
+
+
+def uptime_history(window="all"):
+    seconds = _window_seconds(window or "all")
+
+    now = datetime.now(timezone.utc).timestamp()
+
+    start = (
+        0
+        if seconds is None
+        else now - seconds
+    )
+
+    rows = q(
+        UPTIME_DB,
+        "SELECT source_ts_utc, current_uptime_seconds "
+        "FROM uptime_events ORDER BY source_ts_utc",
+    )
+
+    out = []
+
+    for row in rows:
+        try:
+            ts = datetime.fromisoformat(
+                str(row["source_ts_utc"]).replace("Z", "+00:00")
+            ).timestamp()
+
+            if ts >= start:
+                out.append(
+                    {
+                        "ts": ts,
+                        "uptime_seconds":
+                            float(row["current_uptime_seconds"]),
+                    }
+                )
+
+        except Exception:
+            continue
+
     return out
 
 def operations_status():
-    """Local scheduler inventory and a current process snapshot for the status page."""
-    cron_root = Path("/home/ava-core/operations/cronologicals")
-    pending = []
-    if cron_root.is_dir():
-        for path in sorted(cron_root.rglob("*.py")):
-            if "always-on" in path.parts or "__pycache__" in path.parts:
-                continue
-            pending.append({"path": str(path.relative_to(cron_root)), "enabled": True})
-        for path in sorted(cron_root.rglob("*.py.disabled")):
-            if "always-on" in path.parts or "__pycache__" in path.parts:
-                continue
-            pending.append({"path": str(path.relative_to(cron_root))[:-9], "enabled": False})
-    try:
-        proc = subprocess.run(
-            ["ps", "-eo", "pid=,etime=,comm=,args="], text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=3,
-        )
-        processes = []
-        for line in proc.stdout.splitlines():
-            bits = line.strip().split(None, 3)
-            if len(bits) >= 3:
-                processes.append({"pid": bits[0], "elapsed": bits[1], "name": bits[2], "command": bits[3] if len(bits) > 3 else bits[2]})
-    except Exception as e:
-        processes = [{"pid": "—", "elapsed": "—", "name": "unavailable", "command": str(e)}]
-    return {"pending_crons": pending, "processes": processes}
+    """Return Cronological operation inventory and rates."""
 
+    cron_root = (
+        Path.home()
+        / "operations"
+        / "cronologicals"
+    )
+
+    pending = []
+    avg_hour = 0.0
+    next_hour = 0
+
+    interval_re = re.compile(
+        r"every-(\d+)-(seconds|minutes|hours|days|weeks|months|years)$"
+    )
+
+    interval_seconds = {
+        "seconds": 1,
+        "minutes": 60,
+        "hours": 3600,
+        "days": 86400,
+        "weeks": 604800,
+        "months": 30 * 86400,
+        "years": 365 * 86400,
+    }
+
+    ontime = cron_root / "on-time"
+
+    if ontime.is_dir():
+
+        for d in ontime.iterdir():
+
+            if not d.is_dir():
+                continue
+
+            m = re.fullmatch(
+                r"(\d{2}):(\d{2})",
+                d.name,
+            )
+
+            if not m:
+                continue
+
+            hour, minute = map(int, m.groups())
+
+            jobs = [
+                p for p in d.glob("*.py")
+                if "__pycache__" not in p.parts
+            ]
+
+            if not jobs:
+                continue
+
+            avg_hour += len(jobs) / 24
+
+            candidate = datetime.now().replace(
+                hour=hour,
+                minute=minute,
+                second=0,
+                microsecond=0,
+            )
+
+            if candidate <= datetime.now():
+                candidate += timedelta(days=1)
+
+            if candidate <= datetime.now() + timedelta(hours=1):
+                next_hour += len(jobs)
+
+            for p in jobs:
+                pending.append(
+                    {
+                        "path":
+                            str(p.relative_to(cron_root)),
+                        "enabled": True,
+                        "schedule": d.name,
+                        "next_due":
+                            candidate.isoformat(),
+                    }
+                )
+
+    since = cron_root / "since-last-fire"
+
+    if since.is_dir():
+
+        for d in since.iterdir():
+
+            if not d.is_dir():
+                continue
+
+            m = interval_re.fullmatch(d.name)
+
+            if not m:
+                continue
+
+            interval = (
+                int(m.group(1))
+                * interval_seconds[m.group(2)]
+            )
+
+            jobs = [
+                p for p in d.glob("*.py")
+                if "__pycache__" not in p.parts
+            ]
+
+            if not jobs:
+                continue
+
+            avg_hour += (
+                len(jobs) * 3600 / interval
+            )
+
+            next_hour += (
+                len(jobs)
+                * max(
+                    1,
+                    int(
+                        (3600 + interval - 1)
+                        // interval
+                    ),
+                )
+            )
+
+            for p in jobs:
+                pending.append(
+                    {
+                        "path":
+                            str(p.relative_to(cron_root)),
+                        "enabled": True,
+                        "schedule": d.name,
+                        "next_due": "recurring",
+                    }
+                )
+
+    for p in sorted(
+        cron_root.rglob("*.py.disabled")
+    ):
+
+        if "__pycache__" in p.parts:
+            continue
+
+        pending.append(
+            {
+                "path":
+                    str(p.relative_to(cron_root))[:-9],
+                "enabled": False,
+                "schedule": "disabled",
+                "next_due": None,
+            }
+        )
+
+    try:
+
+        proc = subprocess.run(
+            [
+                "ps",
+                "-eo",
+                "pid=,etime=,comm=,args=",
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=3,
+        )
+
+        processes = []
+
+        for line in proc.stdout.splitlines():
+
+            bits = line.strip().split(None, 3)
+
+            if len(bits) >= 3:
+                processes.append(
+                    {
+                        "pid": bits[0],
+                        "elapsed": bits[1],
+                        "name": bits[2],
+                        "command":
+                            bits[3]
+                            if len(bits) > 3
+                            else bits[2],
+                    }
+                )
+
+    except Exception as exc:
+
+        processes = [
+            {
+                "pid": "—",
+                "elapsed": "—",
+                "name": "unavailable",
+                "command": str(exc),
+            }
+        ]
+
+    return {
+        "pending_crons": pending,
+        "processes": processes,
+        "rates": {
+            "avg_per_hour": avg_hour,
+            "avg_per_minute":
+                avg_hour / 60,
+            "next_hour": next_hour,
+        },
+        "windows": {
+            key: {
+                "avg_per_hour": avg_hour,
+                "avg_per_minute":
+                    avg_hour / 60,
+                "expected_operations":
+                    (
+                        avg_hour * seconds / 3600
+                        if seconds is not None
+                        else None
+                    ),
+                "next_hour": next_hour,
+            }
+            for key, seconds
+            in WINDOW_SECONDS.items()
+        },
+    }
 
 # ---------------------------------------------------------------------------
 # Directory browser — safety helpers
@@ -838,7 +1149,8 @@ def build_status() -> dict:
             }
         )
     ops = operations_status()
-    ok = energy_err is None
+    # ok = core surfaces answering; energy error degrades but does not alone mean offline
+    ok = energy_err is None and DIR_ROOT.is_dir()
     return {
         "ok": ok,
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -867,6 +1179,8 @@ GLOBAL_LOCATIONS_PATH = Path("/home/ava-core/config/locations/global-locations.j
 if not GLOBAL_LOCATIONS_PATH.is_file():
     GLOBAL_LOCATIONS_PATH = Path(__file__).resolve().parents[3] / "config/locations/global-locations.json"
 GLOBAL_EARTHQUAKES_DB = DB_ROOT / "earthquakes.db"
+GLOBAL_QUAKES_DB = DB_ROOT / "quakes.db"
+LEGACY_QUAKES_DB = DB_ROOT / "quakes.db"
 GLOBAL_NEWS_JSON = Path("/home/ava-core/web/sites/avaivy.cloud/data/global-news.json")
 if not GLOBAL_NEWS_JSON.is_file():
     GLOBAL_NEWS_JSON = Path(__file__).resolve().parents[3] / "web/sites/avaivy.cloud/data/global-news.json"
@@ -899,25 +1213,154 @@ def geography_weather(country="", state="", location=""):
         return {"ok":True,"locations":matches,"observations":stats["observations"],"providers":stats["providers"],"avg_temp_c":stats["avg_temp_c"],"weather":{"current_temperature":latest["temp_c"] if latest else None,"current":{"temperature_c":latest["temp_c"] if latest else None,"humidity_pct":latest["humidity_pct"] if latest else None,"wind_kph":latest["wind_kph"] if latest else None,"precipitation_mm":latest["precipitation_mm"] if latest else None,"observed_at":latest["obs_ts"] if latest else None}}}
     finally: con.close()
 
-def geography_earthquakes(country="", state="", location=""):
-    matches=_geo_match(country,state,location); ids=[x["id"] for x in matches]
-    if not GLOBAL_EARTHQUAKES_DB.exists(): return {"ok":True,"events":[],"locations":matches}
-    con=sqlite3.connect(str(GLOBAL_EARTHQUAKES_DB)); con.row_factory=sqlite3.Row
-    try:
-        if ids:
-            qmarks=','.join('?' for _ in ids); rows=con.execute(f"SELECT * FROM earthquakes WHERE location_id IN ({qmarks}) ORDER BY observed_at DESC LIMIT 100",ids).fetchall()
-        elif country:
-            rows=con.execute("SELECT * FROM earthquakes WHERE lower(country_code)=lower(?) ORDER BY observed_at DESC LIMIT 100",(country,)).fetchall()
-        else: rows=con.execute("SELECT * FROM earthquakes ORDER BY observed_at DESC LIMIT 100").fetchall()
-        return {"ok":True,"events":[dict(r) for r in rows],"locations":matches}
-    finally: con.close()
+def geography_earthquakes(
+    country="",
+    state="",
+    location="",
+):
+    matches = _geo_match(
+        country,
+        state,
+        location,
+    )
+
+    ids = [x["id"] for x in matches]
+
+    events = []
+
+    if GLOBAL_EARTHQUAKES_DB.exists():
+
+        con = sqlite3.connect(
+            str(GLOBAL_EARTHQUAKES_DB)
+        )
+
+        con.row_factory = sqlite3.Row
+
+        try:
+
+            if ids:
+
+                marks = ",".join(
+                    "?" for _ in ids
+                )
+
+                rows = con.execute(
+                    f"""
+                    SELECT *
+                    FROM earthquakes
+                    WHERE location_id IN ({marks})
+                    ORDER BY observed_at DESC
+                    LIMIT 100
+                    """,
+                    ids,
+                ).fetchall()
+
+            elif country:
+
+                rows = con.execute(
+                    """
+                    SELECT *
+                    FROM earthquakes
+                    WHERE lower(country_code)
+                        = lower(?)
+                    ORDER BY observed_at DESC
+                    LIMIT 100
+                    """,
+                    (country,),
+                ).fetchall()
+
+            else:
+
+                rows = con.execute(
+                    """
+                    SELECT *
+                    FROM earthquakes
+                    ORDER BY observed_at DESC
+                    LIMIT 100
+                    """
+                ).fetchall()
+
+            events = [
+                dict(row)
+                for row in rows
+            ]
+
+        finally:
+            con.close()
+
+    elif GLOBAL_QUAKES_DB.exists():
+
+        con = sqlite3.connect(
+            str(GLOBAL_QUAKES_DB)
+        )
+
+        con.row_factory = sqlite3.Row
+
+        try:
+
+            rows = con.execute(
+                """
+                SELECT
+                    id,
+                    time_utc AS observed_at,
+                    mag AS magnitude,
+                    depth_km,
+                    place,
+                    latitude AS lat,
+                    longitude AS lon,
+                    url AS source_url
+                FROM quakes
+                ORDER BY time_ms DESC
+                LIMIT 100
+                """
+            ).fetchall()
+
+            events = [
+                dict(row)
+                for row in rows
+            ]
+
+        finally:
+            con.close()
+
+    return {
+        "ok": True,
+        "events": events,
+        "locations": matches,
+    }
 
 def geography_news(country="", state="", location=""):
-    try: data=json.loads(GLOBAL_NEWS_JSON.read_text(encoding="utf-8")) if GLOBAL_NEWS_JSON.exists() else {"items":[],"events":[]}
-    except Exception: data={"items":[],"events":[]}
+    """Serve the generated global index, rebuilding a lightweight fallback from state DBs."""
+    data={"items":[],"events":[]}
+    try:
+        if GLOBAL_NEWS_JSON.exists():
+            data=json.loads(GLOBAL_NEWS_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        data={"items":[],"events":[]}
+    if not data.get("items"):
+        items=[]; events=[]
+        states_dir=DB_ROOT/"states"
+        if states_dir.is_dir():
+            for sdir in sorted(states_dir.iterdir()):
+                if not sdir.is_dir(): continue
+                for gdb in sdir.glob("*_news.db"):
+                    try:
+                        con=sqlite3.connect(str(gdb)); con.row_factory=sqlite3.Row
+                        for r in con.execute("select p.*, s.publisher from posts p left join sources s on p.source_id=s.source_id order by p.published_at desc limit 200"):
+                            st=sdir.name.replace("-"," ").title()
+                            items.append({"title":r["title"],"summary":r["summary"],"link":r["url"],"published_label":r["published_at"],"published_ts":0,"category":r["category"] or "general","category_label":(r["category"] or "General").replace("-"," ").title(),"source_id":r["source_id"],"source":r["publisher"] or r["source_id"] or "Source","country_code":"US","state_code":None,"state_name":st,"region":"north-america","location":None,"importance":40})
+                        con.close()
+                    except Exception:
+                        pass
+        data={"items":items,"events":events}
     items=data.get("items",[])
-    if country: items=[x for x in items if str(x.get("country_code") or "US").lower()==("us" if country=="united-states" else country.lower())]
-    if state: items=[x for x in items if str(x.get("state_code") or "").lower()==state.lower() or str(x.get("state_name") or "").lower()==state.lower()]
+    if country:
+        wanted="US" if country=="united-states" else country
+        items=[x for x in items if str(x.get("country_code") or "US").lower()==wanted.lower()]
+    if state:
+        items=[x for x in items if str(x.get("state_code") or "").lower()==state.lower() or str(x.get("state_name") or "").lower()==state.lower()]
+    if location:
+        items=[x for x in items if str(x.get("location") or "").lower()==location.lower()]
     return {"ok":True,"items":items[:100],"events":data.get("events",[])[:100]}
 
 HAWAII_REGISTRY_PATH = Path("/home/ava-core/web/sites/avaivy.cloud/data/hawaii-locations.json")
@@ -1280,15 +1723,65 @@ class H(BaseHTTPRequestHandler):
             self.js({"error":"Unknown Hawaiʻi location"}, 404)
             return True
 
+        if path in ("/api/health", "/system/api/health", "/health"):
+            data = build_status()
+            self.js({
+                "ok": bool(data.get("ok")),
+                "ts": data.get("ts"),
+                "host": data.get("host"),
+                "directory_enabled": (data.get("directory") or {}).get("enabled"),
+                "energy_error": (data.get("energy") or {}).get("error"),
+                "status_url": "/api/status",
+            })
+            return
+
         if path == "/api/status":
-            self.js(build_status())
+
+            qs = parse_qs(parsed.query)
+
+            window = (
+                qs.get("window") or ["1h"]
+            )[0]
+
+            data = build_status()
+
+            data["window"] = (
+                window
+                if window in WINDOW_SECONDS
+                else "1h"
+            )
+
+            data["operations"] = (
+                operations_status()
+            )
+
+            self.js(data)
             return True
 
         if path in ("/api/system/now", "/system/api/now"):
             self.js(system_now())
             return True
         if path in ("/api/uptime", "/uptime/api"):
-            self.js({"ts": datetime.now(timezone.utc).isoformat(), "periods": uptime_report(), "history": uptime_history("all")})
+            window = _window_from_query(parsed)
+            periods = uptime_report()
+
+            self.js(
+                {
+                    "ts":
+                        datetime.now(
+                            timezone.utc
+                        ).isoformat(),
+                    "window": window,
+                    "period":
+                        periods.get(
+                            window,
+                            periods.get("12h", {}),
+                        ),
+                    "periods": periods,
+                    "history":
+                        uptime_history(window),
+                }
+            )
             return True
         if path.startswith("/api/system/history") or path.startswith("/system/api/history"):
             window=_window_from_query(parsed); rows=system_history(window=window)
@@ -1316,7 +1809,7 @@ class H(BaseHTTPRequestHandler):
         if (path.startswith("/api/energy/history") or path.startswith("/energy/api/history")
                 or path.startswith("/ecoflow/api/history")):
             window=_window_from_query(parsed); rows=history(window=window)
-            self.js({"window":window,"rows":rows,"aggregate":_energy_aggregate(rows)})
+            self.js({"window":window,"rows":rows,"aggregate":_aggregate(rows,["soc_avg","solar_w_avg","in_w_avg","out_w_avg","net_w_avg","energy_in_wh","energy_out_wh","energy_solar_wh"])})
             return True
 
         # ---- Directory API ----

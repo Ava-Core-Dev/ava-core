@@ -1,0 +1,24 @@
+Ava boards / API fix drop-in
+============================
+
+Paths (relative to /home/ava-core):
+
+  operations/cronologicals/always-on/broadcast.py
+  context/common-bugs/energy/aggregate-sum-of-rates.md
+  context/common-bugs/api/health-endpoint.md
+
+Apply:
+  cd /home/ava-core
+  unzip -o boards-api-fix.zip
+
+Then restart the always-on broadcast process (desk RESTART ava-core, or
+kill the broadcast.py supervised by ava-core so it respawns).
+
+What this fixes:
+  1. Energy Desk + System Board TOTAL / CHANGE aggregation
+  2. /system/api/health (and /api/health, /health)
+
+Still separate:
+  - directory.avaivy.cloud subdomain (Cloudflare tunnel hostname / DNS)
+    Main-site /directory/ is served by broadcast when directory.enabled exists.
+  - Unify every page's top-right badge text (static HTML labels on some pages)
