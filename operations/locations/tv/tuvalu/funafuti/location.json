@@ -1,0 +1,16 @@
+{
+  "id": "tv-funafuti",
+  "country_code": "TV",
+  "country_name": "Tuvalu",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Funafuti",
+  "slug": "funafuti",
+  "lat": -8.534995,
+  "lon": 179.11865,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "tuvalu"
+}

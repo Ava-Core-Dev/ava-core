@@ -1,0 +1,16 @@
+{
+  "id": "mw-lilongwe",
+  "country_code": "MW",
+  "country_name": "Malawi",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Lilongwe",
+  "slug": "lilongwe",
+  "lat": -13.987511,
+  "lon": 33.768144,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "malawi"
+}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=AVA
+GenericName=AVA Core
+Comment=AVA Ivy — Visual Operations Console
+Exec=/usr/bin/python3 /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py
+Path=/home/ava-core/operations/system-tools/desk/ava_core_visual_cli
+Icon=utilities-terminal
+Terminal=false
+Categories=System;Utility;
+StartupNotify=true

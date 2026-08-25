@@ -1,0 +1,16 @@
+{
+  "id": "tw-taipei",
+  "country_code": "TW",
+  "country_name": "Taiwan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Taipei",
+  "slug": "taipei",
+  "lat": 25.03752,
+  "lon": 121.56368,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "taiwan"
+}

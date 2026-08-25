@@ -1,0 +1,15 @@
+{
+  "id": "us-kentucky-frankfort",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Kentucky",
+  "admin1_name": "Kentucky",
+  "admin1_slug": "kentucky",
+  "name": "Frankfort",
+  "slug": "frankfort",
+  "lat": 38.186722,
+  "lon": -84.875374,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

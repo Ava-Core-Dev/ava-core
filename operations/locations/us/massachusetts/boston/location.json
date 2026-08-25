@@ -1,0 +1,15 @@
+{
+  "id": "us-massachusetts-boston",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Massachusetts",
+  "admin1_name": "Massachusetts",
+  "admin1_slug": "massachusetts",
+  "name": "Boston",
+  "slug": "boston",
+  "lat": 42.358162,
+  "lon": -71.063698,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

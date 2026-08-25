@@ -1,0 +1,15 @@
+{
+  "id": "us-wisconsin-madison",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Wisconsin",
+  "admin1_name": "Wisconsin",
+  "admin1_slug": "wisconsin",
+  "name": "Madison",
+  "slug": "madison",
+  "lat": 43.074684,
+  "lon": -89.384445,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

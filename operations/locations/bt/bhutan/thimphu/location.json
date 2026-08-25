@@ -1,0 +1,16 @@
+{
+  "id": "bt-thimphu",
+  "country_code": "BT",
+  "country_name": "Bhutan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Thimphu",
+  "slug": "thimphu",
+  "lat": 27.472762,
+  "lon": 89.629548,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "bhutan"
+}

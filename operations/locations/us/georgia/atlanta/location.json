@@ -1,0 +1,15 @@
+{
+  "id": "us-georgia-atlanta",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Georgia",
+  "admin1_name": "Georgia",
+  "admin1_slug": "georgia",
+  "name": "Atlanta",
+  "slug": "atlanta",
+  "lat": 33.749027,
+  "lon": -84.388229,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "hn-tegucigalpa",
+  "country_code": "HN",
+  "country_name": "Honduras",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tegucigalpa",
+  "slug": "tegucigalpa",
+  "lat": 14.105686,
+  "lon": -87.204676,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "honduras"
+}

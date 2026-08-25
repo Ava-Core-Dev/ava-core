@@ -1,0 +1,15 @@
+{
+  "id": "us-rhode-island-providence",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Rhode Island",
+  "admin1_name": "Rhode Island",
+  "admin1_slug": "rhode-island",
+  "name": "Providence",
+  "slug": "providence",
+  "lat": 41.830914,
+  "lon": -71.414963,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

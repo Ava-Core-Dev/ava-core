@@ -1,0 +1,16 @@
+{
+  "id": "re-saint-denis",
+  "country_code": "RE",
+  "country_name": "Réunion",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Saint-Denis",
+  "slug": "saint-denis",
+  "lat": 48.935773,
+  "lon": 2.358023,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "r-union"
+}

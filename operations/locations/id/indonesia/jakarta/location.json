@@ -1,0 +1,16 @@
+{
+  "id": "id-jakarta",
+  "country_code": "ID",
+  "country_name": "Indonesia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Jakarta",
+  "slug": "jakarta",
+  "lat": -6.175394,
+  "lon": 106.827183,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "indonesia"
+}

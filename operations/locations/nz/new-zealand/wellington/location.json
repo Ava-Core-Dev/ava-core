@@ -1,0 +1,16 @@
+{
+  "id": "nz-wellington",
+  "country_code": "NZ",
+  "country_name": "New Zealand",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Wellington",
+  "slug": "wellington",
+  "lat": -41.288795,
+  "lon": 174.777211,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Australia and New Zealand",
+  "country_slug": "new-zealand"
+}

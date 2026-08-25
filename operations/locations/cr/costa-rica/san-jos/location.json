@@ -1,0 +1,16 @@
+{
+  "id": "cr-san-jos",
+  "country_code": "CR",
+  "country_name": "Costa Rica",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "San José",
+  "slug": "san-jos",
+  "lat": 9.932543,
+  "lon": -84.079578,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "costa-rica"
+}

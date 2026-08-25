@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-mountain-view",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Mountain View",
+  "slug": "mountain-view",
+  "lat": 19.5558,
+  "lon": -155.1083,
+  "kind": "state-location",
+  "region": "Hawaiʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-haleiwa",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Haleʻiwa (North Shore)",
+  "slug": "haleiwa",
+  "lat": 21.5942,
+  "lon": -158.11,
+  "kind": "state-location",
+  "region": "Oʻahu",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

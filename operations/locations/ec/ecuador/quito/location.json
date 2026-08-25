@@ -1,0 +1,16 @@
+{
+  "id": "ec-quito",
+  "country_code": "EC",
+  "country_name": "Ecuador",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Quito",
+  "slug": "quito",
+  "lat": -0.220164,
+  "lon": -78.512327,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "ecuador"
+}

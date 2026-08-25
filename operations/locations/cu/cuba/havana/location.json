@@ -1,0 +1,16 @@
+{
+  "id": "cu-havana",
+  "country_code": "CU",
+  "country_name": "Cuba",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Havana",
+  "slug": "havana",
+  "lat": 23.135305,
+  "lon": -82.358963,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "cuba"
+}

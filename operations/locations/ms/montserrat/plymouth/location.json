@@ -1,0 +1,16 @@
+{
+  "id": "ms-plymouth",
+  "country_code": "MS",
+  "country_name": "Montserrat",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Plymouth",
+  "slug": "plymouth",
+  "lat": 50.371266,
+  "lon": -4.142566,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "montserrat"
+}

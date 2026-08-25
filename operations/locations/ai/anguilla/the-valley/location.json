@@ -1,0 +1,16 @@
+{
+  "id": "ai-the-valley",
+  "country_code": "AI",
+  "country_name": "Anguilla",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "The Valley",
+  "slug": "the-valley",
+  "lat": 41.559572,
+  "lon": -98.980548,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "anguilla"
+}

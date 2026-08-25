@@ -1,0 +1,16 @@
+{
+  "id": "je-saint-helier",
+  "country_code": "JE",
+  "country_name": "Jersey",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Saint Helier",
+  "slug": "saint-helier",
+  "lat": 47.384387,
+  "lon": 4.683325,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "jersey"
+}

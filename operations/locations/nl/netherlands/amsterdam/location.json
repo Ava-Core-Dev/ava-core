@@ -1,0 +1,16 @@
+{
+  "id": "nl-amsterdam",
+  "country_code": "NL",
+  "country_name": "Netherlands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Amsterdam",
+  "slug": "amsterdam",
+  "lat": 52.37276,
+  "lon": 4.893604,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "country_slug": "netherlands"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "fj-suva",
+  "country_code": "FJ",
+  "country_name": "Fiji",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Suva",
+  "slug": "suva",
+  "lat": -18.141588,
+  "lon": 178.442166,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Melanesia",
+  "country_slug": "fiji"
+}

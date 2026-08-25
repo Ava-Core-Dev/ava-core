@@ -1,0 +1,16 @@
+{
+  "id": "gf-cayenne",
+  "country_code": "GF",
+  "country_name": "French Guiana",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Cayenne",
+  "slug": "cayenne",
+  "lat": 4.937114,
+  "lon": -52.325831,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "french-guiana"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "us-delaware-dover",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Delaware",
+  "admin1_name": "Delaware",
+  "admin1_slug": "delaware",
+  "name": "Dover",
+  "slug": "dover",
+  "lat": 39.157307,
+  "lon": -75.519722,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

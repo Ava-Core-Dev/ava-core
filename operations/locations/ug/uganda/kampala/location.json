@@ -1,0 +1,16 @@
+{
+  "id": "ug-kampala",
+  "country_code": "UG",
+  "country_name": "Uganda",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kampala",
+  "slug": "kampala",
+  "lat": 0.317714,
+  "lon": 32.581354,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "uganda"
+}

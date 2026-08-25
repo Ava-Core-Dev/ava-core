@@ -1,0 +1,16 @@
+{
+  "id": "rs-belgrade",
+  "country_code": "RS",
+  "country_name": "Serbia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Belgrade",
+  "slug": "belgrade",
+  "lat": 44.817813,
+  "lon": 20.456897,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "serbia"
+}

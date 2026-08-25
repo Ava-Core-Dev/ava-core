@@ -1,0 +1,16 @@
+{
+  "id": "sd-khartoum",
+  "country_code": "SD",
+  "country_name": "Sudan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Khartoum",
+  "slug": "khartoum",
+  "lat": 15.593325,
+  "lon": 32.53565,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Northern Africa",
+  "country_slug": "sudan"
+}

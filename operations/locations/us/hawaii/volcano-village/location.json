@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-volcano-village",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Volcano Village",
+  "slug": "volcano-village",
+  "lat": 19.4075,
+  "lon": -155.214,
+  "kind": "state-location",
+  "region": "Hawaiʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

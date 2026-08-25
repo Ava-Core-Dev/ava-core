@@ -1,0 +1,352 @@
+[
+  {
+    "name": "Alabama",
+    "slug": "alabama",
+    "capital": "Montgomery",
+    "lat": 32.377716,
+    "lon": -86.300568
+  },
+  {
+    "name": "Alaska",
+    "slug": "alaska",
+    "capital": "Juneau",
+    "lat": 58.301598,
+    "lon": -134.420212
+  },
+  {
+    "name": "Arizona",
+    "slug": "arizona",
+    "capital": "Phoenix",
+    "lat": 33.448143,
+    "lon": -112.096962
+  },
+  {
+    "name": "Arkansas",
+    "slug": "arkansas",
+    "capital": "Little Rock",
+    "lat": 34.746613,
+    "lon": -92.288986
+  },
+  {
+    "name": "California",
+    "slug": "california",
+    "capital": "Sacramento",
+    "lat": 38.576668,
+    "lon": -121.493629
+  },
+  {
+    "name": "Colorado",
+    "slug": "colorado",
+    "capital": "Denver",
+    "lat": 39.739227,
+    "lon": -104.984856
+  },
+  {
+    "name": "Connecticut",
+    "slug": "connecticut",
+    "capital": "Hartford",
+    "lat": 41.764046,
+    "lon": -72.682198
+  },
+  {
+    "name": "Delaware",
+    "slug": "delaware",
+    "capital": "Dover",
+    "lat": 39.157307,
+    "lon": -75.519722
+  },
+  {
+    "name": "Florida",
+    "slug": "florida",
+    "capital": "Tallahassee",
+    "lat": 30.438118,
+    "lon": -84.281296
+  },
+  {
+    "name": "Georgia",
+    "slug": "georgia",
+    "capital": "Atlanta",
+    "lat": 33.749027,
+    "lon": -84.388229
+  },
+  {
+    "name": "Hawaii",
+    "slug": "hawaii",
+    "capital": "Honolulu",
+    "lat": 21.307442,
+    "lon": -157.857376
+  },
+  {
+    "name": "Idaho",
+    "slug": "idaho",
+    "capital": "Boise",
+    "lat": 43.617775,
+    "lon": -116.199722
+  },
+  {
+    "name": "Illinois",
+    "slug": "illinois",
+    "capital": "Springfield",
+    "lat": 39.798363,
+    "lon": -89.654961
+  },
+  {
+    "name": "Indiana",
+    "slug": "indiana",
+    "capital": "Indianapolis",
+    "lat": 39.768623,
+    "lon": -86.162643
+  },
+  {
+    "name": "Iowa",
+    "slug": "iowa",
+    "capital": "Des Moines",
+    "lat": 41.591087,
+    "lon": -93.603729
+  },
+  {
+    "name": "Kansas",
+    "slug": "kansas",
+    "capital": "Topeka",
+    "lat": 39.048191,
+    "lon": -95.677956
+  },
+  {
+    "name": "Kentucky",
+    "slug": "kentucky",
+    "capital": "Frankfort",
+    "lat": 38.186722,
+    "lon": -84.875374
+  },
+  {
+    "name": "Louisiana",
+    "slug": "louisiana",
+    "capital": "Baton Rouge",
+    "lat": 30.457069,
+    "lon": -91.187393
+  },
+  {
+    "name": "Maine",
+    "slug": "maine",
+    "capital": "Augusta",
+    "lat": 44.307167,
+    "lon": -69.781693
+  },
+  {
+    "name": "Maryland",
+    "slug": "maryland",
+    "capital": "Annapolis",
+    "lat": 38.978764,
+    "lon": -76.490936
+  },
+  {
+    "name": "Massachusetts",
+    "slug": "massachusetts",
+    "capital": "Boston",
+    "lat": 42.358162,
+    "lon": -71.063698
+  },
+  {
+    "name": "Michigan",
+    "slug": "michigan",
+    "capital": "Lansing",
+    "lat": 42.733635,
+    "lon": -84.555328
+  },
+  {
+    "name": "Minnesota",
+    "slug": "minnesota",
+    "capital": "Saint Paul",
+    "lat": 44.955097,
+    "lon": -93.102211
+  },
+  {
+    "name": "Mississippi",
+    "slug": "mississippi",
+    "capital": "Jackson",
+    "lat": 32.303848,
+    "lon": -90.182106
+  },
+  {
+    "name": "Missouri",
+    "slug": "missouri",
+    "capital": "Jefferson City",
+    "lat": 38.579201,
+    "lon": -92.172935
+  },
+  {
+    "name": "Montana",
+    "slug": "montana",
+    "capital": "Helena",
+    "lat": 46.585709,
+    "lon": -112.018417
+  },
+  {
+    "name": "Nebraska",
+    "slug": "nebraska",
+    "capital": "Lincoln",
+    "lat": 40.808075,
+    "lon": -96.699654
+  },
+  {
+    "name": "Nevada",
+    "slug": "nevada",
+    "capital": "Carson City",
+    "lat": 39.163914,
+    "lon": -119.766121
+  },
+  {
+    "name": "New Hampshire",
+    "slug": "new-hampshire",
+    "capital": "Concord",
+    "lat": 43.206898,
+    "lon": -71.537994
+  },
+  {
+    "name": "New Jersey",
+    "slug": "new-jersey",
+    "capital": "Trenton",
+    "lat": 40.220596,
+    "lon": -74.769913
+  },
+  {
+    "name": "New Mexico",
+    "slug": "new-mexico",
+    "capital": "Santa Fe",
+    "lat": 35.68224,
+    "lon": -105.939728
+  },
+  {
+    "name": "New York",
+    "slug": "new-york",
+    "capital": "Albany",
+    "lat": 42.652843,
+    "lon": -73.757874
+  },
+  {
+    "name": "North Carolina",
+    "slug": "north-carolina",
+    "capital": "Raleigh",
+    "lat": 35.78043,
+    "lon": -78.639099
+  },
+  {
+    "name": "North Dakota",
+    "slug": "north-dakota",
+    "capital": "Bismarck",
+    "lat": 46.82085,
+    "lon": -100.783318
+  },
+  {
+    "name": "Ohio",
+    "slug": "ohio",
+    "capital": "Columbus",
+    "lat": 39.961346,
+    "lon": -82.999069
+  },
+  {
+    "name": "Oklahoma",
+    "slug": "oklahoma",
+    "capital": "Oklahoma City",
+    "lat": 35.492207,
+    "lon": -97.503342
+  },
+  {
+    "name": "Oregon",
+    "slug": "oregon",
+    "capital": "Salem",
+    "lat": 44.938461,
+    "lon": -123.030403
+  },
+  {
+    "name": "Pennsylvania",
+    "slug": "pennsylvania",
+    "capital": "Harrisburg",
+    "lat": 40.264378,
+    "lon": -76.883598
+  },
+  {
+    "name": "Rhode Island",
+    "slug": "rhode-island",
+    "capital": "Providence",
+    "lat": 41.830914,
+    "lon": -71.414963
+  },
+  {
+    "name": "South Carolina",
+    "slug": "south-carolina",
+    "capital": "Columbia",
+    "lat": 34.000343,
+    "lon": -81.033211
+  },
+  {
+    "name": "South Dakota",
+    "slug": "south-dakota",
+    "capital": "Pierre",
+    "lat": 44.367031,
+    "lon": -100.346405
+  },
+  {
+    "name": "Tennessee",
+    "slug": "tennessee",
+    "capital": "Nashville",
+    "lat": 36.16581,
+    "lon": -86.784241
+  },
+  {
+    "name": "Texas",
+    "slug": "texas",
+    "capital": "Austin",
+    "lat": 30.27467,
+    "lon": -97.740349
+  },
+  {
+    "name": "Utah",
+    "slug": "utah",
+    "capital": "Salt Lake City",
+    "lat": 40.777477,
+    "lon": -111.888237
+  },
+  {
+    "name": "Vermont",
+    "slug": "vermont",
+    "capital": "Montpelier",
+    "lat": 44.262436,
+    "lon": -72.580536
+  },
+  {
+    "name": "Virginia",
+    "slug": "virginia",
+    "capital": "Richmond",
+    "lat": 37.538857,
+    "lon": -77.43364
+  },
+  {
+    "name": "Washington",
+    "slug": "washington",
+    "capital": "Olympia",
+    "lat": 47.035805,
+    "lon": -122.905014
+  },
+  {
+    "name": "West Virginia",
+    "slug": "west-virginia",
+    "capital": "Charleston",
+    "lat": 38.336246,
+    "lon": -81.612328
+  },
+  {
+    "name": "Wisconsin",
+    "slug": "wisconsin",
+    "capital": "Madison",
+    "lat": 43.074684,
+    "lon": -89.384445
+  },
+  {
+    "name": "Wyoming",
+    "slug": "wyoming",
+    "capital": "Cheyenne",
+    "lat": 41.140259,
+    "lon": -104.820236
+  }
+]

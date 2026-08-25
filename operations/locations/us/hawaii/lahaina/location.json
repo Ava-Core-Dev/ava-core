@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-lahaina",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Lahaina",
+  "slug": "lahaina",
+  "lat": 20.8783,
+  "lon": -156.6825,
+  "kind": "state-location",
+  "region": "Maui",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

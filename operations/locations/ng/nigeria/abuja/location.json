@@ -1,0 +1,16 @@
+{
+  "id": "ng-abuja",
+  "country_code": "NG",
+  "country_name": "Nigeria",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Abuja",
+  "slug": "abuja",
+  "lat": 9.06433,
+  "lon": 7.489297,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "nigeria"
+}

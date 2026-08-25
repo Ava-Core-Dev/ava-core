@@ -1,0 +1,16 @@
+{
+  "id": "za-pretoria",
+  "country_code": "ZA",
+  "country_name": "South Africa",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Pretoria",
+  "slug": "pretoria",
+  "lat": -25.745937,
+  "lon": 28.187944,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Southern Africa",
+  "country_slug": "south-africa"
+}

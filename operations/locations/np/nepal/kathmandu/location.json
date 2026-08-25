@@ -1,0 +1,16 @@
+{
+  "id": "np-kathmandu",
+  "country_code": "NP",
+  "country_name": "Nepal",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kathmandu",
+  "slug": "kathmandu",
+  "lat": 27.708317,
+  "lon": 85.320582,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "nepal"
+}

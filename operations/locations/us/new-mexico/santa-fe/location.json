@@ -1,0 +1,15 @@
+{
+  "id": "us-new-mexico-santa-fe",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "New Mexico",
+  "admin1_name": "New Mexico",
+  "admin1_slug": "new-mexico",
+  "name": "Santa Fe",
+  "slug": "santa-fe",
+  "lat": 35.68224,
+  "lon": -105.939728,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

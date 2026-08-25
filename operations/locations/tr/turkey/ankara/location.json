@@ -1,0 +1,16 @@
+{
+  "id": "tr-ankara",
+  "country_code": "TR",
+  "country_name": "Turkey",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ankara",
+  "slug": "ankara",
+  "lat": 39.920777,
+  "lon": 32.854067,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "turkey"
+}

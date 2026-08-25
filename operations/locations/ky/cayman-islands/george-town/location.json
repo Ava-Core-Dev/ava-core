@@ -1,0 +1,16 @@
+{
+  "id": "ky-george-town",
+  "country_code": "KY",
+  "country_name": "Cayman Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "George Town",
+  "slug": "george-town",
+  "lat": 5.414568,
+  "lon": 100.329804,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "cayman-islands"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "us-oklahoma-oklahoma-city",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Oklahoma",
+  "admin1_name": "Oklahoma",
+  "admin1_slug": "oklahoma",
+  "name": "Oklahoma City",
+  "slug": "oklahoma-city",
+  "lat": 35.492207,
+  "lon": -97.503342,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

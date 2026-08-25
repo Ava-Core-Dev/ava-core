@@ -1,0 +1,16 @@
+{
+  "id": "do-santo-domingo",
+  "country_code": "DO",
+  "country_name": "Dominican Republic",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Santo Domingo",
+  "slug": "santo-domingo",
+  "lat": 18.480197,
+  "lon": -69.942111,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "dominican-republic"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "to-nuku-alofa",
+  "country_code": "TO",
+  "country_name": "Tonga",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nuku'alofa",
+  "slug": "nuku-alofa",
+  "lat": -21.13434,
+  "lon": -175.201808,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "tonga"
+}

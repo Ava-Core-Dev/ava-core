@@ -1,0 +1,16 @@
+{
+  "id": "gy-georgetown",
+  "country_code": "GY",
+  "country_name": "Guyana",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Georgetown",
+  "slug": "georgetown",
+  "lat": 6.802577,
+  "lon": -58.162861,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "guyana"
+}

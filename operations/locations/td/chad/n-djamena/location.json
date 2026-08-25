@@ -1,0 +1,16 @@
+{
+  "id": "td-n-djamena",
+  "country_code": "TD",
+  "country_name": "Chad",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "N'Djamena",
+  "slug": "n-djamena",
+  "lat": 12.119154,
+  "lon": 15.050276,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "chad"
+}

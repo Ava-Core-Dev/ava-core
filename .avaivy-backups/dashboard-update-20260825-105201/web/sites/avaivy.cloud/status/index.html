@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ava Ivy — Status</title>
+<link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+
+<header class="nav">
+<a class="brand" href="/"><b>✦</b> AVA IVY</a>
+<nav>
+<a href="/">Home</a>
+<a class="active" href="/status/">Status</a>
+<a href="/energy/">Energy</a>
+<a href="/system/">System</a>
+<a href="/uptime/">Uptime</a>
+<a href="/weather/">Weather</a>
+<a href="/earthquakes/">Earthquakes</a>
+<a href="/news/">News</a>
+<a href="/states/">States</a>
+<a href="/directory/">Directory</a>
+</nav>
+<span class="core">● LOCAL OPERATIONS</span>
+</header>
+
+<main class="wrap" style="max-width:1680px">
+
+<div class="heading">
+<div>
+<div class="eyebrow">Scheduler and host process view</div>
+<h1>Operations status</h1>
+</div>
+<div class="stamp" id="stamp">Loading…</div>
+</div>
+
+<div class="timebar" id="timebar"></div>
+
+<section class="grid" id="metrics"></section>
+
+<section class="status-grid">
+
+<article class="card status-card">
+<div class="label">Pending cronological jobs</div>
+<div class="muted" id="cronSummary" style="margin:10px 0 14px">Loading…</div>
+<div class="status-list" id="crons"></div>
+</article>
+
+<article class="card status-card">
+<div class="label">Current processes</div>
+<div class="muted" id="processSummary" style="margin:10px 0 14px">Loading…</div>
+<div class="status-list" id="processes"></div>
+</article>
+
+</section>
+
+<section class="card full" style="margin-top:18px">
+
+<div class="label">Selected window averages</div>
+
+<div style="overflow:auto">
+<table class="metric-table">
+
+<thead>
+<tr>
+<th>Window</th>
+<th>Avg operations / minute</th>
+<th>Avg operations / hour</th>
+<th>Next hour</th>
+</tr>
+</thead>
+
+<tbody id="rates"></tbody>
+
+</table>
+</div>
+
+</section>
+
+</main>
+
+<script src="/js/status-board.js"></script>
+</body>
+</html>

@@ -5,8 +5,8 @@ from pathlib import Path
 
 APP_TITLE = "AVA Core — Operations Console"
 SERVICE = "ava-core.service"
-LOG = Path("/home/ava-core/Database/logs/ava-core.log")
-SYSTEMD_LOG = Path("/home/ava-core/Database/logs/ava-core-systemd.log")
+LOG = Path("/home/ava-core/database/logs/ava-core.log")
+SYSTEMD_LOG = Path("/home/ava-core/database/logs/ava-core-systemd.log")
 CRONO_ROOT = Path("/home/ava-core/operations/cronologicals")
 ALWAYS_ON = CRONO_ROOT / "always-on"
 DIR_FLAG = ALWAYS_ON / "directory.enabled"
@@ -316,7 +316,7 @@ class App(tk.Tk):
         threading.Thread(target=worker, daemon=True).start()
 
     def show_audio_log(self):
-        p = Path("/home/ava-core/Database/logs/ava-core-audio.log")
+        p = Path("/home/ava-core/database/logs/ava-core-audio.log")
         try:
             text = "\n".join(p.read_text(errors="replace").splitlines()[-120:]) if p.exists() else "No audio log yet."
         except Exception as e:
@@ -392,7 +392,7 @@ class App(tk.Tk):
         raw=self.command.get().strip(); cmd=raw.lower()
         aliases={"status":f"systemctl --no-pager status {SERVICE}","start":f"pkexec systemctl start {SERVICE}",
                  "stop":f"pkexec systemctl stop {SERVICE}","restart":f"pkexec systemctl restart {SERVICE}",
-                 "logs":"tail -100 /home/ava-core/Database/logs/ava-core.log",
+                 "logs":"tail -100 /home/ava-core/database/logs/ava-core.log",
                  "processes":"ps -eo pid,ppid,stat,etime,cmd | grep -E '[p]ython.*ava-core.py|[a]vaivy_cloudflare_watchdog.py|[b]roadcast.py|[c]loudflared'",
                  "port":"ss -ltnp | grep ':8080'",
                  "help":"Commands: help | status | start | stop | restart | logs | processes | port | refresh | crons | toggle <cron-path> | audio | audio-toggle <audio-path> | audio-log | directory | directory-toggle"}

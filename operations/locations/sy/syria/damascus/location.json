@@ -1,0 +1,16 @@
+{
+  "id": "sy-damascus",
+  "country_code": "SY",
+  "country_name": "Syria",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Damascus",
+  "slug": "damascus",
+  "lat": 33.51307,
+  "lon": 36.309581,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "syria"
+}

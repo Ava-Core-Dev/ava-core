@@ -1,0 +1,16 @@
+{
+  "id": "am-yerevan",
+  "country_code": "AM",
+  "country_name": "Armenia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Yerevan",
+  "slug": "yerevan",
+  "lat": 40.177612,
+  "lon": 44.512585,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "armenia"
+}

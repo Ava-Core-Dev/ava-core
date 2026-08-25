@@ -1,0 +1,16 @@
+{
+  "id": "rw-kigali",
+  "country_code": "RW",
+  "country_name": "Rwanda",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kigali",
+  "slug": "kigali",
+  "lat": -1.88596,
+  "lon": 30.129675,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "rwanda"
+}

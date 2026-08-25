@@ -1,0 +1,16 @@
+{
+  "id": "at-vienna",
+  "country_code": "AT",
+  "country_name": "Austria",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Vienna",
+  "slug": "vienna",
+  "lat": 48.208354,
+  "lon": 16.372504,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "country_slug": "austria"
+}

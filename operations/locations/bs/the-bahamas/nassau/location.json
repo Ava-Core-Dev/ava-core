@@ -1,0 +1,16 @@
+{
+  "id": "bs-nassau",
+  "country_code": "BS",
+  "country_name": "The Bahamas",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nassau",
+  "slug": "nassau",
+  "lat": 25.078346,
+  "lon": -77.338333,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "the-bahamas"
+}

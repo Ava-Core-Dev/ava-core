@@ -1,0 +1,16 @@
+{
+  "id": "bz-belmopan",
+  "country_code": "BZ",
+  "country_name": "Belize",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Belmopan",
+  "slug": "belmopan",
+  "lat": 17.250199,
+  "lon": -88.770018,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "belize"
+}

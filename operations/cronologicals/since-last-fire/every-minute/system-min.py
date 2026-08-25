@@ -7,7 +7,7 @@ system-1min.db, then DELETE the original system.db and create a fresh DB with th
 
 Usage:
   python3 aggregate_and_reset.py
-  python3 aggregate_and_reset.py --src /home/ava-core/Database/system/system.db --dst /home/ava-core/Database/system/system-1min.db
+  python3 aggregate_and_reset.py --src /home/ava-core/database/system.db --dst /home/ava-core/database/system-1min.db
 
 WARNING: This script deletes the source DB file after aggregation. Stop the collector or ensure it tolerates the DB being replaced.
 """
@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-DEFAULT_SRC = "/home/ava-core/Database/system/system.db"
+DEFAULT_SRC = "/home/ava-core/database/system.db"
 
 # ---------- Helpers ----------
 def iso_to_epoch(ts_iso: Optional[str]) -> Optional[float]:

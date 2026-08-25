@@ -1,0 +1,16 @@
+{
+  "id": "mg-antananarivo",
+  "country_code": "MG",
+  "country_name": "Madagascar",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Antananarivo",
+  "slug": "antananarivo",
+  "lat": -18.910012,
+  "lon": 47.525581,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "madagascar"
+}

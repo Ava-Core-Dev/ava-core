@@ -1,0 +1,16 @@
+{
+  "id": "pt-lisbon",
+  "country_code": "PT",
+  "country_name": "Portugal",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Lisbon",
+  "slug": "lisbon",
+  "lat": 38.707751,
+  "lon": -9.136592,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "portugal"
+}

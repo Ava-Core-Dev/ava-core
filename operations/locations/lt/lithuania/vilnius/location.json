@@ -1,0 +1,16 @@
+{
+  "id": "lt-vilnius",
+  "country_code": "LT",
+  "country_name": "Lithuania",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Vilnius",
+  "slug": "vilnius",
+  "lat": 54.687046,
+  "lon": 25.282911,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "lithuania"
+}

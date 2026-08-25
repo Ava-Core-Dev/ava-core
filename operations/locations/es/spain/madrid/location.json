@@ -1,0 +1,16 @@
+{
+  "id": "es-madrid",
+  "country_code": "ES",
+  "country_name": "Spain",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Madrid",
+  "slug": "madrid",
+  "lat": 40.416705,
+  "lon": -3.703582,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "spain"
+}

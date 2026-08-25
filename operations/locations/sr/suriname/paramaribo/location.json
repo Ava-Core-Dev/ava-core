@@ -1,0 +1,16 @@
+{
+  "id": "sr-paramaribo",
+  "country_code": "SR",
+  "country_name": "Suriname",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Paramaribo",
+  "slug": "paramaribo",
+  "lat": 5.821609,
+  "lon": -55.177043,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "suriname"
+}

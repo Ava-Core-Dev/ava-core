@@ -1,0 +1,16 @@
+{
+  "id": "gn-conakry",
+  "country_code": "GN",
+  "country_name": "Guinea",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Conakry",
+  "slug": "conakry",
+  "lat": 9.51706,
+  "lon": -13.699843,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "guinea"
+}

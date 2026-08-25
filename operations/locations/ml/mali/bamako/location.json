@@ -1,0 +1,16 @@
+{
+  "id": "ml-bamako",
+  "country_code": "ML",
+  "country_name": "Mali",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bamako",
+  "slug": "bamako",
+  "lat": 12.605033,
+  "lon": -7.986514,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "mali"
+}

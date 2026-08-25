@@ -1,0 +1,16 @@
+{
+  "id": "uz-tashkent",
+  "country_code": "UZ",
+  "country_name": "Uzbekistan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tashkent",
+  "slug": "tashkent",
+  "lat": 41.312336,
+  "lon": 69.278708,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Central Asia",
+  "country_slug": "uzbekistan"
+}

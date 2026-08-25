@@ -1,0 +1,16 @@
+{
+  "id": "ru-moscow",
+  "country_code": "RU",
+  "country_name": "Russia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Moscow",
+  "slug": "moscow",
+  "lat": 55.750446,
+  "lon": 37.617494,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "russia"
+}

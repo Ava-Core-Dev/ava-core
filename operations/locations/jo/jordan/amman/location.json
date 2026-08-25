@@ -1,0 +1,16 @@
+{
+  "id": "jo-amman",
+  "country_code": "JO",
+  "country_name": "Jordan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Amman",
+  "slug": "amman",
+  "lat": 31.951569,
+  "lon": 35.923962,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "jordan"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "us-west-virginia-charleston",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "West Virginia",
+  "admin1_name": "West Virginia",
+  "admin1_slug": "west-virginia",
+  "name": "Charleston",
+  "slug": "charleston",
+  "lat": 38.336246,
+  "lon": -81.612328,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

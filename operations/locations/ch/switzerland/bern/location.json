@@ -1,0 +1,16 @@
+{
+  "id": "ch-bern",
+  "country_code": "CH",
+  "country_name": "Switzerland",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bern",
+  "slug": "bern",
+  "lat": 46.948271,
+  "lon": 7.451451,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "country_slug": "switzerland"
+}

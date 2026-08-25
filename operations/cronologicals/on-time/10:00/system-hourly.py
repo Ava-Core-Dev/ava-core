@@ -29,7 +29,7 @@ import fcntl
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-DEFAULT_MIN_DB = "/home/ava-core/Database/system/system-1min.db"
+DEFAULT_MIN_DB = "/home/ava-core/database/system-1min.db"
 DEFAULT_HOUR_DB = None  # computed relative to minute DB
 
 LOCK_PATH = "/tmp/agg-hours.lock"

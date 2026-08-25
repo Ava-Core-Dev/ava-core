@@ -1,0 +1,16 @@
+{
+  "id": "zw-harare",
+  "country_code": "ZW",
+  "country_name": "Zimbabwe",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Harare",
+  "slug": "harare",
+  "lat": -17.831773,
+  "lon": 31.045686,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "zimbabwe"
+}

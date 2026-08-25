@@ -1,0 +1,16 @@
+{
+  "id": "iq-baghdad",
+  "country_code": "IQ",
+  "country_name": "Iraq",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Baghdad",
+  "slug": "baghdad",
+  "lat": 33.302431,
+  "lon": 44.378799,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "iraq"
+}

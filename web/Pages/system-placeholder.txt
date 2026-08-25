@@ -1,1 +1,0 @@
-Legacy system page. Canonical dashboard is Web/Pages/avaivy.cloud/system/.

@@ -1,0 +1,16 @@
+{
+  "id": "ly-tripoli",
+  "country_code": "LY",
+  "country_name": "Libya",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tripoli",
+  "slug": "tripoli",
+  "lat": 32.896672,
+  "lon": 13.177792,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Northern Africa",
+  "country_slug": "libya"
+}

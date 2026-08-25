@@ -1,0 +1,16 @@
+{
+  "id": "ne-niamey",
+  "country_code": "NE",
+  "country_name": "Niger",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Niamey",
+  "slug": "niamey",
+  "lat": 13.524834,
+  "lon": 2.109823,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "niger"
+}

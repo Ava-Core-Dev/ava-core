@@ -1,0 +1,16 @@
+{
+  "id": "no-oslo",
+  "country_code": "NO",
+  "country_name": "Norway",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Oslo",
+  "slug": "oslo",
+  "lat": 59.91333,
+  "lon": 10.73897,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "norway"
+}

@@ -1,0 +1,79 @@
+# TREE: /home/ava-core/operations/system-tools/desk
+# Generated: 2026-08-25 06:53:57 UTC
+
+[DIR] desk
+    /home/ava-core/operations/system-tools/desk
+├── [DIR ] ava_core_visual_cli
+│       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli
+│   ├── [FILE] ava_core_audio_player.py
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_audio_player.py
+│   ├── [FILE] ava_core_visual_cli.py
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py
+│   ├── [FILE] ava_core_visual_cli.py.backup_20260823_110059
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_20260823_110059
+│   ├── [FILE] ava_core_visual_cli.py.backup_ssh_20260823_193640
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_20260823_193640
+│   ├── [FILE] ava_core_visual_cli.py.backup_ssh_fix2_20260823_193914
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix2_20260823_193914
+│   ├── [FILE] ava_core_visual_cli.py.backup_ssh_fix3_20260823_193939
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix3_20260823_193939
+│   ├── [FILE] ava_core_visual_cli.py.backup_ssh_fix4_20260823_194022
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix4_20260823_194022
+│   ├── [FILE] ava_core_visual_cli.py.backup_ssh_fix_20260823_193849
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix_20260823_193849
+│   ├── [FILE] install_ava_core_visual_cli.sh
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/install_ava_core_visual_cli.sh
+│   ├── [FILE] install_ava_core_visual_cli_audio.sh
+│   │       /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/install_ava_core_visual_cli_audio.sh
+│   └── [FILE] README.txt
+│           /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/README.txt
+├── [DIR ] ava_directory_feature
+│       /home/ava-core/operations/system-tools/desk/ava_directory_feature
+│   ├── [DIR ] ava_directory
+│   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory
+│   │   ├── [DIR ] operations
+│   │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations
+│   │   │   ├── [DIR ] cronologicals
+│   │   │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals
+│   │   │   │   └── [DIR ] always-on
+│   │   │   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on
+│   │   │   │       ├── [FILE] broadcast.py
+│   │   │   │       │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on/broadcast.py
+│   │   │   │       └── [FILE] directory.enabled
+│   │   │   │               /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on/directory.enabled
+│   │   │   └── [DIR ] system-tools
+│   │   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools
+│   │   │       └── [DIR ] desk
+│   │   │               /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk
+│   │   │           └── [DIR ] ava_core_visual_cli
+│   │   │                   /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk/ava_core_visual_cli
+│   │   │               └── [FILE] ava_core_visual_cli.py
+│   │   │                       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py
+│   │   ├── [DIR ] Web
+│   │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web
+│   │   │   └── [DIR ] Pages
+│   │   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages
+│   │   │       └── [DIR ] avaivy.cloud
+│   │   │               /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud
+│   │   │           ├── [DIR ] directory
+│   │   │           │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory
+│   │   │           │   ├── [FILE] directory.css
+│   │   │           │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/directory.css
+│   │   │           │   ├── [FILE] directory.js
+│   │   │           │   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/directory.js
+│   │   │           │   └── [FILE] index.html
+│   │   │           │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/index.html
+│   │   │           └── [FILE] index.html
+│   │   │                   /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/index.html
+│   │   └── [FILE] INSTALL.md
+│   │           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/INSTALL.md
+│   ├── [FILE] ava_directory_feature.txt
+│   │       /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory_feature.txt
+│   └── [FILE] ava_directory_feature_tree.txt
+│           /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory_feature_tree.txt
+├── [FILE] ava_directory_feature.zip
+│       /home/ava-core/operations/system-tools/desk/ava_directory_feature.zip
+└── [FILE] desk.txt
+        /home/ava-core/operations/system-tools/desk/desk.txt
+
+# Total entries: 36

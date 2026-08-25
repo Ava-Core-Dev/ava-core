@@ -1,0 +1,16 @@
+{
+  "id": "kn-basseterre",
+  "country_code": "KN",
+  "country_name": "Saint Kitts and Nevis",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Basseterre",
+  "slug": "basseterre",
+  "lat": 17.296092,
+  "lon": -62.722301,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "saint-kitts-and-nevis"
+}

@@ -1,0 +1,1102 @@
+========================================================================
+DIRECTORY PRINTER — Detailed Report
+Root        : /home/ava-core/operations/news
+Scan started: 2026-08-25 22:18:32 UTC
+========================================================================
+
+[DIR] /home/ava-core/operations/news
+  path     : /home/ava-core/operations/news
+  modified : 2026-08-25 22:16:45 UTC
+  created  : N/A
+  accessed : 2026-08-25 22:16:56 UTC
+  changed  : 2026-08-25 22:16:45 UTC
+  scanned  : 2026-08-25 22:18:32 UTC
+
+  [DIR] alabama
+    path     : /home/ava-core/operations/news/alabama
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  669.0B
+      path     : /home/ava-core/operations/news/alabama/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Alabama state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] alaska
+    path     : /home/ava-core/operations/news/alaska
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  662.0B
+      path     : /home/ava-core/operations/news/alaska/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Alaska state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] arizona
+    path     : /home/ava-core/operations/news/arizona
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  660.0B
+      path     : /home/ava-core/operations/news/arizona/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Arizona state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] arkansas
+    path     : /home/ava-core/operations/news/arkansas
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  672.0B
+      path     : /home/ava-core/operations/news/arkansas/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Arkansas state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] california
+    path     : /home/ava-core/operations/news/california
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  670.0B
+      path     : /home/ava-core/operations/news/california/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """California state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] colorado
+    path     : /home/ava-core/operations/news/colorado
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  671.0B
+      path     : /home/ava-core/operations/news/colorado/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Colorado state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] connecticut
+    path     : /home/ava-core/operations/news/connecticut
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  675.0B
+      path     : /home/ava-core/operations/news/connecticut/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Connecticut state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] delaware
+    path     : /home/ava-core/operations/news/delaware
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/delaware/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Delaware state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] florida
+    path     : /home/ava-core/operations/news/florida
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  669.0B
+      path     : /home/ava-core/operations/news/florida/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Florida state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] georgia
+    path     : /home/ava-core/operations/news/georgia
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  665.0B
+      path     : /home/ava-core/operations/news/georgia/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Georgia state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] hawaii
+    path     : /home/ava-core/operations/news/hawaii
+    modified : 2026-08-25 17:51:55 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  666.0B
+      path     : /home/ava-core/operations/news/hawaii/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Hawaii state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] idaho
+    path     : /home/ava-core/operations/news/idaho
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  659.0B
+      path     : /home/ava-core/operations/news/idaho/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Idaho state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] illinois
+    path     : /home/ava-core/operations/news/illinois
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/illinois/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Illinois state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] indiana
+    path     : /home/ava-core/operations/news/indiana
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  664.0B
+      path     : /home/ava-core/operations/news/indiana/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Indiana state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] iowa
+    path     : /home/ava-core/operations/news/iowa
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  656.0B
+      path     : /home/ava-core/operations/news/iowa/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Iowa state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] kansas
+    path     : /home/ava-core/operations/news/kansas
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  666.0B
+      path     : /home/ava-core/operations/news/kansas/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Kansas state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] kentucky
+    path     : /home/ava-core/operations/news/kentucky
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/kentucky/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Kentucky state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] louisiana
+    path     : /home/ava-core/operations/news/louisiana
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/louisiana/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Louisiana state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] maine
+    path     : /home/ava-core/operations/news/maine
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  663.0B
+      path     : /home/ava-core/operations/news/maine/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Maine state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] maryland
+    path     : /home/ava-core/operations/news/maryland
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  672.0B
+      path     : /home/ava-core/operations/news/maryland/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Maryland state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] massachusetts
+    path     : /home/ava-core/operations/news/massachusetts
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  678.0B
+      path     : /home/ava-core/operations/news/massachusetts/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Massachusetts state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] michigan
+    path     : /home/ava-core/operations/news/michigan
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  672.0B
+      path     : /home/ava-core/operations/news/michigan/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Michigan state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] minnesota
+    path     : /home/ava-core/operations/news/minnesota
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  664.0B
+      path     : /home/ava-core/operations/news/minnesota/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Minnesota state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] mississippi
+    path     : /home/ava-core/operations/news/mississippi
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  672.0B
+      path     : /home/ava-core/operations/news/mississippi/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Mississippi state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] missouri
+    path     : /home/ava-core/operations/news/missouri
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  666.0B
+      path     : /home/ava-core/operations/news/missouri/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Missouri state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] montana
+    path     : /home/ava-core/operations/news/montana
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  660.0B
+      path     : /home/ava-core/operations/news/montana/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Montana state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] nebraska
+    path     : /home/ava-core/operations/news/nebraska
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/nebraska/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Nebraska state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] nevada
+    path     : /home/ava-core/operations/news/nevada
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  658.0B
+      path     : /home/ava-core/operations/news/nevada/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Nevada state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] new-hampshire
+    path     : /home/ava-core/operations/news/new-hampshire
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  676.0B
+      path     : /home/ava-core/operations/news/new-hampshire/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """New Hampshire state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] new-jersey
+    path     : /home/ava-core/operations/news/new-jersey
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  670.0B
+      path     : /home/ava-core/operations/news/new-jersey/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """New Jersey state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] new-mexico
+    path     : /home/ava-core/operations/news/new-mexico
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  670.0B
+      path     : /home/ava-core/operations/news/new-mexico/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """New Mexico state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] new-york
+    path     : /home/ava-core/operations/news/new-york
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  666.0B
+      path     : /home/ava-core/operations/news/new-york/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """New York state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] north-carolina
+    path     : /home/ava-core/operations/news/north-carolina
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  678.0B
+      path     : /home/ava-core/operations/news/north-carolina/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """North Carolina state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] north-dakota
+    path     : /home/ava-core/operations/news/north-dakota
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  674.0B
+      path     : /home/ava-core/operations/news/north-dakota/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """North Dakota state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] ohio
+    path     : /home/ava-core/operations/news/ohio
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  656.0B
+      path     : /home/ava-core/operations/news/ohio/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Ohio state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] oklahoma
+    path     : /home/ava-core/operations/news/oklahoma
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/oklahoma/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Oklahoma state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] oregon
+    path     : /home/ava-core/operations/news/oregon
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  666.0B
+      path     : /home/ava-core/operations/news/oregon/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Oregon state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] pennsylvania
+    path     : /home/ava-core/operations/news/pennsylvania
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  674.0B
+      path     : /home/ava-core/operations/news/pennsylvania/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Pennsylvania state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] rhode-island
+    path     : /home/ava-core/operations/news/rhode-island
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  670.0B
+      path     : /home/ava-core/operations/news/rhode-island/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Rhode Island state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] south-carolina
+    path     : /home/ava-core/operations/news/south-carolina
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  674.0B
+      path     : /home/ava-core/operations/news/south-carolina/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """South Carolina state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] south-dakota
+    path     : /home/ava-core/operations/news/south-dakota
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  670.0B
+      path     : /home/ava-core/operations/news/south-dakota/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """South Dakota state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] tennessee
+    path     : /home/ava-core/operations/news/tennessee
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  668.0B
+      path     : /home/ava-core/operations/news/tennessee/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Tennessee state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] texas
+    path     : /home/ava-core/operations/news/texas
+    modified : 2026-08-25 17:51:55 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  663.0B
+      path     : /home/ava-core/operations/news/texas/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Texas state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] utah
+    path     : /home/ava-core/operations/news/utah
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  656.0B
+      path     : /home/ava-core/operations/news/utah/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Utah state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] vermont
+    path     : /home/ava-core/operations/news/vermont
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  665.0B
+      path     : /home/ava-core/operations/news/vermont/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Vermont state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] virginia
+    path     : /home/ava-core/operations/news/virginia
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  672.0B
+      path     : /home/ava-core/operations/news/virginia/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Virginia state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] washington
+    path     : /home/ava-core/operations/news/washington
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  666.0B
+      path     : /home/ava-core/operations/news/washington/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Washington state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] west-virginia
+    path     : /home/ava-core/operations/news/west-virginia
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  676.0B
+      path     : /home/ava-core/operations/news/west-virginia/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """West Virginia state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] wisconsin
+    path     : /home/ava-core/operations/news/wisconsin
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  675.0B
+      path     : /home/ava-core/operations/news/wisconsin/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Wisconsin state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [DIR] wyoming
+    path     : /home/ava-core/operations/news/wyoming
+    modified : 2026-08-25 08:51:40 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+
+    [TEXT] news.py  665.0B
+      path     : /home/ava-core/operations/news/wyoming/news.py
+      modified : 2026-08-25 17:52:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 22:18:32 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """Wyoming state news/events collector. Cronologicals owns scheduling."""
+        import argparse, sys
+
+  [TEXT] _collector.py  19.1KB
+    path     : /home/ava-core/operations/news/_collector.py
+    modified : 2026-08-25 22:06:21 UTC
+    created  : N/A
+    accessed : 2026-08-25 22:17:08 UTC
+    changed  : 2026-08-25 22:08:30 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      #!/usr/bin/env python3
+      """Shared official-state news/event collector.
+      
+
+  [TEXT] build_global_news.py  7.9KB
+    path     : /home/ava-core/operations/news/build_global_news.py
+    modified : 2026-08-25 22:06:37 UTC
+    created  : N/A
+    accessed : 2026-08-25 22:09:02 UTC
+    changed  : 2026-08-25 22:08:30 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      #!/usr/bin/env python3
+      """Build Ava Ivy's public news index from collected source databases.
+      
+
+  [TEXT] build_state_news.py  5.0KB
+    path     : /home/ava-core/operations/news/build_state_news.py
+    modified : 2026-08-25 22:16:45 UTC
+    created  : N/A
+    accessed : 2026-08-25 22:17:08 UTC
+    changed  : 2026-08-25 22:16:45 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      #!/usr/bin/env python3
+      """
+      Ava Ivy — State News Builder
+
+  [TEXT] collect_hawaii_news.py  4.1KB
+    path     : /home/ava-core/operations/news/collect_hawaii_news.py
+    modified : 2026-08-25 08:06:46 UTC
+    created  : N/A
+    accessed : 2026-08-25 18:06:52 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      #!/usr/bin/env python3
+      """Collect Hawaiʻi source updates into the Ava static news dataset.
+      
+
+  [TEXT] README.md  427.0B
+    path     : /home/ava-core/operations/news/README.md
+    modified : 2026-08-25 08:20:48 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:04 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      # Ava Ivy state news collectors
+      
+      Each state gets its own `news.py` under `operations/news/<state>/`.
+
+  [FILE] state_event_sources.json  365.0B
+    path     : /home/ava-core/operations/news/state_event_sources.json
+    modified : 2026-08-25 08:23:39 UTC
+    created  : N/A
+    accessed : 2026-08-25 18:06:52 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      {
+        "sources": [
+          {
+
+  [FILE] state_portals.json  1.7KB
+    path     : /home/ava-core/operations/news/state_portals.json
+    modified : 2026-08-25 17:51:53 UTC
+    created  : N/A
+    accessed : 2026-08-25 18:06:52 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 22:18:32 UTC
+    preview  :
+      {
+      "alabama":"https://www.alabama.gov/","alaska":"https://alaska.gov/","arizona":"https://az.gov/","arkansas":"https://www.arkansas.gov/","california":"https://www.ca.gov/","colorado":"https://co.colorad
+      }
+
+========================================================================
+Scan finished: 2026-08-25 22:18:32 UTC
+Total entries: 108
+========================================================================

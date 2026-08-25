@@ -1,0 +1,16 @@
+{
+  "id": "lv-riga",
+  "country_code": "LV",
+  "country_name": "Latvia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Riga",
+  "slug": "riga",
+  "lat": 56.949398,
+  "lon": 24.105185,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "latvia"
+}

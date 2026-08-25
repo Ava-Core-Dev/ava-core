@@ -1,0 +1,16 @@
+{
+  "id": "kp-pyongyang",
+  "country_code": "KP",
+  "country_name": "North Korea",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Pyongyang",
+  "slug": "pyongyang",
+  "lat": 39.019474,
+  "lon": 125.753388,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "north-korea"
+}

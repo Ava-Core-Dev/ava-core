@@ -1,0 +1,15 @@
+{
+  "id": "us-idaho-boise",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Idaho",
+  "admin1_name": "Idaho",
+  "admin1_slug": "idaho",
+  "name": "Boise",
+  "slug": "boise",
+  "lat": 43.617775,
+  "lon": -116.199722,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

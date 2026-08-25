@@ -1,0 +1,15 @@
+{
+  "id": "us-hawaii-honolulu",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Hawaii",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Honolulu",
+  "slug": "honolulu",
+  "lat": 21.307442,
+  "lon": -157.857376,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

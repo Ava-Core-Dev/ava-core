@@ -1,0 +1,15 @@
+{
+  "id": "us-california-sacramento",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "California",
+  "admin1_name": "California",
+  "admin1_slug": "california",
+  "name": "Sacramento",
+  "slug": "sacramento",
+  "lat": 38.576668,
+  "lon": -121.493629,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

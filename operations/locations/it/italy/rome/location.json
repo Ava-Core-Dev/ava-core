@@ -1,0 +1,16 @@
+{
+  "id": "it-rome",
+  "country_code": "IT",
+  "country_name": "Italy",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Rome",
+  "slug": "rome",
+  "lat": 41.89332,
+  "lon": 12.482932,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "italy"
+}

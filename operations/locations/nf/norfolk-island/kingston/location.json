@@ -1,0 +1,16 @@
+{
+  "id": "nf-kingston",
+  "country_code": "NF",
+  "country_name": "Norfolk Island",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kingston",
+  "slug": "kingston",
+  "lat": 17.971215,
+  "lon": -76.792813,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Australia and New Zealand",
+  "country_slug": "norfolk-island"
+}

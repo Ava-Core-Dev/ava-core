@@ -1,0 +1,16 @@
+{
+  "id": "bj-porto-novo",
+  "country_code": "BJ",
+  "country_name": "Benin",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Porto-Novo",
+  "slug": "porto-novo",
+  "lat": 6.499072,
+  "lon": 2.625336,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "benin"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "us-south-dakota-pierre",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "South Dakota",
+  "admin1_name": "South Dakota",
+  "admin1_slug": "south-dakota",
+  "name": "Pierre",
+  "slug": "pierre",
+  "lat": 44.367031,
+  "lon": -100.346405,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

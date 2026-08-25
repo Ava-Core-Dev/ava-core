@@ -1,0 +1,15 @@
+{
+  "id": "us-missouri-jefferson-city",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Missouri",
+  "admin1_name": "Missouri",
+  "admin1_slug": "missouri",
+  "name": "Jefferson City",
+  "slug": "jefferson-city",
+  "lat": 38.579201,
+  "lon": -92.172935,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

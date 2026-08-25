@@ -1,0 +1,16 @@
+{
+  "id": "ir-tehran",
+  "country_code": "IR",
+  "country_name": "Iran",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tehran",
+  "slug": "tehran",
+  "lat": 35.700618,
+  "lon": 51.401378,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "iran"
+}

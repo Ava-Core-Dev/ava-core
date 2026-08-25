@@ -1,0 +1,16 @@
+{
+  "id": "bd-dhaka",
+  "country_code": "BD",
+  "country_name": "Bangladesh",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Dhaka",
+  "slug": "dhaka",
+  "lat": 23.759357,
+  "lon": 90.378814,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "bangladesh"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "us-minnesota-saint-paul",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Minnesota",
+  "admin1_name": "Minnesota",
+  "admin1_slug": "minnesota",
+  "name": "Saint Paul",
+  "slug": "saint-paul",
+  "lat": 44.955097,
+  "lon": -93.102211,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

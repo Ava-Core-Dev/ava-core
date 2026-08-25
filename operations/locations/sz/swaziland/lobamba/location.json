@@ -1,0 +1,16 @@
+{
+  "id": "sz-lobamba",
+  "country_code": "SZ",
+  "country_name": "Swaziland",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Lobamba",
+  "slug": "lobamba",
+  "lat": -26.446285,
+  "lon": 31.208378,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Southern Africa",
+  "country_slug": "swaziland"
+}

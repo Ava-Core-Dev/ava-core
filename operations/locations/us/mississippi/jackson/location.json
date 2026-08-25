@@ -1,0 +1,15 @@
+{
+  "id": "us-mississippi-jackson",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Mississippi",
+  "admin1_name": "Mississippi",
+  "admin1_slug": "mississippi",
+  "name": "Jackson",
+  "slug": "jackson",
+  "lat": 32.303848,
+  "lon": -90.182106,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

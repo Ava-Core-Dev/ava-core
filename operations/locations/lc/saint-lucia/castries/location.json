@@ -1,0 +1,16 @@
+{
+  "id": "lc-castries",
+  "country_code": "LC",
+  "country_name": "Saint Lucia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Castries",
+  "slug": "castries",
+  "lat": 13.952589,
+  "lon": -60.987824,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "saint-lucia"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "nc-noum-a",
+  "country_code": "NC",
+  "country_name": "New Caledonia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nouméa",
+  "slug": "noum-a",
+  "lat": -22.274526,
+  "lon": 166.442419,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Melanesia",
+  "country_slug": "new-caledonia"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "fi-helsinki",
+  "country_code": "FI",
+  "country_name": "Finland",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Helsinki",
+  "slug": "helsinki",
+  "lat": 60.16741,
+  "lon": 24.942577,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "finland"
+}

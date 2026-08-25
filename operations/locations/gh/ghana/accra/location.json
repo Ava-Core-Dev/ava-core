@@ -1,0 +1,16 @@
+{
+  "id": "gh-accra",
+  "country_code": "GH",
+  "country_name": "Ghana",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Accra",
+  "slug": "accra",
+  "lat": 5.560014,
+  "lon": -0.205744,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "ghana"
+}

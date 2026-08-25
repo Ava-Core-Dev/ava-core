@@ -1,0 +1,15 @@
+{
+  "id": "us-maine-augusta",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Maine",
+  "admin1_name": "Maine",
+  "admin1_slug": "maine",
+  "name": "Augusta",
+  "slug": "augusta",
+  "lat": 44.307167,
+  "lon": -69.781693,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "us-washington-olympia",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Washington",
+  "admin1_name": "Washington",
+  "admin1_slug": "washington",
+  "name": "Olympia",
+  "slug": "olympia",
+  "lat": 47.035805,
+  "lon": -122.905014,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

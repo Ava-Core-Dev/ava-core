@@ -1,0 +1,218 @@
+========================================================================
+DIRECTORY PRINTER — Detailed Report
+Root        : /home/ava-core/context
+Scan started: 2026-08-25 00:36:49 UTC
+========================================================================
+
+[DIR] /home/ava-core/context
+  path     : /home/ava-core/context
+  modified : 2026-08-24 06:09:53 UTC
+  created  : N/A
+  accessed : 2026-08-24 23:53:14 UTC
+  changed  : 2026-08-24 23:50:54 UTC
+  scanned  : 2026-08-25 00:36:49 UTC
+
+  [DIR] common-bugs
+    path     : /home/ava-core/context/common-bugs
+    modified : 2026-08-25 00:09:29 UTC
+    created  : N/A
+    accessed : 2026-08-25 00:09:30 UTC
+    changed  : 2026-08-25 00:09:29 UTC
+    scanned  : 2026-08-25 00:36:49 UTC
+
+    [DIR] ava-desk
+      path     : /home/ava-core/context/common-bugs/ava-desk
+      modified : 2026-08-24 05:43:12 UTC
+      created  : N/A
+      accessed : 2026-08-24 23:53:14 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+
+      [TEXT] launcher-breakage.md  927.0B
+        path     : /home/ava-core/context/common-bugs/ava-desk/launcher-breakage.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # AVA Desk Launcher Breakage
+          
+          ## Symptom
+
+      [TEXT] safe-patching.md  722.0B
+        path     : /home/ava-core/context/common-bugs/ava-desk/safe-patching.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # Safe AVA Desk Patching
+          
+          ## Rule
+
+      [TEXT] tkinter-class-method-placement.md  1.7KB
+        path     : /home/ava-core/context/common-bugs/ava-desk/tkinter-class-method-placement.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # Tkinter Methods Added Outside App Class
+          
+          ## Symptom
+
+    [DIR] cloudflare
+      path     : /home/ava-core/context/common-bugs/cloudflare
+      modified : 2026-08-24 05:43:12 UTC
+      created  : N/A
+      accessed : 2026-08-24 23:53:14 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+
+      [TEXT] actual-tunnel-layout.md  854.0B
+        path     : /home/ava-core/context/common-bugs/cloudflare/actual-tunnel-layout.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # Actual Cloudflare Tunnel Layout
+          
+          ## Important
+
+    [DIR] cronologicals
+      path     : /home/ava-core/context/common-bugs/cronologicals
+      modified : 2026-08-24 05:43:12 UTC
+      created  : N/A
+      accessed : 2026-08-24 23:53:14 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+
+      [TEXT] README.md  401.0B
+        path     : /home/ava-core/context/common-bugs/cronologicals/README.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # Cronologicals — Common Failure Notes
+          
+          Record recurring issues involving AVA Core chronological jobs.
+
+    [DIR] python
+      path     : /home/ava-core/context/common-bugs/python
+      modified : 2026-08-24 05:43:12 UTC
+      created  : N/A
+      accessed : 2026-08-24 23:53:14 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+
+      [TEXT] tkinter-compile-is-not-enough.md  753.0B
+        path     : /home/ava-core/context/common-bugs/python/tkinter-compile-is-not-enough.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # Python Compile Success Does Not Mean Application Success
+          
+          ## Symptom
+
+    [DIR] ssh
+      path     : /home/ava-core/context/common-bugs/ssh
+      modified : 2026-08-24 05:43:12 UTC
+      created  : N/A
+      accessed : 2026-08-24 23:53:14 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+
+      [TEXT] ssh-mode.md  1.0KB
+        path     : /home/ava-core/context/common-bugs/ssh/ssh-mode.md
+        modified : 2026-08-24 05:43:12 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:02:24 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # AVA Desk SSH Mode
+          
+          ## Purpose
+
+    [DIR] systemd
+      path     : /home/ava-core/context/common-bugs/systemd
+      modified : 2026-08-25 00:09:29 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:09:30 UTC
+      changed  : 2026-08-25 00:09:29 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+
+      [TEXT] database-log-path-case.md  1.2KB
+        path     : /home/ava-core/context/common-bugs/systemd/database-log-path-case.md
+        modified : 2026-08-25 00:09:29 UTC
+        created  : N/A
+        accessed : 2026-08-25 00:09:29 UTC
+        changed  : 2026-08-25 00:09:29 UTC
+        scanned  : 2026-08-25 00:36:49 UTC
+        preview  :
+          # systemd ava-core.service — Database vs database log path
+          
+          ## Symptom
+
+    [TEXT] AGENTS.md  4.1KB
+      path     : /home/ava-core/context/common-bugs/AGENTS.md
+      modified : 2026-08-24 05:45:57 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:01:18 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+      preview  :
+        # AGENTS — AVA Core Common Bugs
+        
+        ## Purpose
+
+    [TEXT] README.md  851.0B
+      path     : /home/ava-core/context/common-bugs/README.md
+      modified : 2026-08-24 05:43:12 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:02:24 UTC
+      changed  : 2026-08-24 23:50:49 UTC
+      scanned  : 2026-08-25 00:36:49 UTC
+      preview  :
+        # AVA Core — Common Bugs
+        
+        Operational memory for recurring failures, mistakes, and implementation
+
+  [TEXT] AGENTS.md  1.1KB
+    path     : /home/ava-core/context/AGENTS.md
+    modified : 2026-08-24 05:48:54 UTC
+    created  : N/A
+    accessed : 2026-08-25 00:01:18 UTC
+    changed  : 2026-08-24 23:50:49 UTC
+    scanned  : 2026-08-25 00:36:49 UTC
+    preview  :
+      # AGENTS — AVA Core Context
+      
+      ## Purpose
+
+  [FILE] ava-directory-sync.log  3.0KB
+    path     : /home/ava-core/context/ava-directory-sync.log
+    modified : 2026-08-24 23:05:01 UTC
+    created  : N/A
+    accessed : 2026-08-25 00:04:36 UTC
+    changed  : 2026-08-24 23:50:49 UTC
+    scanned  : 2026-08-25 00:36:49 UTC
+    preview  :
+      
+      ============================================================
+      AVA DIRECTORY SYNC
+
+========================================================================
+Scan finished: 2026-08-25 00:36:49 UTC
+Total entries: 20
+========================================================================

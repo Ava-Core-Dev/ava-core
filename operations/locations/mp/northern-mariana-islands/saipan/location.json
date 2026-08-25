@@ -1,0 +1,16 @@
+{
+  "id": "mp-saipan",
+  "country_code": "MP",
+  "country_name": "Northern Mariana Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Saipan",
+  "slug": "saipan",
+  "lat": 15.190983,
+  "lon": 145.746853,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Micronesia",
+  "country_slug": "northern-mariana-islands"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-pahoa",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Pāhoa",
+  "slug": "pahoa",
+  "lat": 19.4573,
+  "lon": -154.9429,
+  "kind": "state-location",
+  "region": "Hawaiʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

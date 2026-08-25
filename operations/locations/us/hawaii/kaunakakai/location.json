@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-kaunakakai",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Kaunakakai",
+  "slug": "kaunakakai",
+  "lat": 21.0936,
+  "lon": -157.0264,
+  "kind": "state-location",
+  "region": "Molokaʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

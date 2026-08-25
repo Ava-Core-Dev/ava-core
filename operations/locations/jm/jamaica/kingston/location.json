@@ -1,0 +1,16 @@
+{
+  "id": "jm-kingston",
+  "country_code": "JM",
+  "country_name": "Jamaica",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kingston",
+  "slug": "kingston",
+  "lat": 17.971215,
+  "lon": -76.792813,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "jamaica"
+}

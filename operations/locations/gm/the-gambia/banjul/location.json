@@ -1,0 +1,16 @@
+{
+  "id": "gm-banjul",
+  "country_code": "GM",
+  "country_name": "The Gambia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Banjul",
+  "slug": "banjul",
+  "lat": 13.441346,
+  "lon": -16.562471,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "the-gambia"
+}

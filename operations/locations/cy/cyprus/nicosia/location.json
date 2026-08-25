@@ -1,0 +1,16 @@
+{
+  "id": "cy-nicosia",
+  "country_code": "CY",
+  "country_name": "Cyprus",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nicosia",
+  "slug": "nicosia",
+  "lat": 35.17393,
+  "lon": 33.364726,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "cyprus"
+}

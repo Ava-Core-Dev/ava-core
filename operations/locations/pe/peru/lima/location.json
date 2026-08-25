@@ -1,0 +1,16 @@
+{
+  "id": "pe-lima",
+  "country_code": "PE",
+  "country_name": "Peru",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Lima",
+  "slug": "lima",
+  "lat": -12.062106,
+  "lon": -77.036526,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "peru"
+}

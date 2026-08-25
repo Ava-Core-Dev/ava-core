@@ -1,0 +1,16 @@
+{
+  "id": "gl-nuuk",
+  "country_code": "GL",
+  "country_name": "Greenland",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nuuk",
+  "slug": "nuuk",
+  "lat": 64.175029,
+  "lon": -51.735539,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Northern America",
+  "country_slug": "greenland"
+}

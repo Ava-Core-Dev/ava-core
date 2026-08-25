@@ -1,0 +1,16 @@
+{
+  "id": "au-canberra",
+  "country_code": "AU",
+  "country_name": "Australia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Canberra",
+  "slug": "canberra",
+  "lat": -35.297591,
+  "lon": 149.101268,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Australia and New Zealand",
+  "country_slug": "australia"
+}

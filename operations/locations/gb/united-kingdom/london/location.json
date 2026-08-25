@@ -1,0 +1,16 @@
+{
+  "id": "gb-london",
+  "country_code": "GB",
+  "country_name": "United Kingdom",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "London",
+  "slug": "london",
+  "lat": 51.507322,
+  "lon": -0.127647,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "united-kingdom"
+}

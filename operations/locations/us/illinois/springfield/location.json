@@ -1,0 +1,15 @@
+{
+  "id": "us-illinois-springfield",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Illinois",
+  "admin1_name": "Illinois",
+  "admin1_slug": "illinois",
+  "name": "Springfield",
+  "slug": "springfield",
+  "lat": 39.798363,
+  "lon": -89.654961,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

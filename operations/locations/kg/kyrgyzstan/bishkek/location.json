@@ -1,0 +1,16 @@
+{
+  "id": "kg-bishkek",
+  "country_code": "KG",
+  "country_name": "Kyrgyzstan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bishkek",
+  "slug": "bishkek",
+  "lat": 42.876562,
+  "lon": 74.607008,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Central Asia",
+  "country_slug": "kyrgyzstan"
+}

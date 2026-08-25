@@ -1,0 +1,16 @@
+{
+  "id": "pn-adamstown",
+  "country_code": "PN",
+  "country_name": "Pitcairn Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Adamstown",
+  "slug": "adamstown",
+  "lat": -25.066667,
+  "lon": -130.100205,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "pitcairn-islands"
+}

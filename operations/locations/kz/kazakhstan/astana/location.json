@@ -1,0 +1,16 @@
+{
+  "id": "kz-astana",
+  "country_code": "KZ",
+  "country_name": "Kazakhstan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Astana",
+  "slug": "astana",
+  "lat": 51.12822,
+  "lon": 71.430668,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Central Asia",
+  "country_slug": "kazakhstan"
+}

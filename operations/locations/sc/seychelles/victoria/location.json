@@ -1,0 +1,16 @@
+{
+  "id": "sc-victoria",
+  "country_code": "SC",
+  "country_name": "Seychelles",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Victoria",
+  "slug": "victoria",
+  "lat": -36.59861,
+  "lon": 144.678005,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "seychelles"
+}

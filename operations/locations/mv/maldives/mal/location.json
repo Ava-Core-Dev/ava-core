@@ -1,0 +1,16 @@
+{
+  "id": "mv-mal",
+  "country_code": "MV",
+  "country_name": "Maldives",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Malé",
+  "slug": "mal",
+  "lat": 16.370036,
+  "lon": -2.290024,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "maldives"
+}

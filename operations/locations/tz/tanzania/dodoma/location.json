@@ -1,0 +1,16 @@
+{
+  "id": "tz-dodoma",
+  "country_code": "TZ",
+  "country_name": "Tanzania",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Dodoma",
+  "slug": "dodoma",
+  "lat": -6.337282,
+  "lon": 35.737177,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "tanzania"
+}

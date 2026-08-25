@@ -1,0 +1,16 @@
+{
+  "id": "si-ljubljana",
+  "country_code": "SI",
+  "country_name": "Slovenia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ljubljana",
+  "slug": "ljubljana",
+  "lat": 46.04998,
+  "lon": 14.50686,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "slovenia"
+}

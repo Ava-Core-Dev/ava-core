@@ -1,7 +1,9 @@
-# Add these routes to the existing Cloudflare tunnel ingress.
-# The broadcast server is the single web origin for avaivy.cloud.
+# Ava Ivy public ingress reference
 ingress:
   - hostname: avaivy.cloud
     service: http://127.0.0.1:8080
   - hostname: www.avaivy.cloud
     service: http://127.0.0.1:8080
+  - hostname: directory.avaivy.cloud
+    service: http://127.0.0.1:8080
+  - service: http_status:404

@@ -1,0 +1,16 @@
+{
+  "id": "vc-kingstown",
+  "country_code": "VC",
+  "country_name": "Saint Vincent and the Grenadines",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kingstown",
+  "slug": "kingstown",
+  "lat": 13.156186,
+  "lon": -61.227962,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "saint-vincent-and-the-grenadines"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "aw-oranjestad",
+  "country_code": "AW",
+  "country_name": "Aruba",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Oranjestad",
+  "slug": "oranjestad",
+  "lat": 12.526874,
+  "lon": -70.035684,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "aruba"
+}

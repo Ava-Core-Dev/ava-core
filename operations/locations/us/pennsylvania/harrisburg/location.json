@@ -1,0 +1,15 @@
+{
+  "id": "us-pennsylvania-harrisburg",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Pennsylvania",
+  "admin1_name": "Pennsylvania",
+  "admin1_slug": "pennsylvania",
+  "name": "Harrisburg",
+  "slug": "harrisburg",
+  "lat": 40.264378,
+  "lon": -76.883598,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

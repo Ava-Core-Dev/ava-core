@@ -1,0 +1,16 @@
+{
+  "id": "cl-santiago",
+  "country_code": "CL",
+  "country_name": "Chile",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Santiago",
+  "slug": "santiago",
+  "lat": 9.869479,
+  "lon": -83.798075,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "chile"
+}

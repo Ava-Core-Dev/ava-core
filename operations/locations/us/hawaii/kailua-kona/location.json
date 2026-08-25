@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-kailua-kona",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Kailua-Kona",
+  "slug": "kailua-kona",
+  "lat": 19.6406,
+  "lon": -155.9956,
+  "kind": "state-location",
+  "region": "Hawaiʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "kr-seoul",
+  "country_code": "KR",
+  "country_name": "South Korea",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Seoul",
+  "slug": "seoul",
+  "lat": 37.566679,
+  "lon": 126.978291,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "south-korea"
+}

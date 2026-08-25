@@ -1,0 +1,16 @@
+{
+  "id": "cg-brazzaville",
+  "country_code": "CG",
+  "country_name": "Republic of the Congo",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Brazzaville",
+  "slug": "brazzaville",
+  "lat": -4.269441,
+  "lon": 15.271226,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "republic-of-the-congo"
+}

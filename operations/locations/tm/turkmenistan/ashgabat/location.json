@@ -1,0 +1,16 @@
+{
+  "id": "tm-ashgabat",
+  "country_code": "TM",
+  "country_name": "Turkmenistan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ashgabat",
+  "slug": "ashgabat",
+  "lat": 37.939668,
+  "lon": 58.387426,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Central Asia",
+  "country_slug": "turkmenistan"
+}

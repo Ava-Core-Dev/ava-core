@@ -2,7 +2,7 @@
 """
 system.py
 
-Collects system info once and saves to /home/ava-core/Database/system/system.db.
+Collects system info once and saves to /home/ava-core/database/system.db.
 
 Requirements:
   pip install psutil
@@ -32,7 +32,7 @@ except Exception as exc:
     print("Missing dependency: psutil is required. Install with: pip install psutil", file=sys.stderr)
     raise
 
-DB_PATH = Path("/home/ava-core/Database/system/system.db")
+DB_PATH = Path("/home/ava-core/database/system.db")
 DB_DIR = DB_PATH.parent
 SMART_TIMEOUT = 15  # seconds per-device
 

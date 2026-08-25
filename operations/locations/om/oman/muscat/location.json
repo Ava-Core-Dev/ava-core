@@ -1,0 +1,16 @@
+{
+  "id": "om-muscat",
+  "country_code": "OM",
+  "country_name": "Oman",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Muscat",
+  "slug": "muscat",
+  "lat": 23.599786,
+  "lon": 58.54513,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "oman"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "fm-palikir",
+  "country_code": "FM",
+  "country_name": "Federated States of Micronesia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Palikir",
+  "slug": "palikir",
+  "lat": 6.920744,
+  "lon": 158.162714,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Micronesia",
+  "country_slug": "federated-states-of-micronesia"
+}

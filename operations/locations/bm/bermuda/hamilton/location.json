@@ -1,0 +1,16 @@
+{
+  "id": "bm-hamilton",
+  "country_code": "BM",
+  "country_name": "Bermuda",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Hamilton",
+  "slug": "hamilton",
+  "lat": 43.25608,
+  "lon": -79.872858,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Northern America",
+  "country_slug": "bermuda"
+}

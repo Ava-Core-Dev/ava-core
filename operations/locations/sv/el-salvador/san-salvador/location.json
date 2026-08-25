@@ -1,0 +1,16 @@
+{
+  "id": "sv-san-salvador",
+  "country_code": "SV",
+  "country_name": "El Salvador",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "San Salvador",
+  "slug": "san-salvador",
+  "lat": 13.698994,
+  "lon": -89.191425,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "el-salvador"
+}

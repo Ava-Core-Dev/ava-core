@@ -14,8 +14,8 @@ Adds **https://avaivy.cloud/directory** — a read-only, always-on directory bro
 | Rule | Behavior |
 |------|----------|
 | `.env*` / names containing `credential`, `secret`, `token`, `password`, `private_key`, `.pem`, `.key` | **Hidden** from the tree entirely |
-| `Credentials/`, `.ssh/`, `.gnupg/`, `Web/cloudflare/` (tunnel tokens) | **Hidden** |
-| `Database/sessions/`, account/session-like names, email-named folders | **Listed**, content **blocked** |
+| `credentials/`, `.ssh/`, `.gnupg/`, `Web/cloudflare/` (tunnel tokens) | **Hidden** |
+| `database/sessions/`, account/session-like names, email-named folders | **Listed**, content **blocked** |
 | Binary / media | Metadata only (not inlined) |
 | Files matching secret patterns in the first bytes | **Blocked** |
 

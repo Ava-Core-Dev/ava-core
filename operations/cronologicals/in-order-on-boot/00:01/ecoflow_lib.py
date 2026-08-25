@@ -3,7 +3,7 @@
 ecoflow_lib.py — Shared library for EcoFlow hierarchical aggregation.
 
 Paths (override with env ECOFLOW_ROOT):
-  /home/ava-core/Database/ecoflow/
+  /home/ava-core/database/
 
 Devices:
   R331ZAB5SG755642 → security
@@ -43,10 +43,10 @@ from statistics import mean, median, stdev
 from typing import Any, Callable, Iterable, Optional
 
 # ── paths ──────────────────────────────────────────────────────────────
-ECO_ROOT = Path(os.environ.get("ECOFLOW_ROOT", "/home/ava-core/Database/ecoflow"))
-LOG_DIR = Path(os.environ.get("ECOFLOW_LOG_DIR", "/home/ava-core/Database/logs"))
+ECO_ROOT = Path(os.environ.get("ECOFLOW_ROOT", "/home/ava-core/database"))
+LOG_DIR = Path(os.environ.get("ECOFLOW_LOG_DIR", "/home/ava-core/database/logs"))
 CRED_FILE = Path(os.environ.get(
-    "ECOFLOW_CRED", "/home/ava-core/Credentials/credentials.env"
+    "ECOFLOW_CRED", "/home/ava-core/credentials/credentials.env"
 ))
 
 DB_10S = ECO_ROOT / "ecoflow-10s.db"

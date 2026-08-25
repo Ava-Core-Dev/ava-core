@@ -11,7 +11,7 @@ import logging, os, random, shutil, signal, subprocess, time
 from pathlib import Path
 
 CRONO_ROOT = Path("/home/ava-core/operations/cronologicals")
-LOG_FILE = Path("/home/ava-core/Database/logs/ava-core-audio.log")
+LOG_FILE = Path("/home/ava-core/database/logs/ava-core-audio.log")
 EXCLUDED_DIRS = {"always-on", "__pycache__"}
 RESCAN_SECONDS = 5
 STOP = False

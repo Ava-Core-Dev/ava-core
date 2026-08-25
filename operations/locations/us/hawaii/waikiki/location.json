@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-waikiki",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Waikīkī (Honolulu)",
+  "slug": "waikiki",
+  "lat": 21.285,
+  "lon": -157.835,
+  "kind": "state-location",
+  "region": "Oʻahu",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "et-addis-ababa",
+  "country_code": "ET",
+  "country_name": "Ethiopia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Addis Ababa",
+  "slug": "addis-ababa",
+  "lat": 9.010793,
+  "lon": 38.761252,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "ethiopia"
+}

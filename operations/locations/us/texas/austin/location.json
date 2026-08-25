@@ -1,0 +1,15 @@
+{
+  "id": "us-texas-austin",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Texas",
+  "admin1_name": "Texas",
+  "admin1_slug": "texas",
+  "name": "Austin",
+  "slug": "austin",
+  "lat": 30.27467,
+  "lon": -97.740349,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

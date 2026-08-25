@@ -1,0 +1,15 @@
+{
+  "id": "us-alaska-juneau",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Alaska",
+  "admin1_name": "Alaska",
+  "admin1_slug": "alaska",
+  "name": "Juneau",
+  "slug": "juneau",
+  "lat": 58.301598,
+  "lon": -134.420212,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

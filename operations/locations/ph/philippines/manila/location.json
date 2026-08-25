@@ -1,0 +1,16 @@
+{
+  "id": "ph-manila",
+  "country_code": "PH",
+  "country_name": "Philippines",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Manila",
+  "slug": "manila",
+  "lat": 14.590622,
+  "lon": 120.97997,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "philippines"
+}

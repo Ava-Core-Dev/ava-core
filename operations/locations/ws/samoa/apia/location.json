@@ -1,0 +1,16 @@
+{
+  "id": "ws-apia",
+  "country_code": "WS",
+  "country_name": "Samoa",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Apia",
+  "slug": "apia",
+  "lat": -13.834369,
+  "lon": -171.769279,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "samoa"
+}

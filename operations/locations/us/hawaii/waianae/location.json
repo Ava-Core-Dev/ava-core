@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-waianae",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Waiʻanae (Leeward)",
+  "slug": "waianae",
+  "lat": 21.4669,
+  "lon": -158.178,
+  "kind": "state-location",
+  "region": "Oʻahu",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

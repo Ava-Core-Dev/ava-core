@@ -1,0 +1,16 @@
+{
+  "id": "lb-beirut",
+  "country_code": "LB",
+  "country_name": "Lebanon",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Beirut",
+  "slug": "beirut",
+  "lat": 33.89592,
+  "lon": 35.47843,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "lebanon"
+}

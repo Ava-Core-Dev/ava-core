@@ -23,10 +23,17 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 
 HOST = "0.0.0.0"
 PORT = 8080
-PAGES_ROOT = Path("/home/ava-core/Web/Pages")
-ECO_DIR = Path("/home/ava-core/Database/ecoflow")
-ENHANCED_DB = ECO_DIR / "ecoflow-data-enhanced.db"
-LIVE_DB = ECO_DIR / "ecoflow-data.db"
+def _resolve_pages_root() -> Path:
+    for p in (Path("/home/ava-core/web/Pages"), Path("/home/ava-core/Web/Pages")):
+        if p.is_dir():
+            return p
+    return Path("/home/ava-core/web/Pages")
+
+PAGES_ROOT = _resolve_pages_root()
+DB_ROOT = Path("/home/ava-core/database")
+ENHANCED_DB = DB_ROOT / "ecoflow-1min.db"
+LIVE_DB = DB_ROOT / "ecoflow-10s.db"
+SYSTEM_DB = DB_ROOT / "system.db"
 NAME_MAP = {
     "R331ZAB5SG755642": "security",
     "R621ZA16XH6K1155": "Primary",
@@ -62,9 +69,41 @@ SKIP_DIR_NAMES = {
     ".cache",
     ".thumbnails",
     "snap",
+    # home / tooling clutter
+    ".agents",
+    ".ava",
+    ".cargo",
+    ".cloudflared",
+    ".codex",
+    ".config",
+    ".cursor",
+    ".git-ava-core-backup",
+    ".gradle",
+    ".local",
+    ".minecraft",
+    ".npm",
+    ".ollama",
+    ".pki",
+    ".rustup",
+    ".venvs",
+    ".ssh",
+    ".gnupg",
+    "Desktop",
+    "Downloads",
+    "Pictures",
+    "Screenshots",
+    "gemini_env",
+    "credentials",
+    "credentials",
 }
 # Names / substrings that must never appear in listings or be readable.
 HIDDEN_NAME_PARTS = (
+    "files.zip",
+    "MANIFEST.json",
+    "file_mapping.txt",
+    "file_mapping.json",
+    "gitconfig",
+    ".bash_history",
     ".env",
     "credentials",
     "credential",
@@ -87,18 +126,41 @@ HIDDEN_NAME_PARTS = (
 )
 # Paths (relative to DIR_ROOT) that are hidden entirely from the public tree.
 HIDDEN_PATH_PREFIXES = (
-    "Credentials",
+    "credentials",
     "credentials",
     ".ssh",
     ".gnupg",
     ".aws",
+    ".config",
     ".config/gcloud",
-    "Web/cloudflare",  # contains tunnel tokens / certs
+    "web/cloudflare",
+    "Web/cloudflare",
+    "database",
+    "Desktop",
+    "Downloads",
+    "Pictures",
+    "Screenshots",
+    "gemini_env",
+    ".agents",
+    ".ava",
+    ".cargo",
+    ".cloudflared",
+    ".codex",
+    ".cursor",
+    ".git-ava-core-backup",
+    ".gradle",
+    ".local",
+    ".minecraft",
+    ".npm",
+    ".ollama",
+    ".pki",
+    ".rustup",
+    ".venvs",
 )
 # Paths that may be listed but content is never served.
 SENSITIVE_PATH_PREFIXES = (
-    "Database/sessions",
-    "Database/notes",
+    "database/sessions",
+    "database/notes",
     "operations/cronologicals/.ava-core-state.json",
     "operations/cronologicals/.run-ava-state.json",
 )
@@ -148,68 +210,54 @@ def select_expr(available, name, default="NULL"):
 
 
 def latest_enhanced():
-    c = cols(ENHANCED_DB, "minute_summary")
+    """Return the latest 1-minute EcoFlow summary for each device."""
+    c = cols(ENHANCED_DB, "summary")
     if not c:
         return []
     wanted = [
-        "name",
-        "soc_avg",
-        "in_w_avg",
-        "out_w_avg",
-        "solar_w_avg",
-        "net_w_avg",
-        "soc_delta",
-        "energy_in_wh",
-        "energy_out_wh",
-        "trend",
-        "samples",
-        "minute_key",
+        "name", "soc_avg", "in_w_avg", "out_w_avg", "solar_w_avg",
+        "net_w_avg", "soc_delta", "energy_in_wh", "energy_out_wh",
+        "trend", "samples", "bucket_key", "load_ratio", "online_pct",
     ]
     fields = ", ".join(select_expr(c, x) for x in wanted)
-    group = "name" if "name" in c else "id"
     return q(
         ENHANCED_DB,
-        f"""SELECT {fields} FROM minute_summary WHERE id IN
-        (SELECT MAX(id) FROM minute_summary GROUP BY {group})
+        f"""SELECT {fields} FROM summary WHERE id IN
+        (SELECT MAX(id) FROM summary GROUP BY COALESCE(name, sn))
         ORDER BY CASE name WHEN 'Primary' THEN 1 WHEN 'security' THEN 2
         WHEN 'Backup' THEN 3 ELSE 9 END""",
     )
 
 
 def history(hours=12):
-    c = cols(ENHANCED_DB, "minute_summary")
+    """Return 1-minute EcoFlow history from the canonical database."""
+    c = cols(ENHANCED_DB, "summary")
     if not c:
         return []
     wanted = [
-        "minute_key",
-        "name",
-        "soc_avg",
-        "in_w_avg",
-        "out_w_avg",
-        "solar_w_avg",
-        "net_w_avg",
-        "soc_delta",
-        "energy_in_wh",
-        "energy_out_wh",
-        "trend",
-        "samples",
+        "bucket_key", "ts", "name", "soc_avg", "in_w_avg", "out_w_avg",
+        "solar_w_avg", "net_w_avg", "soc_delta", "energy_in_wh",
+        "energy_out_wh", "trend", "samples", "load_ratio", "online_pct",
     ]
     fields = ", ".join(select_expr(c, x) for x in wanted)
-    if "minute_key" in c:
-        cutoff = datetime.now().astimezone().timestamp() - hours * 3600
-        rows = q(ENHANCED_DB, f"SELECT {fields} FROM minute_summary ORDER BY minute_key,name")
-        out = []
-        for r in rows:
-            k = str(r.get("minute_key") or "")
-            try:
-                dt = datetime.fromisoformat(k.replace("Z", "+00:00"))
-                stamp = dt.timestamp()
-            except Exception:
+    rows = q(ENHANCED_DB, f"SELECT {fields} FROM summary ORDER BY bucket_key, name")
+    cutoff = datetime.now(timezone.utc).timestamp() - hours * 3600
+    out = []
+    for r in rows:
+        stamp = None
+        for key in ("bucket_key", "ts"):
+            value = r.get(key)
+            if not value:
                 continue
-            if stamp >= cutoff:
-                out.append(r)
-        return out
-    return []
+            try:
+                stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00")).timestamp()
+                break
+            except Exception:
+                pass
+        if stamp is not None and stamp >= cutoff:
+            r["minute_key"] = r.get("bucket_key") or r.get("ts")
+            out.append(r)
+    return out
 
 
 def live_now():
@@ -439,59 +487,76 @@ def read_file_safe(rel: str) -> tuple[int, bytes, str, dict]:
     meta["content_type"] = ct
 
     # Only serve text-like or small binary with explicit view; large binaries blocked for safety
-    textish = ct.startswith("text/") or ct in (
-        "application/json",
-        "application/javascript",
-        "application/xml",
-        "application/x-yaml",
-        "application/toml",
-        "application/sql",
-    ) or path.suffix.lower() in {
-        ".py",
-        ".js",
-        ".ts",
-        ".tsx",
-        ".jsx",
-        ".css",
-        ".html",
-        ".htm",
-        ".md",
-        ".txt",
-        ".json",
-        ".yml",
-        ".yaml",
-        ".toml",
-        ".ini",
-        ".cfg",
-        ".conf",
-        ".sh",
-        ".bash",
-        ".zsh",
-        ".ps1",
-        ".sql",
-        ".csv",
-        ".log",
-        ".svg",
-        ".xml",
-        ".c",
-        ".h",
-        ".cpp",
-        ".rs",
-        ".go",
-        ".java",
-        ".rb",
-        ".php",
-        ".r",
-        ".lua",
+    name_lower = path.name.lower()
+    suffix = path.suffix.lower()
+
+    TEXT_SUFFIXES = {
+        ".py", ".js", ".ts", ".tsx", ".jsx", ".css", ".html", ".htm",
+        ".md", ".txt", ".json", ".yml", ".yaml", ".toml", ".ini", ".cfg",
+        ".conf", ".sh", ".bash", ".zsh", ".ps1", ".sql", ".csv", ".log",
+        ".svg", ".xml", ".c", ".h", ".cpp", ".hpp", ".rs", ".go", ".java",
+        ".rb", ".php", ".r", ".lua", ".pl", ".pm", ".swift", ".kt", ".kts",
+        ".scala", ".cs", ".fs", ".ex", ".exs", ".erl", ".hrl", ".clj",
+        ".edn", ".rake", ".gemspec", ".podspec", ".gradle", ".tf", ".hcl",
+        ".proto", ".graphql", ".gql", ".vue", ".svelte", ".astro",
+        ".env.example", ".sample", ".template", ".in", ".am", ".ac",
+        ".service", ".timer", ".socket", ".desktop", ".list", ".sources",
     }
+
+    TEXT_NAMES = {
+        "makefile", "gnumakefile", "dockerfile", "containerfile",
+        "vagrantfile", "gemfile", "rakefile", "procfile", "brewfile",
+        "cmakelists.txt", "readme", "license", "licence", "copying",
+        "authors", "contributors", "changelog", "changes", "news",
+        "todo", "notes", "manifest", "history",
+        ".bashrc", ".bash_profile", ".bash_logout", ".profile",
+        ".zshrc", ".zprofile", ".zlogin", ".zlogout",
+        ".gitignore", ".gitattributes", ".gitmodules", ".gitconfig",
+        ".npmrc", ".nvmrc", ".node-version", ".python-version",
+        ".editorconfig", ".prettierrc", ".eslintrc", ".babelrc",
+        ".dockerignore", ".curlrc", ".wget-hsts", ".inputrc",
+        ".vimrc", ".tmux.conf", ".screenrc",
+    }
+
+    textish = (
+        ct.startswith("text/")
+        or ct in (
+            "application/json",
+            "application/javascript",
+            "application/xml",
+            "application/x-yaml",
+            "application/toml",
+            "application/sql",
+            "application/x-sh",
+            "application/x-shellscript",
+        )
+        or suffix in TEXT_SUFFIXES
+        or name_lower in TEXT_NAMES
+        or name_lower.startswith(".eslintrc")
+        or name_lower.startswith(".prettierrc")
+        or (name_lower.endswith("rc") and not name_lower.endswith(".png"))
+    )
+
+    if not textish and size <= 512 * 1024:
+        try:
+            sample = path.read_bytes()[:4096]
+            if sample and not any(b == 0 for b in sample[:512]):
+                printable = sum(1 for b in sample if 9 <= b <= 13 or 32 <= b <= 126)
+                if printable / max(len(sample), 1) >= 0.85:
+                    textish = True
+                    ct = "text/plain"
+        except OSError:
+            pass
 
     if not textish:
         note = (
             f"# Binary / non-text file\n\n"
             f"path: {rel}\n"
+            f"location: {rel}\n"
+            f"raw_url: /ava-ivy/file/{rel}\n"
             f"size: {human_size(size)}\n"
             f"type: {ct}\n\n"
-            f"Contents are not inlined. Use the download link only if appropriate.\n"
+            f"Contents are not inlined. Agents may still reference the path.\n"
         ).encode()
         meta["blocked"] = True
         meta["reason"] = "binary"
@@ -537,6 +602,78 @@ def read_file_safe(rel: str) -> tuple[int, bytes, str, dict]:
     return 200, data, ct, meta
 
 
+
+def build_status() -> dict:
+    """Public health snapshot for /api/status and /status page."""
+    dir_on = directory_enabled()
+    enhanced = []
+    try:
+        enhanced = latest_enhanced() or []
+    except Exception as e:
+        enhanced = []
+        energy_err = str(e)
+    else:
+        energy_err = None
+
+    services = [
+        {
+            "name": "broadcast",
+            "ok": True,
+            "detail": f"0.0.0.0:{PORT}",
+        },
+        {
+            "name": "directory",
+            "ok": dir_on and DIR_ROOT.is_dir(),
+            "detail": str(DIR_ROOT) if dir_on else "disabled",
+        },
+        {
+            "name": "ecoflow_enhanced_db",
+            "ok": ENHANCED_DB.is_file(),
+            "detail": str(ENHANCED_DB) if ENHANCED_DB.is_file() else "missing",
+        },
+        {
+            "name": "ecoflow_live_db",
+            "ok": LIVE_DB.is_file(),
+            "detail": str(LIVE_DB) if LIVE_DB.is_file() else "missing",
+        },
+    ]
+    units = []
+    for r in enhanced:
+        units.append(
+            {
+                "name": r.get("name"),
+                "soc_avg": r.get("soc_avg"),
+                "in_w_avg": r.get("in_w_avg"),
+                "out_w_avg": r.get("out_w_avg"),
+                "net_w_avg": r.get("net_w_avg"),
+                "solar_w_avg": r.get("solar_w_avg"),
+                "trend": r.get("trend"),
+                "samples": r.get("samples"),
+            }
+        )
+    ok = all(s["ok"] for s in services) and energy_err is None
+    return {
+        "ok": ok,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "host": "ava-core",
+        "directory": {
+            "enabled": dir_on,
+            "root": str(DIR_ROOT),
+            "root_exists": DIR_ROOT.is_dir(),
+        },
+        "services": services,
+        "energy": {"units": units, "error": energy_err},
+        "links": {
+            "json": "/api/status",
+            "html": "/status",
+            "system": "/system/",
+            "energy": "/energy/",
+            "directory": "/directory",
+            "llms": "/llms.txt",
+        },
+    }
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -556,26 +693,30 @@ class H(BaseHTTPRequestHandler):
         self.sendb(code, json.dumps(o, default=str).encode(), "application/json; charset=utf-8")
 
     def api(self, path, parsed):
-        if path in ("/api/now", "/system/api/now"):
-            self.js(
-                {
-                    "ts": datetime.now(timezone.utc).isoformat(),
-                    "enhanced": latest_enhanced(),
-                    "live": live_now(),
-                }
-            )
+        if path == "/api/status":
+            self.js(build_status())
             return True
-        if path in ("/api/debug", "/system/api/debug"):
-            self.js(
-                {
-                    "enhanced_db": str(ENHANCED_DB),
-                    "live_db": str(LIVE_DB),
-                    "minute_summary_columns": sorted(cols(ENHANCED_DB, "minute_summary")),
-                    "snapshots_columns": sorted(cols(LIVE_DB, "snapshots")),
-                }
-            )
+
+        # Canonical energy API, with legacy aliases retained locally for compatibility.
+        if path in ("/api/energy/now", "/energy/api/now", "/ecoflow/api/now", "/system/api/now"):
+            self.js({
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "enhanced": latest_enhanced(),
+                "live": live_now(),
+            })
             return True
-        if path.startswith("/api/history") or path.startswith("/system/api/history"):
+        if path in ("/api/energy/debug", "/energy/api/debug", "/ecoflow/api/debug", "/system/api/debug"):
+            self.js({
+                "db_root": str(DB_ROOT),
+                "enhanced_db": str(ENHANCED_DB),
+                "live_db": str(LIVE_DB),
+                "system_db": str(SYSTEM_DB),
+                "minute_summary_columns": sorted(cols(ENHANCED_DB, "summary")),
+                "snapshots_columns": sorted(cols(LIVE_DB, "snapshots")),
+            })
+            return True
+        if (path.startswith("/api/energy/history") or path.startswith("/energy/api/history")
+                or path.startswith("/ecoflow/api/history") or path.startswith("/system/api/history")):
             try:
                 h = max(1, min(168, int(parse_qs(parsed.query).get("hours", ["12"])[0])))
             except Exception:
@@ -660,11 +801,20 @@ class H(BaseHTTPRequestHandler):
         else:
             self.sendb(404, b"not found")
 
-    def serve_directory_page(self):
-        """SPA shell for /directory — prefers static page, falls back to minimal embed."""
+    def serve_directory_page(self, u=None):
+        """SPA shell for /directory — prefers static page, falls back to minimal embed.
+
+        Visual page is served byte-for-byte unchanged. Machine-readable
+        discovery of the JSON API is done via an HTTP Link header (RFC 8288)
+        instead, so agents/crawlers/tools can find /api/directory/list
+        without any change to what a human sees in the browser.
+        """
         page = PAGES_ROOT / "avaivy.cloud" / "directory" / "index.html"
+        api_link = '<{}>; rel="alternate"; type="application/json"; title="directory-json-api"'.format(
+            "/api/directory/list?recursive=1"
+        )
         if page.is_file():
-            self.sendb(200, page.read_bytes())
+            self.sendb(200, page.read_bytes(), extra_headers={"Link": api_link})
             return
         # minimal fallback
         html = """<!doctype html><html><head><meta charset=utf-8><title>Ava Directory</title>
@@ -672,29 +822,51 @@ class H(BaseHTTPRequestHandler):
 a{color:#53d8ff}</style></head><body>
 <h1>Ava Directory</h1><p>Static page missing. API is at <code>/api/directory/list</code>.</p>
 </body></html>"""
-        self.sendb(200, html.encode())
+        self.sendb(200, html.encode(), extra_headers={"Link": api_link})
+
+    def _directory_disabled_page(self):
+        self.sendb(
+            503,
+            b"<!doctype html><html><body style='background:#0b0d12;color:#d8e6f3;font-family:system-ui;padding:2rem'>"
+            b"<h1>Directory service disabled</h1>"
+            b"<p>Toggle it on from the Ava Core Visual CLI (<code>directory-toggle</code>).</p>"
+            b"</body></html>",
+        )
+
+    def _serve_directory_asset(self, rel: str) -> bool:
+        page_root = PAGES_ROOT / "avaivy.cloud" / "directory"
+        fp = (page_root / rel).resolve()
+        if str(fp).startswith(str(page_root.resolve())) and fp.is_file():
+            self.sendb(
+                200,
+                fp.read_bytes(),
+                mimetypes.guess_type(str(fp))[0] or "application/octet-stream",
+            )
+            return True
+        return False
 
     def do_GET(self):
         u = urlparse(self.path)
         path = u.path
         host = self.headers.get("Host", "").split(":", 1)[0].lower()
 
+        # The localhost server is the canonical truth server. Cloudflare is intentionally
+        # irrelevant here: every Ava Ivy page is served from one solid tree.
+        dir_host = host in ("directory.avaivy.cloud", "www.directory.avaivy.cloud")
+
         if self.api(path, u):
             return
 
-        # Directory UI + raw file view under /directory
-        if path == "/directory" or path == "/directory/":
-            if not directory_enabled():
-                self.sendb(
-                    503,
-                    b"<!doctype html><html><body style='background:#0b0d12;color:#d8e6f3;font-family:system-ui;padding:2rem'>"
-                    b"<h1>Directory service disabled</h1><p>Toggle it on from the Ava Core Visual CLI.</p></body></html>",
-                )
-                return
-            self.serve_directory_page()
+        if path in ("/status", "/status/", "/status.html"):
+            self.serve("avaivy.cloud", "status/index.html")
             return
 
-        if path.startswith("/directory/view"):
+        if path in ("/llms.txt", "/.well-known/llms.txt"):
+            self.serve("avaivy.cloud", "llms.txt")
+            return
+
+        # Directory file endpoints remain available on localhost and the optional subdomain.
+        if path.startswith("/directory/view") or (dir_host and path.startswith("/view")):
             if not directory_enabled():
                 self.sendb(503, b"disabled")
                 return
@@ -709,36 +881,40 @@ a{color:#53d8ff}</style></head><body>
                 self.sendb(500, str(e).encode())
             return
 
-        # Allow /directory/* static assets from Pages
-        if path.startswith("/directory/") and not path.startswith("/directory/api"):
-            rel = path[len("/directory/") :]
-            page_root = PAGES_ROOT / "avaivy.cloud" / "directory"
-            fp = (page_root / rel).resolve()
-            if str(fp).startswith(str(page_root.resolve())) and fp.is_file():
-                self.sendb(200, fp.read_bytes(), mimetypes.guess_type(str(fp))[0] or "application/octet-stream")
+        if path.startswith("/ava-ivy/file/"):
+            if not directory_enabled():
+                self.sendb(503, b"disabled")
                 return
-            # otherwise fall through to main serve for avaivy host
+            rel = unquote(path[len("/ava-ivy/file/"):])
+            try:
+                code, body, ct, _meta = read_file_safe(rel)
+                self.sendb(code, body, ct)
+            except ValueError as e:
+                self.sendb(400, str(e).encode())
+            except Exception as e:
+                self.sendb(500, str(e).encode())
+            return
 
-        if host in ("avaivy.cloud", "www.avaivy.cloud"):
-            self.serve("avaivy.cloud", path.lstrip("/") or "index.html")
+        if path.startswith("/directory/") and not path.startswith("/directory/api"):
+            rel = path[len("/directory/"):]
+            if self._serve_directory_asset(rel):
+                return
+
+        if dir_host:
+            if not directory_enabled():
+                self._directory_disabled_page()
+                return
+            self.serve_directory_page()
             return
-        if path in ("/system", "/system/"):
-            self.send_response(302)
-            self.send_header("Location", "/avaivy.cloud/system/")
-            self.end_headers()
-            return
+
+
         if path in ("/", "/index.html"):
-            p = PAGES_ROOT / "index.html"
-            if p.is_file():
-                self.sendb(200, p.read_bytes())
-            else:
-                self.sendb(404, b"not found")
+            self.serve("avaivy.cloud", "index.html")
             return
-        parts = [x for x in path.strip("/").split("/") if x]
-        if not parts:
-            self.sendb(404, b"not found")
-            return
-        self.serve(parts[0], "/".join(parts[1:]) if len(parts) > 1 else "index.html")
+
+        # Everything else is resolved strictly inside web/Pages/avaivy.cloud.
+        rel = path.lstrip("/") or "index.html"
+        self.serve("avaivy.cloud", rel)
 
 
 if __name__ == "__main__":

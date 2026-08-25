@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""
+ecoflow-10s.py — Live EcoFlow API poller (every ~10 seconds)
+
+Drop into:
+  /home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/
+
+Writes raw snapshots into ecoflow-10s.db (never cleared by this script;
+ecoflow-1min.py clears after aggregating).
+
+Credentials: /home/ava-core/credentials/credentials.env
+"""
+
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+import random
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+try:
+    import requests
+except ImportError:
+    print("ERROR: requests not installed. Run: pip install requests")
+    sys.exit(1)
+
+# allow running from any cwd
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ecoflow_lib import (
+    CRED_FILE,
+    DB_10S,
+    find_key,
+    friendly,
+    init_10s_db,
+    load_credentials,
+    setup_log,
+)
+
+log = setup_log("ecoflow-10s")
+
+BASE_URL = "https://api.ecoflow.com"
+
+
+def hmac_sha256(data: str, key: str) -> str:
+    return hmac.new(key.encode("utf-8"), data.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def sign_headers(access_key: str, secret_key: str, params: dict | None = None) -> dict:
+    nonce = str(random.randint(100000, 999999))
+    timestamp = str(int(time.time() * 1000))
+    headers = {
+        "accessKey": access_key,
+        "nonce": nonce,
+        "timestamp": timestamp,
+    }
+    parts = []
+    if params:
+        for k in sorted(params.keys()):
+            parts.append(f"{k}={params[k]}")
+    for k in sorted(headers.keys()):
+        parts.append(f"{k}={headers[k]}")
+    headers["sign"] = hmac_sha256("&".join(parts), secret_key)
+    return headers
+
+
+def api_get(path: str, access_key: str, secret_key: str, params: dict | None = None) -> dict | None:
+    url = f"{BASE_URL}{path}"
+    headers = sign_headers(access_key, secret_key, params)
+    try:
+        r = requests.get(url, headers=headers, params=params, timeout=15)
+        r.raise_for_status()
+        data = r.json()
+        if str(data.get("code")) not in ("0", "00"):
+            log.warning(f"API code={data.get('code')} msg={data.get('message')}")
+        return data
+    except Exception as e:
+        log.error(f"API GET {path} failed: {e}")
+        return None
+
+
+def extract_common(quota: dict) -> dict:
+    def g(*keys, default=None):
+        for k in keys:
+            if k in quota:
+                return quota[k]
+        return default
+
+    return {
+        "soc": g("bms_bmsStatus.soc", "pd.soc", "bmsMaster.soc", "soc"),
+        "in_w": g("pd.wattsInSum", "inv.inputWatts", "pd.chgWatts", "inWatts"),
+        "out_w": g("pd.wattsOutSum", "inv.outputWatts", "pd.invOutWatts", "outWatts"),
+        "solar_w": g("mppt.inWatts", "pd.solarWatts", "mppt.pv1InWatts", "solarWatts"),
+    }
+
+
+def main() -> None:
+    log.info("ecoflow-10s starting")
+
+    creds = load_credentials(CRED_FILE)
+    if not creds:
+        log.error(f"No credentials at {CRED_FILE}")
+        sys.exit(1)
+
+    access_key = find_key(
+        creds,
+        "AVA_ECOFLOW_ACCESS_KEY", "ECOFLOW_ACCESS_KEY", "ECOFLOW_ACCESSKEY",
+        "ACCESS_KEY", "EF_ACCESS_KEY", "ECOFLOW_KEY", "accessKey",
+    )
+    secret_key = find_key(
+        creds,
+        "AVA_ECOFLOW_SECRET_KEY", "ECOFLOW_SECRET_KEY", "ECOFLOW_SECRETKEY",
+        "SECRET_KEY", "EF_SECRET_KEY", "ECOFLOW_SECRET", "secretKey",
+    )
+    if not access_key or not secret_key:
+        log.error("Missing EcoFlow accessKey / secretKey")
+        log.info("Available keys: " + ", ".join(sorted(creds.keys())[:40]))
+        sys.exit(1)
+
+    log.info(f"Using accessKey=…{access_key[-6:]}  secretKey=…{secret_key[-6:]}")
+
+    # device list
+    device_resp = api_get("/iot-open/sign/device/list", access_key, secret_key)
+    devices = []
+    if device_resp and device_resp.get("data"):
+        devices = device_resp["data"]
+        log.info(f"Found {len(devices)} device(s)")
+        for d in devices:
+            log.info(
+                f"  SN={d.get('sn')}  online={d.get('online')}  "
+                f"name={d.get('deviceName', '')} → {friendly(d.get('sn') or '')}"
+            )
+    else:
+        log.warning("No devices from list endpoint")
+
+    # optional explicit SNs from credentials
+    known = {d.get("sn") for d in devices if d.get("sn")}
+    for key in (
+        "AVA_ECOFLOW_SN", "ECOFLOW_SN", "ECOFLOW_SN1", "ECOFLOW_SN2",
+        "ECOFLOW_SN3", "DEVICE_SN", "DEVICE_SN1", "DEVICE_SN2",
+    ):
+        val = find_key(creds, key)
+        if not val:
+            continue
+        for part in val.split(","):
+            part = part.strip()
+            if part and part not in known:
+                devices.append({"sn": part, "online": None, "deviceName": ""})
+                known.add(part)
+
+    if not devices:
+        log.error("No devices to query — aborting")
+        sys.exit(1)
+
+    conn = init_10s_db(DB_10S)
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for dev in devices:
+        sn = dev.get("sn")
+        if not sn or excluded_sn(sn):
+            if sn: log.info(f"Excluded battery {sn}; not tracking")
+            continue
+        online = dev.get("online")
+        name = friendly(sn, dev.get("deviceName") or "")
+
+        log.info(f"Quota {sn} ({name})…")
+        quota_resp = api_get(
+            "/iot-open/sign/device/quota/all",
+            access_key,
+            secret_key,
+            params={"sn": sn},
+        )
+        raw = {}
+        if quota_resp and isinstance(quota_resp.get("data"), dict):
+            raw = quota_resp["data"]
+        else:
+            log.warning(f"No quota data for {sn}")
+
+        common = extract_common(raw)
+        log.info(
+            f"  soc={common['soc']}  in={common['in_w']}W  "
+            f"out={common['out_w']}W  solar={common['solar_w']}W"
+        )
+
+        conn.execute(
+            """
+            INSERT INTO devices (sn, name, online, last_seen, raw_json)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(sn) DO UPDATE SET
+                name=excluded.name,
+                online=excluded.online,
+                last_seen=excluded.last_seen,
+                raw_json=excluded.raw_json
+            """,
+            (sn, name, online, now_iso, json.dumps(dev)),
+        )
+        conn.execute(
+            """
+            INSERT INTO snapshots (ts, sn, online, soc, in_w, out_w, solar_w, raw_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                now_iso, sn, online,
+                common["soc"], common["in_w"], common["out_w"], common["solar_w"],
+                json.dumps(raw),
+            ),
+        )
+
+    conn.commit()
+    conn.close()
+    log.info(f"Saved → {DB_10S}")
+    log.info("ecoflow-10s finished")
+
+
+if __name__ == "__main__":
+    main()

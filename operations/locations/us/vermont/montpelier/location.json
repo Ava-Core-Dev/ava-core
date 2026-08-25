@@ -1,0 +1,15 @@
+{
+  "id": "us-vermont-montpelier",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Vermont",
+  "admin1_name": "Vermont",
+  "admin1_slug": "vermont",
+  "name": "Montpelier",
+  "slug": "montpelier",
+  "lat": 44.262436,
+  "lon": -72.580536,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

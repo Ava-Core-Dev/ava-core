@@ -1,0 +1,15 @@
+{
+  "id": "us-utah-salt-lake-city",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Utah",
+  "admin1_name": "Utah",
+  "admin1_slug": "utah",
+  "name": "Salt Lake City",
+  "slug": "salt-lake-city",
+  "lat": 40.777477,
+  "lon": -111.888237,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

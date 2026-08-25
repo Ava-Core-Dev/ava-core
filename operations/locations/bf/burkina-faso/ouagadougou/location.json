@@ -1,0 +1,16 @@
+{
+  "id": "bf-ouagadougou",
+  "country_code": "BF",
+  "country_name": "Burkina Faso",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ouagadougou",
+  "slug": "ouagadougou",
+  "lat": 12.368187,
+  "lon": -1.527094,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "burkina-faso"
+}

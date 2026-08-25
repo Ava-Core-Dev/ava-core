@@ -1,0 +1,16 @@
+{
+  "id": "so-mogadishu",
+  "country_code": "SO",
+  "country_name": "Somalia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Mogadishu",
+  "slug": "mogadishu",
+  "lat": 2.042778,
+  "lon": 45.338564,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "somalia"
+}

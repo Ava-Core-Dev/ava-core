@@ -1,0 +1,16 @@
+{
+  "id": "nu-alofi",
+  "country_code": "NU",
+  "country_name": "Niue",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Alofi",
+  "slug": "alofi",
+  "lat": -19.053416,
+  "lon": -169.919199,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "niue"
+}

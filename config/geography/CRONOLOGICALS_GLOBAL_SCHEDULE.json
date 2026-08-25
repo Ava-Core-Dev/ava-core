@@ -1,0 +1,7 @@
+{
+  "rule": "all ecosystem work runs through Cronologicals",
+  "state_news": {"frequency": "hourly", "slots": {"00":4,"05":4,"10":4,"15":4,"20":4,"25":4,"30":4,"35":4,"40":4,"45":4,"50":5,"55":5}},
+  "global_earthquakes": "00:00 every 5 minutes",
+  "location_weather": "balanced five-minute location queue",
+  "backfill": "one bounded historical day per location run, checkpoint 2026-03-31"
+}

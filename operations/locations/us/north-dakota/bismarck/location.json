@@ -1,0 +1,15 @@
+{
+  "id": "us-north-dakota-bismarck",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "North Dakota",
+  "admin1_name": "North Dakota",
+  "admin1_slug": "north-dakota",
+  "name": "Bismarck",
+  "slug": "bismarck",
+  "lat": 46.82085,
+  "lon": -100.783318,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

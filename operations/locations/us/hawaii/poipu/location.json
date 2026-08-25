@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-poipu",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Poʻipū (South Shore)",
+  "slug": "poipu",
+  "lat": 21.8751,
+  "lon": -159.4542,
+  "kind": "state-location",
+  "region": "Kauaʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

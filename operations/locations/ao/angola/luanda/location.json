@@ -1,0 +1,16 @@
+{
+  "id": "ao-luanda",
+  "country_code": "AO",
+  "country_name": "Angola",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Luanda",
+  "slug": "luanda",
+  "lat": -8.82727,
+  "lon": 13.243951,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "angola"
+}

@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-import os, shlex, subprocess, threading, tkinter as tk
-from tkinter import ttk, messagebox
+import json, os, shlex, subprocess, threading, tkinter as tk
+from datetime import datetime, timezone
+from tkinter import filedialog, ttk, messagebox, simpledialog
 from pathlib import Path
 
 APP_TITLE = "AVA Core — Operations Console"
 SERVICE = "ava-core.service"
-LOG = Path("/home/ava-core/Database/logs/ava-core.log")
-SYSTEMD_LOG = Path("/home/ava-core/Database/logs/ava-core-systemd.log")
+LOG = Path("/home/ava-core/database/logs/ava-core.log")
+SYSTEMD_LOG = Path("/home/ava-core/database/logs/ava-core-systemd.log")
 CRONO_ROOT = Path("/home/ava-core/operations/cronologicals")
 ALWAYS_ON = CRONO_ROOT / "always-on"
 DIR_FLAG = ALWAYS_ON / "directory.enabled"
 DIR_FLAG_DISABLED = ALWAYS_ON / "directory.enabled.disabled"
 EXCLUDED_DIRS = {"always-on", "__pycache__"}
+CONTEXT_ROOT = Path("/home/ava-core/context")
+DESK_SETTINGS = CONTEXT_ROOT / "ava-desk-settings.json"
+USAGE_ROOT = CONTEXT_ROOT / "usage"
+USAGE_FILE = USAGE_ROOT / "accounts.json"
 
 BG="#0b0f14"; PANEL="#111820"; PANEL2="#0d131a"; FG="#d8e6f3"
 DIM="#8192a3"; CYAN="#53d8ff"; GREEN="#57e389"; RED="#ff6b6b"; YELLOW="#f8d66d"
@@ -25,6 +30,33 @@ def run(cmd, timeout=8):
         return p.returncode, p.stdout.strip()
     except Exception as e:
         return 1, str(e)
+
+
+def load_desk_settings() -> dict:
+    """Small, non-secret UI preferences kept with Ava's persistent context."""
+    try:
+        return json.loads(DESK_SETTINGS.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"ssh_mode_visible": True}
+
+
+def save_desk_settings(settings: dict) -> None:
+    CONTEXT_ROOT.mkdir(parents=True, exist_ok=True)
+    DESK_SETTINGS.write_text(json.dumps(settings, indent=2) + "\n", encoding="utf-8")
+
+
+def load_usage_accounts() -> list[dict]:
+    """Read Usage data only from /home/ava-core/context; never store API tokens here."""
+    try:
+        data = json.loads(USAGE_FILE.read_text(encoding="utf-8"))
+        return data.get("accounts", []) if isinstance(data, dict) else []
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def save_usage_accounts(accounts: list[dict]) -> None:
+    USAGE_ROOT.mkdir(parents=True, exist_ok=True)
+    USAGE_FILE.write_text(json.dumps({"version": 1, "accounts": accounts}, indent=2) + "\n", encoding="utf-8")
 
 
 def cron_jobs():
@@ -127,6 +159,50 @@ def toggle_audio(path: Path):
     return target, enabled
 
 
+def always_on_jobs():
+    """Discover always-on supervisor scripts. *.py is ON; *.py.disabled is OFF."""
+    jobs = []
+    if not ALWAYS_ON.exists():
+        return jobs
+    for path in sorted(ALWAYS_ON.iterdir()):
+        if not path.is_file():
+            continue
+        name = path.name
+        if name.endswith(".py"):
+            enabled, display = True, name
+        elif name.endswith(".py.disabled"):
+            enabled, display = False, name[:-9]
+        else:
+            continue
+        jobs.append({
+            "path": path,
+            "rel": f"always-on/{display}",
+            "display": display,
+            "enabled": enabled,
+        })
+    return jobs
+
+
+def toggle_always_on(path: Path):
+    return toggle_job(path)
+
+
+def boot_is_enabled() -> bool:
+    return run(f"systemctl is-enabled {SERVICE}")[1].strip() == "enabled"
+
+
+def toggle_boot_at_startup() -> tuple[bool, str]:
+    if boot_is_enabled():
+        rc, out = run(f"pkexec systemctl disable {SERVICE}", timeout=30)
+        enabled = False
+    else:
+        rc, out = run(f"pkexec systemctl enable {SERVICE}", timeout=30)
+        enabled = True
+    if rc != 0:
+        raise RuntimeError(out or f"systemctl exit {rc}")
+    return enabled, out
+
+
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -138,10 +214,13 @@ class App(tk.Tk):
         self.after_id = None
         self.audio_after_id = None
         self.ssh_after_id = None
+        self.desk_settings = load_desk_settings()
+        self.usage_accounts = load_usage_accounts()
         self.make_ui()
         self.refresh()
         self.refresh_crons()
         self.refresh_audio()
+        self.refresh_settings()
 
     def make_ui(self):
         top = tk.Frame(self, bg=PANEL, padx=18, pady=12)
@@ -174,8 +253,12 @@ class App(tk.Tk):
         self.pages.pack(fill="both", expand=True, padx=14, pady=8)
         ops_page = tk.Frame(self.pages, bg=BG)
         audio_page = tk.Frame(self.pages, bg=BG)
+        settings_page = tk.Frame(self.pages, bg=BG)
+        usage_page = tk.Frame(self.pages, bg=BG)
         self.pages.add(ops_page, text="  OPERATIONS  ")
         self.pages.add(audio_page, text="  AUDIO  ")
+        self.pages.add(settings_page, text="  SETTINGS  ")
+        self.pages.add(usage_page, text="  USAGE  ")
 
         main = tk.Frame(ops_page, bg=BG, padx=0, pady=0)
         main.pack(fill="both", expand=True)
@@ -220,10 +303,13 @@ class App(tk.Tk):
         self.command.bind("<Return>",lambda e:self.execute_command())
         tk.Button(cli,text="RUN",command=self.execute_command,bg="#17222d",fg=CYAN,relief="flat",padx=16).pack(side="right")
         self.command.insert(0,"help")
+        # Cron controls now live under Settings. Keep Operations focused on live status.
+        cron.pack_forget()
 
 
         # SSH PAGE
         ssh_page = tk.Frame(self.pages, bg=BG)
+        self.ssh_page = ssh_page
         self.pages.add(ssh_page, text="  SSH MODE  ")
 
         ssh_head = tk.Frame(ssh_page, bg=PANEL, padx=14, pady=12)
@@ -410,6 +496,285 @@ class App(tk.Tk):
         tk.Button(audio_bottom, text="VIEW AUDIO LOG", command=self.show_audio_log,
                   bg="#17222d", fg=FG, relief="flat", padx=14, pady=8).pack(side="left", padx=8)
 
+        # SETTINGS PAGE — home for all Ava Desk configuration
+        settings_head = tk.Frame(settings_page, bg=PANEL, padx=14, pady=12)
+        settings_head.pack(fill="x")
+        tk.Label(settings_head, text="AVA DESK SETTINGS", font=TITLE, fg=CYAN, bg=PANEL).pack(side="left")
+        self.settings_count = tk.Label(
+            settings_head, text="SCANNING", font=("DejaVu Sans Mono", 9, "bold"), fg=DIM, bg=PANEL
+        )
+        self.settings_count.pack(side="right")
+        tk.Button(
+            settings_head, text="⟳ SCAN", command=self.refresh_settings,
+            bg="#17222d", fg=CYAN, relief="flat", padx=12
+        ).pack(side="right", padx=8)
+        tk.Button(
+            settings_head, text="TOGGLE SELECTED", command=self.toggle_selected_settings,
+            bg="#17222d", fg=YELLOW, relief="flat", padx=12
+        ).pack(side="right")
+
+        # Cron controls are intentionally built in Settings, rather than Operations.
+        cron_settings = tk.Frame(settings_page, bg=PANEL, padx=14, pady=10)
+        cron_settings.pack(fill="both", expand=True, padx=14, pady=(8, 0))
+        cron_head = tk.Frame(cron_settings, bg=PANEL); cron_head.pack(fill="x")
+        tk.Label(cron_head, text="CRONOLOGICAL JOBS", font=TITLE, fg=CYAN, bg=PANEL).pack(side="left")
+        self.cron_count = tk.Label(cron_head, text="SCANNING", font=("DejaVu Sans Mono",9,"bold"), fg=DIM, bg=PANEL)
+        self.cron_count.pack(side="right")
+        tk.Button(cron_head, text="⟳ SCAN", command=self.refresh_crons, bg="#17222d", fg=CYAN, relief="flat", padx=12).pack(side="right", padx=8)
+        tk.Button(cron_head, text="TOGGLE SELECTED", command=self.toggle_selected, bg="#17222d", fg=YELLOW, relief="flat", padx=12).pack(side="right")
+        tk.Label(cron_settings, text="Every scheduled script is controllable here. Renaming to .py.disabled prevents the runner from discovering it.", font=("DejaVu Sans Mono",9), fg=DIM, bg=PANEL).pack(anchor="w", pady=(4,8))
+        cron_tree_frame = tk.Frame(cron_settings, bg="#070b0f"); cron_tree_frame.pack(fill="both", expand=True)
+        self.cron_paths = {}
+        self.crontree = ttk.Treeview(cron_tree_frame, columns=("status","path"), show="headings", style="Ava.Treeview", selectmode="browse")
+        self.crontree.heading("status", text="STATUS"); self.crontree.heading("path", text="CRON PATH")
+        self.crontree.column("status", width=100, stretch=False); self.crontree.column("path", width=1000, stretch=True)
+        self.crontree.tag_configure("on", foreground=GREEN); self.crontree.tag_configure("off", foreground=RED)
+        cron_scroll = ttk.Scrollbar(cron_tree_frame, orient="vertical", command=self.crontree.yview)
+        self.crontree.configure(yscrollcommand=cron_scroll.set)
+        self.crontree.pack(side="left", fill="both", expand=True); cron_scroll.pack(side="right", fill="y")
+        self.crontree.bind("<Double-1>", lambda e:self.toggle_selected())
+
+        proc_panel = tk.Frame(settings_page, bg=PANEL, padx=14, pady=10)
+        proc_panel.pack(fill="both", expand=True, padx=14, pady=(8, 0))
+        tk.Label(
+            proc_panel, text="SYSTEM PROCESSES (always-on)",
+            font=TITLE, fg=CYAN, bg=PANEL
+        ).pack(anchor="w")
+        tk.Label(
+            proc_panel,
+            text="Rename to .py.disabled to stop a process. Ava-core supervisor picks up changes within seconds.",
+            font=("DejaVu Sans Mono", 9), fg=DIM, bg=PANEL, justify="left"
+        ).pack(anchor="w", pady=(4, 8))
+
+        proc_tree_frame = tk.Frame(proc_panel, bg="#070b0f")
+        proc_tree_frame.pack(fill="both", expand=True)
+        style.configure(
+            "Settings.Treeview", background="#070b0f", foreground=FG, fieldbackground="#070b0f",
+            rowheight=26, font=("DejaVu Sans Mono", 9)
+        )
+        style.configure(
+            "Settings.Treeview.Heading", background="#17222d", foreground=CYAN,
+            font=("DejaVu Sans Mono", 9, "bold")
+        )
+        self.settings_paths = {}
+        self.settingstree = ttk.Treeview(
+            proc_tree_frame, columns=("status", "path"), show="headings",
+            style="Settings.Treeview", selectmode="browse"
+        )
+        self.settingstree.heading("status", text="STATUS")
+        self.settingstree.heading("path", text="PROCESS")
+        self.settingstree.column("status", width=100, stretch=False)
+        self.settingstree.column("path", width=1000, stretch=True)
+        self.settingstree.tag_configure("on", foreground=GREEN)
+        self.settingstree.tag_configure("off", foreground=RED)
+        sscroll = ttk.Scrollbar(proc_tree_frame, orient="vertical", command=self.settingstree.yview)
+        self.settingstree.configure(yscrollcommand=sscroll.set)
+        self.settingstree.pack(side="left", fill="both", expand=True)
+        sscroll.pack(side="right", fill="y")
+        self.settingstree.bind("<Double-1>", lambda e: self.toggle_selected_settings())
+
+        options_panel = tk.Frame(settings_page, bg=PANEL, padx=14, pady=14)
+        options_panel.pack(fill="x", padx=14, pady=(8, 8))
+        tk.Label(options_panel, text="SYSTEM OPTIONS", font=TITLE, fg=CYAN, bg=PANEL).pack(anchor="w")
+
+        opt_row = tk.Frame(options_panel, bg=PANEL)
+        opt_row.pack(fill="x", pady=(10, 0))
+
+        dir_box = tk.Frame(opt_row, bg=PANEL2, padx=14, pady=12, highlightthickness=1, highlightbackground="#23313d")
+        dir_box.pack(side="left", fill="both", expand=True, padx=(0, 6))
+        tk.Label(dir_box, text="PUBLIC /DIRECTORY PAGE", font=("DejaVu Sans Mono", 9, "bold"), fg=DIM, bg=PANEL2).pack(anchor="w")
+        self.settings_directory_status = tk.Label(dir_box, text="CHECKING", font=FONT, fg=YELLOW, bg=PANEL2)
+        self.settings_directory_status.pack(anchor="w", pady=(6, 8))
+        self.settings_directory_btn = tk.Button(
+            dir_box, text="TOGGLE DIRECTORY", command=self.toggle_directory_setting,
+            bg="#17222d", fg=YELLOW, relief="flat", padx=12, pady=6
+        )
+        self.settings_directory_btn.pack(anchor="w")
+
+        boot_box = tk.Frame(opt_row, bg=PANEL2, padx=14, pady=12, highlightthickness=1, highlightbackground="#23313d")
+        boot_box.pack(side="left", fill="both", expand=True, padx=(6, 0))
+        tk.Label(boot_box, text="AVA CORE AT BOOT", font=("DejaVu Sans Mono", 9, "bold"), fg=DIM, bg=PANEL2).pack(anchor="w")
+        self.settings_boot_status = tk.Label(boot_box, text="CHECKING", font=FONT, fg=YELLOW, bg=PANEL2)
+        self.settings_boot_status.pack(anchor="w", pady=(6, 8))
+        self.settings_boot_btn = tk.Button(
+            boot_box, text="TOGGLE BOOT START", command=self.toggle_boot_setting,
+            bg="#17222d", fg=YELLOW, relief="flat", padx=12, pady=6
+        )
+        self.settings_boot_btn.pack(anchor="w")
+
+        ssh_box = tk.Frame(opt_row, bg=PANEL2, padx=14, pady=12, highlightthickness=1, highlightbackground="#23313d")
+        ssh_box.pack(side="left", fill="both", expand=True, padx=(6, 0))
+        tk.Label(ssh_box, text="SSH MODE VISIBILITY", font=("DejaVu Sans Mono", 9, "bold"), fg=DIM, bg=PANEL2).pack(anchor="w")
+        self.settings_ssh_status = tk.Label(ssh_box, text="CHECKING", font=FONT, fg=YELLOW, bg=PANEL2)
+        self.settings_ssh_status.pack(anchor="w", pady=(6, 8))
+        self.settings_ssh_btn = tk.Button(ssh_box, command=self.toggle_ssh_visibility, bg="#17222d", fg=YELLOW, relief="flat", padx=12, pady=6)
+        self.settings_ssh_btn.pack(anchor="w")
+
+        tk.Label(
+            settings_page,
+            text="All Ava Desk settings will live on this tab. SSH and other controls will move here over time.",
+            font=("DejaVu Sans Mono", 9), fg=DIM, bg=BG, justify="left"
+        ).pack(anchor="w", padx=18, pady=(0, 10))
+
+        self.make_usage_ui(usage_page)
+        if not self.desk_settings.get("ssh_mode_visible", True):
+            self.pages.hide(self.ssh_page)
+
+    def make_usage_ui(self, page):
+        """Initial local account ledger.  It deliberately stores metadata, never API tokens."""
+        head = tk.Frame(page, bg=PANEL, padx=14, pady=12); head.pack(fill="x")
+        tk.Label(head, text="AI ACCOUNT USAGE", font=TITLE, fg=CYAN, bg=PANEL).pack(side="left")
+        self.usage_summary = tk.Label(head, text="0 ACCOUNTS", font=("DejaVu Sans Mono",9,"bold"), fg=DIM, bg=PANEL)
+        self.usage_summary.pack(side="right")
+        tk.Button(head, text="OPEN CONTEXT FOLDER", command=self.open_usage_folder, bg="#17222d", fg=CYAN, relief="flat", padx=12).pack(side="right", padx=8)
+        tk.Button(head, text="NEW ACCOUNT", command=self.new_usage_account, bg="#17222d", fg=GREEN, relief="flat", padx=12).pack(side="right")
+
+        body = tk.Frame(page, bg=BG, padx=14, pady=10); body.pack(fill="both", expand=True)
+        left = tk.Frame(body, bg=PANEL, padx=10, pady=10); left.pack(side="left", fill="both", expand=True, padx=(0,6))
+        right = tk.Frame(body, bg=PANEL, padx=14, pady=12); right.pack(side="left", fill="both", expand=True, padx=(6,0))
+        tk.Label(left, text="ACCOUNTS", font=TITLE, fg=CYAN, bg=PANEL).pack(anchor="w")
+        self.usage_tree = ttk.Treeview(left, columns=("state","account","reset"), show="headings", style="Ava.Treeview", selectmode="browse")
+        for column, text, width in (("state","STATE",90),("account","ACCOUNT",220),("reset","NEXT RESET",180)):
+            self.usage_tree.heading(column, text=text); self.usage_tree.column(column, width=width, stretch=column == "account")
+        self.usage_tree.tag_configure("available", foreground=GREEN); self.usage_tree.tag_configure("unavailable", foreground=RED)
+        usage_scroll = ttk.Scrollbar(left, orient="vertical", command=self.usage_tree.yview); self.usage_tree.configure(yscrollcommand=usage_scroll.set)
+        self.usage_tree.pack(side="left", fill="both", expand=True, pady=(8,0)); usage_scroll.pack(side="right", fill="y", pady=(8,0))
+        self.usage_tree.bind("<<TreeviewSelect>>", lambda _e:self.load_selected_usage())
+
+        tk.Label(right, text="ACCOUNT DETAILS", font=TITLE, fg=CYAN, bg=PANEL).pack(anchor="w")
+        fields = tk.Frame(right, bg=PANEL); fields.pack(fill="x", pady=(8,0))
+        self.usage_name = self.usage_entry(fields, "Account name")
+        self.usage_provider = self.usage_entry(fields, "Provider / AI")
+        self.usage_reset = self.usage_entry(fields, "Next reset (YYYY-MM-DD HH:MM)")
+        self.usage_token = self.usage_entry(fields, "API token usage (count / summary)")
+        self.usage_available = tk.BooleanVar(value=True)
+        tk.Checkbutton(fields, text="Available", variable=self.usage_available, bg=PANEL, fg=FG, selectcolor="#17222d", activebackground=PANEL, activeforeground=FG).pack(anchor="w", pady=(6,0))
+        self.usage_countdown = tk.Label(fields, text="No reset scheduled", font=("DejaVu Sans Mono",10,"bold"), fg=DIM, bg=PANEL)
+        self.usage_countdown.pack(anchor="w", pady=(4,8))
+        self.usage_information = self.usage_text(right, "Information / billing")
+        self.usage_notes = self.usage_text(right, "Notes")
+        self.usage_session = self.usage_text(right, "Recent session log (saved as .txt)")
+        actions = tk.Frame(right, bg=PANEL); actions.pack(fill="x", pady=(10,0))
+        for text, command, color in (("SAVE", self.save_usage_account, GREEN), ("DELETE", self.delete_usage_account, RED), ("RESET USAGE", self.reset_usage, YELLOW), ("RESET BILLING", self.reset_billing, YELLOW), ("ADD NOTES", self.add_usage_notes, CYAN), ("UPLOAD .TXT", self.upload_session_log, CYAN)):
+            tk.Button(actions, text=text, command=command, bg="#17222d", fg=color, relief="flat", padx=8, pady=6).pack(side="left", padx=(0,5), pady=(0,5))
+        tk.Label(right, text="Usage data is stored under /home/ava-core/context/usage/. API tokens are not stored; enter only usage totals or summaries.", font=("DejaVu Sans Mono",8), fg=DIM, bg=PANEL, justify="left", wraplength=520).pack(anchor="w", pady=(6,0))
+        self.refresh_usage()
+        self.after(1000, self.refresh_usage_countdown)
+
+    def usage_entry(self, parent, label):
+        tk.Label(parent, text=label.upper(), font=("DejaVu Sans Mono",8,"bold"), fg=DIM, bg=PANEL).pack(anchor="w", pady=(5,0))
+        entry = tk.Entry(parent, bg="#070b0f", fg=FG, insertbackground=CYAN, relief="flat", font=FONT)
+        entry.pack(fill="x", ipady=5)
+        return entry
+
+    def usage_text(self, parent, label):
+        tk.Label(parent, text=label.upper(), font=("DejaVu Sans Mono",8,"bold"), fg=DIM, bg=PANEL).pack(anchor="w", pady=(8,0))
+        box = tk.Text(parent, height=3, bg="#070b0f", fg=FG, insertbackground=CYAN, relief="flat", font=("DejaVu Sans Mono",9), wrap="word")
+        box.pack(fill="x")
+        return box
+
+    def usage_form_value(self, widget):
+        return widget.get("1.0", "end-1c").strip() if isinstance(widget, tk.Text) else widget.get().strip()
+
+    def set_usage_form_value(self, widget, value):
+        if isinstance(widget, tk.Text):
+            widget.delete("1.0", "end"); widget.insert("1.0", value or "")
+        else:
+            widget.delete(0, "end"); widget.insert(0, value or "")
+
+    def new_usage_account(self):
+        self.usage_tree.selection_remove(self.usage_tree.selection())
+        for widget in (self.usage_name, self.usage_provider, self.usage_reset, self.usage_token, self.usage_information, self.usage_notes, self.usage_session): self.set_usage_form_value(widget, "")
+        self.usage_available.set(True); self.usage_name.focus_set()
+
+    def selected_usage_index(self):
+        selection = self.usage_tree.selection()
+        return int(selection[0]) if selection else None
+
+    def load_selected_usage(self):
+        index = self.selected_usage_index()
+        if index is None or index >= len(self.usage_accounts): return
+        account = self.usage_accounts[index]
+        for widget, key in ((self.usage_name,"name"),(self.usage_provider,"provider"),(self.usage_reset,"next_reset"),(self.usage_token,"api_token_usage"),(self.usage_information,"information"),(self.usage_notes,"notes")):
+            self.set_usage_form_value(widget, str(account.get(key, "")))
+        self.set_usage_form_value(self.usage_session, "")
+        self.usage_available.set(bool(account.get("available", True)))
+        self.refresh_usage_countdown()
+
+    def save_usage_account(self):
+        name = self.usage_form_value(self.usage_name)
+        if not name:
+            messagebox.showinfo("Usage", "Give the account a name first."); return
+        reset = self.usage_form_value(self.usage_reset)
+        if reset:
+            try: datetime.fromisoformat(reset.replace("Z", "+00:00"))
+            except ValueError:
+                messagebox.showerror("Usage", "Use a reset time like 2026-08-25 14:30."); return
+        index = self.selected_usage_index()
+        account = self.usage_accounts[index] if index is not None and index < len(self.usage_accounts) else {"id": f"account-{datetime.now():%Y%m%d%H%M%S}"}
+        for key, widget in (("name",self.usage_name),("provider",self.usage_provider),("next_reset",self.usage_reset),("api_token_usage",self.usage_token),("information",self.usage_information),("notes",self.usage_notes)):
+            account[key] = self.usage_form_value(widget)
+        account["available"] = bool(self.usage_available.get()); account["updated_at"] = datetime.now(timezone.utc).isoformat()
+        log = self.usage_form_value(self.usage_session)
+        if log:
+            log_dir = USAGE_ROOT / "sessions" / account["id"]; log_dir.mkdir(parents=True, exist_ok=True)
+            log_name = f"session-{datetime.now():%Y%m%d-%H%M%S}.txt"; (log_dir / log_name).write_text(log + "\n", encoding="utf-8")
+            account["last_session_log"] = str((Path("sessions") / account["id"] / log_name))
+        if index is None: self.usage_accounts.append(account)
+        else: self.usage_accounts[index] = account
+        save_usage_accounts(self.usage_accounts); self.refresh_usage(select_index=index if index is not None else len(self.usage_accounts)-1)
+
+    def delete_usage_account(self):
+        index = self.selected_usage_index()
+        if index is None: messagebox.showinfo("Usage", "Select an account to remove."); return
+        if messagebox.askyesno("Usage", f"Remove {self.usage_accounts[index].get('name', 'this account')} from the usage ledger?"):
+            del self.usage_accounts[index]; save_usage_accounts(self.usage_accounts); self.new_usage_account(); self.refresh_usage()
+
+    def reset_usage(self):
+        self.set_usage_form_value(self.usage_token, "0"); self.usage_available.set(True); self.save_usage_account()
+
+    def reset_billing(self):
+        self.set_usage_form_value(self.usage_information, ""); self.save_usage_account()
+
+    def add_usage_notes(self):
+        note = simpledialog.askstring("Usage notes", "Add a note to the selected account:", parent=self)
+        if note:
+            prior = self.usage_form_value(self.usage_notes); self.set_usage_form_value(self.usage_notes, (prior + "\n" if prior else "") + f"[{datetime.now():%Y-%m-%d %H:%M}] {note}"); self.save_usage_account()
+
+    def upload_session_log(self):
+        path = filedialog.askopenfilename(title="Choose a session log", filetypes=[("Text files", "*.txt")])
+        if not path: return
+        try: self.set_usage_form_value(self.usage_session, Path(path).read_text(encoding="utf-8", errors="replace"))
+        except OSError as e: messagebox.showerror("Usage", f"Could not read log:\n{e}")
+
+    def open_usage_folder(self):
+        USAGE_ROOT.mkdir(parents=True, exist_ok=True)
+        try: subprocess.Popen(["xdg-open", str(USAGE_ROOT)])
+        except OSError as e: messagebox.showerror("Usage", f"Could not open context folder:\n{e}")
+
+    def refresh_usage(self, select_index=None):
+        self.usage_accounts = load_usage_accounts()
+        for item in self.usage_tree.get_children(): self.usage_tree.delete(item)
+        available = 0
+        for index, account in enumerate(self.usage_accounts):
+            is_available = bool(account.get("available", True)); available += int(is_available)
+            self.usage_tree.insert("", "end", iid=str(index), values=("● AVAILABLE" if is_available else "● FULL", f"{account.get('provider','')} {account.get('name','')}".strip(), account.get("next_reset") or "—"), tags=("available" if is_available else "unavailable",))
+        self.usage_summary.configure(text=f"{len(self.usage_accounts)} ACCOUNTS  •  {available} AVAILABLE")
+        if select_index is not None and str(select_index) in self.usage_tree.get_children(): self.usage_tree.selection_set(str(select_index)); self.usage_tree.focus(str(select_index))
+        self.refresh_usage_countdown()
+
+    def refresh_usage_countdown(self):
+        index = self.selected_usage_index()
+        if index is not None and index < len(self.usage_accounts):
+            reset = self.usage_accounts[index].get("next_reset", "")
+            try:
+                target = datetime.fromisoformat(reset.replace("Z", "+00:00"))
+                if target.tzinfo is None: target = target.replace(tzinfo=timezone.utc)
+                seconds = int((target - datetime.now(timezone.utc)).total_seconds())
+                text = f"RESET {'IN ' if seconds >= 0 else 'OVERDUE BY '}{abs(seconds)//3600:02d}:{abs(seconds)%3600//60:02d}:{abs(seconds)%60:02d}"
+                self.usage_countdown.configure(text=text, fg=GREEN if seconds >= 0 else RED)
+            except (ValueError, TypeError): self.usage_countdown.configure(text="No reset scheduled", fg=DIM)
+        if self.winfo_exists(): self.after(1000, self.refresh_usage_countdown)
 
 
     def state(self, cmd):
@@ -467,7 +832,7 @@ class App(tk.Tk):
         threading.Thread(target=worker, daemon=True).start()
 
     def show_audio_log(self):
-        p = Path("/home/ava-core/Database/logs/ava-core-audio.log")
+        p = Path("/home/ava-core/database/logs/ava-core-audio.log")
         try:
             text = "\n".join(p.read_text(errors="replace").splitlines()[-120:]) if p.exists() else "No audio log yet."
         except Exception as e:
@@ -503,6 +868,133 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showerror("AVA Core", f"Cron toggle failed:\n{e}")
 
+    def refresh_settings(self):
+        selected = self.settingstree.selection()
+        selected_path = self.settings_paths.get(selected[0]) if selected else None
+        self.settings_paths.clear()
+        for item in self.settingstree.get_children():
+            self.settingstree.delete(item)
+        jobs = always_on_jobs()
+        on_count = off_count = 0
+        for job in jobs:
+            enabled = job["enabled"]
+            on_count += int(enabled)
+            off_count += int(not enabled)
+            iid = self.settingstree.insert(
+                "", "end",
+                values=("● ON" if enabled else "○ OFF", job["rel"]),
+                tags=("on" if enabled else "off",),
+            )
+            self.settings_paths[iid] = str(job["path"])
+            if selected_path == str(job["path"]):
+                self.settingstree.selection_set(iid)
+        self.settings_count.configure(
+            text=f"{len(jobs)} PROCESSES  •  {on_count} ON  •  {off_count} OFF"
+        )
+
+        dir_on = directory_is_enabled()
+        self.settings_directory_status.configure(
+            text=f"Directory browser is {'ON' if dir_on else 'OFF'}",
+            fg=GREEN if dir_on else RED,
+        )
+        self.settings_directory_btn.configure(
+            text="DISABLE /DIRECTORY" if dir_on else "ENABLE /DIRECTORY"
+        )
+
+        boot_on = boot_is_enabled()
+        self.settings_boot_status.configure(
+            text=f"systemctl is-{'enabled' if boot_on else 'disabled'} ({SERVICE})",
+            fg=GREEN if boot_on else RED,
+        )
+        self.settings_boot_btn.configure(
+            text="DISABLE BOOT START" if boot_on else "ENABLE BOOT START"
+        )
+        ssh_visible = self.desk_settings.get("ssh_mode_visible", True)
+        self.settings_ssh_status.configure(
+            text="SSH Mode tab is VISIBLE" if ssh_visible else "SSH Mode hidden; server locked down",
+            fg=GREEN if ssh_visible else RED,
+        )
+        self.settings_ssh_btn.configure(
+            text="HIDE & LOCK DOWN SSH" if ssh_visible else "SHOW SSH MODE"
+        )
+
+    def toggle_selected_settings(self):
+        sel = self.settingstree.selection()
+        if not sel:
+            messagebox.showinfo("AVA Settings", "Select a system process first.")
+            return
+        path = Path(self.settings_paths.get(sel[0], ""))
+        if not path:
+            return
+        try:
+            target, enabled = toggle_always_on(path)
+            self.show_command_result(
+                "settings process toggle",
+                f"{'ENABLED' if enabled else 'DISABLED'}\n{target}\n"
+                f"(ava-core supervisor applies within a few seconds)",
+            )
+            self.refresh_settings()
+            self.refresh()
+        except Exception as e:
+            messagebox.showerror("AVA Settings", f"Process toggle failed:\n{e}")
+
+    def toggle_directory_setting(self):
+        try:
+            enabled = toggle_directory()
+            self.refresh_settings()
+            self.refresh()
+            self.show_command_result(
+                "directory toggle",
+                f"{'ENABLED' if enabled else 'DISABLED'}\nhttp://localhost:8080/directory/",
+            )
+        except Exception as e:
+            messagebox.showerror("AVA Settings", f"Directory toggle failed:\n{e}")
+
+    def toggle_boot_setting(self):
+        def worker():
+            try:
+                enabled, out = toggle_boot_at_startup()
+                self.after(0, lambda: self.show_command_result(
+                    "boot toggle",
+                    f"{'ENABLED' if enabled else 'DISABLED'}\n{SERVICE}\n{out}",
+                ))
+                self.after(0, self.refresh_settings)
+                self.after(0, self.refresh)
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("AVA Settings", f"Boot toggle failed:\n{e}"))
+        threading.Thread(target=worker, daemon=True).start()
+
+    def toggle_ssh_visibility(self):
+        """Hiding the tab is a security action: stop and disable OpenSSH first."""
+        visible = self.desk_settings.get("ssh_mode_visible", True)
+        if not visible:
+            self.desk_settings["ssh_mode_visible"] = True
+            save_desk_settings(self.desk_settings)
+            self.pages.add(self.ssh_page, text="  SSH MODE  ")
+            self.refresh_settings(); self.refresh_ssh()
+            return
+        if not messagebox.askyesno(
+            "Hide and lock SSH Mode",
+            "Hide SSH Mode and disable both ssh.service and ssh.socket?\n\n"
+            "The tab will only be hidden after the lockdown succeeds.",
+        ):
+            return
+        self.settings_ssh_btn.configure(state="disabled", text="LOCKING DOWN SSH…")
+        def worker():
+            rc, out = self.ssh_command("systemctl disable --now ssh.service ssh.socket", timeout=30)
+            def done():
+                self.settings_ssh_btn.configure(state="normal")
+                if rc != 0:
+                    messagebox.showerror("SSH Mode", "SSH was not hidden because lockdown failed.\n\n" + (out or "Unknown error."))
+                    self.refresh_settings(); return
+                self.desk_settings["ssh_mode_visible"] = False
+                save_desk_settings(self.desk_settings)
+                self.pages.hide(self.ssh_page)
+                self.refresh_settings()
+                self.show_command_result("ssh lockdown", out or "SSH service and socket disabled")
+            self.after(0, done)
+        threading.Thread(target=worker, daemon=True).start()
+
     def refresh(self):
         def worker():
             active = run(f"systemctl is-active {SERVICE}")[1].strip()=="active"
@@ -534,6 +1026,7 @@ class App(tk.Tk):
         if self.after_id: self.after_cancel(self.after_id)
         self.after_id=self.after(2000,self.refresh)
         self.refresh_audio()
+        self.refresh_settings()
 
     def do_action(self,action):
         if action=="stop" and not messagebox.askyesno("AVA Core","Stop Ava-Core and its managed processes?"): return
@@ -543,11 +1036,16 @@ class App(tk.Tk):
         raw=self.command.get().strip(); cmd=raw.lower()
         aliases={"status":f"systemctl --no-pager status {SERVICE}","start":f"pkexec systemctl start {SERVICE}",
                  "stop":f"pkexec systemctl stop {SERVICE}","restart":f"pkexec systemctl restart {SERVICE}",
-                 "logs":"tail -100 /home/ava-core/Database/logs/ava-core.log",
+                 "logs":"tail -100 /home/ava-core/database/logs/ava-core.log",
                  "processes":"ps -eo pid,ppid,stat,etime,cmd | grep -E '[p]ython.*ava-core.py|[a]vaivy_cloudflare_watchdog.py|[b]roadcast.py|[c]loudflared'",
                  "port":"ss -ltnp | grep ':8080'",
-                 "help":"Commands: help | status | start | stop | restart | logs | processes | port | refresh | crons | toggle <cron-path> | audio | audio-toggle <audio-path> | audio-log | directory | directory-toggle"}
-        if cmd=="refresh": self.refresh(); self.refresh_crons(); return
+                 "help":"Commands: help | status | start | stop | restart | logs | processes | port | refresh | crons | settings | toggle <cron-path> | audio | audio-toggle <audio-path> | audio-log | directory | directory-toggle"}
+        if cmd=="refresh": self.refresh(); self.refresh_crons(); self.refresh_settings(); return
+        if cmd=="settings":
+            self.pages.select(2)
+            self.refresh_settings()
+            self.show_command_result("settings", f"Scanned {ALWAYS_ON}")
+            return
         if cmd=="crons":
             self.refresh_crons(); self.show_command_result("crons", f"Scanned {CRONO_ROOT}"); return
         if cmd in ("directory", "dir"):
@@ -727,10 +1225,3 @@ class App(tk.Tk):
 
 if __name__=="__main__":
     App().mainloop()
-
-
-    # ============================================================
-    # SSH MODE
-    # ============================================================
-
-App().mainloop()

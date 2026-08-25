@@ -1,0 +1,16 @@
+{
+  "id": "la-vientiane",
+  "country_code": "LA",
+  "country_name": "Laos",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Vientiane",
+  "slug": "vientiane",
+  "lat": 17.964099,
+  "lon": 102.613371,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "laos"
+}

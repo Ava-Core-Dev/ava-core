@@ -1,0 +1,78 @@
+# Ava Ivy — Directory (llms.txt)
+
+> Transparent, read-only directory browser for the Ava home tree.
+> Agents: prefer the JSON APIs and path-based file URLs below. Do not rely on the client-rendered HTML page.
+
+## Root
+
+Live root is reported by the status endpoint (usually `/home/ava-core` or `/home/ava-ivy`).
+
+- Status: https://directory.avaivy.cloud/api/directory/status
+- UI: https://directory.avaivy.cloud/
+
+## List directories (JSON)
+
+```
+GET https://directory.avaivy.cloud/api/directory/list?path=<rel>&recursive=0
+```
+
+- `path` — relative to the directory root (empty = root)
+- `recursive` — `0` or `1`
+- Secrets, credentials, and `.env*` are excluded from listings
+- Sensitive paths appear with `"sensitive": true` but content is never served
+
+Example:
+https://directory.avaivy.cloud/api/directory/list?path=.ollama&recursive=0
+https://directory.avaivy.cloud/api/directory/list?path=operations&recursive=0
+
+## Read a non-sensitive file (preferred for agents)
+
+### Path-based raw file URL (no JS required)
+
+```
+https://directory.avaivy.cloud/ava-ivy/file/<relative/path/to/file>
+```
+
+Examples:
+- https://directory.avaivy.cloud/ava-ivy/file/README.md
+- https://directory.avaivy.cloud/ava-ivy/file/operations/broadcast.py
+- https://directory.avaivy.cloud/ava-ivy/file/web/sites/avaivy.cloud/directory/directory.js
+
+### JSON wrapper (metadata + content)
+
+```
+GET https://directory.avaivy.cloud/api/directory/file?path=<rel>&format=json
+```
+
+Returns `{ ok, status, meta, content, content_type }`.
+
+## Browser UI deep links (path = real location)
+
+The address bar mirrors the filesystem under the reported root:
+
+- https://directory.avaivy.cloud/home/ava-core
+- https://directory.avaivy.cloud/home/ava-core/.ollama
+- https://directory.avaivy.cloud/home/ava-core/operations
+- https://directory.avaivy.cloud/home/ava-core/web/sites/avaivy.cloud
+
+Also accepted: `?path=<rel>` on `/` or `/directory`.
+
+## Safety rules (enforced server-side)
+
+- Hidden entirely: credential-like names, `.env*`, `.ssh`, tunnel tokens, etc.
+- Listed but content blocked: sensitive session/auth-related paths
+- Binary / non-text: short notice returned instead of body
+- Text previews capped (server default ~2 MiB)
+
+## How an agent should explore
+
+1. `GET /api/directory/status` → learn `root`
+2. `GET /api/directory/list?path=&recursive=0` → top-level tree
+3. Descend with `path=<rel>`
+4. For each readable file, fetch `/ava-ivy/file/<rel>` or the JSON file API
+5. Never request secrets; they will 404/403 by design
+
+## Related
+
+- Ava energy dashboard (same origin host): https://avaivy.cloud/
+- Systems: https://avaivy.cloud/system/

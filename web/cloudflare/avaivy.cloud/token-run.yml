@@ -1,0 +1,4 @@
+# Ava Ivy token-run isolation file.
+# The tunnel token supplies tunnel identity and Cloudflare remotely supplies ingress.
+# This intentionally contains no credentials-file, tunnel ID, or other hostname.
+no-autoupdate: true

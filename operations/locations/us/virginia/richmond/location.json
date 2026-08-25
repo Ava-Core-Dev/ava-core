@@ -1,0 +1,15 @@
+{
+  "id": "us-virginia-richmond",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Virginia",
+  "admin1_name": "Virginia",
+  "admin1_slug": "virginia",
+  "name": "Richmond",
+  "slug": "richmond",
+  "lat": 37.538857,
+  "lon": -77.43364,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

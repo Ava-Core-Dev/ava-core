@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-hilo",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Hilo",
+  "slug": "hilo",
+  "lat": 19.7297,
+  "lon": -155.09,
+  "kind": "state-location",
+  "region": "Hawaiʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

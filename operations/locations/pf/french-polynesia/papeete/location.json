@@ -1,0 +1,16 @@
+{
+  "id": "pf-papeete",
+  "country_code": "PF",
+  "country_name": "French Polynesia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Papeetē",
+  "slug": "papeete",
+  "lat": -17.537384,
+  "lon": -149.565996,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "french-polynesia"
+}

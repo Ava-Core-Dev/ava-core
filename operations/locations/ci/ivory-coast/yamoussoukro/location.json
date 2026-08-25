@@ -1,0 +1,16 @@
+{
+  "id": "ci-yamoussoukro",
+  "country_code": "CI",
+  "country_name": "Ivory Coast",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Yamoussoukro",
+  "slug": "yamoussoukro",
+  "lat": 6.809107,
+  "lon": -5.273263,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "ivory-coast"
+}

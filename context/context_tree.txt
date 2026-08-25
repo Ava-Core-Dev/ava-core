@@ -1,0 +1,47 @@
+# TREE: /home/ava-core/context
+# Generated: 2026-08-25 00:36:49 UTC
+
+[DIR] context
+    /home/ava-core/context
+├── [DIR ] common-bugs
+│       /home/ava-core/context/common-bugs
+│   ├── [DIR ] ava-desk
+│   │       /home/ava-core/context/common-bugs/ava-desk
+│   │   ├── [FILE] launcher-breakage.md
+│   │   │       /home/ava-core/context/common-bugs/ava-desk/launcher-breakage.md
+│   │   ├── [FILE] safe-patching.md
+│   │   │       /home/ava-core/context/common-bugs/ava-desk/safe-patching.md
+│   │   └── [FILE] tkinter-class-method-placement.md
+│   │           /home/ava-core/context/common-bugs/ava-desk/tkinter-class-method-placement.md
+│   ├── [DIR ] cloudflare
+│   │       /home/ava-core/context/common-bugs/cloudflare
+│   │   └── [FILE] actual-tunnel-layout.md
+│   │           /home/ava-core/context/common-bugs/cloudflare/actual-tunnel-layout.md
+│   ├── [DIR ] cronologicals
+│   │       /home/ava-core/context/common-bugs/cronologicals
+│   │   └── [FILE] README.md
+│   │           /home/ava-core/context/common-bugs/cronologicals/README.md
+│   ├── [DIR ] python
+│   │       /home/ava-core/context/common-bugs/python
+│   │   └── [FILE] tkinter-compile-is-not-enough.md
+│   │           /home/ava-core/context/common-bugs/python/tkinter-compile-is-not-enough.md
+│   ├── [DIR ] ssh
+│   │       /home/ava-core/context/common-bugs/ssh
+│   │   └── [FILE] ssh-mode.md
+│   │           /home/ava-core/context/common-bugs/ssh/ssh-mode.md
+│   ├── [DIR ] systemd
+│   │       /home/ava-core/context/common-bugs/systemd
+│   │   └── [FILE] database-log-path-case.md
+│   │           /home/ava-core/context/common-bugs/systemd/database-log-path-case.md
+│   ├── [FILE] AGENTS.md
+│   │       /home/ava-core/context/common-bugs/AGENTS.md
+│   └── [FILE] README.md
+│           /home/ava-core/context/common-bugs/README.md
+├── [FILE] AGENTS.md
+│       /home/ava-core/context/AGENTS.md
+├── [FILE] ava-directory-sync.log
+│       /home/ava-core/context/ava-directory-sync.log
+└── [FILE] context.txt
+        /home/ava-core/context/context.txt
+
+# Total entries: 20

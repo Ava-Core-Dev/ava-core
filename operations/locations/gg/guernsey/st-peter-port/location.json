@@ -1,0 +1,16 @@
+{
+  "id": "gg-st-peter-port",
+  "country_code": "GG",
+  "country_name": "Guernsey",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "St. Peter Port",
+  "slug": "st-peter-port",
+  "lat": 49.456814,
+  "lon": -2.538998,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "guernsey"
+}

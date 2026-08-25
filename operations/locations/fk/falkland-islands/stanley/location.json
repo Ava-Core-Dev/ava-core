@@ -1,0 +1,16 @@
+{
+  "id": "fk-stanley",
+  "country_code": "FK",
+  "country_name": "Falkland Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Stanley",
+  "slug": "stanley",
+  "lat": -51.695058,
+  "lon": -57.849169,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "falkland-islands"
+}

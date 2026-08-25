@@ -1,0 +1,16 @@
+{
+  "id": "pw-ngerulmud",
+  "country_code": "PW",
+  "country_name": "Palau",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ngerulmud",
+  "slug": "ngerulmud",
+  "lat": 7.500619,
+  "lon": 134.624301,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Micronesia",
+  "country_slug": "palau"
+}

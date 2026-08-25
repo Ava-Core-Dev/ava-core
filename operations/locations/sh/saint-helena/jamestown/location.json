@@ -1,0 +1,16 @@
+{
+  "id": "sh-jamestown",
+  "country_code": "SH",
+  "country_name": "Saint Helena",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Jamestown",
+  "slug": "jamestown",
+  "lat": 37.210443,
+  "lon": -76.773893,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "saint-helena"
+}

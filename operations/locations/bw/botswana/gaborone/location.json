@@ -1,0 +1,16 @@
+{
+  "id": "bw-gaborone",
+  "country_code": "BW",
+  "country_name": "Botswana",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Gaborone",
+  "slug": "gaborone",
+  "lat": -24.658136,
+  "lon": 25.908847,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Southern Africa",
+  "country_slug": "botswana"
+}

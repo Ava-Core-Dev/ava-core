@@ -1,0 +1,1 @@
+async function refreshCore(){try{const x=await fetch('/api/status',{cache:'no-store'}).then(r=>r.json());const e=document.querySelector('.status span');if(e)e.textContent=x.ok?'CORE ONLINE':'CORE DEGRADED'}catch{const e=document.querySelector('.status span');if(e)e.textContent='CORE OFFLINE'}}refreshCore();setInterval(refreshCore,10000);

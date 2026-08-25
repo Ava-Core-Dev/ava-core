@@ -1,0 +1,16 @@
+{
+  "id": "gt-guatemala-city",
+  "country_code": "GT",
+  "country_name": "Guatemala",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Guatemala City",
+  "slug": "guatemala-city",
+  "lat": 14.622233,
+  "lon": -90.518519,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "guatemala"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "tl-dili",
+  "country_code": "TL",
+  "country_name": "East Timor",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Dili",
+  "slug": "dili",
+  "lat": 28.651718,
+  "lon": 77.221939,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "east-timor"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cf-bangui",
+  "country_code": "CF",
+  "country_name": "Central African Republic",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bangui",
+  "slug": "bangui",
+  "lat": 4.390715,
+  "lon": 18.550913,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "central-african-republic"
+}

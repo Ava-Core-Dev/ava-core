@@ -1,0 +1,16 @@
+{
+  "id": "ss-juba",
+  "country_code": "SS",
+  "country_name": "South Sudan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Juba",
+  "slug": "juba",
+  "lat": 4.847202,
+  "lon": 31.595166,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "south-sudan"
+}

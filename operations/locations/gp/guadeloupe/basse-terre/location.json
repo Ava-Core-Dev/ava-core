@@ -1,0 +1,16 @@
+{
+  "id": "gp-basse-terre",
+  "country_code": "GP",
+  "country_name": "Guadeloupe",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Basse-Terre",
+  "slug": "basse-terre",
+  "lat": 16.000078,
+  "lon": -61.733337,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "guadeloupe"
+}

@@ -2,7 +2,7 @@
 """
 Ava broadcast — EcoFlow APIs + static Pages + transparent /directory browser.
 
-Directory root: /home/ava-ivy (falls back to /home/ava-core).
+Directory root: /home/ava-core.
 Toggle:        presence of directory.enabled next to this script = ON
                rename to directory.enabled.disabled (or delete) = OFF
 
@@ -16,30 +16,44 @@ import mimetypes
 import os
 import sqlite3
 import stat
-from datetime import datetime, timezone
+import subprocess
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
+from urllib.request import Request, urlopen
 
 HOST = "0.0.0.0"
 PORT = 8080
-PAGES_ROOT = Path("/home/ava-core/Web/Pages")
-ECO_DIR = Path("/home/ava-core/Database/ecoflow")
-ENHANCED_DB = ECO_DIR / "ecoflow-data-enhanced.db"
-LIVE_DB = ECO_DIR / "ecoflow-data.db"
+def _resolve_pages_root() -> Path:
+    return Path("/home/ava-core/web/sites")
+
+PAGES_ROOT = _resolve_pages_root()
+DB_ROOT = Path("/home/ava-core/database")
+ENHANCED_DB = DB_ROOT / "ecoflow-1min.db"
+LIVE_DB = DB_ROOT / "ecoflow-10s.db"
+SYSTEM_DB = DB_ROOT / "system.db"
+SYSTEM_MIN_DB = DB_ROOT / "system-1min.db"
+UPTIME_DB = DB_ROOT / "uptime.db"
+QUAKES_DB = DB_ROOT / "quakes.db"
+WEATHER_DB = DB_ROOT / "weather.db"
+HAWAII_TZ = ZoneInfo("Pacific/Honolulu")
+WEB_MEDIA_ROOT = Path("/home/ava-core/web/web-media")
+EXCLUDED_ECOFLOW_SNS = {"R331ZAB5SG755642"}
 NAME_MAP = {
-    "R331ZAB5SG755642": "security",
     "R621ZA16XH6K1155": "Primary",
     "R331ZAB5SG6S2858": "Backup",
 }
+WINDOW_SECONDS = {"1m":60,"15m":900,"1h":3600,"8h":28800,"12h":43200,"24h":86400,"48h":172800,"3d":259200,"7d":604800,"month":30*86400,"year":365*86400,"all":None}
+
 
 ALWAYS_ON_DIR = Path(__file__).resolve().parent
 DIR_FLAG = ALWAYS_ON_DIR / "directory.enabled"
 DIR_FLAG_DISABLED = ALWAYS_ON_DIR / "directory.enabled.disabled"
 
-# Prefer ava-ivy as requested; fall back to ava-core if that tree is the live home.
-_CANDIDATES = [Path("/home/ava-ivy"), Path("/home/ava-core")]
-DIR_ROOT = next((p for p in _CANDIDATES if p.is_dir()), _CANDIDATES[0])
+# AVA Core is the live home.
+DIR_ROOT = Path("/home/ava-core")
 
 MAX_TEXT_BYTES = 2 * 1024 * 1024  # 2 MiB text preview/serve
 MAX_LIST_ENTRIES = 5000
@@ -62,9 +76,42 @@ SKIP_DIR_NAMES = {
     ".cache",
     ".thumbnails",
     "snap",
+    # home / tooling clutter
+    ".agents",
+    ".ava",
+    ".cargo",
+    ".cloudflared",
+    ".codex",
+    ".config",
+    ".cursor",
+    ".git-ava-core-backup",
+    ".gradle",
+    ".local",
+    ".minecraft",
+    ".npm",
+    ".ollama",
+    ".pki",
+    ".rustup",
+    ".venvs",
+    ".ssh",
+    ".gnupg",
+    "desktop",
+    "downloads",
+    "documents",
+    "pictures",
+    "screenshots",
+    "gemini_env",
+    "credentials",
+    "credentials",
 }
 # Names / substrings that must never appear in listings or be readable.
 HIDDEN_NAME_PARTS = (
+    "files.zip",
+    "MANIFEST.json",
+    "file_mapping.txt",
+    "file_mapping.json",
+    "gitconfig",
+    ".bash_history",
     ".env",
     "credentials",
     "credential",
@@ -87,18 +134,40 @@ HIDDEN_NAME_PARTS = (
 )
 # Paths (relative to DIR_ROOT) that are hidden entirely from the public tree.
 HIDDEN_PATH_PREFIXES = (
-    "Credentials",
+    "credentials",
     "credentials",
     ".ssh",
     ".gnupg",
     ".aws",
+    ".config",
     ".config/gcloud",
-    "Web/cloudflare",  # contains tunnel tokens / certs
+    "web/cloudflare",
+    "Web/cloudflare",
+    "Desktop",
+    "Downloads",
+    "Pictures",
+    "Screenshots",
+    "gemini_env",
+    ".agents",
+    ".ava",
+    ".cargo",
+    ".cloudflared",
+    ".codex",
+    ".cursor",
+    ".git-ava-core-backup",
+    ".gradle",
+    ".local",
+    ".minecraft",
+    ".npm",
+    ".ollama",
+    ".pki",
+    ".rustup",
+    ".venvs",
 )
 # Paths that may be listed but content is never served.
 SENSITIVE_PATH_PREFIXES = (
-    "Database/sessions",
-    "Database/notes",
+    "database/sessions",
+    "database/notes",
     "operations/cronologicals/.ava-core-state.json",
     "operations/cronologicals/.run-ava-state.json",
 )
@@ -148,83 +217,263 @@ def select_expr(available, name, default="NULL"):
 
 
 def latest_enhanced():
-    c = cols(ENHANCED_DB, "minute_summary")
+    """Return the latest 1-minute EcoFlow summary for each device."""
+    c = cols(ENHANCED_DB, "summary")
     if not c:
         return []
     wanted = [
-        "name",
-        "soc_avg",
-        "in_w_avg",
-        "out_w_avg",
-        "solar_w_avg",
-        "net_w_avg",
-        "soc_delta",
-        "energy_in_wh",
-        "energy_out_wh",
-        "trend",
-        "samples",
-        "minute_key",
+        "name", "soc_avg", "in_w_avg", "out_w_avg", "solar_w_avg",
+        "net_w_avg", "soc_delta", "energy_in_wh", "energy_out_wh",
+        "trend", "samples", "bucket_key", "load_ratio", "online_pct",
     ]
     fields = ", ".join(select_expr(c, x) for x in wanted)
-    group = "name" if "name" in c else "id"
-    return q(
+    rows = q(
         ENHANCED_DB,
-        f"""SELECT {fields} FROM minute_summary WHERE id IN
-        (SELECT MAX(id) FROM minute_summary GROUP BY {group})
+        f"""SELECT {fields} FROM summary WHERE id IN
+        (SELECT MAX(id) FROM summary GROUP BY COALESCE(name, sn))
         ORDER BY CASE name WHEN 'Primary' THEN 1 WHEN 'security' THEN 2
         WHEN 'Backup' THEN 3 ELSE 9 END""",
     )
+    return [r for r in rows if r.get("sn") not in EXCLUDED_ECOFLOW_SNS and str(r.get("name", "")).lower() != "security"]
 
 
-def history(hours=12):
-    c = cols(ENHANCED_DB, "minute_summary")
-    if not c:
-        return []
-    wanted = [
-        "minute_key",
-        "name",
-        "soc_avg",
-        "in_w_avg",
-        "out_w_avg",
-        "solar_w_avg",
-        "net_w_avg",
-        "soc_delta",
-        "energy_in_wh",
-        "energy_out_wh",
-        "trend",
-        "samples",
-    ]
-    fields = ", ".join(select_expr(c, x) for x in wanted)
-    if "minute_key" in c:
-        cutoff = datetime.now().astimezone().timestamp() - hours * 3600
-        rows = q(ENHANCED_DB, f"SELECT {fields} FROM minute_summary ORDER BY minute_key,name")
-        out = []
+def _window_seconds(value, default="12h"):
+    return WINDOW_SECONDS.get(value, WINDOW_SECONDS[default])
+
+def _window_from_query(parsed, default="12h"):
+    qv = parse_qs(parsed.query)
+    if "window" in qv: return qv["window"][0] if qv["window"][0] in WINDOW_SECONDS else default
+    if "hours" in qv:
+        try:
+            h=float(qv["hours"][0]); return min(WINDOW_SECONDS, key=lambda k: abs((WINDOW_SECONDS[k] or 10**18)-h*3600))
+        except Exception: pass
+    return default
+
+def _aggregate(rows, keys):
+    out={}
+    for key in keys:
+        vals=[]
         for r in rows:
-            k = str(r.get("minute_key") or "")
             try:
-                dt = datetime.fromisoformat(k.replace("Z", "+00:00"))
-                stamp = dt.timestamp()
+                v=float(r.get(key));
+                if v==v and abs(v)!=float("inf"): vals.append(v)
+            except Exception: pass
+        if vals:
+            prev=vals[0]; cur=vals[-1]; avg=sum(vals)/len(vals); total=sum(vals)
+            out[key]={"current":cur,"average":avg,"total":total,"min":min(vals),"max":max(vals),"percent_change":((cur-prev)/abs(prev)*100) if prev else None}
+        else: out[key]={"current":None,"average":None,"total":None,"min":None,"max":None,"percent_change":None}
+    return out
+
+def _energy_aggregate(rows):
+    """Aggregate energy history without treating watts or SOC as additive totals."""
+    out = {}
+
+    # SOC and power are point/rate measurements. Their total is not meaningful.
+    for key in ("soc_avg", "solar_w_avg", "in_w_avg", "out_w_avg", "net_w_avg"):
+        vals = []
+        for r in rows:
+            try:
+                v = float(r.get(key))
+                if v == v and abs(v) != float("inf"):
+                    vals.append(v)
             except Exception:
-                continue
-            if stamp >= cutoff:
-                out.append(r)
-        return out
-    return []
+                pass
+        if vals:
+            prev, cur = vals[0], vals[-1]
+            avg = sum(vals) / len(vals)
+            out[key] = {
+                "current": cur,
+                "average": avg,
+                "total": None,
+                "min": min(vals),
+                "max": max(vals),
+                "percent_change": ((cur - prev) / abs(prev) * 100) if prev else None,
+            }
+        else:
+            out[key] = {"current": None, "average": None, "total": None, "min": None, "max": None, "percent_change": None}
+
+    # These fields are per-bucket energy quantities, so summing them over the
+    # selected window is meaningful.
+    for key in ("energy_in_wh", "energy_out_wh", "energy_solar_wh"):
+        vals = []
+        for r in rows:
+            try:
+                v = float(r.get(key))
+                if v == v and abs(v) != float("inf"):
+                    vals.append(v)
+            except Exception:
+                pass
+        if vals:
+            prev, cur = vals[0], vals[-1]
+            out[key] = {
+                "current": cur,
+                "average": sum(vals) / len(vals),
+                "total": sum(vals),
+                "min": min(vals),
+                "max": max(vals),
+                "percent_change": ((cur - prev) / abs(prev) * 100) if prev else None,
+            }
+        else:
+            out[key] = {"current": None, "average": None, "total": None, "min": None, "max": None, "percent_change": None}
+
+    return out
+
+
+def history(hours=12, window=None):
+    """Return EcoFlow history for any dashboard window, excluding security."""
+    c = cols(ENHANCED_DB, "summary")
+    if not c: return []
+    wanted = ["bucket_key","ts","sn","name","soc_avg","in_w_avg","out_w_avg","solar_w_avg","net_w_avg","soc_delta","energy_in_wh","energy_out_wh","energy_solar_wh","trend","samples","load_ratio","online_pct"]
+    fields = ", ".join(select_expr(c, x) for x in wanted)
+    rows = q(ENHANCED_DB, f"SELECT {fields} FROM summary ORDER BY bucket_key, name")
+    seconds=_window_seconds(window or "12h"); cutoff=None if seconds is None else datetime.now(timezone.utc).timestamp()-seconds
+    out=[]
+    for r in rows:
+        if r.get("sn") in EXCLUDED_ECOFLOW_SNS or str(r.get("name","")).lower()=="security": continue
+        stamp=None
+        for key in ("bucket_key","ts"):
+            value=r.get(key)
+            if not value: continue
+            try: stamp=datetime.fromisoformat(str(value).replace("Z","+00:00")).timestamp(); break
+            except Exception: pass
+        if stamp is not None and (cutoff is None or stamp>=cutoff):
+            r["minute_key"]=r.get("bucket_key") or r.get("ts"); out.append(r)
+    return out
 
 
 def live_now():
-    c = cols(LIVE_DB, "snapshots")
-    if not c:
-        return []
-    wanted = ["sn", "online", "soc", "in_w", "out_w", "solar_w", "ts"]
-    fields = ", ".join(select_expr(c, x) for x in wanted)
-    rows = q(
-        LIVE_DB,
-        f"SELECT {fields} FROM snapshots WHERE id IN (SELECT MAX(id) FROM snapshots GROUP BY sn)",
-    )
+    c=cols(LIVE_DB,"snapshots")
+    if not c: return []
+    wanted=["sn","online","soc","in_w","out_w","solar_w","ts"]
+    fields=", ".join(select_expr(c,x) for x in wanted)
+    rows=q(LIVE_DB,f"SELECT {fields} FROM snapshots WHERE id IN (SELECT MAX(id) FROM snapshots GROUP BY sn)")
+    out=[]
     for r in rows:
-        r["name"] = NAME_MAP.get(r.get("sn"), r.get("sn"))
-    return rows
+        if r.get("sn") in EXCLUDED_ECOFLOW_SNS: continue
+        r["name"]=NAME_MAP.get(r.get("sn"),r.get("sn")); out.append(r)
+    return out
+
+
+def _json_value(value, fallback=None):
+    try:
+        return json.loads(value) if value else fallback
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _latest_system_row(table):
+    rows = q(SYSTEM_MIN_DB, f"SELECT * FROM {table} ORDER BY minute_ts DESC LIMIT 1")
+    return rows[0] if rows else {}
+
+
+def system_now():
+    """Latest host telemetry strictly from the one-minute aggregate databases."""
+    run = _latest_system_row("minute_runs")
+    cpu = _json_value(_latest_system_row("minute_cpu").get("stats"), {})
+    memory = _json_value(_latest_system_row("minute_memory").get("stats"), {})
+    battery = _json_value(_latest_system_row("minute_battery").get("stats"), {})
+    minute_ts = run.get("minute_ts")
+    network = q(
+        SYSTEM_MIN_DB,
+        "SELECT iface, stats FROM minute_network WHERE minute_ts=?",
+        (minute_ts,),
+    ) if minute_ts is not None else []
+    net_in = net_out = 0.0
+    for row in network:
+        stats = _json_value(row.get("stats"), {})
+        net_in += float(stats.get("bytes_recv_per_sec") or 0)
+        net_out += float(stats.get("bytes_sent_per_sec") or 0)
+    uptime = q(UPTIME_DB, "SELECT * FROM uptime_summary WHERE summary_key='global'")
+    return {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "minute_ts": minute_ts,
+        "collection": run,
+        "cpu": cpu,
+        "memory": memory,
+        "battery": battery,
+        "network": {"interfaces": len(network), "recv_bps": net_in, "sent_bps": net_out},
+        "uptime": uptime[0] if uptime else {},
+        "uptime_periods": uptime_report(),
+        "source": {"db": str(SYSTEM_MIN_DB), "cadence_seconds": 60},
+    }
+
+
+def system_history(hours=12, window=None):
+    """One-minute host time series for local browser charts."""
+    seconds = _window_seconds(window or "12h")
+    cutoff = 0 if seconds is None else int(datetime.now(timezone.utc).timestamp() - seconds)
+    rows = {}
+    for table, key in (("minute_cpu", "cpu"), ("minute_memory", "memory"), ("minute_battery", "battery")):
+        for row in q(SYSTEM_MIN_DB, f"SELECT minute_ts, stats FROM {table} WHERE minute_ts>=? ORDER BY minute_ts", (cutoff,)):
+            item = rows.setdefault(row["minute_ts"], {"minute_ts": row["minute_ts"]})
+            item[key] = _json_value(row.get("stats"), {})
+    for row in q(SYSTEM_MIN_DB, "SELECT minute_ts, stats FROM minute_network WHERE minute_ts>=? ORDER BY minute_ts", (cutoff,)):
+        item = rows.setdefault(row["minute_ts"], {"minute_ts": row["minute_ts"]})
+        stats = _json_value(row.get("stats"), {})
+        item["recv_bps"] = item.get("recv_bps", 0) + float(stats.get("bytes_recv_per_sec") or 0)
+        item["sent_bps"] = item.get("sent_bps", 0) + float(stats.get("bytes_sent_per_sec") or 0)
+    out = [rows[key] for key in sorted(rows)]
+    return out
+
+
+def uptime_report():
+    """Observed uptime ratios and percent change for the full dashboard suite."""
+    rows = q(UPTIME_DB, "SELECT source_ts_utc, current_uptime_seconds FROM uptime_events ORDER BY source_ts_utc")
+    events=[]
+    for row in rows:
+        try: events.append((datetime.fromisoformat(str(row["source_ts_utc"]).replace("Z","+00:00")).timestamp(), float(row["current_uptime_seconds"])))
+        except Exception: continue
+    now=datetime.now(timezone.utc).timestamp(); report={}
+    for name,seconds in WINDOW_SECONDS.items():
+        selected=[e for e in events if seconds is None or e[0]>=now-seconds]
+        observed=elapsed=0.0
+        for (ta,ua),(tb,ub) in zip(selected,selected[1:]):
+            span=max(0.0,tb-ta); elapsed+=span
+            if ub>=ua: observed+=min(span,ub-ua)
+        vals=[e[1] for e in selected]; cur=vals[-1] if vals else None; prev=vals[0] if vals else None
+        avail=(observed/elapsed*100) if elapsed else None
+        report[name]={"samples":len(selected),"current_uptime_seconds":cur,"average_uptime_seconds":sum(vals)/len(vals) if vals else None,"observed_seconds":observed,"window_seconds":elapsed,"availability_percent":avail,"percent_change":((cur-prev)/abs(prev)*100) if cur is not None and prev else None,"availability_change":None}
+    return report
+
+def uptime_history(window="all"):
+    seconds=_window_seconds(window or "all")
+    now=datetime.now(timezone.utc).timestamp()
+    rows=q(UPTIME_DB, "SELECT source_ts_utc, current_uptime_seconds FROM uptime_events ORDER BY source_ts_utc")
+    out=[]
+    for row in rows:
+        try:
+            ts=datetime.fromisoformat(str(row["source_ts_utc"]).replace("Z","+00:00")).timestamp()
+            if seconds is None or ts>=now-seconds:
+                out.append({"ts":ts,"uptime_seconds":float(row["current_uptime_seconds"])})
+        except Exception: pass
+    return out
+
+def operations_status():
+    """Local scheduler inventory and a current process snapshot for the status page."""
+    cron_root = Path("/home/ava-core/operations/cronologicals")
+    pending = []
+    if cron_root.is_dir():
+        for path in sorted(cron_root.rglob("*.py")):
+            if "always-on" in path.parts or "__pycache__" in path.parts:
+                continue
+            pending.append({"path": str(path.relative_to(cron_root)), "enabled": True})
+        for path in sorted(cron_root.rglob("*.py.disabled")):
+            if "always-on" in path.parts or "__pycache__" in path.parts:
+                continue
+            pending.append({"path": str(path.relative_to(cron_root))[:-9], "enabled": False})
+    try:
+        proc = subprocess.run(
+            ["ps", "-eo", "pid=,etime=,comm=,args="], text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=3,
+        )
+        processes = []
+        for line in proc.stdout.splitlines():
+            bits = line.strip().split(None, 3)
+            if len(bits) >= 3:
+                processes.append({"pid": bits[0], "elapsed": bits[1], "name": bits[2], "command": bits[3] if len(bits) > 3 else bits[2]})
+    except Exception as e:
+        processes = [{"pid": "—", "elapsed": "—", "name": "unavailable", "command": str(e)}]
+    return {"pending_crons": pending, "processes": processes}
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +507,8 @@ def is_hidden_name(name: str) -> bool:
     # hidden dotfiles that are credential-like already covered; keep .env* out
     if lower.startswith(".env"):
         return True
+    if lower in {".gitignore", ".gitattributes", ".gitmodules"}:
+        return True
     return False
 
 
@@ -284,6 +535,10 @@ def is_sensitive_rel(rel: str) -> bool:
         if lower == p or lower.startswith(p + "/"):
             return True
     name = Path(rel).name.lower()
+    # Telemetry databases are useful to show in the tree, but must never be
+    # downloadable or previewed from the public directory surface.
+    if Path(name).suffix in {".db", ".sqlite", ".sqlite3"}:
+        return True
     for part in SENSITIVE_NAME_PARTS:
         if part in name:
             return True
@@ -567,28 +822,7 @@ def build_status() -> dict:
     else:
         energy_err = None
 
-    services = [
-        {
-            "name": "broadcast",
-            "ok": True,
-            "detail": f"0.0.0.0:{PORT}",
-        },
-        {
-            "name": "directory",
-            "ok": dir_on and DIR_ROOT.is_dir(),
-            "detail": str(DIR_ROOT) if dir_on else "disabled",
-        },
-        {
-            "name": "ecoflow_enhanced_db",
-            "ok": ENHANCED_DB.is_file(),
-            "detail": str(ENHANCED_DB) if ENHANCED_DB.is_file() else "missing",
-        },
-        {
-            "name": "ecoflow_live_db",
-            "ok": LIVE_DB.is_file(),
-            "detail": str(LIVE_DB) if LIVE_DB.is_file() else "missing",
-        },
-    ]
+    services = []
     units = []
     for r in enhanced:
         units.append(
@@ -603,7 +837,8 @@ def build_status() -> dict:
                 "samples": r.get("samples"),
             }
         )
-    ok = all(s["ok"] for s in services) and energy_err is None
+    ops = operations_status()
+    ok = energy_err is None
     return {
         "ok": ok,
         "ts": datetime.now(timezone.utc).isoformat(),
@@ -614,16 +849,370 @@ def build_status() -> dict:
             "root_exists": DIR_ROOT.is_dir(),
         },
         "services": services,
+        "operations": ops,
         "energy": {"units": units, "error": energy_err},
         "links": {
             "json": "/api/status",
             "html": "/status",
-            "system": "/avaivy.cloud/system/",
+            "system": "/system/",
+            "energy": "/energy/",
             "directory": "/directory",
+            "uptime": "/uptime/",
             "llms": "/llms.txt",
         },
     }
 
+
+GLOBAL_LOCATIONS_PATH = Path("/home/ava-core/config/locations/global-locations.json")
+if not GLOBAL_LOCATIONS_PATH.is_file():
+    GLOBAL_LOCATIONS_PATH = Path(__file__).resolve().parents[3] / "config/locations/global-locations.json"
+GLOBAL_EARTHQUAKES_DB = DB_ROOT / "earthquakes.db"
+GLOBAL_NEWS_JSON = Path("/home/ava-core/web/sites/avaivy.cloud/data/global-news.json")
+if not GLOBAL_NEWS_JSON.is_file():
+    GLOBAL_NEWS_JSON = Path(__file__).resolve().parents[3] / "web/sites/avaivy.cloud/data/global-news.json"
+
+def _load_global_locations():
+    try:
+        return json.loads(GLOBAL_LOCATIONS_PATH.read_text(encoding="utf-8")).get("locations", [])
+    except Exception:
+        return []
+
+GLOBAL_LOCATIONS = _load_global_locations()
+
+def _geo_match(country="", state="", location=""):
+    country=(country or "").strip().lower(); state=(state or "").strip().lower(); location=(location or "").strip().lower()
+    def cslug(v):
+        import re
+        return re.sub(r"[^a-z0-9]+","-",str(v or "").lower()).strip("-")
+    return [x for x in GLOBAL_LOCATIONS if (not country or cslug(x.get("country") or x.get("country_name"))==country) and (not state or str(x.get("admin1_slug") or "").lower()==state) and (not location or str(x.get("slug") or "").lower()==location)]
+
+def geography_weather(country="", state="", location=""):
+    matches=_geo_match(country,state,location)
+    if not matches: return {"ok":False,"error":"Unknown geography"}
+    ids=tuple(x["id"] for x in matches); qmarks=','.join('?' for _ in ids)
+    if not WEATHER_DB.exists(): return {"ok":True,"locations":matches,"observations":0,"providers":0,"weather":{}}
+    con=sqlite3.connect(str(WEATHER_DB)); con.row_factory=sqlite3.Row
+    try:
+        rows=con.execute(f"SELECT w.* FROM weather w WHERE w.location_id IN ({qmarks}) ORDER BY w.obs_ts DESC LIMIT {max(1,len(ids)*24)}",ids).fetchall()
+        latest=rows[0] if rows else None
+        stats=con.execute(f"SELECT COUNT(*) observations, COUNT(DISTINCT provider) providers, AVG(temp_c) avg_temp_c, AVG(humidity_pct) avg_humidity_pct, AVG(wind_kph) avg_wind_kph FROM weather WHERE location_id IN ({qmarks})",ids).fetchone()
+        return {"ok":True,"locations":matches,"observations":stats["observations"],"providers":stats["providers"],"avg_temp_c":stats["avg_temp_c"],"weather":{"current_temperature":latest["temp_c"] if latest else None,"current":{"temperature_c":latest["temp_c"] if latest else None,"humidity_pct":latest["humidity_pct"] if latest else None,"wind_kph":latest["wind_kph"] if latest else None,"precipitation_mm":latest["precipitation_mm"] if latest else None,"observed_at":latest["obs_ts"] if latest else None}}}
+    finally: con.close()
+
+def geography_earthquakes(country="", state="", location=""):
+    matches=_geo_match(country,state,location); ids=[x["id"] for x in matches]
+    if not GLOBAL_EARTHQUAKES_DB.exists(): return {"ok":True,"events":[],"locations":matches}
+    con=sqlite3.connect(str(GLOBAL_EARTHQUAKES_DB)); con.row_factory=sqlite3.Row
+    try:
+        if ids:
+            qmarks=','.join('?' for _ in ids); rows=con.execute(f"SELECT * FROM earthquakes WHERE location_id IN ({qmarks}) ORDER BY observed_at DESC LIMIT 100",ids).fetchall()
+        elif country:
+            rows=con.execute("SELECT * FROM earthquakes WHERE lower(country_code)=lower(?) ORDER BY observed_at DESC LIMIT 100",(country,)).fetchall()
+        else: rows=con.execute("SELECT * FROM earthquakes ORDER BY observed_at DESC LIMIT 100").fetchall()
+        return {"ok":True,"events":[dict(r) for r in rows],"locations":matches}
+    finally: con.close()
+
+def geography_news(country="", state="", location=""):
+    try: data=json.loads(GLOBAL_NEWS_JSON.read_text(encoding="utf-8")) if GLOBAL_NEWS_JSON.exists() else {"items":[],"events":[]}
+    except Exception: data={"items":[],"events":[]}
+    items=data.get("items",[])
+    if country: items=[x for x in items if str(x.get("country_code") or "US").lower()==("us" if country=="united-states" else country.lower())]
+    if state: items=[x for x in items if str(x.get("state_code") or "").lower()==state.lower() or str(x.get("state_name") or "").lower()==state.lower()]
+    return {"ok":True,"items":items[:100],"events":data.get("events",[])[:100]}
+
+HAWAII_REGISTRY_PATH = Path("/home/ava-core/web/sites/avaivy.cloud/data/hawaii-locations.json")
+if not HAWAII_REGISTRY_PATH.is_file():
+    HAWAII_REGISTRY_PATH = Path(__file__).resolve().parents[3] / "web/sites/avaivy.cloud/data/hawaii-locations.json"
+
+def _load_hawaii_registry():
+    try:
+        data = json.loads(HAWAII_REGISTRY_PATH.read_text(encoding="utf-8"))
+        return {i["slug"]: {loc["slug"]: loc for loc in i.get("locations", [])} for i in data.get("islands", [])}
+    except Exception:
+        return {}
+
+HAWAII_LOCATIONS = _load_hawaii_registry()
+
+def _hawaii_report_matches(location_name):
+    try:
+        data = context_reports("weather", location_name)
+        return data.get("reports", [])[:8]
+    except Exception:
+        return []
+
+def weather_aggregate_data():
+    """Return statistics over every stored weather observation, not one location.
+
+    The weather database is intentionally treated as a growing observation store.
+    Aggregates are weighted by actual stored rows, so a location/provider with more
+    observations contributes proportionally to the overall averages.
+    """
+    generated = datetime.now(timezone.utc).isoformat()
+    if not WEATHER_DB.exists():
+        return {
+            "ok": False,
+            "generated_utc": generated,
+            "error": "Weather database not found",
+            "summary": {"observations": 0, "locations": 0, "providers": 0},
+            "providers": [], "regions": [], "locations": []
+        }
+    conn = sqlite3.connect(str(WEATHER_DB))
+    conn.row_factory = sqlite3.Row
+    try:
+        # Keep the global database cheap to query as it grows.
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_weather_obs_ts ON weather(obs_ts)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_weather_location ON weather(location_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_weather_provider ON weather(provider)")
+        conn.commit()
+        row = conn.execute("""
+            SELECT
+              COUNT(*) observations,
+              COUNT(DISTINCT location_id) locations,
+              COUNT(DISTINCT provider) providers,
+              COUNT(temp_c) temperature_points,
+              ROUND(AVG(temp_c),3) avg_temp_c,
+              MIN(temp_c) min_temp_c,
+              MAX(temp_c) max_temp_c,
+              COUNT(humidity_pct) humidity_points,
+              ROUND(AVG(humidity_pct),3) avg_humidity_pct,
+              COUNT(wind_kph) wind_points,
+              ROUND(AVG(wind_kph),3) avg_wind_kph,
+              MIN(wind_kph) min_wind_kph,
+              MAX(wind_kph) max_wind_kph,
+              COUNT(precipitation_mm) precipitation_points,
+              ROUND(AVG(precipitation_mm),3) avg_precipitation_mm,
+              MIN(obs_ts) first_observation,
+              MAX(obs_ts) last_observation
+            FROM weather
+        """).fetchone()
+        summary=dict(row) if row else {}
+        summary["avg_temp_f"] = round(summary["avg_temp_c"] * 9/5 + 32, 3) if summary.get("avg_temp_c") is not None else None
+        summary["min_temp_f"] = round(summary["min_temp_c"] * 9/5 + 32, 3) if summary.get("min_temp_c") is not None else None
+        summary["max_temp_f"] = round(summary["max_temp_c"] * 9/5 + 32, 3) if summary.get("max_temp_c") is not None else None
+        summary["avg_wind_mph"] = round(summary["avg_wind_kph"] * 0.621371, 3) if summary.get("avg_wind_kph") is not None else None
+
+        providers=[dict(r) for r in conn.execute("""
+            SELECT provider, COUNT(*) observations,
+                   COUNT(DISTINCT location_id) locations,
+                   ROUND(AVG(temp_c),3) avg_temp_c,
+                   ROUND(AVG(humidity_pct),3) avg_humidity_pct,
+                   ROUND(AVG(wind_kph),3) avg_wind_kph,
+                   ROUND(AVG(precipitation_mm),3) avg_precipitation_mm
+            FROM weather GROUP BY provider ORDER BY observations DESC
+        """)]
+        for r in providers:
+            r["avg_temp_f"] = round(r["avg_temp_c"]*9/5+32,3) if r.get("avg_temp_c") is not None else None
+            r["avg_wind_mph"] = round(r["avg_wind_kph"]*0.621371,3) if r.get("avg_wind_kph") is not None else None
+
+        regions=[dict(r) for r in conn.execute("""
+            SELECT COALESCE(l.country_code,'US') country_code,
+                   COALESCE(l.admin1_code,'HI') admin1_code,
+                   COALESCE(l.region,l.island,'Unknown') region,
+                   COUNT(*) observations,
+                   COUNT(DISTINCT w.location_id) locations,
+                   ROUND(AVG(w.temp_c),3) avg_temp_c,
+                   ROUND(AVG(w.humidity_pct),3) avg_humidity_pct,
+                   ROUND(AVG(w.wind_kph),3) avg_wind_kph,
+                   ROUND(AVG(w.precipitation_mm),3) avg_precipitation_mm
+            FROM weather w JOIN locations l ON l.id=w.location_id
+            GROUP BY country_code, admin1_code, region
+            ORDER BY observations DESC
+        """)]
+        for r in regions:
+            r["avg_temp_f"] = round(r["avg_temp_c"]*9/5+32,3) if r.get("avg_temp_c") is not None else None
+            r["avg_wind_mph"] = round(r["avg_wind_kph"]*0.621371,3) if r.get("avg_wind_kph") is not None else None
+
+        locations=[dict(r) for r in conn.execute("""
+            SELECT l.id, l.name, l.island, COALESCE(l.country_code,'US') country_code,
+                   COALESCE(l.admin1_code,'HI') admin1_code, l.lat, l.lon,
+                   COUNT(w.id) observations, COUNT(DISTINCT w.provider) providers,
+                   ROUND(AVG(w.temp_c),3) avg_temp_c,
+                   ROUND(AVG(w.humidity_pct),3) avg_humidity_pct,
+                   ROUND(AVG(w.wind_kph),3) avg_wind_kph,
+                   ROUND(AVG(w.precipitation_mm),3) avg_precipitation_mm,
+                   MIN(w.obs_ts) first_observation, MAX(w.obs_ts) last_observation
+            FROM locations l JOIN weather w ON w.location_id=l.id
+            GROUP BY l.id
+            ORDER BY observations DESC, l.name
+        """)]
+        for r in locations:
+            r["avg_temp_f"] = round(r["avg_temp_c"]*9/5+32,3) if r.get("avg_temp_c") is not None else None
+            r["avg_wind_mph"] = round(r["avg_wind_kph"]*0.621371,3) if r.get("avg_wind_kph") is not None else None
+
+        # A short recent window helps the UI show current coverage without replacing
+        # the all-time database statistics above.
+        recent=conn.execute("""
+            SELECT COUNT(*) observations, COUNT(DISTINCT location_id) locations,
+                   ROUND(AVG(temp_c),3) avg_temp_c,
+                   ROUND(AVG(humidity_pct),3) avg_humidity_pct,
+                   ROUND(AVG(wind_kph),3) avg_wind_kph,
+                   ROUND(AVG(precipitation_mm),3) avg_precipitation_mm
+            FROM weather
+            WHERE obs_ts >= datetime('now','-24 hours')
+        """).fetchone()
+        recent=dict(recent) if recent else {}
+        recent["avg_temp_f"] = round(recent["avg_temp_c"]*9/5+32,3) if recent.get("avg_temp_c") is not None else None
+        recent["avg_wind_mph"] = round(recent["avg_wind_kph"]*0.621371,3) if recent.get("avg_wind_kph") is not None else None
+        return {"ok": True, "generated_utc": generated, "summary": summary,
+                "recent_24h": recent, "providers": providers,
+                "regions": regions, "locations": locations,
+                "database": {"path": "database/weather.db", "scope": "all stored observations"}}
+    except Exception as e:
+        return {"ok": False, "generated_utc": generated, "error": str(e),
+                "summary": {"observations": 0, "locations": 0, "providers": 0},
+                "providers": [], "regions": [], "locations": []}
+    finally:
+        conn.close()
+
+
+def hawaii_location_data(island, location):
+    item = HAWAII_LOCATIONS.get(island, {}).get(location)
+    if not item:
+        return None
+    lat, lon = item["lat"], item["lon"]
+    now = datetime.now(timezone.utc)
+    url = ("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s"
+           "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
+           "&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+           "&timezone=Pacific%%2FHonolulu") % (lat, lon)
+    weather={"ok":False}
+    try:
+        req=Request(url, headers={"User-Agent":"AvaIvy/1.0"})
+        with urlopen(req, timeout=10) as response:
+            raw=json.loads(response.read().decode("utf-8"))
+        weather={"ok":True,"current":raw.get("current",{}),"daily":raw.get("daily",{}),"units":raw.get("current_units",{})}
+    except Exception as e:
+        weather={"ok":False,"error":str(e)}
+    return {"state":{"id":"hawaii","name":"Hawaiʻi","timezone":"Pacific/Honolulu"},"location":{"slug":location,**item},"generated_utc":now.isoformat(),"weather":weather,"reports":_hawaii_report_matches(item.get("name", ""))}
+
+def hawaii_directory_data():
+    islands=[]
+    for island, locations in HAWAII_LOCATIONS.items():
+        islands.append({"slug":island,"name":next(iter(locations.values()))["island"],"locations":[{"slug":k,**v} for k,v in locations.items()]})
+    return {"state":"hawaii","islands":islands,"location_count":sum(len(x) for x in HAWAII_LOCATIONS.values()),"generated_utc":datetime.now(timezone.utc).isoformat()}
+
+def hawaii_state_data():
+    """Reusable state payload. Hawaiʻi is the first state template."""
+    lat, lon = 19.5429, -155.1086  # Mountain View, Hawaiʻi
+    now = datetime.now(timezone.utc)
+    url = ("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s"
+           "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
+           "&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+           "&timezone=Pacific%%2FHonolulu&forecast_days=3" % (lat, lon))
+    weather = {"ok": False}
+    try:
+        req = Request(url, headers={"User-Agent":"AvaIvy-State/1.0"})
+        with urlopen(req, timeout=20) as r:
+            raw = json.loads(r.read().decode("utf-8"))
+        weather = {"ok": True, "current": raw.get("current", {}), "daily": raw.get("daily", {}), "units": raw.get("current_units", {})}
+    except Exception as e:
+        weather = {"ok": False, "error": str(e)}
+
+    quakes=[]
+    try:
+        quakes=q(QUAKES_DB, "SELECT time_utc,mag,depth_km,place,latitude,longitude,tsunami,url FROM quakes WHERE source='hawaii' ORDER BY time_ms DESC LIMIT 25")
+    except Exception as e:
+        quake_error=str(e)
+    else: quake_error=None
+
+    first_solar=None
+    try:
+        rows=q(ENHANCED_DB, "SELECT ts,solar_w_avg FROM summary ORDER BY ts DESC LIMIT 5000")
+        today=datetime.now(HAWAII_TZ).date().isoformat()
+        candidates=[]
+        for r in rows:
+            ts=str(r.get("ts") or "")
+            try:
+                dt=datetime.fromisoformat(ts.replace("Z","+00:00")).astimezone(HAWAII_TZ)
+                if dt.date().isoformat()==today and float(r.get("solar_w_avg") or 0)>0: candidates.append((dt,r.get("solar_w_avg")))
+            except Exception: pass
+        if candidates:
+            dt,w=sorted(candidates,key=lambda x:x[0])[0]; first_solar={"time":dt.isoformat(),"watts":w}
+    except Exception: pass
+    return {"state":{"id":"hawaii","name":"Hawaiʻi","timezone":"Pacific/Honolulu","locality":"Mountain View, Big Island","coordinates":{"lat":lat,"lon":lon}},"generated_utc":now.isoformat(),"weather":weather,"earthquakes":{"events":quakes,"error":quake_error},"energy_context":{"first_recorded_solar":first_solar}}
+
+
+
+REPORTS_ROOT = WEB_MEDIA_ROOT / "context" / "reports"
+
+def _report_asset_url(path: Path):
+    try:
+        rel = path.resolve().relative_to(WEB_MEDIA_ROOT.resolve())
+        return "/web-media/" + quote(str(rel).replace(os.sep, "/"))
+    except Exception:
+        return None
+
+def context_reports(category="", query_text=""):
+    """Discover metadata-driven public reports without exposing files outside REPORTS_ROOT."""
+    rows = []
+    if not REPORTS_ROOT.exists():
+        return {"generated_utc": datetime.now(timezone.utc).isoformat(), "reports": rows}
+    category = (category or "").strip().strip("/")
+    qtext = (query_text or "").lower().strip()
+    for meta in REPORTS_ROOT.rglob("metadata.json"):
+        try:
+            bundle = meta.parent.resolve()
+            if REPORTS_ROOT.resolve() not in bundle.parents and bundle != REPORTS_ROOT.resolve():
+                continue
+            data = json.loads(meta.read_text(encoding="utf-8"))
+            cat = str(data.get("category") or "").strip().strip("/")
+            if category and not (cat == category or (category == "weather" and cat.startswith("weather/"))):
+                continue
+            title = str(data.get("title") or bundle.name)
+            summary = str(data.get("summary") or "")
+            location = str(data.get("location") or "")
+            hay = " ".join([title, summary, location, cat, str(data.get("event") or "")]).lower()
+            if qtext and qtext not in hay:
+                continue
+            assets = {}
+            raw_assets = data.get("assets") if isinstance(data.get("assets"), dict) else {}
+            for key in ("text", "audio", "image"):
+                raw = raw_assets.get(key)
+                if raw:
+                    fp = (bundle / str(raw)).resolve()
+                    if fp.is_file() and str(fp).startswith(str(REPORTS_ROOT.resolve())):
+                        assets[key] = _report_asset_url(fp)
+            # Sensible discovery fallback when metadata omits an asset map.
+            for key, names in {
+                "text": ("report.txt", "report.md", "report.html"),
+                "audio": ("report.mp3", "report.wav", "report.m4a"),
+                "image": ("report.jpg", "report.jpeg", "report.png", "report.webp"),
+            }.items():
+                if key not in assets:
+                    for name in names:
+                        fp = bundle / name
+                        if fp.is_file():
+                            assets[key] = _report_asset_url(fp)
+                            break
+            rows.append({
+                "id": data.get("id") or str(bundle.relative_to(REPORTS_ROOT)),
+                "title": title,
+                "category": cat,
+                "location": location,
+                "state": data.get("state"),
+                "country": data.get("country"),
+                "created_at": data.get("created_at"),
+                "published_at": data.get("published_at") or data.get("created_at"),
+                "event": data.get("event"),
+                "tags": data.get("tags") if isinstance(data.get("tags"), list) else [],
+                "summary": summary,
+                "assets": assets,
+            })
+        except Exception:
+            continue
+    rows.sort(key=lambda x: str(x.get("published_at") or ""), reverse=True)
+    return {"generated_utc": datetime.now(timezone.utc).isoformat(), "category": category or None, "reports": rows, "count": len(rows)}
+
+
+
+def context_report_locations(category=""):
+    data = context_reports(category, "")
+    groups = {}
+    for row in data.get("reports", []):
+        loc = row.get("location") or "Unspecified"
+        groups.setdefault(loc, 0)
+        groups[loc] += 1
+    return {"category": category or None, "locations": [{"name": k, "count": v} for k, v in sorted(groups.items())]}
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
@@ -644,31 +1233,90 @@ class H(BaseHTTPRequestHandler):
         self.sendb(code, json.dumps(o, default=str).encode(), "application/json; charset=utf-8")
 
     def api(self, path, parsed):
-        if path in ("/api/now", "/system/api/now"):
-            self.js(
-                {
-                    "ts": datetime.now(timezone.utc).isoformat(),
-                    "enhanced": latest_enhanced(),
-                    "live": live_now(),
-                }
-            )
+        if path in ("/api/context/reports", "/context/reports/api"):
+            qs = parse_qs(parsed.query)
+            category = (qs.get("category") or [""])[0]
+            query_text = (qs.get("q") or [""])[0]
+            self.js(context_reports(category, query_text))
             return True
-        if path in ("/api/debug", "/system/api/debug"):
-            self.js(
-                {
-                    "enhanced_db": str(ENHANCED_DB),
-                    "live_db": str(LIVE_DB),
-                    "minute_summary_columns": sorted(cols(ENHANCED_DB, "minute_summary")),
-                    "snapshots_columns": sorted(cols(LIVE_DB, "snapshots")),
-                }
-            )
+
+        if path == "/api/context/locations":
+            qs = parse_qs(parsed.query)
+            category = (qs.get("category") or [""])[0]
+            self.js(context_report_locations(category))
             return True
-        if path.startswith("/api/history") or path.startswith("/system/api/history"):
-            try:
-                h = max(1, min(168, int(parse_qs(parsed.query).get("hours", ["12"])[0])))
-            except Exception:
-                h = 12
-            self.js({"hours": h, "rows": history(h)})
+
+        if path == "/api/weather/aggregate":
+            self.js(weather_aggregate_data())
+            return True
+
+        if path == "/api/earthquakes/global":
+            self.js(geography_earthquakes())
+            return True
+        if path == "/api/news/global":
+            self.js(geography_news())
+            return True
+        if path.startswith("/api/geography/"):
+            product=path.split("/")[3] if len(path.split("/"))>3 else ""
+            qs=parse_qs(parsed.query); country=(qs.get("country") or [""])[0]; state=(qs.get("state") or [""])[0]; location=(qs.get("location") or [""])[0]
+            fn={"weather":geography_weather,"earthquakes":geography_earthquakes,"news":geography_news}.get(product)
+            if fn:
+                self.js(fn(country,state,location)); return True
+            self.js({"ok":False,"error":"Unknown geography product"},404); return True
+
+        if path == "/api/states/hawaii":
+            self.js(hawaii_state_data())
+            return True
+        if path == "/api/states/hawaii/directory":
+            self.js(hawaii_directory_data())
+            return True
+        if path.startswith("/api/states/hawaii/island/"):
+            parts=[x for x in path.split("/") if x]
+            if len(parts)==6 and parts[:4]==["api","states","hawaii","island"]:
+                data=hawaii_location_data(parts[4], parts[5])
+                if data:
+                    self.js(data)
+                    return True
+            self.js({"error":"Unknown Hawaiʻi location"}, 404)
+            return True
+
+        if path == "/api/status":
+            self.js(build_status())
+            return True
+
+        if path in ("/api/system/now", "/system/api/now"):
+            self.js(system_now())
+            return True
+        if path in ("/api/uptime", "/uptime/api"):
+            self.js({"ts": datetime.now(timezone.utc).isoformat(), "periods": uptime_report(), "history": uptime_history("all")})
+            return True
+        if path.startswith("/api/system/history") or path.startswith("/system/api/history"):
+            window=_window_from_query(parsed); rows=system_history(window=window)
+            self.js({"window":window,"cadence_seconds":60,"rows":rows,"aggregate":_aggregate(rows,["recv_bps","sent_bps"]) | _aggregate([{**r,"cpu":(_json_value(r.get("cpu"),{}) if isinstance(r.get("cpu"),str) else r.get("cpu") or {}).get("percent",{}).get("mean"),"memory":(_json_value(r.get("memory"),{}) if isinstance(r.get("memory"),str) else r.get("memory") or {}).get("percent",{}).get("mean")} for r in rows],["cpu","memory"])})
+            return True
+
+        # Canonical energy API, with legacy aliases retained locally for compatibility.
+        if path in ("/api/energy/now", "/energy/api/now", "/ecoflow/api/now", "/system/api/now"):
+            self.js({
+                "ts": datetime.now(timezone.utc).isoformat(),
+                "enhanced": latest_enhanced(),
+                "live": live_now(),
+            })
+            return True
+        if path in ("/api/energy/debug", "/energy/api/debug", "/ecoflow/api/debug", "/system/api/debug"):
+            self.js({
+                "db_root": str(DB_ROOT),
+                "enhanced_db": str(ENHANCED_DB),
+                "live_db": str(LIVE_DB),
+                "system_db": str(SYSTEM_DB),
+                "minute_summary_columns": sorted(cols(ENHANCED_DB, "summary")),
+                "snapshots_columns": sorted(cols(LIVE_DB, "snapshots")),
+            })
+            return True
+        if (path.startswith("/api/energy/history") or path.startswith("/energy/api/history")
+                or path.startswith("/ecoflow/api/history")):
+            window=_window_from_query(parsed); rows=history(window=window)
+            self.js({"window":window,"rows":rows,"aggregate":_energy_aggregate(rows)})
             return True
 
         # ---- Directory API ----
@@ -748,6 +1396,14 @@ class H(BaseHTTPRequestHandler):
         else:
             self.sendb(404, b"not found")
 
+    def serve_media(self, rel):
+        root = WEB_MEDIA_ROOT.resolve()
+        fp = (root / rel).resolve()
+        if not str(fp).startswith(str(root)) or not fp.is_file():
+            self.sendb(404, b"not found")
+            return
+        self.sendb(200, fp.read_bytes(), mimetypes.guess_type(str(fp))[0] or "application/octet-stream")
+
     def serve_directory_page(self, u=None):
         """SPA shell for /directory — prefers static page, falls back to minimal embed.
 
@@ -797,41 +1453,35 @@ a{color:#53d8ff}</style></head><body>
         path = u.path
         host = self.headers.get("Host", "").split(":", 1)[0].lower()
 
-        # directory.avaivy.cloud → live browser at /
-        # avaivy.cloud → live browser only at /directory
+        # The localhost server is the canonical truth server. Cloudflare is intentionally
+        # irrelevant here: every Ava Ivy page is served from one solid tree.
         dir_host = host in ("directory.avaivy.cloud", "www.directory.avaivy.cloud")
-        apex_host = host in ("avaivy.cloud", "www.avaivy.cloud")
 
         if self.api(path, u):
             return
 
-        # llms.txt — served on every host from a single canonical file,
-        # ahead of any host-specific catch-all (e.g. directory.avaivy.cloud's
-        # SPA fallback, which would otherwise swallow this path).
-
-        # Public status page (HTML) + already handled JSON in api()
         if path in ("/status", "/status/", "/status.html"):
-            page = PAGES_ROOT / "avaivy.cloud" / "status.html"
-            if page.is_file():
-                self.sendb(200, page.read_bytes(), "text/html; charset=utf-8")
-            else:
-                # minimal fallback if static file missing
-                body = (
-                    "<!doctype html><meta charset=utf-8><title>Ava Status</title>"
-                    "<p>OK — see <a href=/api/status>/api/status</a></p>"
-                ).encode()
-                self.sendb(200, body, "text/html; charset=utf-8")
+            self.serve("avaivy.cloud", "status/index.html")
             return
 
         if path in ("/llms.txt", "/.well-known/llms.txt"):
-            llms_fp = PAGES_ROOT / "avaivy.cloud" / "llms.txt"
-            if llms_fp.is_file():
-                self.sendb(200, llms_fp.read_bytes(), "text/plain; charset=utf-8")
-            else:
-                self.sendb(404, b"not found", "text/plain; charset=utf-8")
+            self.serve("avaivy.cloud", "llms.txt")
             return
 
-        # File content endpoint (both hosts)
+        if path.startswith("/web-media/"):
+            self.serve_media(path[len("/web-media/"):])
+            return
+
+        # The directory UI keeps human-friendly absolute paths in its address bar.
+        if path == "/home/ava-core" or path.startswith("/home/ava-core/"):
+            self.serve_directory_page()
+            return
+
+        # Compatibility aliases used by the older local Ava Ivy page links.
+        if path.startswith("/avaivy.cloud/"):
+            path = "/" + path[len("/avaivy.cloud/"):]
+
+        # Directory file endpoints remain available on localhost and the optional subdomain.
         if path.startswith("/directory/view") or (dir_host and path.startswith("/view")):
             if not directory_enabled():
                 self.sendb(503, b"disabled")
@@ -847,12 +1497,6 @@ a{color:#53d8ff}</style></head><body>
                 self.sendb(500, str(e).encode())
             return
 
-        # Clean, crawlable file URLs: /ava-ivy/file/<relative/path/to/file>
-        # Same read_file_safe() safety checks as /directory/view — sensitive
-        # paths still 403, hidden paths still 404 — just a path-based URL
-        # instead of a query string, so agents/tools can address a specific
-        # file directly (e.g. https://directory.avaivy.cloud/ava-ivy/file/
-        # operations/broadcast.py) without needing JS or an API call first.
         if path.startswith("/ava-ivy/file/"):
             if not directory_enabled():
                 self.sendb(503, b"disabled")
@@ -867,61 +1511,26 @@ a{color:#53d8ff}</style></head><body>
                 self.sendb(500, str(e).encode())
             return
 
-        # Static assets for the directory UI (css/js) — keep /directory/* working on both hosts
         if path.startswith("/directory/") and not path.startswith("/directory/api"):
-            rel = path[len("/directory/") :]
+            rel = path[len("/directory/"):]
             if self._serve_directory_asset(rel):
                 return
 
-        # On dedicated subdomain, also allow /directory.css style roots if referenced
-        if dir_host and path in ("/directory.css", "/directory.js"):
-            if self._serve_directory_asset(path.lstrip("/")):
-                return
-
-        # --- Dedicated host: directory.avaivy.cloud ---
         if dir_host:
             if not directory_enabled():
                 self._directory_disabled_page()
                 return
-            # / and /directory both show the browser
-            if path in ("/", "/index.html", "/directory", "/directory/"):
-                self.serve_directory_page()
-                return
-            # unknown path on this host → still directory UI (SPA-ish) or 404
             self.serve_directory_page()
             return
 
-        # --- Apex avaivy.cloud: only /directory is the live browser ---
-        if path in ("/directory", "/directory/"):
-            if not directory_enabled():
-                self._directory_disabled_page()
-                return
-            self.serve_directory_page()
-            return
-
-        if apex_host:
-            self.serve("avaivy.cloud", path.lstrip("/") or "index.html")
-            return
-
-        if path in ("/system", "/system/"):
-            self.send_response(302)
-            self.send_header("Location", "/avaivy.cloud/system/")
-            self.end_headers()
-            return
 
         if path in ("/", "/index.html"):
-            p = PAGES_ROOT / "index.html"
-            if p.is_file():
-                self.sendb(200, p.read_bytes())
-            else:
-                self.sendb(404, b"not found")
+            self.serve("avaivy.cloud", "index.html")
             return
 
-        parts = [x for x in path.strip("/").split("/") if x]
-        if not parts:
-            self.sendb(404, b"not found")
-            return
-        self.serve(parts[0], "/".join(parts[1:]) if len(parts) > 1 else "index.html")
+        # Everything else is resolved strictly inside web/sites/avaivy.cloud.
+        rel = path.lstrip("/") or "index.html"
+        self.serve("avaivy.cloud", rel)
 
 
 if __name__ == "__main__":

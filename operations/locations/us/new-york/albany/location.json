@@ -1,0 +1,15 @@
+{
+  "id": "us-new-york-albany",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "New York",
+  "admin1_name": "New York",
+  "admin1_slug": "new-york",
+  "name": "Albany",
+  "slug": "albany",
+  "lat": 42.652843,
+  "lon": -73.757874,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "mc-monaco",
+  "country_code": "MC",
+  "country_name": "Monaco",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Monaco",
+  "slug": "monaco",
+  "lat": 43.732349,
+  "lon": 7.427683,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "country_slug": "monaco"
+}

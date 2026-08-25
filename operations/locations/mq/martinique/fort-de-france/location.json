@@ -1,0 +1,16 @@
+{
+  "id": "mq-fort-de-france",
+  "country_code": "MQ",
+  "country_name": "Martinique",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Fort-de-France",
+  "slug": "fort-de-france",
+  "lat": 14.602796,
+  "lon": -61.067672,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "martinique"
+}

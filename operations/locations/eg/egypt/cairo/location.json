@@ -1,0 +1,16 @@
+{
+  "id": "eg-cairo",
+  "country_code": "EG",
+  "country_name": "Egypt",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Cairo",
+  "slug": "cairo",
+  "lat": 30.048819,
+  "lon": 31.243666,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Northern Africa",
+  "country_slug": "egypt"
+}

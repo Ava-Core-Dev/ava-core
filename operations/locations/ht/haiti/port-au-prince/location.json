@@ -1,0 +1,16 @@
+{
+  "id": "ht-port-au-prince",
+  "country_code": "HT",
+  "country_name": "Haiti",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Port-au-Prince",
+  "slug": "port-au-prince",
+  "lat": 18.547327,
+  "lon": -72.339593,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "haiti"
+}

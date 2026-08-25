@@ -1,0 +1,16 @@
+{
+  "id": "ni-managua",
+  "country_code": "NI",
+  "country_name": "Nicaragua",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Managua",
+  "slug": "managua",
+  "lat": 12.145991,
+  "lon": -86.274666,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "nicaragua"
+}

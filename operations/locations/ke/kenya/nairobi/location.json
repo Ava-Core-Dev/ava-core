@@ -1,0 +1,16 @@
+{
+  "id": "ke-nairobi",
+  "country_code": "KE",
+  "country_name": "Kenya",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nairobi",
+  "slug": "nairobi",
+  "lat": -1.283253,
+  "lon": 36.817245,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "kenya"
+}

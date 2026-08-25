@@ -1,0 +1,16 @@
+{
+  "id": "th-bangkok",
+  "country_code": "TH",
+  "country_name": "Thailand",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bangkok",
+  "slug": "bangkok",
+  "lat": 13.754253,
+  "lon": 100.493087,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "thailand"
+}

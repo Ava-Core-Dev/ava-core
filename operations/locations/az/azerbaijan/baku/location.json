@@ -1,0 +1,16 @@
+{
+  "id": "az-baku",
+  "country_code": "AZ",
+  "country_name": "Azerbaijan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Baku",
+  "slug": "baku",
+  "lat": 40.375443,
+  "lon": 49.832675,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "azerbaijan"
+}

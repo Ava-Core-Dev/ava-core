@@ -1,0 +1,15 @@
+{
+  "id": "us-new-jersey-trenton",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "New Jersey",
+  "admin1_name": "New Jersey",
+  "admin1_slug": "new-jersey",
+  "name": "Trenton",
+  "slug": "trenton",
+  "lat": 40.220596,
+  "lon": -74.769913,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

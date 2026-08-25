@@ -11,7 +11,7 @@ Watches:
   └── always-on/            → long-running servers (pages, APIs)
                               started on discover, kept alive, restarted on exit
 
-Main log: /home/ava-core/Database/logs/ava-core.log
+Main log: /home/ava-core/database/logs/ava-core.log
 
 EcoFlow status (every 30s) reads:
   ecoflow-live.json  (preferred)
@@ -42,12 +42,12 @@ STATE_FILE = BASE / ".ava-core-state.json"
 SCRIPT_LOG_DIR = BASE / "logs"
 SCRIPT_LOG_DIR.mkdir(exist_ok=True)
 
-MAIN_LOG_DIR = Path("/home/ava-core/Database/logs")
+MAIN_LOG_DIR = Path("/home/ava-core/database/logs")
 MAIN_LOG_DIR.mkdir(parents=True, exist_ok=True)
 MAIN_LOG_FILE = MAIN_LOG_DIR / "ava-core.log"
 
 # EcoFlow (new hierarchical pipeline)
-ECO_ROOT = Path(os.environ.get("ECOFLOW_ROOT", "/home/ava-core/Database/ecoflow"))
+ECO_ROOT = Path(os.environ.get("ECOFLOW_ROOT", "/home/ava-core/database"))
 ECO_LIVE_JSON = ECO_ROOT / "ecoflow-live.json"
 ECO_1MIN = ECO_ROOT / "ecoflow-1min.db"
 ECO_10S = ECO_ROOT / "ecoflow-10s.db"

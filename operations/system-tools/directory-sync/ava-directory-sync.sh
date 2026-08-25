@@ -66,10 +66,10 @@ EXCLUDES=(
     ".gradle/"
     ".rustup"
     ".rustup/"
-    "Credentials"
-    "Credentials/"
+    "credentials"
+    "credentials/"
     "Database"
-    "Database/"
+    "database/"
     "credentials"
     "credentials/"
     "secrets"
@@ -144,7 +144,7 @@ cat > "$EXPORT/.gitignore" <<'EOF'
 *.pfx
 *.secret
 
-Credentials/
+credentials/
 credentials/
 secrets/
 wallets/
@@ -221,7 +221,7 @@ PRIVATE_DIRS = {
     ".cargo",
     ".ssh",
     ".cloudflared",
-    "Credentials",
+    "credentials",
     "Database",
     "credentials",
     "secrets",
@@ -361,7 +361,7 @@ BAD="$(
             -name '.gemini' -o \
             -name '.aider' -o \
             -name '.windsurf' -o \
-            -name 'Credentials' -o \
+            -name 'credentials' -o \
             -name 'Database' -o \
             -name 'credentials' -o \
             -name 'secrets' -o \

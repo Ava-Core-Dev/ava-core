@@ -1,0 +1,16 @@
+{
+  "id": "lu-luxembourg",
+  "country_code": "LU",
+  "country_name": "Luxembourg",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Luxembourg",
+  "slug": "luxembourg",
+  "lat": 49.815868,
+  "lon": 6.129675,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "country_slug": "luxembourg"
+}

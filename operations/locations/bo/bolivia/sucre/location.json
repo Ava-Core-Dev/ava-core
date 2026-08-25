@@ -1,0 +1,16 @@
+{
+  "id": "bo-sucre",
+  "country_code": "BO",
+  "country_name": "Bolivia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Sucre",
+  "slug": "sucre",
+  "lat": -19.047725,
+  "lon": -65.259431,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "bolivia"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "tn-tunis",
+  "country_code": "TN",
+  "country_name": "Tunisia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tunis",
+  "slug": "tunis",
+  "lat": 33.843941,
+  "lon": 9.400138,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Northern Africa",
+  "country_slug": "tunisia"
+}

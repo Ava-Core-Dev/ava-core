@@ -1,0 +1,15 @@
+{
+  "id": "us-north-carolina-raleigh",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "North Carolina",
+  "admin1_name": "North Carolina",
+  "admin1_slug": "north-carolina",
+  "name": "Raleigh",
+  "slug": "raleigh",
+  "lat": 35.78043,
+  "lon": -78.639099,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

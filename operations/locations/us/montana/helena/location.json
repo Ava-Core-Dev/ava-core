@@ -1,0 +1,15 @@
+{
+  "id": "us-montana-helena",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Montana",
+  "admin1_name": "Montana",
+  "admin1_slug": "montana",
+  "name": "Helena",
+  "slug": "helena",
+  "lat": 46.585709,
+  "lon": -112.018417,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

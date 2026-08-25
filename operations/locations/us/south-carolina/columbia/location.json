@@ -1,0 +1,15 @@
+{
+  "id": "us-south-carolina-columbia",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "South Carolina",
+  "admin1_name": "South Carolina",
+  "admin1_slug": "south-carolina",
+  "name": "Columbia",
+  "slug": "columbia",
+  "lat": 34.000343,
+  "lon": -81.033211,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

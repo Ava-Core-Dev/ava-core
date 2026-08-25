@@ -1,0 +1,16 @@
+{
+  "id": "vn-hanoi",
+  "country_code": "VN",
+  "country_name": "Vietnam",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Hanoi",
+  "slug": "hanoi",
+  "lat": 21.02945,
+  "lon": 105.854444,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "vietnam"
+}

@@ -1,0 +1,382 @@
+========================================================================
+DIRECTORY PRINTER — Detailed Report
+Root        : /home/ava-core/operations/system-tools/desk
+Scan started: 2026-08-25 06:53:57 UTC
+========================================================================
+
+[DIR] /home/ava-core/operations/system-tools/desk
+  path     : /home/ava-core/operations/system-tools/desk
+  modified : 2026-08-23 21:50:24 UTC
+  created  : N/A
+  accessed : 2026-08-24 23:53:14 UTC
+  changed  : 2026-08-24 23:50:49 UTC
+  scanned  : 2026-08-25 06:53:57 UTC
+
+  [DIR] ava_core_visual_cli
+    path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli
+    modified : 2026-08-25 00:49:20 UTC
+    created  : N/A
+    accessed : 2026-08-25 00:51:14 UTC
+    changed  : 2026-08-25 00:49:20 UTC
+    scanned  : 2026-08-25 06:53:57 UTC
+
+    [TEXT] ava_core_audio_player.py  3.9KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_audio_player.py
+      modified : 2026-08-24 23:27:40 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:01:17 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """
+        AVA Core Background Audio Player
+
+    [TEXT] ava_core_visual_cli.py  59.0KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py
+      modified : 2026-08-25 00:49:20 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:51:14 UTC
+      changed  : 2026-08-25 00:49:20 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import json, os, shlex, subprocess, threading, tkinter as tk
+        from datetime import datetime, timezone
+
+    [FILE] ava_core_visual_cli.py.backup_20260823_110059  21.5KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_20260823_110059
+      modified : 2026-08-24 23:30:43 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:36 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import os, shlex, subprocess, threading, tkinter as tk
+        from tkinter import ttk, messagebox
+
+    [FILE] ava_core_visual_cli.py.backup_ssh_20260823_193640  23.7KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_20260823_193640
+      modified : 2026-08-24 23:30:43 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:36 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import os, shlex, subprocess, threading, tkinter as tk
+        from tkinter import ttk, messagebox
+
+    [FILE] ava_core_visual_cli.py.backup_ssh_fix2_20260823_193914  31.4KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix2_20260823_193914
+      modified : 2026-08-24 23:30:43 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:36 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import os, shlex, subprocess, threading, tkinter as tk
+        from tkinter import ttk, messagebox
+
+    [FILE] ava_core_visual_cli.py.backup_ssh_fix3_20260823_193939  31.4KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix3_20260823_193939
+      modified : 2026-08-24 23:30:43 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:36 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import os, shlex, subprocess, threading, tkinter as tk
+        from tkinter import ttk, messagebox
+
+    [FILE] ava_core_visual_cli.py.backup_ssh_fix4_20260823_194022  31.4KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix4_20260823_194022
+      modified : 2026-08-24 23:30:43 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:36 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import os, shlex, subprocess, threading, tkinter as tk
+        from tkinter import ttk, messagebox
+
+    [FILE] ava_core_visual_cli.py.backup_ssh_fix_20260823_193849  31.4KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py.backup_ssh_fix_20260823_193849
+      modified : 2026-08-24 23:30:43 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:36 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env python3
+        import os, shlex, subprocess, threading, tkinter as tk
+        from tkinter import ttk, messagebox
+
+    [FILE] install_ava_core_visual_cli.sh  1020.0B
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/install_ava_core_visual_cli.sh
+      modified : 2026-08-23 20:32:14 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:01:17 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env bash
+        set -euo pipefail
+        BASE="/home/ava-core/operations/system-tools/desk/ava_core_visual_cli"
+
+    [FILE] install_ava_core_visual_cli_audio.sh  1.6KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/install_ava_core_visual_cli_audio.sh
+      modified : 2026-08-24 23:27:40 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:01:17 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        #!/usr/bin/env bash
+        set -euo pipefail
+        
+
+    [TEXT] README.txt  947.0B
+      path     : /home/ava-core/operations/system-tools/desk/ava_core_visual_cli/README.txt
+      modified : 2026-08-24 23:27:40 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:12 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        AVA CORE VISUAL CLI — AUDIO UPDATE
+        
+        INSTALL
+
+  [DIR] ava_directory_feature
+    path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature
+    modified : 2026-08-23 21:50:46 UTC
+    created  : N/A
+    accessed : 2026-08-24 23:53:14 UTC
+    changed  : 2026-08-24 23:50:49 UTC
+    scanned  : 2026-08-25 06:53:57 UTC
+
+    [DIR] ava_directory
+      path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory
+      modified : 2026-08-25 02:24:34 UTC
+      created  : N/A
+      accessed : 2026-08-25 02:24:34 UTC
+      changed  : 2026-08-25 02:24:34 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+
+      [DIR] operations
+        path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations
+        modified : 2026-08-23 21:43:37 UTC
+        created  : N/A
+        accessed : 2026-08-24 23:53:14 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 06:53:57 UTC
+
+        [DIR] cronologicals
+          path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals
+          modified : 2026-08-23 21:43:37 UTC
+          created  : N/A
+          accessed : 2026-08-24 23:53:14 UTC
+          changed  : 2026-08-24 23:50:49 UTC
+          scanned  : 2026-08-25 06:53:57 UTC
+
+          [DIR] always-on
+            path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on
+            modified : 2026-08-25 02:28:49 UTC
+            created  : N/A
+            accessed : 2026-08-25 02:28:55 UTC
+            changed  : 2026-08-25 02:28:49 UTC
+            scanned  : 2026-08-25 06:53:57 UTC
+
+            [TEXT] broadcast.py  30.1KB
+              path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on/broadcast.py
+              modified : 2026-08-25 02:28:49 UTC
+              created  : N/A
+              accessed : 2026-08-25 02:28:55 UTC
+              changed  : 2026-08-25 02:28:49 UTC
+              scanned  : 2026-08-25 06:53:57 UTC
+              preview  :
+                #!/usr/bin/env python3
+                """
+                Ava broadcast — EcoFlow APIs + static Pages + transparent /directory browser.
+
+            [FILE] directory.enabled  0.0B
+              path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/cronologicals/always-on/directory.enabled
+              modified : 2026-08-23 21:48:41 UTC
+              created  : N/A
+              accessed : 2026-08-25 00:04:36 UTC
+              changed  : 2026-08-24 23:50:48 UTC
+              scanned  : 2026-08-25 06:53:57 UTC
+              preview  :
+                [empty]
+
+        [DIR] system-tools
+          path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools
+          modified : 2026-08-23 21:43:40 UTC
+          created  : N/A
+          accessed : 2026-08-24 23:53:14 UTC
+          changed  : 2026-08-24 23:50:49 UTC
+          scanned  : 2026-08-25 06:53:57 UTC
+
+          [DIR] desk
+            path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk
+            modified : 2026-08-23 21:43:40 UTC
+            created  : N/A
+            accessed : 2026-08-24 23:53:14 UTC
+            changed  : 2026-08-24 23:50:49 UTC
+            scanned  : 2026-08-25 06:53:57 UTC
+
+            [DIR] ava_core_visual_cli
+              path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk/ava_core_visual_cli
+              modified : 2026-08-24 23:31:24 UTC
+              created  : N/A
+              accessed : 2026-08-24 23:53:14 UTC
+              changed  : 2026-08-24 23:50:49 UTC
+              scanned  : 2026-08-25 06:53:57 UTC
+
+              [TEXT] ava_core_visual_cli.py  23.5KB
+                path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/operations/system-tools/desk/ava_core_visual_cli/ava_core_visual_cli.py
+                modified : 2026-08-24 23:27:40 UTC
+                created  : N/A
+                accessed : 2026-08-25 00:01:17 UTC
+                changed  : 2026-08-24 23:50:48 UTC
+                scanned  : 2026-08-25 06:53:57 UTC
+                preview  :
+                  #!/usr/bin/env python3
+                  import os, shlex, subprocess, threading, tkinter as tk
+                  from tkinter import ttk, messagebox
+
+      [DIR] Web
+        path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web
+        modified : 2026-08-23 21:43:38 UTC
+        created  : N/A
+        accessed : 2026-08-24 23:53:14 UTC
+        changed  : 2026-08-24 23:50:49 UTC
+        scanned  : 2026-08-25 06:53:57 UTC
+
+        [DIR] Pages
+          path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages
+          modified : 2026-08-23 21:43:38 UTC
+          created  : N/A
+          accessed : 2026-08-24 23:53:14 UTC
+          changed  : 2026-08-24 23:50:49 UTC
+          scanned  : 2026-08-25 06:53:57 UTC
+
+          [DIR] avaivy.cloud
+            path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud
+            modified : 2026-08-23 21:43:39 UTC
+            created  : N/A
+            accessed : 2026-08-24 23:53:14 UTC
+            changed  : 2026-08-24 23:50:49 UTC
+            scanned  : 2026-08-25 06:53:57 UTC
+
+            [DIR] directory
+              path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory
+              modified : 2026-08-23 21:43:39 UTC
+              created  : N/A
+              accessed : 2026-08-24 23:53:14 UTC
+              changed  : 2026-08-24 23:50:49 UTC
+              scanned  : 2026-08-25 06:53:57 UTC
+
+              [TEXT] directory.css  6.0KB
+                path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/directory.css
+                modified : 2026-08-23 21:46:22 UTC
+                created  : N/A
+                accessed : 2026-08-25 00:04:36 UTC
+                changed  : 2026-08-24 23:50:48 UTC
+                scanned  : 2026-08-25 06:53:57 UTC
+                preview  :
+                  :root {
+                    --bg: #0b0d12;
+                    --panel: #111820;
+
+              [TEXT] directory.js  6.6KB
+                path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/directory.js
+                modified : 2026-08-23 21:46:53 UTC
+                created  : N/A
+                accessed : 2026-08-25 00:01:20 UTC
+                changed  : 2026-08-24 23:50:48 UTC
+                scanned  : 2026-08-25 06:53:57 UTC
+                preview  :
+                  (() => {
+                    const state = { path: "", recursive: false, entries: [], selected: null };
+                  
+
+              [TEXT] index.html  2.9KB
+                path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/directory/index.html
+                modified : 2026-08-23 21:45:47 UTC
+                created  : N/A
+                accessed : 2026-08-25 00:01:20 UTC
+                changed  : 2026-08-24 23:50:48 UTC
+                scanned  : 2026-08-25 06:53:57 UTC
+                preview  :
+                  <!doctype html>
+                  <html lang="en">
+                  <head>
+
+            [TEXT] index.html  2.8KB
+              path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/Web/Pages/avaivy.cloud/index.html
+              modified : 2026-08-23 21:48:40 UTC
+              created  : N/A
+              accessed : 2026-08-25 00:01:20 UTC
+              changed  : 2026-08-24 23:50:48 UTC
+              scanned  : 2026-08-25 06:53:57 UTC
+              preview  :
+                <!doctype html>
+                <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0d12"><title>Ava Ivy — Home</title><link rel="styles
+                <div class="ambient"></div><header class="nav"><a class="brand" href="/"><span class="mark">✦</span><span><b>AVA</b><small>IVY</small></span></a><nav><a class="active" href="/">Home</a><a href="/avaiv
+
+      [TEXT] INSTALL.md  3.1KB
+        path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory/INSTALL.md
+        modified : 2026-08-25 02:24:34 UTC
+        created  : N/A
+        accessed : 2026-08-25 02:24:34 UTC
+        changed  : 2026-08-25 02:24:34 UTC
+        scanned  : 2026-08-25 06:53:57 UTC
+        preview  :
+          # Ava Directory — Transparent live file browser
+          
+          Adds **https://avaivy.cloud/directory** — a read-only, always-on directory browser for the Ava home tree.
+
+    [TEXT] ava_directory_feature.txt  9.1KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory_feature.txt
+      modified : 2026-08-23 21:50:46 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:12 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        ========================================================================
+        DIRECTORY PRINTER — Detailed Report
+        Root        : /home/ava-core/operations/system-tools/desk/ava_directory_feature
+
+    [TEXT] ava_directory_feature_tree.txt  3.7KB
+      path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature/ava_directory_feature_tree.txt
+      modified : 2026-08-23 21:50:46 UTC
+      created  : N/A
+      accessed : 2026-08-25 00:04:12 UTC
+      changed  : 2026-08-24 23:50:48 UTC
+      scanned  : 2026-08-25 06:53:57 UTC
+      preview  :
+        # TREE: /home/ava-core/operations/system-tools/desk/ava_directory_feature
+        # Generated: 2026-08-23 21:50:46 UTC
+        
+
+  [ARCHIVE] ava_directory_feature.zip  24.3KB
+    path     : /home/ava-core/operations/system-tools/desk/ava_directory_feature.zip
+    modified : 2026-08-23 21:50:21 UTC
+    created  : N/A
+    accessed : 2026-08-25 00:01:16 UTC
+    changed  : 2026-08-24 23:50:48 UTC
+    scanned  : 2026-08-25 06:53:57 UTC
+    preview  :
+      [binary/media]
+
+========================================================================
+Scan finished: 2026-08-25 06:53:57 UTC
+Total entries: 36
+========================================================================

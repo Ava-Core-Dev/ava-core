@@ -3,10 +3,10 @@
 ecoflow_lib.py — Shared library for EcoFlow hierarchical aggregation.
 
 Paths (override with env ECOFLOW_ROOT):
-  /home/ava-core/Database/ecoflow/
+  /home/ava-core/database/
 
 Devices:
-  R331ZAB5SG755642 → security
+  R331ZAB5SG755642 → EXCLUDED (not tracked)
   R621ZA16XH6K1155 → Primary
   R331ZAB5SG6S2858 → Backup
 
@@ -43,10 +43,10 @@ from statistics import mean, median, stdev
 from typing import Any, Callable, Iterable, Optional
 
 # ── paths ──────────────────────────────────────────────────────────────
-ECO_ROOT = Path(os.environ.get("ECOFLOW_ROOT", "/home/ava-core/Database/ecoflow"))
-LOG_DIR = Path(os.environ.get("ECOFLOW_LOG_DIR", "/home/ava-core/Database/logs"))
+ECO_ROOT = Path(os.environ.get("ECOFLOW_ROOT", "/home/ava-core/database"))
+LOG_DIR = Path(os.environ.get("ECOFLOW_LOG_DIR", "/home/ava-core/database/logs"))
 CRED_FILE = Path(os.environ.get(
-    "ECOFLOW_CRED", "/home/ava-core/Credentials/credentials.env"
+    "ECOFLOW_CRED", "/home/ava-core/credentials/credentials.env"
 ))
 
 DB_10S = ECO_ROOT / "ecoflow-10s.db"
@@ -65,8 +65,8 @@ DB_YEAR = ECO_ROOT / "ecoflow-year.db"
 LIVE_JSON = ECO_ROOT / "ecoflow-live.json"
 STATE_DB = ECO_ROOT / "ecoflow-state.db"  # watermark / last-processed
 
+EXCLUDED_SNS = {"R331ZAB5SG755642"}
 NAME_MAP = {
-    "R331ZAB5SG755642": "security",
     "R621ZA16XH6K1155": "Primary",
     "R331ZAB5SG6S2858": "Backup",
 }
@@ -105,6 +105,9 @@ def setup_log(name: str) -> logging.Logger:
 
 def friendly(sn: str, fallback: str = "") -> str:
     return NAME_MAP.get(sn, fallback or sn)
+
+def excluded_sn(sn: str) -> bool:
+    return sn in EXCLUDED_SNS
 
 
 # ── safe stats ─────────────────────────────────────────────────────────
@@ -674,7 +677,7 @@ def rollup(
         ts_raw = d.get("ts") or d.get("bucket_key") or d.get("minute_key") or ""
         max_ts = max(max_ts, str(ts_raw))
         sn = d.get("sn") or ""
-        if not sn:
+        if not sn or excluded_sn(sn):
             continue
         # normalize power keys for 10s
         if src_level == "10s":
@@ -777,6 +780,8 @@ def update_live_json(log: Optional[logging.Logger] = None) -> None:
         level_data = {}
         for r in rows:
             d = dict(r)
+            if excluded_sn(d.get("sn") or ""):
+                continue
             name = d.get("name") or friendly(d["sn"])
             entry = {k: d.get(k) for k in (
                 "bucket_key", "samples", "source_rows",

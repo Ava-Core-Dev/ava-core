@@ -8,7 +8,7 @@ Drop into:
 Writes raw snapshots into ecoflow-10s.db (never cleared by this script;
 ecoflow-1min.py clears after aggregating).
 
-Credentials: /home/ava-core/Credentials/credentials.env
+Credentials: /home/ava-core/credentials/credentials.env
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ecoflow_lib import (
     CRED_FILE,
     DB_10S,
+    excluded_sn,
     find_key,
     friendly,
     init_10s_db,
@@ -160,7 +161,8 @@ def main() -> None:
 
     for dev in devices:
         sn = dev.get("sn")
-        if not sn:
+        if not sn or excluded_sn(sn):
+            if sn: log.info(f"Excluded battery {sn}; not tracking")
             continue
         online = dev.get("online")
         name = friendly(sn, dev.get("deviceName") or "")

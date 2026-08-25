@@ -1,0 +1,16 @@
+{
+  "id": "mh-majuro",
+  "country_code": "MH",
+  "country_name": "Marshall Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Majuro",
+  "slug": "majuro",
+  "lat": 7.090992,
+  "lon": 171.381635,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Micronesia",
+  "country_slug": "marshall-islands"
+}

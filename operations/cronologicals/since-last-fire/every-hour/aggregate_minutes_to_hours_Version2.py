@@ -5,8 +5,8 @@ aggregate_minutes_to_hours.py
 Aggregate minute-level DB into hourly buckets and trim minute rows older than 24 hours.
 
 Default paths:
-  Minutes DB: /home/ava-core/Database/system/system-1min.db
-  Hours DB:   /home/ava-core/Database/system/system-1hour.db
+  Minutes DB: /home/ava-core/database/system-1min.db
+  Hours DB:   /home/ava-core/database/system-1hour.db
 
 Behavior:
 - Reads minute_* tables and groups minute_ts into hour buckets (floor to hour).
@@ -34,7 +34,7 @@ import datetime
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-DEFAULT_MIN_DB = "/home/ava-core/Database/system/system-1min.db"
+DEFAULT_MIN_DB = "/home/ava-core/database/system-1min.db"
 
 # ---------- Helpers ----------
 def now_epoch() -> float:

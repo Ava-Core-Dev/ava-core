@@ -1,0 +1,16 @@
+{
+  "id": "sm-city-of-san-marino",
+  "country_code": "SM",
+  "country_name": "San Marino",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "City of San Marino",
+  "slug": "city-of-san-marino",
+  "lat": 43.9364,
+  "lon": 12.446699,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "san-marino"
+}

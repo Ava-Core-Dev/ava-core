@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-kualapuu",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Kualapuʻu",
+  "slug": "kualapuu",
+  "lat": 21.1386,
+  "lon": -157.0175,
+  "kind": "state-location",
+  "region": "Molokaʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

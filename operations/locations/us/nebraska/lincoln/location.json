@@ -1,0 +1,15 @@
+{
+  "id": "us-nebraska-lincoln",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Nebraska",
+  "admin1_name": "Nebraska",
+  "admin1_slug": "nebraska",
+  "name": "Lincoln",
+  "slug": "lincoln",
+  "lat": 40.808075,
+  "lon": -96.699654,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

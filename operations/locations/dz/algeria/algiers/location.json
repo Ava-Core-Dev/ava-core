@@ -1,0 +1,16 @@
+{
+  "id": "dz-algiers",
+  "country_code": "DZ",
+  "country_name": "Algeria",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Algiers",
+  "slug": "algiers",
+  "lat": 36.775361,
+  "lon": 3.060188,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Northern Africa",
+  "country_slug": "algeria"
+}

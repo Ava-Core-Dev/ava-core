@@ -1,0 +1,16 @@
+{
+  "id": "ve-caracas",
+  "country_code": "VE",
+  "country_name": "Venezuela",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Caracas",
+  "slug": "caracas",
+  "lat": 10.506098,
+  "lon": -66.914602,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "venezuela"
+}

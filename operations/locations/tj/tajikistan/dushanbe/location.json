@@ -1,0 +1,16 @@
+{
+  "id": "tj-dushanbe",
+  "country_code": "TJ",
+  "country_name": "Tajikistan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Dushanbe",
+  "slug": "dushanbe",
+  "lat": 38.542584,
+  "lon": 68.815214,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Central Asia",
+  "country_slug": "tajikistan"
+}

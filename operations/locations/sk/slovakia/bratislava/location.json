@@ -1,0 +1,16 @@
+{
+  "id": "sk-bratislava",
+  "country_code": "SK",
+  "country_name": "Slovakia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bratislava",
+  "slug": "bratislava",
+  "lat": 48.151699,
+  "lon": 17.109306,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "slovakia"
+}

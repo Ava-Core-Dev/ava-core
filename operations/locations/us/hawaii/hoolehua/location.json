@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-hoolehua",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Hoʻolehua",
+  "slug": "hoolehua",
+  "lat": 21.1431,
+  "lon": -157.029,
+  "kind": "state-location",
+  "region": "Molokaʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

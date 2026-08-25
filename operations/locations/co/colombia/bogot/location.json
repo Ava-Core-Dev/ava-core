@@ -1,0 +1,16 @@
+{
+  "id": "co-bogot",
+  "country_code": "CO",
+  "country_name": "Colombia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bogotá",
+  "slug": "bogot",
+  "lat": 4.59808,
+  "lon": -74.076044,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "colombia"
+}

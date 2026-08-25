@@ -1,0 +1,16 @@
+{
+  "id": "il-jerusalem",
+  "country_code": "IL",
+  "country_name": "Israel",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Jerusalem",
+  "slug": "jerusalem",
+  "lat": 31.778345,
+  "lon": 35.225079,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "israel"
+}

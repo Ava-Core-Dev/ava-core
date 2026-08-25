@@ -1,0 +1,16 @@
+{
+  "id": "gs-king-edward-point",
+  "country_code": "GS",
+  "country_name": "South Georgia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "King Edward Point",
+  "slug": "king-edward-point",
+  "lat": -54.283545,
+  "lon": -36.494636,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "south-georgia"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ge-tbilisi",
+  "country_code": "GE",
+  "country_name": "Georgia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tbilisi",
+  "slug": "tbilisi",
+  "lat": 41.693459,
+  "lon": 44.80145,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "georgia"
+}

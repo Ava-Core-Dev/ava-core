@@ -1,0 +1,16 @@
+{
+  "id": "jp-tokyo",
+  "country_code": "JP",
+  "country_name": "Japan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tokyo",
+  "slug": "tokyo",
+  "lat": 35.682839,
+  "lon": 139.759455,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "japan"
+}

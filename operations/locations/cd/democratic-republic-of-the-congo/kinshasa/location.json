@@ -1,0 +1,16 @@
+{
+  "id": "cd-kinshasa",
+  "country_code": "CD",
+  "country_name": "Democratic Republic of the Congo",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kinshasa",
+  "slug": "kinshasa",
+  "lat": -4.321706,
+  "lon": 15.312597,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "democratic-republic-of-the-congo"
+}

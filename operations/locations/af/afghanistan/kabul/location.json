@@ -1,0 +1,16 @@
+{
+  "id": "af-kabul",
+  "country_code": "AF",
+  "country_name": "Afghanistan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kabul",
+  "slug": "kabul",
+  "lat": 34.526011,
+  "lon": 69.177684,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "afghanistan"
+}

@@ -1,0 +1,19 @@
+github-auto-push — Ava Core → GitHub
+
+Canonical runner:
+  /home/ava-core/operations/system-tools/github-auto-push.py
+
+Uses existing:
+  /home/ava-core/core_uploader.py
+  (token from credentials / GITHUB_TOKEN, same exclude rules)
+
+Cron placement (this package):
+  operations/cronologicals/since-last-fire/every-hour/github-auto-push.py
+  operations/cronologicals/on-time/HH:00/github-auto-push.py  (00–23)
+
+Lock: /tmp/ava-github-auto-push.lock  (only one run at a time)
+Log:  /home/ava-core/database/logs/github-auto-push.log
+
+Manual test:
+  python3 /home/ava-core/operations/system-tools/github-auto-push.py --dry-run
+  python3 /home/ava-core/operations/system-tools/github-auto-push.py

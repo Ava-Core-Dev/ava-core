@@ -1,0 +1,16 @@
+{
+  "id": "dj-djibouti",
+  "country_code": "DJ",
+  "country_name": "Djibouti",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Djibouti",
+  "slug": "djibouti",
+  "lat": 11.814597,
+  "lon": 42.845306,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "djibouti"
+}

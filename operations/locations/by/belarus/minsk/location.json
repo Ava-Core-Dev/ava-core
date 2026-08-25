@@ -1,0 +1,16 @@
+{
+  "id": "by-minsk",
+  "country_code": "BY",
+  "country_name": "Belarus",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Minsk",
+  "slug": "minsk",
+  "lat": 53.902334,
+  "lon": 27.561879,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "belarus"
+}

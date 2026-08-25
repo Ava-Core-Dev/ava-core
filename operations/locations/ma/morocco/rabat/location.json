@@ -1,0 +1,16 @@
+{
+  "id": "ma-rabat",
+  "country_code": "MA",
+  "country_name": "Morocco",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Rabat",
+  "slug": "rabat",
+  "lat": 34.022405,
+  "lon": -6.834543,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Northern Africa",
+  "country_slug": "morocco"
+}

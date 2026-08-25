@@ -1,0 +1,15 @@
+{
+  "id": "us-louisiana-baton-rouge",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Louisiana",
+  "admin1_name": "Louisiana",
+  "admin1_slug": "louisiana",
+  "name": "Baton Rouge",
+  "slug": "baton-rouge",
+  "lat": 30.457069,
+  "lon": -91.187393,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

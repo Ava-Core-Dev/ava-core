@@ -1,0 +1,4 @@
+<?xml version="1.0" ?>
+<apport>
+  <ignore program="/usr/lib/chatgpt/ChatGPT" mtime="1787369825"/>
+</apport>

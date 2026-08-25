@@ -1,0 +1,16 @@
+{
+  "id": "se-stockholm",
+  "country_code": "SE",
+  "country_name": "Sweden",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Stockholm",
+  "slug": "stockholm",
+  "lat": 59.325117,
+  "lon": 18.071094,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "sweden"
+}

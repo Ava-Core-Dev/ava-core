@@ -1,0 +1,16 @@
+{
+  "id": "py-asunci-n",
+  "country_code": "PY",
+  "country_name": "Paraguay",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Asunción",
+  "slug": "asunci-n",
+  "lat": -25.280046,
+  "lon": -57.634381,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "paraguay"
+}

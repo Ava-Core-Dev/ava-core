@@ -1,0 +1,16 @@
+{
+  "id": "sn-dakar",
+  "country_code": "SN",
+  "country_name": "Senegal",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Dakar",
+  "slug": "dakar",
+  "lat": 14.693425,
+  "lon": -17.447938,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "senegal"
+}

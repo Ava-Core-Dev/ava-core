@@ -1,0 +1,16 @@
+{
+  "id": "al-tirana",
+  "country_code": "AL",
+  "country_name": "Albania",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tirana",
+  "slug": "tirana",
+  "lat": 41.326873,
+  "lon": 19.818791,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "albania"
+}

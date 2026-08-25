@@ -1,0 +1,16 @@
+{
+  "id": "tf-port-aux-fran-ais",
+  "country_code": "TF",
+  "country_name": "French Southern and Antarctic Lands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Port-aux-Français",
+  "slug": "port-aux-fran-ais",
+  "lat": -49.353677,
+  "lon": 70.243567,
+  "kind": "national-capital",
+  "region": "Global",
+  "subregion": "",
+  "country_slug": "french-southern-and-antarctic-lands"
+}

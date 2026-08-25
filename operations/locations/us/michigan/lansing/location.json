@@ -1,0 +1,15 @@
+{
+  "id": "us-michigan-lansing",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Michigan",
+  "admin1_name": "Michigan",
+  "admin1_slug": "michigan",
+  "name": "Lansing",
+  "slug": "lansing",
+  "lat": 42.733635,
+  "lon": -84.555328,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

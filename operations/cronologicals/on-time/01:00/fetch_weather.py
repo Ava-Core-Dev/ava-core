@@ -56,7 +56,7 @@ except Exception:
 
 
 # ---------- Config ----------
-DB_DIR = Path("/home/ava-core/Database/weather")
+DB_DIR = Path("/home/ava-core/database")
 DB_PATH = DB_DIR / "weather.db"
 LOCK_PATH = Path("/tmp/fetch_weather_hourly.lock")
 
@@ -71,39 +71,20 @@ PER_REQUEST_DELAY = 0.18  # seconds between requests to avoid bursts
 MAX_RETRIES = 3
 RETRY_BASE = 1.0  # backoff base seconds
 
-# Locations (up to 5 per island)
-LOCATIONS = [
-    # Big Island
-    {"island": "Big Island", "name": "Hilo", "lat": 19.7180, "lon": -155.0891},
-    {"island": "Big Island", "name": "Kailua-Kona", "lat": 19.639994, "lon": -155.9969},
-    {"island": "Big Island", "name": "Waimea (Kamuela)", "lat": 20.0110, "lon": -155.6717},
-    {"island": "Big Island", "name": "Volcano Village", "lat": 19.4075, "lon": -155.2140},
-    {"island": "Big Island", "name": "Pahoa", "lat": 19.4573, "lon": -154.9429},
-    # Maui
-    {"island": "Maui", "name": "Lahaina", "lat": 20.8783, "lon": -156.6820},
-    {"island": "Maui", "name": "Kaanapali", "lat": 20.9186, "lon": -156.6915},
-    {"island": "Maui", "name": "Kahului", "lat": 20.8947, "lon": -156.4970},
-    {"island": "Maui", "name": "Kihei", "lat": 20.7510, "lon": -156.4560},
-    {"island": "Maui", "name": "Makawao (Upcountry)", "lat": 20.8381, "lon": -156.3235},
-    # Molokai
-    {"island": "Molokai", "name": "Kaunakakai", "lat": 21.1436, "lon": -157.0063},
-    {"island": "Molokai", "name": "Hoolehua", "lat": 21.1431, "lon": -157.0290},
-    {"island": "Molokai", "name": "Kalaupapa", "lat": 21.1773, "lon": -156.9931},
-    {"island": "Molokai", "name": "Maunaloa", "lat": 21.1478, "lon": -157.1981},
-    {"island": "Molokai", "name": "Kualapuu", "lat": 21.1386, "lon": -157.0175},
-    # Oahu
-    {"island": "Oahu", "name": "Waikiki (Honolulu)", "lat": 21.2850, "lon": -157.8350},
-    {"island": "Oahu", "name": "Haleiwa (North Shore)", "lat": 21.5942, "lon": -158.1100},
-    {"island": "Oahu", "name": "Kailua (Windward)", "lat": 21.4020, "lon": -157.7396},
-    {"island": "Oahu", "name": "Kaneohe", "lat": 21.4500, "lon": -157.7990},
-    {"island": "Oahu", "name": "Waianae (Leeward)", "lat": 21.4669, "lon": -158.1780},
-    # Kauai
-    {"island": "Kauai", "name": "Hanalei", "lat": 22.2034, "lon": -159.5013},
-    {"island": "Kauai", "name": "Princeville", "lat": 22.2165, "lon": -159.4857},
-    {"island": "Kauai", "name": "Lihue", "lat": 21.9759, "lon": -159.3725},
-    {"island": "Kauai", "name": "Poipu (South Shore)", "lat": 21.8751, "lon": -159.4542},
-    {"island": "Kauai", "name": "Waimea", "lat": 21.9661, "lon": -159.6646},
-]
+# Canonical public weather registry. Keep collection and public pages on one source of truth.
+HAWAII_LOCATIONS_PATH = Path("/home/ava-core/web/sites/avaivy.cloud/data/hawaii-locations.json")
+if not HAWAII_LOCATIONS_PATH.is_file():
+    HAWAII_LOCATIONS_PATH = Path(__file__).resolve().parents[4] / "web/sites/avaivy.cloud/data/hawaii-locations.json"
+
+def load_hawaii_locations():
+    data = json.loads(HAWAII_LOCATIONS_PATH.read_text(encoding="utf-8"))
+    rows = []
+    for island in data.get("islands", []):
+        for loc in island.get("locations", []):
+            rows.append({"island": island["name"], "name": loc["name"], "slug": loc["slug"], "lat": loc["lat"], "lon": loc["lon"]})
+    return rows
+
+LOCATIONS = load_hawaii_locations()
 
 
 # ---------- DB helpers ----------
@@ -127,6 +108,9 @@ def ensure_db() -> None:
             name TEXT,
             lat REAL,
             lon REAL,
+            country_code TEXT DEFAULT 'US',
+            admin1_code TEXT DEFAULT 'HI',
+            region TEXT,
             UNIQUE(island,name)
         )
         """
@@ -155,6 +139,16 @@ def ensure_db() -> None:
         )
         """
     )
+    for col, definition in (("country_code", "TEXT"), ("admin1_code", "TEXT"), ("region", "TEXT")):
+        try:
+            c.execute(f"ALTER TABLE locations ADD COLUMN {col} {definition}")
+        except sqlite3.OperationalError:
+            pass
+    c.execute("UPDATE locations SET country_code=COALESCE(country_code,'US'), admin1_code=COALESCE(admin1_code,'HI'), region=COALESCE(region,island)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_weather_obs_ts ON weather(obs_ts)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_weather_location ON weather(location_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_weather_provider ON weather(provider)")
+
     # daily sun times per location/date
     c.execute(
         """
@@ -181,8 +175,9 @@ def save_location_if_missing(conn: sqlite3.Connection, loc: Dict[str, Any]) -> i
     if r:
         return int(r[0])
     cur.execute(
-        "INSERT INTO locations (island,name,lat,lon) VALUES (?, ?, ?, ?)",
-        (loc["island"], loc["name"], float(loc["lat"]), float(loc["lon"])),
+        "INSERT INTO locations (island,name,lat,lon,country_code,admin1_code,region) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (loc["island"], loc["name"], float(loc["lat"]), float(loc["lon"]),
+         loc.get("country_code", "US"), loc.get("admin1_code", "HI"), loc.get("region", loc["island"])),
     )
     conn.commit()
     return cur.lastrowid
@@ -244,50 +239,94 @@ def fetch_open_meteo(lat: float, lon: float, verbose: bool = False) -> Tuple[Opt
 
 
 def fetch_noaa_nws(lat: float, lon: float, verbose: bool = False) -> Tuple[Optional[dict], Optional[str]]:
-    headers = {"User-Agent": NWS_USER_AGENT, "Accept": "application/geo+json"}
+    """
+    Fetch the NWS point metadata, then retrieve the latest observation
+    from the first available observation station.
+
+    Do not request:
+        /gridpoints/{office}/{x},{y}/observations
+
+    That is not a valid NWS observations endpoint and returns 404.
+    """
+
+    headers = {
+        "User-Agent": NWS_USER_AGENT,
+        "Accept": "application/geo+json",
+    }
+
     base = f"https://api.weather.gov/points/{lat},{lon}"
-    pts, err = fetch_with_retries(base, headers=headers, verbose=verbose)
+
+    # Step 1: resolve the geographic point.
+    pts, err = fetch_with_retries(
+        base,
+        headers=headers,
+        verbose=verbose,
+    )
+
     if pts is None:
         return None, f"points error: {err}"
-    out: dict = {"points": pts}
-    props = pts.get("properties", {}) if isinstance(pts, dict) else {}
-    # grid observations
-    try:
-        grid_id = props.get("gridId")
-        grid_x = props.get("gridX")
-        grid_y = props.get("gridY")
-        if grid_id and grid_x is not None and grid_y is not None:
-            url = f"https://api.weather.gov/gridpoints/{grid_id}/{grid_x},{grid_y}/observations"
-            grid_obs, gerr = fetch_with_retries(url, headers=headers, verbose=verbose)
-            if grid_obs is not None:
-                out["grid_observations"] = grid_obs
-            else:
-                out["grid_observations_error"] = gerr
-    except Exception:
-        pass
-    # station list & latest station observation
-    try:
-        stations_link = props.get("observationStations")
-        if stations_link and isinstance(stations_link, str):
-            st_list, s_err = fetch_with_retries(stations_link, headers=headers, verbose=verbose)
-            if st_list is not None:
-                out["stations_list"] = st_list
-                features = st_list.get("features") or []
-                if features:
-                    st0 = features[0]
-                    st_id = st0.get("id")
-                    if st_id:
-                        latest, lerr = fetch_with_retries(st_id + "/observations/latest", headers=headers, verbose=verbose)
-                        if latest is not None:
-                            out["station_latest"] = latest
-                        else:
-                            out["station_latest_error"] = lerr
-            else:
-                out["stations_list_error"] = s_err
-    except Exception:
-        pass
-    return out, None
 
+    out: dict = {
+        "points": pts
+    }
+
+    props = pts.get("properties", {}) if isinstance(pts, dict) else {}
+
+    # Step 2: obtain the observation station list supplied by NWS.
+    stations_link = props.get("observationStations")
+
+    if not stations_link or not isinstance(stations_link, str):
+        out["stations_list_error"] = "No observationStations URL returned"
+        return out, None
+
+    st_list, s_err = fetch_with_retries(
+        stations_link,
+        headers=headers,
+        verbose=verbose,
+    )
+
+    if st_list is None:
+        out["stations_list_error"] = s_err
+        return out, None
+
+    out["stations_list"] = st_list
+
+    features = st_list.get("features") or []
+
+    if not features:
+        out["station_latest_error"] = "No observation stations returned"
+        return out, None
+
+    # Use the first station returned by the NWS point service.
+    station = features[0]
+
+    if not isinstance(station, dict):
+        out["station_latest_error"] = "Invalid station record"
+        return out, None
+
+    st_id = station.get("id")
+
+    if not st_id or not isinstance(st_id, str):
+        out["station_latest_error"] = "Station ID missing"
+        return out, None
+
+    out["station_id"] = st_id
+
+    # Step 3: retrieve the latest observation for that station.
+    latest_url = st_id.rstrip("/") + "/observations/latest"
+
+    latest, lerr = fetch_with_retries(
+        latest_url,
+        headers=headers,
+        verbose=verbose,
+    )
+
+    if latest is not None:
+        out["station_latest"] = latest
+    else:
+        out["station_latest_error"] = lerr
+
+    return out, None
 
 # ---------- Parsers ----------
 def parse_open_meteo(obj: dict) -> Tuple[Optional[str], Optional[float], Optional[float], Optional[float], Optional[float], Optional[float], Optional[str], Optional[str]]:
@@ -548,7 +587,52 @@ def run_once(force: bool = False, dry_run: bool = False, verbose: bool = False) 
                         sun_date = date.today().isoformat()
                 else:
                     sun_date = date.today().isoformat()
-                ins, upd = upsert_weather(conn, loc_id, "open-meteo", obs_ts, None, None, om_obj, temp_c, wind_kph, wind_deg, precipitation_mm, humidity_pct, om_obj.get("hourly", {}).get("cloudcover", None) if isinstance(om_obj.get("hourly", {}), dict) else None, dry_run=dry_run)
+                # Extract one scalar cloud-cover value for the observation.
+                # Open-Meteo hourly.cloudcover is an array and cannot be bound
+                # directly into a SQLite scalar column.
+                cloud_pct = None
+                hourly = om_obj.get("hourly", {})
+                if isinstance(hourly, dict):
+                    cloud_values = hourly.get("cloudcover")
+                    hourly_times = hourly.get("time")
+
+                    if isinstance(cloud_values, list) and cloud_values:
+                        # Prefer the cloud-cover entry matching obs_ts.
+                        if obs_ts and isinstance(hourly_times, list):
+                            try:
+                                obs_key = str(obs_ts).replace("Z", "+00:00")[:16]
+                                for i, t in enumerate(hourly_times):
+                                    if str(t).replace("Z", "+00:00")[:16] == obs_key:
+                                        if i < len(cloud_values):
+                                            cloud_pct = cloud_values[i]
+                                        break
+                            except Exception:
+                                pass
+
+                        # Safe fallback: use the first scalar value.
+                        if cloud_pct is None:
+                            cloud_pct = cloud_values[0]
+
+                # SQLite requires a scalar value, not a list/dict.
+                if isinstance(cloud_pct, (list, dict)):
+                    cloud_pct = None
+
+                ins, upd = upsert_weather(
+                    conn,
+                    loc_id,
+                    "open-meteo",
+                    obs_ts,
+                    None,
+                    None,
+                    om_obj,
+                    temp_c,
+                    wind_kph,
+                    wind_deg,
+                    precipitation_mm,
+                    humidity_pct,
+                    cloud_pct,
+                    dry_run=dry_run,
+                )
                 if ins:
                     total_new += 1
                 if upd:

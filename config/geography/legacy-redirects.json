@@ -1,0 +1,8 @@
+{
+  "/earthquakes/": "/earthquakes/",
+  "/weather/": "/weather/",
+  "/states/hawaii/": "/states/hawaii/",
+  "/states/hawaii/weather/": "/weather/united-states/hawaii/",
+  "/states/hawaii/earthquakes/": "/earthquakes/united-states/hawaii/",
+  "/states/hawaii/news/": "/news/united-states/hawaii/"
+}

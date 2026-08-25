@@ -1,0 +1,16 @@
+{
+  "id": "st-s-o-tom",
+  "country_code": "ST",
+  "country_name": "São Tomé and Príncipe",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "São Tomé",
+  "slug": "s-o-tom",
+  "lat": 0.338924,
+  "lon": 6.731303,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "s-o-tom-and-pr-ncipe"
+}

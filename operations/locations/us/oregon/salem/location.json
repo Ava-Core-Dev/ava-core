@@ -1,0 +1,15 @@
+{
+  "id": "us-oregon-salem",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Oregon",
+  "admin1_name": "Oregon",
+  "admin1_slug": "oregon",
+  "name": "Salem",
+  "slug": "salem",
+  "lat": 44.938461,
+  "lon": -123.030403,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

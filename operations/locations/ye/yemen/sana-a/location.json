@@ -1,0 +1,16 @@
+{
+  "id": "ye-sana-a",
+  "country_code": "YE",
+  "country_name": "Yemen",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Sana'a",
+  "slug": "sana-a",
+  "lat": 15.353857,
+  "lon": 44.205884,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "yemen"
+}

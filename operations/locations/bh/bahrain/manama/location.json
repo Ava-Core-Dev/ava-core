@@ -1,0 +1,16 @@
+{
+  "id": "bh-manama",
+  "country_code": "BH",
+  "country_name": "Bahrain",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Manama",
+  "slug": "manama",
+  "lat": 26.223504,
+  "lon": 50.582244,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "bahrain"
+}

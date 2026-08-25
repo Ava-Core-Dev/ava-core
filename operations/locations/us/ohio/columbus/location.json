@@ -1,0 +1,15 @@
+{
+  "id": "us-ohio-columbus",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Ohio",
+  "admin1_name": "Ohio",
+  "admin1_slug": "ohio",
+  "name": "Columbus",
+  "slug": "columbus",
+  "lat": 39.961346,
+  "lon": -82.999069,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

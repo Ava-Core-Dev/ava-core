@@ -1,0 +1,16 @@
+{
+  "id": "mk-skopje",
+  "country_code": "MK",
+  "country_name": "Republic of Macedonia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Skopje",
+  "slug": "skopje",
+  "lat": 41.996092,
+  "lon": 21.43165,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "republic-of-macedonia"
+}

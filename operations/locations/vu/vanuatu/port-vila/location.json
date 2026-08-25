@@ -1,0 +1,16 @@
+{
+  "id": "vu-port-vila",
+  "country_code": "VU",
+  "country_name": "Vanuatu",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Port Vila",
+  "slug": "port-vila",
+  "lat": -17.741497,
+  "lon": 168.315016,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Melanesia",
+  "country_slug": "vanuatu"
+}

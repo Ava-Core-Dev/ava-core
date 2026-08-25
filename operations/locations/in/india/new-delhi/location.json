@@ -1,0 +1,16 @@
+{
+  "id": "in-new-delhi",
+  "country_code": "IN",
+  "country_name": "India",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "New Delhi",
+  "slug": "new-delhi",
+  "lat": 28.614179,
+  "lon": 77.202266,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "india"
+}

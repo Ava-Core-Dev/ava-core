@@ -1,0 +1,15 @@
+{
+  "id": "us-colorado-denver",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Colorado",
+  "admin1_name": "Colorado",
+  "admin1_slug": "colorado",
+  "name": "Denver",
+  "slug": "denver",
+  "lat": 39.739227,
+  "lon": -104.984856,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

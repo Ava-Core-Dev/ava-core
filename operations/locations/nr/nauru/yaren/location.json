@@ -1,0 +1,16 @@
+{
+  "id": "nr-yaren",
+  "country_code": "NR",
+  "country_name": "Nauru",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Yaren",
+  "slug": "yaren",
+  "lat": -0.547101,
+  "lon": 166.9164,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Micronesia",
+  "country_slug": "nauru"
+}

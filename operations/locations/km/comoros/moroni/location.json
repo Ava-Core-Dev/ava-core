@@ -1,0 +1,16 @@
+{
+  "id": "km-moroni",
+  "country_code": "KM",
+  "country_name": "Comoros",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Moroni",
+  "slug": "moroni",
+  "lat": -11.693126,
+  "lon": 43.254304,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "comoros"
+}

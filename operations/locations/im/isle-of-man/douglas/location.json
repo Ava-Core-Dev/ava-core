@@ -1,0 +1,16 @@
+{
+  "id": "im-douglas",
+  "country_code": "IM",
+  "country_name": "Isle of Man",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Douglas",
+  "slug": "douglas",
+  "lat": 39.762842,
+  "lon": -88.217052,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "isle-of-man"
+}

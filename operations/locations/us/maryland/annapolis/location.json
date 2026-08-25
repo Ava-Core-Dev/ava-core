@@ -1,0 +1,15 @@
+{
+  "id": "us-maryland-annapolis",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Maryland",
+  "admin1_name": "Maryland",
+  "admin1_slug": "maryland",
+  "name": "Annapolis",
+  "slug": "annapolis",
+  "lat": 38.978764,
+  "lon": -76.490936,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

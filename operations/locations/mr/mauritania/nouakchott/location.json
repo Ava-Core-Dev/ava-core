@@ -1,0 +1,16 @@
+{
+  "id": "mr-nouakchott",
+  "country_code": "MR",
+  "country_name": "Mauritania",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Nouakchott",
+  "slug": "nouakchott",
+  "lat": 18.079238,
+  "lon": -15.978007,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "mauritania"
+}

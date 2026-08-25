@@ -1,0 +1,15 @@
+{
+  "id": "us-indiana-indianapolis",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Indiana",
+  "admin1_name": "Indiana",
+  "admin1_slug": "indiana",
+  "name": "Indianapolis",
+  "slug": "indianapolis",
+  "lat": 39.768623,
+  "lon": -86.162643,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

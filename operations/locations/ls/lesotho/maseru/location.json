@@ -1,0 +1,16 @@
+{
+  "id": "ls-maseru",
+  "country_code": "LS",
+  "country_name": "Lesotho",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Maseru",
+  "slug": "maseru",
+  "lat": -29.310054,
+  "lon": 27.478222,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Southern Africa",
+  "country_slug": "lesotho"
+}

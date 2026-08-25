@@ -1,0 +1,15 @@
+{
+  "id": "us-arizona-phoenix",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Arizona",
+  "admin1_name": "Arizona",
+  "admin1_slug": "arizona",
+  "name": "Phoenix",
+  "slug": "phoenix",
+  "lat": 33.448143,
+  "lon": -112.096962,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

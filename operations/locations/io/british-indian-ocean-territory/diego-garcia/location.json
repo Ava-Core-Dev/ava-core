@@ -1,0 +1,16 @@
+{
+  "id": "io-diego-garcia",
+  "country_code": "IO",
+  "country_name": "British Indian Ocean Territory",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Diego Garcia",
+  "slug": "diego-garcia",
+  "lat": -7.338358,
+  "lon": 72.471815,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "british-indian-ocean-territory"
+}

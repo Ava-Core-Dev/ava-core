@@ -1,0 +1,16 @@
+{
+  "id": "gw-bissau",
+  "country_code": "GW",
+  "country_name": "Guinea-Bissau",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bissau",
+  "slug": "bissau",
+  "lat": 11.861324,
+  "lon": -15.583055,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "guinea-bissau"
+}

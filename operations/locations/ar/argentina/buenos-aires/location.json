@@ -1,0 +1,16 @@
+{
+  "id": "ar-buenos-aires",
+  "country_code": "AR",
+  "country_name": "Argentina",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Buenos Aires",
+  "slug": "buenos-aires",
+  "lat": -34.607568,
+  "lon": -58.437089,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "argentina"
+}

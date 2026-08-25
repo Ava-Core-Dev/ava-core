@@ -1,0 +1,16 @@
+{
+  "id": "kw-kuwait-city",
+  "country_code": "KW",
+  "country_name": "Kuwait",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kuwait City",
+  "slug": "kuwait-city",
+  "lat": 29.379709,
+  "lon": 47.973563,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "kuwait"
+}

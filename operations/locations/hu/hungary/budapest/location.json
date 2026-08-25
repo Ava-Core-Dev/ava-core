@@ -1,0 +1,16 @@
+{
+  "id": "hu-budapest",
+  "country_code": "HU",
+  "country_name": "Hungary",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Budapest",
+  "slug": "budapest",
+  "lat": 47.498382,
+  "lon": 19.040471,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "hungary"
+}

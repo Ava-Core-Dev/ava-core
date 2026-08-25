@@ -1,0 +1,16 @@
+{
+  "id": "mt-valletta",
+  "country_code": "MT",
+  "country_name": "Malta",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Valletta",
+  "slug": "valletta",
+  "lat": 35.898982,
+  "lon": 14.513676,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "malta"
+}

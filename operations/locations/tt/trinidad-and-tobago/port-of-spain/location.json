@@ -1,0 +1,16 @@
+{
+  "id": "tt-port-of-spain",
+  "country_code": "TT",
+  "country_name": "Trinidad and Tobago",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Port of Spain",
+  "slug": "port-of-spain",
+  "lat": 10.657268,
+  "lon": -61.518017,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "trinidad-and-tobago"
+}

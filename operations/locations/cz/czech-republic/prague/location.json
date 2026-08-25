@@ -1,0 +1,16 @@
+{
+  "id": "cz-prague",
+  "country_code": "CZ",
+  "country_name": "Czech Republic",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Prague",
+  "slug": "prague",
+  "lat": 50.087465,
+  "lon": 14.421254,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "czech-republic"
+}

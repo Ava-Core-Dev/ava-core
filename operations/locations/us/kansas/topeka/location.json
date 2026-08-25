@@ -1,0 +1,15 @@
+{
+  "id": "us-kansas-topeka",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Kansas",
+  "admin1_name": "Kansas",
+  "admin1_slug": "kansas",
+  "name": "Topeka",
+  "slug": "topeka",
+  "lat": 39.048191,
+  "lon": -95.677956,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

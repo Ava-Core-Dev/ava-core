@@ -1,0 +1,16 @@
+{
+  "id": "ck-avarua",
+  "country_code": "CK",
+  "country_name": "Cook Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Avarua",
+  "slug": "avarua",
+  "lat": -21.207474,
+  "lon": -159.770814,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "cook-islands"
+}

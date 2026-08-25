@@ -1,0 +1,16 @@
+{
+  "id": "fo-t-rshavn",
+  "country_code": "FO",
+  "country_name": "Faroe Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tórshavn",
+  "slug": "t-rshavn",
+  "lat": 62.012,
+  "lon": -6.768,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "faroe-islands"
+}

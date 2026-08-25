@@ -1,0 +1,15 @@
+{
+  "id": "us-florida-tallahassee",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Florida",
+  "admin1_name": "Florida",
+  "admin1_slug": "florida",
+  "name": "Tallahassee",
+  "slug": "tallahassee",
+  "lat": 30.438118,
+  "lon": -84.281296,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

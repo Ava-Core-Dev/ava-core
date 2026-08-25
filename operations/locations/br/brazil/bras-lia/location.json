@@ -1,0 +1,16 @@
+{
+  "id": "br-bras-lia",
+  "country_code": "BR",
+  "country_name": "Brazil",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Brasília",
+  "slug": "bras-lia",
+  "lat": -10.333333,
+  "lon": -53.2,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "brazil"
+}

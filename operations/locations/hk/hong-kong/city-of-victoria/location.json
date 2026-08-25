@@ -1,0 +1,16 @@
+{
+  "id": "hk-city-of-victoria",
+  "country_code": "HK",
+  "country_name": "Hong Kong",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "City of Victoria",
+  "slug": "city-of-victoria",
+  "lat": -36.59861,
+  "lon": 144.678005,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "hong-kong"
+}

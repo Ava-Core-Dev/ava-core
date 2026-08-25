@@ -1,0 +1,16 @@
+{
+  "id": "sl-freetown",
+  "country_code": "SL",
+  "country_name": "Sierra Leone",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Freetown",
+  "slug": "freetown",
+  "lat": 8.479004,
+  "lon": -13.26795,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "sierra-leone"
+}

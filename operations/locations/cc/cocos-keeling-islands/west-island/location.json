@@ -1,0 +1,16 @@
+{
+  "id": "cc-west-island",
+  "country_code": "CC",
+  "country_name": "Cocos (Keeling) Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "West Island",
+  "slug": "west-island",
+  "lat": -12.189848,
+  "lon": 96.830449,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Australia and New Zealand",
+  "country_slug": "cocos-keeling-islands"
+}

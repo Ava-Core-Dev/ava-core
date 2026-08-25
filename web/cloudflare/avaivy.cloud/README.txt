@@ -1,12 +1,13 @@
-AVA IVY CLOUDFLARE TUNNEL
+AVA IVY CLOUDFLARE RUNTIME
 
-Domain:
-avaivy.cloud
-www.avaivy.cloud
+Public hostnames:
+- avaivy.cloud
+- www.avaivy.cloud
+- directory.avaivy.cloud
 
-Local origin:
+Origin:
 http://127.0.0.1:8080
 
-This tunnel is dedicated to Ava Ivy only.
-
-Do not add RootMC or RootRecord hostnames here.
+Runtime identity is tunnel.token. Keep that token with this directory.
+The watchdog runs cloudflared with token-run.yml so unrelated user-level
+cloudflared configuration is not inherited.

@@ -1,0 +1,15 @@
+{
+  "id": "us-alabama-montgomery",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Alabama",
+  "admin1_name": "Alabama",
+  "admin1_slug": "alabama",
+  "name": "Montgomery",
+  "slug": "montgomery",
+  "lat": 32.377716,
+  "lon": -86.300568,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

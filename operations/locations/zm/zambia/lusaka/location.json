@@ -1,0 +1,16 @@
+{
+  "id": "zm-lusaka",
+  "country_code": "ZM",
+  "country_name": "Zambia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Lusaka",
+  "slug": "lusaka",
+  "lat": -15.416449,
+  "lon": 28.282154,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "zambia"
+}

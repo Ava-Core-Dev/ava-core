@@ -1,0 +1,15 @@
+{
+  "id": "us-arkansas-little-rock",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Arkansas",
+  "admin1_name": "Arkansas",
+  "admin1_slug": "arkansas",
+  "name": "Little Rock",
+  "slug": "little-rock",
+  "lat": 34.746613,
+  "lon": -92.288986,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

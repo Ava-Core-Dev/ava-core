@@ -1,0 +1,16 @@
+{
+  "id": "tg-lom",
+  "country_code": "TG",
+  "country_name": "Togo",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Lomé",
+  "slug": "lom",
+  "lat": 6.130419,
+  "lon": 1.215829,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "togo"
+}

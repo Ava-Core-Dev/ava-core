@@ -1,0 +1,15 @@
+{
+  "id": "us-nevada-carson-city",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Nevada",
+  "admin1_name": "Nevada",
+  "admin1_slug": "nevada",
+  "name": "Carson City",
+  "slug": "carson-city",
+  "lat": 39.163914,
+  "lon": -119.766121,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "ki-south-tarawa",
+  "country_code": "KI",
+  "country_name": "Kiribati",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "South Tarawa",
+  "slug": "south-tarawa",
+  "lat": 1.349078,
+  "lon": 173.038651,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Micronesia",
+  "country_slug": "kiribati"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "uy-montevideo",
+  "country_code": "UY",
+  "country_name": "Uruguay",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Montevideo",
+  "slug": "montevideo",
+  "lat": -34.905904,
+  "lon": -56.191357,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "South America",
+  "country_slug": "uruguay"
+}

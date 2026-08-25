@@ -1,0 +1,15 @@
+{
+  "id": "us-iowa-des-moines",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Iowa",
+  "admin1_name": "Iowa",
+  "admin1_slug": "iowa",
+  "name": "Des Moines",
+  "slug": "des-moines",
+  "lat": 41.591087,
+  "lon": -93.603729,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

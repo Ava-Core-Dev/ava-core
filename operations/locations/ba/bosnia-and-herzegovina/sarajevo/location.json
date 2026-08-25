@@ -1,0 +1,16 @@
+{
+  "id": "ba-sarajevo",
+  "country_code": "BA",
+  "country_name": "Bosnia and Herzegovina",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Sarajevo",
+  "slug": "sarajevo",
+  "lat": 43.851977,
+  "lon": 18.386687,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Southern Europe",
+  "country_slug": "bosnia-and-herzegovina"
+}

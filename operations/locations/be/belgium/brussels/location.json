@@ -1,0 +1,16 @@
+{
+  "id": "be-brussels",
+  "country_code": "BE",
+  "country_name": "Belgium",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Brussels",
+  "slug": "brussels",
+  "lat": 50.846557,
+  "lon": 4.351697,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Western Europe",
+  "country_slug": "belgium"
+}

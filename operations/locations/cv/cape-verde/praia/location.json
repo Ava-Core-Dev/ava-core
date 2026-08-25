@@ -1,0 +1,16 @@
+{
+  "id": "cv-praia",
+  "country_code": "CV",
+  "country_name": "Cape Verde",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Praia",
+  "slug": "praia",
+  "lat": 14.916017,
+  "lon": -23.509613,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "cape-verde"
+}

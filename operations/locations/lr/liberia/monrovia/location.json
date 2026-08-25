@@ -1,0 +1,16 @@
+{
+  "id": "lr-monrovia",
+  "country_code": "LR",
+  "country_name": "Liberia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Monrovia",
+  "slug": "monrovia",
+  "lat": 6.328034,
+  "lon": -10.797788,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Western Africa",
+  "country_slug": "liberia"
+}

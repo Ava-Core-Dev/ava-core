@@ -1,0 +1,16 @@
+{
+  "id": "sa-riyadh",
+  "country_code": "SA",
+  "country_name": "Saudi Arabia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Riyadh",
+  "slug": "riyadh",
+  "lat": 24.631969,
+  "lon": 46.715065,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "saudi-arabia"
+}

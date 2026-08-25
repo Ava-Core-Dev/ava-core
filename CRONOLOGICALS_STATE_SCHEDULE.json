@@ -1,0 +1,80 @@
+{
+  "slots": {
+    "00:00": [
+      "alabama",
+      "illinois",
+      "missouri",
+      "oregon",
+      "wisconsin"
+    ],
+    "00:05": [
+      "alaska",
+      "indiana",
+      "montana",
+      "pennsylvania",
+      "wyoming"
+    ],
+    "00:10": [
+      "arizona",
+      "iowa",
+      "nebraska",
+      "rhode-island"
+    ],
+    "00:15": [
+      "arkansas",
+      "kansas",
+      "nevada",
+      "south-carolina"
+    ],
+    "00:20": [
+      "california",
+      "kentucky",
+      "new-hampshire",
+      "south-dakota"
+    ],
+    "00:25": [
+      "colorado",
+      "louisiana",
+      "new-jersey",
+      "tennessee"
+    ],
+    "00:30": [
+      "connecticut",
+      "maine",
+      "new-mexico",
+      "texas"
+    ],
+    "00:35": [
+      "delaware",
+      "maryland",
+      "new-york",
+      "utah"
+    ],
+    "00:40": [
+      "florida",
+      "massachusetts",
+      "north-carolina",
+      "vermont"
+    ],
+    "00:45": [
+      "georgia",
+      "michigan",
+      "north-dakota",
+      "virginia"
+    ],
+    "00:50": [
+      "hawaii",
+      "minnesota",
+      "ohio",
+      "washington"
+    ],
+    "00:55": [
+      "idaho",
+      "mississippi",
+      "oklahoma",
+      "west-virginia"
+    ]
+  },
+  "states": 50,
+  "checkpoint": "2026-03-31T00:00:00Z"
+}

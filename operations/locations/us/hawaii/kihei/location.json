@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-kihei",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Kīhei",
+  "slug": "kihei",
+  "lat": 20.7644,
+  "lon": -156.445,
+  "kind": "state-location",
+  "region": "Maui",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

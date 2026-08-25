@@ -1,0 +1,16 @@
+{
+  "id": "ee-tallinn",
+  "country_code": "EE",
+  "country_name": "Estonia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Tallinn",
+  "slug": "tallinn",
+  "lat": 59.437216,
+  "lon": 24.745369,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "estonia"
+}

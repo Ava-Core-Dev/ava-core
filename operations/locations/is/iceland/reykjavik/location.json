@@ -1,0 +1,16 @@
+{
+  "id": "is-reykjavik",
+  "country_code": "IS",
+  "country_name": "Iceland",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Reykjavik",
+  "slug": "reykjavik",
+  "lat": 64.145981,
+  "lon": -21.942237,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "iceland"
+}

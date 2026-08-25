@@ -1,0 +1,223 @@
+# TREE: /home/ava-core/operations/news
+# Generated: 2026-08-25 22:18:32 UTC
+
+[DIR] news
+    /home/ava-core/operations/news
+├── [DIR ] alabama
+│       /home/ava-core/operations/news/alabama
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/alabama/news.py
+├── [DIR ] alaska
+│       /home/ava-core/operations/news/alaska
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/alaska/news.py
+├── [DIR ] arizona
+│       /home/ava-core/operations/news/arizona
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/arizona/news.py
+├── [DIR ] arkansas
+│       /home/ava-core/operations/news/arkansas
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/arkansas/news.py
+├── [DIR ] california
+│       /home/ava-core/operations/news/california
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/california/news.py
+├── [DIR ] colorado
+│       /home/ava-core/operations/news/colorado
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/colorado/news.py
+├── [DIR ] connecticut
+│       /home/ava-core/operations/news/connecticut
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/connecticut/news.py
+├── [DIR ] delaware
+│       /home/ava-core/operations/news/delaware
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/delaware/news.py
+├── [DIR ] florida
+│       /home/ava-core/operations/news/florida
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/florida/news.py
+├── [DIR ] georgia
+│       /home/ava-core/operations/news/georgia
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/georgia/news.py
+├── [DIR ] hawaii
+│       /home/ava-core/operations/news/hawaii
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/hawaii/news.py
+├── [DIR ] idaho
+│       /home/ava-core/operations/news/idaho
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/idaho/news.py
+├── [DIR ] illinois
+│       /home/ava-core/operations/news/illinois
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/illinois/news.py
+├── [DIR ] indiana
+│       /home/ava-core/operations/news/indiana
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/indiana/news.py
+├── [DIR ] iowa
+│       /home/ava-core/operations/news/iowa
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/iowa/news.py
+├── [DIR ] kansas
+│       /home/ava-core/operations/news/kansas
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/kansas/news.py
+├── [DIR ] kentucky
+│       /home/ava-core/operations/news/kentucky
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/kentucky/news.py
+├── [DIR ] louisiana
+│       /home/ava-core/operations/news/louisiana
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/louisiana/news.py
+├── [DIR ] maine
+│       /home/ava-core/operations/news/maine
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/maine/news.py
+├── [DIR ] maryland
+│       /home/ava-core/operations/news/maryland
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/maryland/news.py
+├── [DIR ] massachusetts
+│       /home/ava-core/operations/news/massachusetts
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/massachusetts/news.py
+├── [DIR ] michigan
+│       /home/ava-core/operations/news/michigan
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/michigan/news.py
+├── [DIR ] minnesota
+│       /home/ava-core/operations/news/minnesota
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/minnesota/news.py
+├── [DIR ] mississippi
+│       /home/ava-core/operations/news/mississippi
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/mississippi/news.py
+├── [DIR ] missouri
+│       /home/ava-core/operations/news/missouri
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/missouri/news.py
+├── [DIR ] montana
+│       /home/ava-core/operations/news/montana
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/montana/news.py
+├── [DIR ] nebraska
+│       /home/ava-core/operations/news/nebraska
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/nebraska/news.py
+├── [DIR ] nevada
+│       /home/ava-core/operations/news/nevada
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/nevada/news.py
+├── [DIR ] new-hampshire
+│       /home/ava-core/operations/news/new-hampshire
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/new-hampshire/news.py
+├── [DIR ] new-jersey
+│       /home/ava-core/operations/news/new-jersey
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/new-jersey/news.py
+├── [DIR ] new-mexico
+│       /home/ava-core/operations/news/new-mexico
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/new-mexico/news.py
+├── [DIR ] new-york
+│       /home/ava-core/operations/news/new-york
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/new-york/news.py
+├── [DIR ] north-carolina
+│       /home/ava-core/operations/news/north-carolina
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/north-carolina/news.py
+├── [DIR ] north-dakota
+│       /home/ava-core/operations/news/north-dakota
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/north-dakota/news.py
+├── [DIR ] ohio
+│       /home/ava-core/operations/news/ohio
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/ohio/news.py
+├── [DIR ] oklahoma
+│       /home/ava-core/operations/news/oklahoma
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/oklahoma/news.py
+├── [DIR ] oregon
+│       /home/ava-core/operations/news/oregon
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/oregon/news.py
+├── [DIR ] pennsylvania
+│       /home/ava-core/operations/news/pennsylvania
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/pennsylvania/news.py
+├── [DIR ] rhode-island
+│       /home/ava-core/operations/news/rhode-island
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/rhode-island/news.py
+├── [DIR ] south-carolina
+│       /home/ava-core/operations/news/south-carolina
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/south-carolina/news.py
+├── [DIR ] south-dakota
+│       /home/ava-core/operations/news/south-dakota
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/south-dakota/news.py
+├── [DIR ] tennessee
+│       /home/ava-core/operations/news/tennessee
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/tennessee/news.py
+├── [DIR ] texas
+│       /home/ava-core/operations/news/texas
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/texas/news.py
+├── [DIR ] utah
+│       /home/ava-core/operations/news/utah
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/utah/news.py
+├── [DIR ] vermont
+│       /home/ava-core/operations/news/vermont
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/vermont/news.py
+├── [DIR ] virginia
+│       /home/ava-core/operations/news/virginia
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/virginia/news.py
+├── [DIR ] washington
+│       /home/ava-core/operations/news/washington
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/washington/news.py
+├── [DIR ] west-virginia
+│       /home/ava-core/operations/news/west-virginia
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/west-virginia/news.py
+├── [DIR ] wisconsin
+│       /home/ava-core/operations/news/wisconsin
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/wisconsin/news.py
+├── [DIR ] wyoming
+│       /home/ava-core/operations/news/wyoming
+│   └── [FILE] news.py
+│           /home/ava-core/operations/news/wyoming/news.py
+├── [FILE] _collector.py
+│       /home/ava-core/operations/news/_collector.py
+├── [FILE] build_global_news.py
+│       /home/ava-core/operations/news/build_global_news.py
+├── [FILE] build_state_news.py
+│       /home/ava-core/operations/news/build_state_news.py
+├── [FILE] collect_hawaii_news.py
+│       /home/ava-core/operations/news/collect_hawaii_news.py
+├── [FILE] news.txt
+│       /home/ava-core/operations/news/news.txt
+├── [FILE] README.md
+│       /home/ava-core/operations/news/README.md
+├── [FILE] state_event_sources.json
+│       /home/ava-core/operations/news/state_event_sources.json
+└── [FILE] state_portals.json
+        /home/ava-core/operations/news/state_portals.json
+
+# Total entries: 108

@@ -1,0 +1,16 @@
+{
+  "id": "kh-phnom-penh",
+  "country_code": "KH",
+  "country_name": "Cambodia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Phnom Penh",
+  "slug": "phnom-penh",
+  "lat": 11.568271,
+  "lon": 104.922443,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "cambodia"
+}

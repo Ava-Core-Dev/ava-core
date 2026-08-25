@@ -1,0 +1,16 @@
+{
+  "id": "ae-abu-dhabi",
+  "country_code": "AE",
+  "country_name": "United Arab Emirates",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Abu Dhabi",
+  "slug": "abu-dhabi",
+  "lat": 24.474796,
+  "lon": 54.370576,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Western Asia",
+  "country_slug": "united-arab-emirates"
+}

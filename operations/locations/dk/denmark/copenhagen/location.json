@@ -1,0 +1,16 @@
+{
+  "id": "dk-copenhagen",
+  "country_code": "DK",
+  "country_name": "Denmark",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Copenhagen",
+  "slug": "copenhagen",
+  "lat": 55.686724,
+  "lon": 12.570072,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "denmark"
+}

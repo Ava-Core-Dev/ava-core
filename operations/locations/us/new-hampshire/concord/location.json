@@ -1,0 +1,15 @@
+{
+  "id": "us-new-hampshire-concord",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "New Hampshire",
+  "admin1_name": "New Hampshire",
+  "admin1_slug": "new-hampshire",
+  "name": "Concord",
+  "slug": "concord",
+  "lat": 43.206898,
+  "lon": -71.537994,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

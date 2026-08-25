@@ -1,0 +1,16 @@
+{
+  "id": "my-kuala-lumpur",
+  "country_code": "MY",
+  "country_name": "Malaysia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kuala Lumpur",
+  "slug": "kuala-lumpur",
+  "lat": 3.151696,
+  "lon": 101.694237,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "malaysia"
+}

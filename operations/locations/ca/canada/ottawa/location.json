@@ -1,0 +1,16 @@
+{
+  "id": "ca-ottawa",
+  "country_code": "CA",
+  "country_name": "Canada",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ottawa",
+  "slug": "ottawa",
+  "lat": 45.421106,
+  "lon": -75.690308,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Northern America",
+  "country_slug": "canada"
+}

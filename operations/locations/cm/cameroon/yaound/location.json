@@ -1,0 +1,16 @@
+{
+  "id": "cm-yaound",
+  "country_code": "CM",
+  "country_name": "Cameroon",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Yaoundé",
+  "slug": "yaound",
+  "lat": 3.868987,
+  "lon": 11.521334,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "cameroon"
+}

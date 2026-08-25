@@ -1,0 +1,16 @@
+{
+  "id": "cn-beijing",
+  "country_code": "CN",
+  "country_name": "China",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Beijing",
+  "slug": "beijing",
+  "lat": 39.906217,
+  "lon": 116.391276,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "china"
+}

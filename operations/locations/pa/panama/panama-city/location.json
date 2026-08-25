@@ -1,0 +1,16 @@
+{
+  "id": "pa-panama-city",
+  "country_code": "PA",
+  "country_name": "Panama",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Panama City",
+  "slug": "panama-city",
+  "lat": 8.971449,
+  "lon": -79.53418,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "panama"
+}

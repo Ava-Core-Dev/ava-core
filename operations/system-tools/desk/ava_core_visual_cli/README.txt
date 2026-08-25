@@ -32,7 +32,7 @@ Supported player backends are detected automatically:
 4. vlc
 
 LOG
-/home/ava-core/Database/logs/ava-core-audio.log
+/home/ava-core/database/logs/ava-core-audio.log
 
 CLI COMMANDS
 audio

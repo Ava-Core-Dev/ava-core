@@ -1,0 +1,16 @@
+{
+  "id": "tk-fakaofo",
+  "country_code": "TK",
+  "country_name": "Tokelau",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Fakaofo",
+  "slug": "fakaofo",
+  "lat": -9.374305,
+  "lon": -171.264536,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "tokelau"
+}

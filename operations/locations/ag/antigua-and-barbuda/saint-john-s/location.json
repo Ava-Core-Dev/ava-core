@@ -1,0 +1,16 @@
+{
+  "id": "ag-saint-john-s",
+  "country_code": "AG",
+  "country_name": "Antigua and Barbuda",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Saint John's",
+  "slug": "saint-john-s",
+  "lat": 47.561701,
+  "lon": -52.715149,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "antigua-and-barbuda"
+}

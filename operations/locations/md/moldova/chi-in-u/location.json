@@ -1,0 +1,16 @@
+{
+  "id": "md-chi-in-u",
+  "country_code": "MD",
+  "country_name": "Moldova",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Chișinău",
+  "slug": "chi-in-u",
+  "lat": 47.024471,
+  "lon": 28.832253,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "moldova"
+}

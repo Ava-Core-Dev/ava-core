@@ -1,0 +1,15 @@
+{
+  "id": "us-wyoming-cheyenne",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Wyoming",
+  "admin1_name": "Wyoming",
+  "admin1_slug": "wyoming",
+  "name": "Cheyenne",
+  "slug": "cheyenne",
+  "lat": 41.140259,
+  "lon": -104.820236,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

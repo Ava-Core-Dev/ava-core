@@ -1,0 +1,16 @@
+{
+  "id": "mx-mexico-city",
+  "country_code": "MX",
+  "country_name": "Mexico",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Mexico City",
+  "slug": "mexico-city",
+  "lat": 19.43263,
+  "lon": -99.133178,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Central America",
+  "country_slug": "mexico"
+}

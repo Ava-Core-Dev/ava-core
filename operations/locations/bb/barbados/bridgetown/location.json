@@ -1,0 +1,16 @@
+{
+  "id": "bb-bridgetown",
+  "country_code": "BB",
+  "country_name": "Barbados",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bridgetown",
+  "slug": "bridgetown",
+  "lat": 13.097783,
+  "lon": -59.618418,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Caribbean",
+  "country_slug": "barbados"
+}

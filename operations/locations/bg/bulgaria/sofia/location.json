@@ -1,0 +1,16 @@
+{
+  "id": "bg-sofia",
+  "country_code": "BG",
+  "country_name": "Bulgaria",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Sofia",
+  "slug": "sofia",
+  "lat": -15.25384,
+  "lon": 48.256216,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "bulgaria"
+}

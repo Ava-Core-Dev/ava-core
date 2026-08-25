@@ -1,0 +1,15 @@
+{
+  "id": "us-connecticut-hartford",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Connecticut",
+  "admin1_name": "Connecticut",
+  "admin1_slug": "connecticut",
+  "name": "Hartford",
+  "slug": "hartford",
+  "lat": 41.764046,
+  "lon": -72.682198,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

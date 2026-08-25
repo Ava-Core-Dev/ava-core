@@ -1,0 +1,16 @@
+{
+  "id": "bi-bujumbura",
+  "country_code": "BI",
+  "country_name": "Burundi",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bujumbura",
+  "slug": "bujumbura",
+  "lat": -3.363812,
+  "lon": 29.367503,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "burundi"
+}

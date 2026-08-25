@@ -1,0 +1,16 @@
+{
+  "id": "ie-dublin",
+  "country_code": "IE",
+  "country_name": "Ireland",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Dublin",
+  "slug": "dublin",
+  "lat": 53.349764,
+  "lon": -6.260273,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Northern Europe",
+  "country_slug": "ireland"
+}

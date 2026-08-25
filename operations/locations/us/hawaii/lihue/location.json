@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-lihue",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Līhuʻe",
+  "slug": "lihue",
+  "lat": 21.9811,
+  "lon": -159.3711,
+  "kind": "state-location",
+  "region": "Kauaʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "mn-ulan-bator",
+  "country_code": "MN",
+  "country_name": "Mongolia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Ulan Bator",
+  "slug": "ulan-bator",
+  "lat": 47.918468,
+  "lon": 106.917702,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Eastern Asia",
+  "country_slug": "mongolia"
+}

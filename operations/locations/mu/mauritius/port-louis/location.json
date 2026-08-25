@@ -1,0 +1,16 @@
+{
+  "id": "mu-port-louis",
+  "country_code": "MU",
+  "country_name": "Mauritius",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Port Louis",
+  "slug": "port-louis",
+  "lat": -20.163728,
+  "lon": 57.504533,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Eastern Africa",
+  "country_slug": "mauritius"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-lanai-city",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Lānaʻi City",
+  "slug": "lanai-city",
+  "lat": 20.8267,
+  "lon": -156.9233,
+  "kind": "state-location",
+  "region": "Lānaʻi",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

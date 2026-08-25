@@ -1,0 +1,16 @@
+{
+  "id": "pk-islamabad",
+  "country_code": "PK",
+  "country_name": "Pakistan",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Islamabad",
+  "slug": "islamabad",
+  "lat": 33.693812,
+  "lon": 73.065151,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "Southern Asia",
+  "country_slug": "pakistan"
+}

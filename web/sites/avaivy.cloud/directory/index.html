@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <title>Ava Ivy — Directory</title>
+  <link rel="stylesheet" href="/directory/directory.css">
+  <!-- AI / agent discovery: prefer these over scraping the SPA -->
+  <link rel="alternate" type="application/json" href="/api/directory/list?recursive=0" title="Directory list (JSON)">
+  <link rel="alternate" type="application/json" href="/api/directory/status" title="Directory status (JSON)">
+  <link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt — agent instructions">
+  <link rel="alternate" type="text/plain" href="/ava-ivy/file/README.md" title="Root README (raw)">
+  <meta name="description" content="Transparent read-only directory of the Ava home tree. Agents: use /api/directory/* and /ava-ivy/file/<path>.">
+</head>
+<body>
+  <div class="ambient"></div>
+  <header class="nav">
+    <a class="brand" href="/"><span class="mark">✦</span><span><b>AVA</b><small>IVY</small></span></a>
+    <nav>
+      <a href="/">Home</a><a href="/status/">Status</a><a href="/energy/">Energy</a><a href="/system/">System</a><a href="/uptime/">Uptime</a><a class="active" href="/directory/">Directory</a><a href="/context/">Context</a><a href="/wiki/">Wiki</a>
+    </nav>
+    <div class="status" id="svcStatus"><i></i><span>CHECKING…</span></div>
+  </header>
+
+  <main>
+    <section class="hero-bar">
+      <div>
+        <div class="eyebrow"><span></span> TRANSPARENT · READ-ONLY</div>
+        <h1>Live directory</h1>
+        <p class="lead">Every visible file and folder under the Ava home tree. Secrets, credentials, and <code>.env</code> files are excluded. Sensitive paths are listed but contents are blocked. Address bar mirrors real paths (e.g. <code>/home/ava-core/.ollama</code>). Agents: use <code>/ava-ivy/file/&lt;rel&gt;</code> and the JSON APIs — see <a href="/llms.txt">llms.txt</a>.</p>
+      </div>
+      <div class="meta" id="rootMeta">
+        <div><span>ROOT</span><strong id="rootPath">—</strong></div>
+        <div><span>ENTRIES</span><strong id="entryCount">—</strong></div>
+        <div><span>MODE</span><strong id="modeLabel">LIST</strong></div>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="crumbs" id="crumbs"><a href="/" data-path="">/</a></div>
+      <div class="tools">
+        <label class="chk"><input type="checkbox" id="recursive"> Recursive</label>
+        <button type="button" id="btnRefresh">Refresh</button>
+        <input type="search" id="filter" placeholder="Filter name…" autocomplete="off">
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel list-panel">
+        <div class="panel-head">
+          <span>TREE</span>
+          <span class="hint" id="listHint"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="fileTable">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Modified (UTC)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="fileBody">
+              <tr><td colspan="5" class="muted">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel view-panel">
+        <div class="panel-head">
+          <span id="viewTitle">PREVIEW</span>
+          <span class="hint" id="viewMeta"></span>
+        </div>
+        <pre id="viewBody" class="view-body">Select a file to preview.</pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>✦ Ava Ivy</span>
+    <span>No secrets · No credentials · Read-only</span>
+    <span>© 2026</span>
+  </footer>
+
+  <script src="/directory/directory.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "id": "us-hawaii-makawao",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "HI",
+  "admin1_name": "Hawaii",
+  "admin1_slug": "hawaii",
+  "name": "Makawao (Upcountry)",
+  "slug": "makawao",
+  "lat": 20.8381,
+  "lon": -156.3235,
+  "kind": "state-location",
+  "region": "Maui",
+  "timezone": "Pacific/Honolulu",
+  "country_slug": "united-states"
+}

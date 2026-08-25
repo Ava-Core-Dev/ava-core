@@ -1,8 +1,10 @@
-tunnel: 03a08580-e6c3-4d07-bb58-8790706b5297
-credentials-file: /home/ava-core/Web/cloudflare/avaivy.cloud/03a08580-e6c3-4d07-bb58-8790706b5297.json
-
+# Ava Ivy only — local reference for the public hostnames.
+# Runtime uses tunnel.token with token-run.yml; Cloudflare supplies active ingress remotely.
 ingress:
+  - hostname: avaivy.cloud
+    service: http://127.0.0.1:8080
+  - hostname: www.avaivy.cloud
+    service: http://127.0.0.1:8080
   - hostname: directory.avaivy.cloud
     service: http://127.0.0.1:8080
-
   - service: http_status:404

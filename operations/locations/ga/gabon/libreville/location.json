@@ -1,0 +1,16 @@
+{
+  "id": "ga-libreville",
+  "country_code": "GA",
+  "country_name": "Gabon",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Libreville",
+  "slug": "libreville",
+  "lat": 0.390002,
+  "lon": 9.454001,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Middle Africa",
+  "country_slug": "gabon"
+}

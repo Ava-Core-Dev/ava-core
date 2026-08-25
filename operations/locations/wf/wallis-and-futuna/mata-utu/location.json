@@ -1,0 +1,16 @@
+{
+  "id": "wf-mata-utu",
+  "country_code": "WF",
+  "country_name": "Wallis and Futuna",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Mata-Utu",
+  "slug": "mata-utu",
+  "lat": -13.282042,
+  "lon": -176.174022,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Polynesia",
+  "country_slug": "wallis-and-futuna"
+}

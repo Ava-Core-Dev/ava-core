@@ -1,0 +1,7 @@
+AVA IVY SESSION BUILDER DROP-IN
+
+Install by merging the package contents into:
+/home/ava-core/
+
+No installer is required.
+No files need to be renamed.

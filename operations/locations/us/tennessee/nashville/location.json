@@ -1,0 +1,15 @@
+{
+  "id": "us-tennessee-nashville",
+  "country_code": "US",
+  "country_name": "United States",
+  "admin1_code": "Tennessee",
+  "admin1_name": "Tennessee",
+  "admin1_slug": "tennessee",
+  "name": "Nashville",
+  "slug": "nashville",
+  "lat": 36.16581,
+  "lon": -86.784241,
+  "kind": "state-capital",
+  "region": "United States",
+  "country_slug": "united-states"
+}

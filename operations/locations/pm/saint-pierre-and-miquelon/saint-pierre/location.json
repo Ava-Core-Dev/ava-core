@@ -1,0 +1,16 @@
+{
+  "id": "pm-saint-pierre",
+  "country_code": "PM",
+  "country_name": "Saint Pierre and Miquelon",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Saint-Pierre",
+  "slug": "saint-pierre",
+  "lat": 48.383272,
+  "lon": 7.471873,
+  "kind": "national-capital",
+  "region": "Americas",
+  "subregion": "Northern America",
+  "country_slug": "saint-pierre-and-miquelon"
+}

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "accounts": [
+    {
+      "id": "account-20260825093936",
+      "name": "test",
+      "provider": "test",
+      "next_reset": "2026-08-25 09:42",
+      "api_token_usage": "",
+      "information": "",
+      "notes": "",
+      "available": false,
+      "updated_at": "2026-08-25T19:39:36.897200+00:00"
+    }
+  ]
+}

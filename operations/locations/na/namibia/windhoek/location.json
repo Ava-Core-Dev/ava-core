@@ -1,0 +1,16 @@
+{
+  "id": "na-windhoek",
+  "country_code": "NA",
+  "country_name": "Namibia",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Windhoek",
+  "slug": "windhoek",
+  "lat": -22.574392,
+  "lon": 17.079069,
+  "kind": "national-capital",
+  "region": "Africa",
+  "subregion": "Southern Africa",
+  "country_slug": "namibia"
+}

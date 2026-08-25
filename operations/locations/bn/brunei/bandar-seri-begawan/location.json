@@ -1,0 +1,16 @@
+{
+  "id": "bn-bandar-seri-begawan",
+  "country_code": "BN",
+  "country_name": "Brunei",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Bandar Seri Begawan",
+  "slug": "bandar-seri-begawan",
+  "lat": 4.889545,
+  "lon": 114.941757,
+  "kind": "national-capital",
+  "region": "Asia",
+  "subregion": "South-Eastern Asia",
+  "country_slug": "brunei"
+}

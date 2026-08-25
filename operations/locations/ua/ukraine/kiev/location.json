@@ -1,0 +1,16 @@
+{
+  "id": "ua-kiev",
+  "country_code": "UA",
+  "country_name": "Ukraine",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Kiev",
+  "slug": "kiev",
+  "lat": 50.450034,
+  "lon": 30.524136,
+  "kind": "national-capital",
+  "region": "Europe",
+  "subregion": "Eastern Europe",
+  "country_slug": "ukraine"
+}

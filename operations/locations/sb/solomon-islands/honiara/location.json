@@ -1,0 +1,16 @@
+{
+  "id": "sb-honiara",
+  "country_code": "SB",
+  "country_name": "Solomon Islands",
+  "admin1_code": "",
+  "admin1_name": "",
+  "admin1_slug": "",
+  "name": "Honiara",
+  "slug": "honiara",
+  "lat": -9.431077,
+  "lon": 159.955255,
+  "kind": "national-capital",
+  "region": "Oceania",
+  "subregion": "Melanesia",
+  "country_slug": "solomon-islands"
+}
