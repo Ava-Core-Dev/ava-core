@@ -269,7 +269,53 @@ footer{
     repeated.
   </p>
 
-  <div class="notice">
+  
+  <section class="card full neutral" id="machine-access">
+    <h2>00 · Machine-readable system access — REQUIRED FIRST STEP</h2>
+
+    <p>
+      Before making any claim about Ava Ivy's files, directories, source code,
+      databases, services, APIs, configuration, or runtime state, inspect the
+      actual system through Ava Ivy's documented machine-readable interface.
+    </p>
+
+    <h3>Required sequence</h3>
+
+    <ol>
+      <li>
+        Read the machine-readable instructions in
+        <code>llms.txt</code>.
+      </li>
+      <li>
+        Use the documented
+        <code>/ava-ivy/file/&lt;relative-path&gt;</code>
+        interface and JSON APIs to retrieve the actual resource.
+      </li>
+      <li>
+        Inspect the real file or system state before describing it,
+        modifying it, or proposing a fix.
+      </li>
+    </ol>
+
+    <h3>Do not pretend you inspected something</h3>
+
+    <ul>
+      <li>Do not guess the project structure.</li>
+      <li>Do not guess what a file contains.</li>
+      <li>Do not claim a file is inaccessible until the documented machine interface has actually been attempted.</li>
+      <li>Do not ask the user to paste a file that the machine interface can retrieve.</li>
+      <li>Do not claim to have read, tested, or verified something that you did not actually read, test, or verify.</li>
+      <li>If the machine interface fails, report the exact endpoint/resource attempted and the exact failure.</li>
+    </ul>
+
+    <div class="rule">
+      <strong>Machine access comes before assumptions.</strong>
+      If the system can provide the information, retrieve it.
+      Never manufacture certainty from incomplete visibility.
+    </div>
+  </section>
+
+<div class="notice">
     <strong>Core rule:</strong>
     Do not make the user become the debugger for an assistant-generated
     patch. Inspect the actual system, make the smallest correct change,
@@ -453,6 +499,33 @@ footer{
         Verify the service status, process tree, logs when relevant, and the
         actual endpoint after restart.
       </p>
+
+
+      <h3>Final independent self-check — mandatory</h3>
+
+      <p>
+        Before handing work back to the user, stop and independently check
+        the finished result against the original request and the live system.
+        Do not treat the fact that a command completed successfully as proof
+        that the work is correct.
+      </p>
+
+      <ul>
+        <li>Re-read the requested outcome.</li>
+        <li>Inspect the actual changed files.</li>
+        <li>Verify syntax and relevant runtime behavior.</li>
+        <li>Verify the live endpoint/page/service when applicable.</li>
+        <li>Check for regressions or accidental unrelated changes.</li>
+        <li>Confirm the result actually matches the requested behavior.</li>
+        <li>Confirm the backup exists when a backup was required.</li>
+        <li>Only then report the work as fixed or complete.</li>
+      </ul>
+
+      <div class="rule">
+        <strong>Never hand the user an unverified patch.</strong>
+        The assistant is responsible for discovering its own mistakes before
+        the handoff whenever the system provides enough information to do so.
+      </div>
 
       <h3>For patches</h3>
       <p>

@@ -628,6 +628,12 @@ def main() -> None:
     log.info("=" * 60)
 
     state = load_state()
+    # in-order-on-boot is meant to run every time THIS PROCESS starts (OS reboot
+    # or ava-core restart). boot_done must not survive across process starts.
+    if state.get("boot_done"):
+        log.info("BOOT  resetting boot_done for this process start")
+        state["boot_done"] = False
+        save_state(state)
     try:
         run_boot(state)
         supervise_always(state)

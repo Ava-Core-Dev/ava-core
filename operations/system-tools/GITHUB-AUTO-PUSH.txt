@@ -7,13 +7,23 @@ Uses existing:
   /home/ava-core/core_uploader.py
   (token from credentials / GITHUB_TOKEN, same exclude rules)
 
-Cron placement (this package):
+Behavior:
+  - Non-blocking lock so only one push runs at a time
+  - Streams core_uploader output live (no silent hang)
+  - Default timeout 1200s (20 min); use --timeout 0 for no limit
+  - core_uploader clones the repo then walks /home/ava-core — first/full
+    runs can take several minutes; that is expected
+
+Cron placement:
   operations/cronologicals/since-last-fire/every-hour/github-auto-push.py
   operations/cronologicals/on-time/HH:00/github-auto-push.py  (00–23)
 
-Lock: /tmp/ava-github-auto-push.lock  (only one run at a time)
+Lock: /tmp/ava-github-auto-push.lock
 Log:  /home/ava-core/database/logs/github-auto-push.log
 
 Manual test:
   python3 /home/ava-core/operations/system-tools/github-auto-push.py --dry-run
   python3 /home/ava-core/operations/system-tools/github-auto-push.py
+
+Do NOT put this under in-order-on-boot unless you want a full GitHub sync
+at every boot (slow, network-dependent). Prefer every-hour / on-time slots.

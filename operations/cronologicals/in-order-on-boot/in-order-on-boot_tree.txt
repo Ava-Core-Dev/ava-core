@@ -1,0 +1,21 @@
+# TREE: /home/ava-core/operations/cronologicals/in-order-on-boot
+# Generated: 2026-08-25 23:34:13 UTC
+
+[DIR] in-order-on-boot
+    /home/ava-core/operations/cronologicals/in-order-on-boot
+├── [DIR ] 00:00 Start
+│       /home/ava-core/operations/cronologicals/in-order-on-boot/00:00 Start
+│   └── [FILE] github-auto-push.py
+│           /home/ava-core/operations/cronologicals/in-order-on-boot/00:00 Start/github-auto-push.py
+├── [DIR ] 00:01
+│       /home/ava-core/operations/cronologicals/in-order-on-boot/00:01
+│   ├── [FILE] ecoflow-catchup.py
+│   │       /home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow-catchup.py
+│   └── [FILE] ecoflow_lib.py
+│           /home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow_lib.py
+├── [DIR ] 00:02
+│       /home/ava-core/operations/cronologicals/in-order-on-boot/00:02
+└── [FILE] in-order-on-boot.txt
+        /home/ava-core/operations/cronologicals/in-order-on-boot/in-order-on-boot.txt
+
+# Total entries: 7

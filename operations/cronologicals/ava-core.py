@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import logging.handlers
 import os
 import signal
 import sqlite3
@@ -40,7 +41,7 @@ SINCE_DIR = BASE / "since-last-fire"
 ALWAYS_DIR = BASE / "always-on"
 STATE_FILE = BASE / ".ava-core-state.json"
 SCRIPT_LOG_DIR = BASE / "logs"
-SCRIPT_LOG_DIR.mkdir(exist_ok=True)
+SCRIPT_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 MAIN_LOG_DIR = Path("/home/ava-core/database/logs")
 MAIN_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -62,15 +63,17 @@ NAME_MAP = {
 }
 
 # ── logging ────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-7s  %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler(MAIN_LOG_FILE),
-        logging.StreamHandler(sys.stdout),
-    ],
+rot_handler = logging.handlers.RotatingFileHandler(
+    MAIN_LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=5
 )
+fmt = logging.Formatter(
+    "%(asctime)s  %(levelname)-7s  %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+)
+rot_handler.setFormatter(fmt)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(fmt)
+
+logging.basicConfig(level=logging.INFO, handlers=[rot_handler, stream_handler])
 log = logging.getLogger("ava-core")
 
 # ── intervals (since-last-fire folder names) ───────────────────────────
@@ -94,26 +97,38 @@ INTERVALS = {
     "every-month": 30 * 24 * 3600,
 }
 
-
-# ── state ──────────────────────────────────────────────────────────────
+# ── state ─────────────────────────────────────────────────────────────────
 def load_state() -> dict:
     if STATE_FILE.exists():
         try:
             return json.loads(STATE_FILE.read_text())
         except Exception as e:
-            log.warning(f"Could not load state: {e}")
+            log.warning(f"Could not load state (invalid JSON): {e}. Backing up and starting fresh.")
+            try:
+                bak = STATE_FILE.with_suffix(".corrupt." + datetime.now().strftime("%Y%m%dT%H%M%S"))
+                os.replace(str(STATE_FILE), str(bak))
+                log.info(f"Backed up corrupt state to {bak}")
+            except Exception:
+                pass
     return {
         "boot_done": False,
         "last_fire": {},
-        "always_on": {},  # path → {pid, started, name, port}
+        "always_on": {},  # path → {pid, started, name, port, script, restarts: [ts], cooldown_until}
     }
 
 
 def save_state(state: dict) -> None:
     try:
-        STATE_FILE.write_text(json.dumps(state, indent=2))
+        tmp = STATE_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(state, indent=2))
+        # atomic replace
+        os.replace(str(tmp), str(STATE_FILE))
     except Exception as e:
-        log.warning(f"Could not save state: {e}")
+        log.warning(f"Could not save state atomically: {e}")
+        try:
+            STATE_FILE.write_text(json.dumps(state, indent=2))
+        except Exception as e2:
+            log.warning(f"Fallback write_state failed: {e2}")
 
 
 # ── one-shot runners ───────────────────────────────────────────────────
@@ -141,6 +156,7 @@ def run_script(script: Path, state: dict) -> bool:
                 cwd=str(script.parent),
                 start_new_session=True,
             )
+        # record that we started it (time-based); we do not wait for completion
         state["last_fire"][str(script)] = time.time()
         save_state(state)
         log.info(f"  → started pid={proc.pid}  log={log_file.name}")
@@ -177,7 +193,7 @@ def run_boot(state: dict) -> None:
     log.info("BOOT  finished")
 
 
-# ── on-time ────────────────────────────────────────────────────────────
+# ── on-time ───────────────────────────────────────────────────────────
 def current_slot() -> str:
     now = datetime.now()
     minute = (now.minute // 5) * 5
@@ -201,7 +217,7 @@ def run_on_time(state: dict) -> None:
         run_script(script, state)
 
 
-# ── since-last-fire ────────────────────────────────────────────────────
+# ── since-last-fire ───────────────────────────────────────────────────
 def run_since_last(state: dict) -> None:
     now = time.time()
     for name, seconds in INTERVALS.items():
@@ -217,14 +233,31 @@ def run_since_last(state: dict) -> None:
 
 
 # ── always-on supervisor ───────────────────────────────────────────────
-def _pid_alive(pid: int) -> bool:
+def _pid_alive(pid: int, expected_script: str | None = None) -> bool:
     if not pid:
         return False
     try:
         os.kill(pid, 0)
-        return True
     except OSError:
         return False
+    # best-effort: verify cmdline matches expected script to reduce PID reuse false positives (Linux)
+    if expected_script:
+        try:
+            cmdline_path = Path(f"/proc/{pid}/cmdline")
+            if cmdline_path.exists():
+                content = cmdline_path.read_bytes().split(b"\x00")
+                # join parts with space and decode heuristically
+                cmd = b" ".join([p for p in content if p]).decode(errors="ignore")
+                if expected_script in cmd:
+                    return True
+                # maybe script name only
+                if Path(expected_script).name in cmd:
+                    return True
+                return False
+        except Exception:
+            # If we cannot access /proc or parse, fall back to pid alive check
+            return True
+    return True
 
 
 ALWAYS_PORTS = {
@@ -268,12 +301,26 @@ def start_always(script: Path, state: dict) -> int | None:
             cwd=str(script.parent),
             start_new_session=True,
         )
-        state.setdefault("always_on", {})[str(script)] = {
+        key = str(script)
+        now = time.time()
+        entry = {
             "pid": proc.pid,
-            "started": time.time(),
+            "started": now,
             "name": script.name,
             "port": port,
+            "script": str(script),
         }
+        existing = state.setdefault("always_on", {}).get(key)
+        # track restarts timestamps
+        restarts = []
+        if existing:
+            restarts = existing.get("restarts", [])
+        restarts.append(now)
+        entry["restarts"] = restarts
+        # carry over cooldown if present
+        if existing and existing.get("cooldown_until"):
+            entry["cooldown_until"] = existing.get("cooldown_until")
+        state.setdefault("always_on", {})[key] = entry
         save_state(state)
         log.info(f"  → pid={proc.pid}  log={log_file.name}")
         if port:
@@ -290,27 +337,52 @@ def supervise_always(state: dict) -> None:
     scripts = collect_scripts(ALWAYS_DIR)
     known = state.setdefault("always_on", {})
 
+    now = time.time()
     for script in scripts:
         key = str(script)
         info = known.get(key)
-        if info and _pid_alive(info.get("pid")):
+
+        # If in cooldown, skip until cooldown expires
+        if info and info.get("cooldown_until") and now < info.get("cooldown_until"):
+            # skip restarting while in cooldown
             continue
+
+        if info and _pid_alive(info.get("pid"), expected_script=info.get("script")):
+            # process alive — nothing to do
+            continue
+
+        # if we reach here, either there is no record or the recorded pid is dead
         if info:
-            log.warning(
-                f"ALWAYS-ON  dead  {script.name}  "
-                f"(was pid={info.get('pid')}) — restarting"
-            )
+            # the prior process appears dead -> consider restart/backoff
+            restarts = [ts for ts in (info.get("restarts") or []) if now - ts <= 60]
+            restart_count = len(restarts)
+            if restart_count >= 5:
+                # put into cooldown for 5 minutes
+                info["cooldown_until"] = now + 5 * 60
+                state["always_on"][key] = info
+                save_state(state)
+                log.warning(
+                    f"ALWAYS-ON  {script.name} restarted {restart_count} times in 60s — entering cooldown"
+                )
+                continue
+            else:
+                log.warning(
+                    f"ALWAYS-ON  dead  {script.name}  (was pid={info.get('pid')}) — restarting"
+                )
+
+        # start it
         start_always(script, state)
 
+    # prune entries for scripts that were removed from disk
     live_keys = {str(s) for s in scripts}
     for key in list(known.keys()):
         if key not in live_keys:
             log.info(f"ALWAYS-ON  removed  {known[key].get('name')}  (file gone)")
             pid = known[key].get("pid")
-            if pid and _pid_alive(pid):
+            if pid and _pid_alive(pid, expected_script=known[key].get("script")):
                 try:
                     os.kill(pid, signal.SIGTERM)
-                except OSError:
+                except Exception:
                     pass
             del known[key]
             save_state(state)
@@ -513,6 +585,38 @@ def print_ecoflow_status() -> None:
         log.info(line)
 
 
+# ── graceful shutdown helper ───────────────────────────────────────────
+def _stop(sig, frame):
+    log.info("Shutting down (signal received)")
+    try:
+        state = load_state()
+        known = state.get("always_on", {})
+        for key, info in list(known.items()):
+            pid = info.get("pid")
+            script = info.get("script")
+            if pid and _pid_alive(pid, expected_script=script):
+                try:
+                    log.info(f"Terminating always-on {info.get('name')} pid={pid}")
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+                # wait up to 5s
+                for _ in range(5):
+                    time.sleep(1)
+                    if not _pid_alive(pid, expected_script=script):
+                        break
+                if _pid_alive(pid, expected_script=script):
+                    try:
+                        log.info(f"Killing always-on {info.get('name')} pid={pid}")
+                        os.kill(pid, signal.SIGKILL)
+                    except Exception:
+                        pass
+        save_state(state)
+    except Exception as e:
+        log.exception("Error during shutdown cleanup: %s", e)
+    sys.exit(0)
+
+
 # ── main ───────────────────────────────────────────────────────────────
 def main() -> None:
     log.info("=" * 60)
@@ -524,13 +628,17 @@ def main() -> None:
     log.info("=" * 60)
 
     state = load_state()
-    run_boot(state)
-    supervise_always(state)
-
-    def _stop(sig, frame):
-        log.info("Shutting down (signal received)")
+    # in-order-on-boot is meant to run every time THIS PROCESS starts (OS reboot
+    # or ava-core restart). boot_done must not survive across process starts.
+    if state.get("boot_done"):
+        log.info("BOOT  resetting boot_done for this process start")
+        state["boot_done"] = False
         save_state(state)
-        sys.exit(0)
+    try:
+        run_boot(state)
+        supervise_always(state)
+    except Exception:
+        log.exception("Error during initial boot/supervise")
 
     signal.signal(signal.SIGINT, _stop)
     signal.signal(signal.SIGTERM, _stop)
@@ -540,24 +648,36 @@ def main() -> None:
     log.info("Entering main loop (tick every 2s)")
 
     while True:
-        slot = current_slot()
-        if slot != last_slot:
-            run_on_time(state)
-            last_slot = slot
+        try:
+            slot = current_slot()
+            if slot != last_slot:
+                run_on_time(state)
+                last_slot = slot
 
-        run_since_last(state)
-        supervise_always(state)
+            run_since_last(state)
+            supervise_always(state)
 
-        now = time.time()
-        if now - last_eco >= 30:
-            print_ecoflow_status()
-            for info in state.get("always_on", {}).values():
-                port = info.get("port")
-                if port and _pid_alive(info.get("pid")):
-                    log.info(f"PAGE  {info.get('name')}  →  http://localhost:{port}/")
-            last_eco = now
+            now = time.time()
+            if now - last_eco >= 30:
+                try:
+                    print_ecoflow_status()
+                except Exception:
+                    log.exception("Error printing ecoflow status")
+                for info in state.get("always_on", {}).values():
+                    port = info.get("port")
+                    if port and _pid_alive(info.get("pid"), expected_script=info.get("script")):
+                        log.info(f"PAGE  {info.get('name')}  →  http://localhost:{port}/")
+                last_eco = now
 
-        time.sleep(2)
+            time.sleep(2)
+        except Exception as e:
+            log.exception("Unhandled error in main loop: %s", e)
+            time.sleep(5)
+            # reload state in case something external modified it
+            try:
+                state = load_state()
+            except Exception:
+                state = {"boot_done": True, "last_fire": {}, "always_on": {}}
 
 
 if __name__ == "__main__":

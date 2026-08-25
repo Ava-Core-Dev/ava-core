@@ -142,6 +142,21 @@ ALWAYS_EXCLUDE: Set[str] = {
     "*.sqlite3",
     "secrets",
     "private",
+
+    # --- Ava local backups / one-shot archives (do not push) ---
+    ".avaivy-backups",
+    ".avaivy-dashboard-update-*",
+    ".avaivy-dashboard-backup-*",
+    "avaexport.zip",
+    "web.zip",
+    "operations.zip",
+    "files.zip",
+    "*.INPROGRESS*",
+
+    # --- Cloudflare tunnel secrets / local binaries ---
+    "tunnel.token",
+    "*.token",
+    "cloudflared",
 }
 
 
@@ -185,14 +200,31 @@ def load_token(cli_token: Optional[str]) -> str:
 
 def should_exclude(path: Path, root: Path) -> bool:
     rel = path.relative_to(root)
-    parts = {p.lower() for p in rel.parts}
+    parts = list(rel.parts)
+    parts_lower = {p.lower() for p in parts}
     name = path.name.lower()
 
+    # Cloudflare tunnel credential files: <uuid>.json under any cloudflare path
+    if "cloudflare" in parts_lower and re.fullmatch(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.json",
+        name,
+    ):
+        return True
+
     for excl in ALWAYS_EXCLUDE:
-        if excl.startswith("*"):
-            if name.endswith(excl[1:].lower()):
+        e = excl.lower()
+        if e.startswith("*") and e.endswith("*") and len(e) > 2:
+            mid = e[1:-1]
+            if mid in name or any(mid in p.lower() for p in parts):
                 return True
-        elif excl.lower() in parts or name == excl.lower():
+        elif e.startswith("*"):
+            if name.endswith(e[1:]):
+                return True
+        elif e.endswith("*"):
+            prefix = e[:-1]
+            if name.startswith(prefix) or any(p.lower().startswith(prefix) for p in parts):
+                return True
+        elif e in parts_lower or name == e:
             return True
     return False
 

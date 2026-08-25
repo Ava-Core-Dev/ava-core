@@ -1,0 +1,78 @@
+========================================================================
+DIRECTORY PRINTER — Detailed Report
+Root        : /home/ava-core/operations/cronologicals/in-order-on-boot
+Scan started: 2026-08-25 23:34:13 UTC
+========================================================================
+
+[DIR] /home/ava-core/operations/cronologicals/in-order-on-boot
+  path     : /home/ava-core/operations/cronologicals/in-order-on-boot
+  modified : 2026-08-23 09:14:30 UTC
+  created  : N/A
+  accessed : 2026-08-25 17:55:03 UTC
+  changed  : 2026-08-25 17:55:01 UTC
+  scanned  : 2026-08-25 23:34:13 UTC
+
+  [DIR] 00:00 Start
+    path     : /home/ava-core/operations/cronologicals/in-order-on-boot/00:00 Start
+    modified : 2026-08-25 23:28:53 UTC
+    created  : N/A
+    accessed : 2026-08-25 23:28:53 UTC
+    changed  : 2026-08-25 23:28:53 UTC
+    scanned  : 2026-08-25 23:34:13 UTC
+
+    [TEXT] github-auto-push.py  5.7KB
+      path     : /home/ava-core/operations/cronologicals/in-order-on-boot/00:00 Start/github-auto-push.py
+      modified : 2026-08-25 23:24:01 UTC
+      created  : N/A
+      accessed : 2026-08-25 23:30:54 UTC
+      changed  : 2026-08-25 23:28:53 UTC
+      scanned  : 2026-08-25 23:34:13 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """
+        github-auto-push.py — run-once GitHub sync for Ava Core
+
+  [DIR] 00:01
+    path     : /home/ava-core/operations/cronologicals/in-order-on-boot/00:01
+    modified : 2026-08-25 02:24:44 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 23:34:13 UTC
+
+    [TEXT] ecoflow-catchup.py  3.2KB
+      path     : /home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow-catchup.py
+      modified : 2026-08-24 14:51:46 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 23:34:13 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """
+        ecoflow-catchup.py — Run the full hierarchy once (missed cron / late boot)
+
+    [TEXT] ecoflow_lib.py  26.0KB
+      path     : /home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow_lib.py
+      modified : 2026-08-25 02:24:34 UTC
+      created  : N/A
+      accessed : 2026-08-25 18:06:52 UTC
+      changed  : 2026-08-25 17:55:01 UTC
+      scanned  : 2026-08-25 23:34:13 UTC
+      preview  :
+        #!/usr/bin/env python3
+        """
+        ecoflow_lib.py — Shared library for EcoFlow hierarchical aggregation.
+
+  [DIR] 00:02
+    path     : /home/ava-core/operations/cronologicals/in-order-on-boot/00:02
+    modified : 2026-08-23 09:13:55 UTC
+    created  : N/A
+    accessed : 2026-08-25 17:55:03 UTC
+    changed  : 2026-08-25 17:55:01 UTC
+    scanned  : 2026-08-25 23:34:13 UTC
+
+========================================================================
+Scan finished: 2026-08-25 23:34:13 UTC
+Total entries: 7
+========================================================================
