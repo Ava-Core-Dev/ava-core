@@ -31,30 +31,21 @@ function sum(nums) {
 function renderLocations(list) {
   const root = document.getElementById("hiLocations");
   if (!list.length) {
-    root.innerHTML = `<div class="hi-loc-empty muted">No Hawaiʻi locations with stored observations yet.</div>`;
+    root.innerHTML = `<article class="location-node"><p class="muted">No Hawaiʻi locations with stored observations yet.</p></article>`;
     return;
   }
-  // Sort: island then name
-  const sorted = [...list].sort((a, b) => {
-    const ia = String(a.island || a.region || "").localeCompare(String(b.island || b.region || ""));
-    if (ia) return ia;
-    return String(a.name || "").localeCompare(String(b.name || ""));
-  });
-  root.innerHTML = `<ul class="hi-loc-list">` + sorted.map(loc => {
+  root.innerHTML = list.map(loc => {
     const island = loc.island || loc.region || "Hawaiʻi";
     const href = loc.slug
       ? `/weather/united-states/hawaii/${esc(loc.slug)}/`
       : `/states/hawaii/`;
-    const hum = loc.avg_humidity_pct == null ? "—" : n(loc.avg_humidity_pct) + "%";
-    const precip = loc.avg_precipitation_mm == null ? "—" : n(loc.avg_precipitation_mm) + " mm";
-    return `<li class="hi-loc-row">
-      <a class="hi-loc-name" href="${href}"><span class="hi-loc-island">${esc(island)}</span><strong>${esc(loc.name || "Location")}</strong></a>
-      <span class="hi-loc-metric" title="Average temperature">${temp(loc.avg_temp_c)}</span>
-      <span class="hi-loc-metric muted" title="Humidity">${hum}</span>
-      <span class="hi-loc-metric muted" title="Wind">${wind(loc.avg_wind_kph)}</span>
-      <span class="hi-loc-metric muted" title="Observations">${esc(n(loc.observations))} obs</span>
-    </li>`;
-  }).join("") + `</ul>`;
+    return `<a class="location-node" href="${href}">
+      <span class="island">${esc(island)}</span>
+      <h3>${esc(loc.name || "Location")}</h3>
+      <div class="location-avg">${temp(loc.avg_temp_c)}</div>
+      <small>${esc(n(loc.observations))} obs · humidity ${loc.avg_humidity_pct == null ? "—" : n(loc.avg_humidity_pct) + "%"} · wind ${wind(loc.avg_wind_kph)}</small>
+    </a>`;
+  }).join("");
 }
 
 async function load() {

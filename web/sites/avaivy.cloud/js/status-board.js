@@ -136,7 +136,7 @@ async function load(){
  }catch(e){
 
   document.getElementById('stamp').textContent=
-   'Status API unavailable';
+   'Status API unavailable — check broadcast /api/status';
  }
 }
 

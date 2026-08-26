@@ -566,230 +566,141 @@ def uptime_history(window="all"):
     return out
 
 def operations_status():
-    """Return Cronological operation inventory and rates."""
-
-    cron_root = (
-        Path.home()
-        / "operations"
-        / "cronologicals"
-    )
-
+    """Return Cronological inventory + process snapshot (bounded, never raises)."""
+    cron_root = Path("/home/ava-core/operations/cronologicals")
     pending = []
     avg_hour = 0.0
     next_hour = 0
-
     interval_re = re.compile(
         r"every-(\d+)-(seconds|minutes|hours|days|weeks|months|years)$"
     )
-
     interval_seconds = {
-        "seconds": 1,
-        "minutes": 60,
-        "hours": 3600,
-        "days": 86400,
-        "weeks": 604800,
-        "months": 30 * 86400,
-        "years": 365 * 86400,
+        "seconds": 1, "minutes": 60, "hours": 3600, "days": 86400,
+        "weeks": 604800, "months": 30 * 86400, "years": 365 * 86400,
     }
-
-    ontime = cron_root / "on-time"
-
-    if ontime.is_dir():
-
-        for d in ontime.iterdir():
-
-            if not d.is_dir():
-                continue
-
-            m = re.fullmatch(
-                r"(\d{2}):(\d{2})",
-                d.name,
-            )
-
-            if not m:
-                continue
-
-            hour, minute = map(int, m.groups())
-
-            jobs = [
-                p for p in d.glob("*.py")
-                if "__pycache__" not in p.parts
-            ]
-
-            if not jobs:
-                continue
-
-            avg_hour += len(jobs) / 24
-
-            candidate = datetime.now().replace(
-                hour=hour,
-                minute=minute,
-                second=0,
-                microsecond=0,
-            )
-
-            if candidate <= datetime.now():
-                candidate += timedelta(days=1)
-
-            if candidate <= datetime.now() + timedelta(hours=1):
-                next_hour += len(jobs)
-
-            for p in jobs:
-                pending.append(
-                    {
-                        "path":
-                            str(p.relative_to(cron_root)),
+    MAX_PENDING = 800
+    try:
+        ontime = cron_root / "on-time"
+        if ontime.is_dir():
+            for d in sorted(ontime.iterdir()):
+                if not d.is_dir():
+                    continue
+                m = re.fullmatch(r"(\d{2}):(\d{2})", d.name)
+                if not m:
+                    continue
+                hour, minute = map(int, m.groups())
+                jobs = [p for p in d.glob("*.py") if p.is_file()]
+                if not jobs:
+                    continue
+                avg_hour += len(jobs) / 24.0
+                candidate = datetime.now().replace(
+                    hour=hour, minute=minute, second=0, microsecond=0
+                )
+                if candidate <= datetime.now():
+                    candidate += timedelta(days=1)
+                if candidate <= datetime.now() + timedelta(hours=1):
+                    next_hour += len(jobs)
+                for p in jobs:
+                    if len(pending) >= MAX_PENDING:
+                        break
+                    pending.append({
+                        "path": str(p.relative_to(cron_root)),
                         "enabled": True,
                         "schedule": d.name,
-                        "next_due":
-                            candidate.isoformat(),
-                    }
-                )
-
-    since = cron_root / "since-last-fire"
-
-    if since.is_dir():
-
-        for d in since.iterdir():
-
-            if not d.is_dir():
-                continue
-
-            m = interval_re.fullmatch(d.name)
-
-            if not m:
-                continue
-
-            interval = (
-                int(m.group(1))
-                * interval_seconds[m.group(2)]
-            )
-
-            jobs = [
-                p for p in d.glob("*.py")
-                if "__pycache__" not in p.parts
-            ]
-
-            if not jobs:
-                continue
-
-            avg_hour += (
-                len(jobs) * 3600 / interval
-            )
-
-            next_hour += (
-                len(jobs)
-                * max(
-                    1,
-                    int(
-                        (3600 + interval - 1)
-                        // interval
-                    ),
-                )
-            )
-
-            for p in jobs:
-                pending.append(
-                    {
-                        "path":
-                            str(p.relative_to(cron_root)),
+                        "next_due": candidate.isoformat(),
+                        "next_due_label": candidate.strftime("%H:%M"),
+                    })
+        since = cron_root / "since-last-fire"
+        if since.is_dir():
+            for d in sorted(since.iterdir()):
+                if not d.is_dir():
+                    continue
+                m = interval_re.fullmatch(d.name)
+                if not m:
+                    continue
+                interval = int(m.group(1)) * interval_seconds[m.group(2)]
+                if interval <= 0:
+                    continue
+                jobs = [p for p in d.glob("*.py") if p.is_file()]
+                if not jobs:
+                    continue
+                avg_hour += len(jobs) * 3600 / interval
+                next_hour += len(jobs) * max(1, int((3600 + interval - 1) // interval))
+                for p in jobs:
+                    if len(pending) >= MAX_PENDING:
+                        break
+                    pending.append({
+                        "path": str(p.relative_to(cron_root)),
                         "enabled": True,
                         "schedule": d.name,
                         "next_due": "recurring",
-                    }
-                )
-
-    for p in sorted(
-        cron_root.rglob("*.py.disabled")
-    ):
-
-        if "__pycache__" in p.parts:
-            continue
-
-        pending.append(
-            {
-                "path":
-                    str(p.relative_to(cron_root))[:-9],
+                        "next_due_label": d.name,
+                    })
+        for p in sorted(cron_root.rglob("*.py.disabled")):
+            if len(pending) >= MAX_PENDING:
+                break
+            if "__pycache__" in p.parts:
+                continue
+            pending.append({
+                "path": str(p.relative_to(cron_root))[:-9],
                 "enabled": False,
                 "schedule": "disabled",
                 "next_due": None,
-            }
-        )
+                "next_due_label": "disabled",
+            })
+    except Exception as e:
+        pending.append({
+            "path": f"(scan error: {e})",
+            "enabled": False,
+            "schedule": "error",
+            "next_due": None,
+            "next_due_label": "error",
+        })
 
+    processes = []
     try:
-
         proc = subprocess.run(
-            [
-                "ps",
-                "-eo",
-                "pid=,etime=,comm=,args=",
-            ],
+            ["ps", "-eo", "pid=,etime=,comm=,args="],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
-            timeout=3,
+            timeout=2,
         )
-
-        processes = []
-
-        for line in proc.stdout.splitlines():
-
+        for line in (proc.stdout or "").splitlines()[:500]:
             bits = line.strip().split(None, 3)
-
             if len(bits) >= 3:
-                processes.append(
-                    {
-                        "pid": bits[0],
-                        "elapsed": bits[1],
-                        "name": bits[2],
-                        "command":
-                            bits[3]
-                            if len(bits) > 3
-                            else bits[2],
-                    }
-                )
-
+                processes.append({
+                    "pid": bits[0],
+                    "elapsed": bits[1],
+                    "name": bits[2],
+                    "command": bits[3] if len(bits) > 3 else bits[2],
+                })
     except Exception as exc:
+        processes = [{
+            "pid": "—", "elapsed": "—", "name": "unavailable", "command": str(exc),
+        }]
 
-        processes = [
-            {
-                "pid": "—",
-                "elapsed": "—",
-                "name": "unavailable",
-                "command": str(exc),
-            }
-        ]
-
+    rates = {
+        "avg_per_hour": round(avg_hour, 3),
+        "avg_per_minute": round(avg_hour / 60, 3),
+        "next_hour": next_hour,
+    }
+    windows = {
+        key: {
+            "avg_per_hour": rates["avg_per_hour"],
+            "avg_per_minute": rates["avg_per_minute"],
+            "next_hour": next_hour,
+        }
+        for key in ("1m", "15m", "1h", "8h", "12h", "24h", "48h", "3d", "7d", "month", "year", "all")
+    }
     return {
         "pending_crons": pending,
         "processes": processes,
-        "rates": {
-            "avg_per_hour": avg_hour,
-            "avg_per_minute":
-                avg_hour / 60,
-            "next_hour": next_hour,
-        },
-        "windows": {
-            key: {
-                "avg_per_hour": avg_hour,
-                "avg_per_minute":
-                    avg_hour / 60,
-                "expected_operations":
-                    (
-                        avg_hour * seconds / 3600
-                        if seconds is not None
-                        else None
-                    ),
-                "next_hour": next_hour,
-            }
-            for key, seconds
-            in WINDOW_SECONDS.items()
-        },
+        "rates": rates,
+        "windows": windows,
     }
 
-# ---------------------------------------------------------------------------
-# Directory browser — safety helpers
-# ---------------------------------------------------------------------------
+
 
 def _norm_rel(rel: str) -> str:
     rel = unquote(rel or "").replace("\\", "/").strip("/")
@@ -1736,25 +1647,28 @@ class H(BaseHTTPRequestHandler):
             return
 
         if path == "/api/status":
-
             qs = parse_qs(parsed.query)
-
-            window = (
-                qs.get("window") or ["1h"]
-            )[0]
-
-            data = build_status()
-
-            data["window"] = (
-                window
-                if window in WINDOW_SECONDS
-                else "1h"
-            )
-
-            data["operations"] = (
-                operations_status()
-            )
-
+            window = (qs.get("window") or ["1h"])[0]
+            try:
+                data = build_status()
+            except Exception as e:
+                data = {
+                    "ok": False,
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "host": "ava-core",
+                    "error": f"build_status: {e}",
+                }
+            try:
+                data["operations"] = operations_status()
+            except Exception as e:
+                data["operations"] = {
+                    "pending_crons": [],
+                    "processes": [],
+                    "rates": {"avg_per_hour": None, "avg_per_minute": None, "next_hour": None},
+                    "windows": {},
+                    "error": str(e),
+                }
+            data["window"] = window if window in WINDOW_SECONDS else "1h"
             self.js(data)
             return True
 
