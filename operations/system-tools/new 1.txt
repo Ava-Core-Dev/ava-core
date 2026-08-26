@@ -1,0 +1,99 @@
+Drop-in:
+What this is for
+Exact metering of AI API calls — tokens, cost, and each account’s share of total spend. Not BPE-on-everything; provider-reported usage first.
+Apply
+Bashcd /home/ava-core
+unzip -o /path/to/ai-usage-ledger.zip
+python3 operations/system-tools/ai_usage.py schema
+python3 operations/system-tools/ai_usage.py demo   # optional smoke test
+python3 operations/system-tools/ai_usage.py summary --days 30
+Layout
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PathRoleoperations/system-tools/ai_usage.pyOnly write path: record_usage / record_from_openai_responsecontext/usage/pricing.jsonUSD / 1M input & output tokens (edit when rates change)context/usage/README.mdContract for agents / deskdatabase/ai_usage.dbCreated on first record (calls + daily rollups)accounts.jsonYour existing registry — still no API keys
+Every AI call
+Prefer tokens from the provider response:
+Python# OpenAI-shaped responses
+from pathlib import Path
+import importlib.util
+spec = importlib.util.spec_from_file_location(
+    "ai_usage", "/home/ava-core/operations/system-tools/ai_usage.py"
+)
+ai_usage = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ai_usage)
+
+ai_usage.record_from_openai_response(
+    response,
+    account_id="account-…",   # Desk user / automation id
+    source="desk",
+    action="chat",
+    provider="openai",
+)
+Or manual:
+Pythonai_usage.record_usage(
+    provider="anthropic",
+    model="claude-3-5-sonnet",
+    input_tokens=1520,      # from usage.input_tokens
+    output_tokens=880,
+    account_id="account-…",
+    source="agent",
+    action="summarize",
+    # cost_usd=... optional if provider returns billable amount
+)
+What you get back from summary
+JSON{
+  "totals": { "calls": 120, "total_tokens": 890000, "cost_usd": 4.52 },
+  "accounts": [
+    {
+      "account_id": "account-…",
+      "calls": 80,
+      "total_tokens": 600000,
+      "cost_usd": 3.10,
+      "cost_share_pct": 68.58,
+      "token_share_pct": 67.42
+    }
+  ],
+  "providers": [ … ]
+}
+So for each user you can show: tokens used, $ cost, % of total cost, % of total tokens.
+Rules that matter
+
+Provider usage object is truth for token counts (not local BPE).
+Cost = provider billable amount if you have it; else pricing.json.
+Always pass account_id once Desk has a user/session — unattributed calls show as (unattributed).
+Never put API keys in context/usage/ or meta_json.
+
+Next pieces (when you want them)
+
+Wrap each real AI client (OpenAI / Anthropic / xAI) so record_* is automatic.
+Wire Desk Usage tab to summary() or ai_usage_report.py → last-summary.json.
+Quotas: reject or soft-limit when cost_usd / day exceeds account budget.
+
+If you want, next drop-in can be a thin wrapper around one provider client you already use so every call is recorded without manual record_usage calls.

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "accounts": [
+    {
+      "id": "account-local-ops",
+      "name": "Local ops",
+      "provider": "multi",
+      "available": true,
+      "notes": "Unattended Ava jobs",
+      "updated_at": "2026-08-25T00:00:00+00:00"
+    }
+  ]
+}
