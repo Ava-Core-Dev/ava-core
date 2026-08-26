@@ -403,21 +403,48 @@ def system_now():
 
 
 def system_history(hours=12, window=None):
-    """One-minute host time series for local browser charts."""
+    """One-minute host time series for local browser charts.
+
+    Filters by window against the latest sample time in the DB (not wall clock alone),
+    so partial datasets still zoom correctly when the UI changes range.
+    """
     seconds = _window_seconds(window or "12h")
-    cutoff = 0 if seconds is None else int(datetime.now(timezone.utc).timestamp() - seconds)
     rows = {}
+    # Load a generous candidate set, then filter in Python with reliable int timestamps.
+    wall_cutoff = 0 if seconds is None else int(datetime.now(timezone.utc).timestamp() - seconds) - 120
     for table, key in (("minute_cpu", "cpu"), ("minute_memory", "memory"), ("minute_battery", "battery")):
-        for row in q(SYSTEM_MIN_DB, f"SELECT minute_ts, stats FROM {table} WHERE minute_ts>=? ORDER BY minute_ts", (cutoff,)):
-            item = rows.setdefault(row["minute_ts"], {"minute_ts": row["minute_ts"]})
+        for row in q(
+            SYSTEM_MIN_DB,
+            f"SELECT minute_ts, stats FROM {table} WHERE CAST(minute_ts AS INTEGER) >= ? ORDER BY CAST(minute_ts AS INTEGER)",
+            (wall_cutoff,),
+        ):
+            try:
+                ts = int(float(row["minute_ts"]))
+            except Exception:
+                continue
+            item = rows.setdefault(ts, {"minute_ts": ts})
             item[key] = _json_value(row.get("stats"), {})
-    for row in q(SYSTEM_MIN_DB, "SELECT minute_ts, stats FROM minute_network WHERE minute_ts>=? ORDER BY minute_ts", (cutoff,)):
-        item = rows.setdefault(row["minute_ts"], {"minute_ts": row["minute_ts"]})
+    for row in q(
+        SYSTEM_MIN_DB,
+        "SELECT minute_ts, stats FROM minute_network WHERE CAST(minute_ts AS INTEGER) >= ? ORDER BY CAST(minute_ts AS INTEGER)",
+        (wall_cutoff,),
+    ):
+        try:
+            ts = int(float(row["minute_ts"]))
+        except Exception:
+            continue
+        item = rows.setdefault(ts, {"minute_ts": ts})
         stats = _json_value(row.get("stats"), {})
         item["recv_bps"] = item.get("recv_bps", 0) + float(stats.get("bytes_recv_per_sec") or 0)
         item["sent_bps"] = item.get("sent_bps", 0) + float(stats.get("bytes_sent_per_sec") or 0)
-    out = [rows[key] for key in sorted(rows)]
-    return out
+
+    out = [rows[k] for k in sorted(rows)]
+    if not out or seconds is None:
+        return out
+    # Anchor to latest sample so short windows zoom even if wall-clock skew exists
+    latest = out[-1]["minute_ts"]
+    cutoff = latest - int(seconds)
+    return [r for r in out if r["minute_ts"] >= cutoff]
 
 
 def uptime_report():
