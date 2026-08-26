@@ -593,7 +593,7 @@ def uptime_history(window="all"):
     return out
 
 def operations_status():
-    """Return Cronological inventory + process snapshot (bounded, never raises)."""
+    """Full Cronological inventory — every lane, every script (no silent truncation)."""
     cron_root = Path("/home/ava-core/operations/cronologicals")
     pending = []
     avg_hour = 0.0
@@ -605,8 +605,26 @@ def operations_status():
         "seconds": 1, "minutes": 60, "hours": 3600, "days": 86400,
         "weeks": 604800, "months": 30 * 86400, "years": 365 * 86400,
     }
-    MAX_PENDING = 800
+    now = datetime.now()
+
+    def add(path: Path, enabled: bool, schedule: str, next_due, next_due_label: str, lane: str):
+        try:
+            rel = str(path.relative_to(cron_root))
+        except Exception:
+            rel = str(path)
+        if rel.endswith(".py.disabled"):
+            rel = rel[:-9]
+        pending.append({
+            "path": rel,
+            "enabled": enabled,
+            "schedule": schedule,
+            "lane": lane,
+            "next_due": next_due,
+            "next_due_label": next_due_label,
+        })
+
     try:
+        # --- on-time / HH:MM ---
         ontime = cron_root / "on-time"
         if ontime.is_dir():
             for d in sorted(ontime.iterdir()):
@@ -614,29 +632,43 @@ def operations_status():
                     continue
                 m = re.fullmatch(r"(\d{2}):(\d{2})", d.name)
                 if not m:
+                    # nested buckets (e.g. locations/) — still list scripts
+                    for p in sorted(d.rglob("*.py")):
+                        if "__pycache__" in p.parts:
+                            continue
+                        add(p, True, d.name, None, d.name, "on-time")
                     continue
                 hour, minute = map(int, m.groups())
+                if hour > 23:
+                    # non-clock slots used as :MM of every hour (legacy state news packing)
+                    minute = hour % 60
+                    hour = None
                 jobs = [p for p in d.glob("*.py") if p.is_file()]
                 if not jobs:
                     continue
-                avg_hour += len(jobs) / 24.0
-                candidate = datetime.now().replace(
-                    hour=hour, minute=minute, second=0, microsecond=0
-                )
-                if candidate <= datetime.now():
-                    candidate += timedelta(days=1)
-                if candidate <= datetime.now() + timedelta(hours=1):
-                    next_hour += len(jobs)
+                if hour is not None:
+                    avg_hour += len(jobs) / 24.0
+                    candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                    if candidate <= now:
+                        candidate += timedelta(days=1)
+                    if candidate <= now + timedelta(hours=1):
+                        next_hour += len(jobs)
+                    due = candidate.isoformat()
+                    due_label = candidate.strftime("%H:%M")
+                else:
+                    # every hour at :MM
+                    avg_hour += len(jobs)
+                    candidate = now.replace(minute=minute, second=0, microsecond=0)
+                    if candidate <= now:
+                        candidate += timedelta(hours=1)
+                    if candidate <= now + timedelta(hours=1):
+                        next_hour += len(jobs)
+                    due = candidate.isoformat()
+                    due_label = f":{minute:02d}/hr"
                 for p in jobs:
-                    if len(pending) >= MAX_PENDING:
-                        break
-                    pending.append({
-                        "path": str(p.relative_to(cron_root)),
-                        "enabled": True,
-                        "schedule": d.name,
-                        "next_due": candidate.isoformat(),
-                        "next_due_label": candidate.strftime("%H:%M"),
-                    })
+                    add(p, True, d.name, due, due_label, "on-time")
+
+        # --- since-last-fire / every-N ---
         since = cron_root / "since-last-fire"
         if since.is_dir():
             for d in sorted(since.iterdir()):
@@ -644,6 +676,9 @@ def operations_status():
                     continue
                 m = interval_re.fullmatch(d.name)
                 if not m:
+                    for p in sorted(d.glob("*.py")):
+                        if p.is_file():
+                            add(p, True, d.name, "recurring", d.name, "since-last-fire")
                     continue
                 interval = int(m.group(1)) * interval_seconds[m.group(2)]
                 if interval <= 0:
@@ -654,35 +689,41 @@ def operations_status():
                 avg_hour += len(jobs) * 3600 / interval
                 next_hour += len(jobs) * max(1, int((3600 + interval - 1) // interval))
                 for p in jobs:
-                    if len(pending) >= MAX_PENDING:
-                        break
-                    pending.append({
-                        "path": str(p.relative_to(cron_root)),
-                        "enabled": True,
-                        "schedule": d.name,
-                        "next_due": "recurring",
-                        "next_due_label": d.name,
-                    })
+                    add(p, True, d.name, "recurring", d.name, "since-last-fire")
+
+        # --- always-on ---
+        always = cron_root / "always-on"
+        if always.is_dir():
+            for p in sorted(always.glob("*.py")):
+                if p.is_file():
+                    add(p, True, "always-on", "continuous", "always-on", "always-on")
+
+        # --- in-order-on-boot ---
+        boot = cron_root / "in-order-on-boot"
+        if boot.is_dir():
+            for p in sorted(boot.rglob("*.py")):
+                if "__pycache__" in p.parts:
+                    continue
+                if p.is_file():
+                    add(p, True, "on-boot", "boot", "on-boot", "in-order-on-boot")
+
+        # --- disabled ---
         for p in sorted(cron_root.rglob("*.py.disabled")):
-            if len(pending) >= MAX_PENDING:
-                break
             if "__pycache__" in p.parts:
                 continue
-            pending.append({
-                "path": str(p.relative_to(cron_root))[:-9],
-                "enabled": False,
-                "schedule": "disabled",
-                "next_due": None,
-                "next_due_label": "disabled",
-            })
+            add(p, False, "disabled", None, "disabled", "disabled")
+
     except Exception as e:
-        pending.append({
-            "path": f"(scan error: {e})",
-            "enabled": False,
-            "schedule": "error",
-            "next_due": None,
-            "next_due_label": "error",
-        })
+        add(Path("(scan-error)"), False, "error", None, str(e)[:80], "error")
+
+    # Stable sort: enabled first, then next_due label, then path
+    def sort_key(item):
+        return (
+            0 if item.get("enabled") else 1,
+            item.get("next_due_label") or "zzz",
+            item.get("path") or "",
+        )
+    pending.sort(key=sort_key)
 
     processes = []
     try:
@@ -693,7 +734,7 @@ def operations_status():
             stderr=subprocess.DEVNULL,
             timeout=2,
         )
-        for line in (proc.stdout or "").splitlines()[:500]:
+        for line in (proc.stdout or "").splitlines()[:800]:
             bits = line.strip().split(None, 3)
             if len(bits) >= 3:
                 processes.append({
@@ -703,20 +744,21 @@ def operations_status():
                     "command": bits[3] if len(bits) > 3 else bits[2],
                 })
     except Exception as exc:
-        processes = [{
-            "pid": "—", "elapsed": "—", "name": "unavailable", "command": str(exc),
-        }]
+        processes = [{"pid": "—", "elapsed": "—", "name": "unavailable", "command": str(exc)}]
 
     rates = {
         "avg_per_hour": round(avg_hour, 3),
         "avg_per_minute": round(avg_hour / 60, 3),
         "next_hour": next_hour,
+        "total_jobs": len(pending),
+        "enabled_jobs": sum(1 for x in pending if x.get("enabled")),
     }
     windows = {
         key: {
             "avg_per_hour": rates["avg_per_hour"],
             "avg_per_minute": rates["avg_per_minute"],
             "next_hour": next_hour,
+            "total_jobs": rates["total_jobs"],
         }
         for key in ("1m", "15m", "1h", "8h", "12h", "24h", "48h", "3d", "7d", "month", "year", "all")
     }
