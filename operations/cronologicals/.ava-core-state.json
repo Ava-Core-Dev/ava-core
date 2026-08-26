@@ -1,18 +1,18 @@
 {
   "boot_done": true,
   "last_fire": {
-    "/home/ava-core/operations/cronologicals/since-last-fire/every-second/1sectest.py": 1787703634.99419,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-second/1sectest.py": 1787703677.1120193,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow.py": 1787547337.18908,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/ecoflow-enhance.py": 1787547237.0657952,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/ecoflow-1h.py": 1787702589.001163,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/ecoflow-1min.py": 1787703618.9411955,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-week/ecoflow-7d.py": 1787547321.166537,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-8-hours/ecoflow-8h.py": 1787680985.4445,
-    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow-10s.py": 1787703628.981196,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow-10s.py": 1787703669.0919392,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-12-hours/ecoflow-12h.py": 1787688599.1551056,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-24-hours/ecoflow-24h.py": 1787633804.3268576,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-month/ecoflow-month.py": 1787547417.2920313,
-    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow_lib.py": 1787703628.9824784,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-10-seconds/ecoflow_lib.py": 1787703669.095306,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/ecoflow_lib.py": 1787703618.9424086,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/ecoflow_lib.py": 1787702589.0022676,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-8-hours/ecoflow_lib.py": 1787680985.4514954,
@@ -26,7 +26,7 @@
     "/home/ava-core/operations/cronologicals/since-last-fire/every-4-hours/ecoflow_lib.py": 1787695386.7912252,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-3-days/ecoflow-3d.py": 1787549839.035848,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-3-days/ecoflow_lib.py": 1787549839.0370908,
-    "/home/ava-core/operations/cronologicals/since-last-fire/every-second/system.py": 1787703634.9966803,
+    "/home/ava-core/operations/cronologicals/since-last-fire/every-second/system.py": 1787703677.1130228,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-minute/system-min.py": 1787703618.9517143,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/aggregate_minutes_to_hours_Version2.py": 1787702589.0002022,
     "/home/ava-core/operations/cronologicals/on-time/22:00/fetch_weather.py": 1787558401.6427686,
@@ -68,17 +68,17 @@
     "/home/ava-core/operations/cronologicals/on-time/10:00/system-hourly.py": 1787688001.6054986,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/build-state-news.py": 1787700967.5022287,
     "/home/ava-core/operations/cronologicals/since-last-fire/every-hour/github-auto-push.py": 1787703409.3258328,
-    "/home/ava-core/operations/cronologicals/in-order-on-boot/00:00 Start/github-auto-push.py": 1787703611.4050481,
-    "/home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow-catchup.py": 1787703611.9072597,
-    "/home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow_lib.py": 1787703612.4087508,
+    "/home/ava-core/operations/cronologicals/in-order-on-boot/00:00 Start/github-auto-push.py": 1787703655.5404124,
+    "/home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow-catchup.py": 1787703656.041904,
+    "/home/ava-core/operations/cronologicals/in-order-on-boot/00:01/ecoflow_lib.py": 1787703656.5432863,
     "/home/ava-core/operations/cronologicals/on-time/14:00/fetch_weather.py": 1787702400.4703825,
     "/home/ava-core/operations/cronologicals/on-time/14:00/github-auto-push.py": 1787702400.4713323,
     "/home/ava-core/operations/cronologicals/on-time/14:00/system-hourly.py": 1787702400.4730015
   },
   "always_on": {
     "/home/ava-core/operations/cronologicals/always-on/broadcast.py": {
-      "pid": 68439,
-      "started": 1787703612.914309,
+      "pid": 70146,
+      "started": 1787703657.0502293,
       "name": "broadcast.py",
       "port": 8080,
       "script": "/home/ava-core/operations/cronologicals/always-on/broadcast.py",
@@ -131,12 +131,13 @@
         1787701594.3167195,
         1787702900.8569236,
         1787702976.0264173,
-        1787703612.914309
+        1787703612.914309,
+        1787703657.0502293
       ]
     },
     "/home/ava-core/operations/cronologicals/always-on/ava_core_audio_player.py": {
-      "pid": 68437,
-      "started": 1787703612.9109545,
+      "pid": 70144,
+      "started": 1787703657.0456905,
       "name": "ava_core_audio_player.py",
       "port": null,
       "script": "/home/ava-core/operations/cronologicals/always-on/ava_core_audio_player.py",
@@ -189,12 +190,13 @@
         1787701594.3136325,
         1787702900.8540895,
         1787702976.0235422,
-        1787703612.9109545
+        1787703612.9109545,
+        1787703657.0456905
       ]
     },
     "/home/ava-core/operations/cronologicals/always-on/avaivy_cloudflare_watchdog.py": {
-      "pid": 68438,
-      "started": 1787703612.9123406,
+      "pid": 70145,
+      "started": 1787703657.0473487,
       "name": "avaivy_cloudflare_watchdog.py",
       "port": null,
       "script": "/home/ava-core/operations/cronologicals/always-on/avaivy_cloudflare_watchdog.py",
@@ -239,7 +241,8 @@
         1787701594.3148172,
         1787702900.8552806,
         1787702976.0248206,
-        1787703612.9123406
+        1787703612.9123406,
+        1787703657.0473487
       ]
     }
   }
