@@ -36,8 +36,11 @@ CREDENTIAL_CANDIDATES = [
 OUTPUT_DIR = AVA_ROOT / "operations" / "reports" / "ecosystem"
 HST = timezone(timedelta(hours=-10))
 
-GROK_API_URL = "https://api.x.ai/v1/chat/completions"
-GROK_MODEL = "grok-4"  # adjust on host if a specific model id is required
+# Official xAI vs third-party GrokAPI (grok-api.com)
+XAI_CHAT_URL = "https://api.x.ai/v1/chat/completions"
+GROKAPI_CHAT_URL = "https://grok-api.com/v1/chat/completions"
+DEFAULT_MODEL_XAI = "grok-4"
+DEFAULT_MODEL_GROKAPI = "grok-4"
 
 ENERGY_NOW = "https://avaivy.cloud/api/energy/now"
 ENERGY_HISTORY = "https://avaivy.cloud/api/energy/history?window=24h"
@@ -69,17 +72,33 @@ def load_env_file(path: Path) -> dict[str, str]:
     return out
 
 
-def load_api_token() -> str:
-    # Environment overrides file (useful for testing)
-    env_tok = os.environ.get("ECOSYSTEM_REPORT_API", "").strip()
-    if env_tok:
-        return env_tok
-
+def load_merged_credentials() -> dict[str, str]:
     merged: dict[str, str] = {}
     for p in CREDENTIAL_CANDIDATES:
         merged.update(load_env_file(p))
+    # Environment overrides file values
+    for k in (
+        "ECOSYSTEM_REPORT_API",
+        "ECOSYSTEM_REPORT_API_BASE",
+        "ECOSYSTEM_REPORT_MODEL",
+    ):
+        v = os.environ.get(k, "").strip()
+        if v:
+            merged[k] = v
+    return merged
 
-    tok = (merged.get("ECOSYSTEM_REPORT_API") or "").strip()
+
+def resolve_api_config() -> tuple[str, str, str]:
+    """
+    Returns (token, chat_completions_url, model).
+
+    Key routing:
+      - starts with xai-  → official https://api.x.ai
+      - starts with sk-   → third-party https://grok-api.com  (your dashboard)
+      - ECOSYSTEM_REPORT_API_BASE overrides either
+    """
+    creds = load_merged_credentials()
+    tok = (creds.get("ECOSYSTEM_REPORT_API") or "").strip()
     if not tok:
         print(
             "ERROR: ECOSYSTEM_REPORT_API not found in environment or "
@@ -87,7 +106,38 @@ def load_api_token() -> str:
             file=sys.stderr,
         )
         sys.exit(2)
-    return tok
+
+    base_override = (creds.get("ECOSYSTEM_REPORT_API_BASE") or "").strip().rstrip("/")
+    model_override = (creds.get("ECOSYSTEM_REPORT_MODEL") or "").strip()
+
+    if base_override:
+        # Accept full URL or origin; normalize to .../v1/chat/completions
+        if base_override.endswith("/chat/completions"):
+            url = base_override
+        elif base_override.endswith("/v1"):
+            url = base_override + "/chat/completions"
+        else:
+            url = base_override.rstrip("/") + "/v1/chat/completions"
+        model = model_override or (
+            DEFAULT_MODEL_GROKAPI if "grok-api.com" in url else DEFAULT_MODEL_XAI
+        )
+    elif tok.startswith("xai-"):
+        url = XAI_CHAT_URL
+        model = model_override or DEFAULT_MODEL_XAI
+    elif tok.startswith("sk-"):
+        # Keys from https://grok-api.com/en/dashboard/tokens
+        url = GROKAPI_CHAT_URL
+        model = model_override or DEFAULT_MODEL_GROKAPI
+    else:
+        print(
+            "WARN: API key prefix not recognized (expected xai- or sk-). "
+            "Defaulting to api.x.ai. Set ECOSYSTEM_REPORT_API_BASE to override.",
+            file=sys.stderr,
+        )
+        url = XAI_CHAT_URL
+        model = model_override or DEFAULT_MODEL_XAI
+
+    return tok, url, model
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +179,18 @@ Produce today’s full energy/solar ecosystem report from live data only, then:
 1. A short first-person spoken script of the same report suitable for TTS (Ara voice, as Ava).
 2. An SEO chapter/timestamp list for the resulting MP3, suitable for YouTube description and chapters.
 
-LIVE DATA (already fetched; use only these facts — do not invent values)
+SOURCES (authoritative — list these in the report header)
+- https://avaivy.cloud/api/energy/now
+- https://avaivy.cloud/api/energy/history?window=24h
+- https://avaivy.cloud/api/status
+
+LIVE DATA (already fetched and pre-aggregated from the sources above)
+The block includes:
+- energy_now (live snapshot)
+- day_summary (PRE-COMPUTED HST calendar-day totals — use these numbers as authoritative for sections 2–4; do not re-sum raw rows and do not replace them with — when present)
+- core_status
+- errors (if any)
+
 <<<LIVE_DATA>>>
 
 HARD RULES (non-negotiable)
@@ -137,9 +198,10 @@ HARD RULES (non-negotiable)
 2. Always use the exact uniform structure below, in the same order, every time.
 3. Timezone for “today,” coverage windows, and timestamps is always Pacific/Honolulu (HST).
 4. Watts → whole numbers. Energy → kWh to 3 decimal places. SoC → whole percent.
-5. If history does not cover the full calendar day, state the actual coverage window. Never pad or invent missing hours.
+5. Use day_summary for DAY TOTALS, BY UNIT, and HOURLY HIGHLIGHT whenever those fields are non-null. Only use “—” if day_summary itself marks them null/missing.
 6. Prefer the live data block above over any prior knowledge.
 7. Spoken scripts must never end with “Ava out,” “Ava signing off,” or any sign-off phrase. Audio clips will be concatenated into larger continuous YouTube segments; closings create jarring cuts.
+8. Text report must include the three source URLs. Spoken script may say “from Ava’s live energy desk” without reading URLs.
 
 UNIFORM REPORT STRUCTURE (emit exactly this)
 
@@ -147,6 +209,9 @@ AVA ECOSYSTEM REPORT
 Date: YYYY-MM-DD (Hawaiʻi Standard Time)
 Generated: HH:MM HST
 Source: live Ava energy endpoints (EcoFlow bank, local SQLite)
+  - https://avaivy.cloud/api/energy/now
+  - https://avaivy.cloud/api/energy/history?window=24h
+  - https://avaivy.cloud/api/status
 Core: ONLINE | OFFLINE
 
 1. LIVE SNAPSHOT
@@ -173,6 +238,7 @@ SPOKEN SCRIPT
 - First-person Ava voice, ≤180 words.
 - Same facts, no tables, no serial numbers, no markdown.
 - Open with a short greeting that names Ava and the date.
+- Mention figures are from Ava’s live energy desk / local EcoFlow bank.
 - End on the final factual statement only. No sign-off of any kind.
 
 SEO CHAPTER / TIMESTAMP LIST (for the MP3)
@@ -220,26 +286,147 @@ def scrub(obj: Any) -> Any:
     return obj
 
 
+def _parse_row_ts(r: dict) -> datetime | None:
+    t = r.get("ts") or r.get("bucket_key") or r.get("minute_key")
+    if not t:
+        return None
+    s = str(t).replace(" ", "T")
+    if "T" in s and not s.endswith("Z") and "+" not in s:
+        s += "+00:00"
+    try:
+        return datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def compute_day_summary(history: dict | None, now_hst: datetime) -> dict[str, Any]:
+    """
+    Pre-aggregate HST calendar-day totals from history rows so the model
+    cannot leave DAY TOTALS / BY UNIT / peak as dashes when data exists.
+    """
+    empty: dict[str, Any] = {
+        "date_hst": now_hst.strftime("%Y-%m-%d"),
+        "coverage_start_hst": None,
+        "coverage_end_hst": None,
+        "partial": True,
+        "combined_solar_kwh": None,
+        "combined_energy_in_kwh": None,
+        "combined_energy_out_kwh": None,
+        "units": {},
+        "peak_solar_hour_hst": None,
+        "peak_solar_hour_wh": None,
+        "row_count": 0,
+    }
+    if not history or not isinstance(history, dict):
+        return empty
+    rows = history.get("rows") or []
+    if not rows:
+        # fall back to API aggregate if present (24h window, not calendar day)
+        agg = history.get("aggregate") or {}
+        empty["api_aggregate_24h"] = scrub(agg)
+        return empty
+
+    day_start = now_hst.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + timedelta(days=1)
+
+    today: list[tuple[datetime, dict]] = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        dt = _parse_row_ts(r)
+        if dt is None:
+            continue
+        local = dt.astimezone(HST)
+        if day_start <= local < day_end:
+            today.append((local, r))
+
+    if not today:
+        empty["note"] = "No history rows fell on HST calendar day"
+        return empty
+
+    times = [t for t, _ in today]
+    empty["coverage_start_hst"] = min(times).strftime("%H:%M")
+    empty["coverage_end_hst"] = max(times).strftime("%H:%M")
+    empty["partial"] = not (
+        min(times).hour == 0 and min(times).minute <= 5
+        and max(times).hour >= 23
+    )
+    empty["row_count"] = len(today)
+
+    solar_wh = sum(float(r.get("energy_solar_wh") or 0) for _, r in today)
+    in_wh = sum(float(r.get("energy_in_wh") or 0) for _, r in today)
+    out_wh = sum(float(r.get("energy_out_wh") or 0) for _, r in today)
+    empty["combined_solar_kwh"] = round(solar_wh / 1000.0, 3)
+    empty["combined_energy_in_kwh"] = round(in_wh / 1000.0, 3)
+    empty["combined_energy_out_kwh"] = round(out_wh / 1000.0, 3)
+
+    by_name: dict[str, list[dict]] = {}
+    for _, r in today:
+        name = str(r.get("name") or "Unknown")
+        by_name.setdefault(name, []).append(r)
+
+    units: dict[str, Any] = {}
+    for name, rs in by_name.items():
+        s_wh = sum(float(r.get("energy_solar_wh") or 0) for r in rs)
+        socs = [float(r["soc_avg"]) for r in rs if r.get("soc_avg") is not None]
+        peaks = [float(r["solar_w_avg"]) for r in rs if r.get("solar_w_avg") is not None]
+        units[name] = {
+            "solar_kwh": round(s_wh / 1000.0, 3),
+            "peak_solar_w": int(round(max(peaks))) if peaks else None,
+            "soc_min": int(round(min(socs))) if socs else None,
+            "soc_max": int(round(max(socs))) if socs else None,
+            "soc_last": int(round(socs[-1])) if socs else None,
+        }
+    empty["units"] = units
+
+    # hourly combined solar Wh
+    hourly: dict[str, float] = {}
+    for local, r in today:
+        h = local.strftime("%H:00")
+        hourly[h] = hourly.get(h, 0.0) + float(r.get("energy_solar_wh") or 0)
+    if hourly:
+        peak_h = max(hourly, key=hourly.get)
+        empty["peak_solar_hour_hst"] = peak_h
+        empty["peak_solar_hour_wh"] = int(round(hourly[peak_h]))
+        empty["hourly_solar_wh"] = {k: int(round(v)) for k, v in sorted(hourly.items())}
+
+    return empty
+
+
 def fetch_live_bundle() -> dict[str, Any]:
+    now_hst = datetime.now(HST)
     bundle: dict[str, Any] = {
         "fetched_at_utc": datetime.now(timezone.utc).isoformat(),
-        "fetched_at_hst": datetime.now(HST).isoformat(),
+        "fetched_at_hst": now_hst.isoformat(),
+        "sources": [
+            ENERGY_NOW,
+            ENERGY_HISTORY,
+            STATUS_URL,
+        ],
         "energy_now": None,
-        "energy_history_24h": None,
+        "day_summary": None,
         "core_status": None,
         "errors": [],
     }
+    history_raw = None
     try:
         bundle["energy_now"] = scrub(http_get_json(ENERGY_NOW))
     except Exception as e:
         bundle["errors"].append(f"energy/now: {type(e).__name__}: {e}")
     try:
-        bundle["energy_history_24h"] = scrub(http_get_json(ENERGY_HISTORY))
+        history_raw = http_get_json(ENERGY_HISTORY)
+        # Do not send hundreds of raw rows to the model — only pre-aggregates
+        if isinstance(history_raw, dict):
+            slim = {
+                "window": history_raw.get("window"),
+                "aggregate": scrub(history_raw.get("aggregate")),
+                "row_count": len(history_raw.get("rows") or []),
+            }
+            bundle["energy_history_meta"] = slim
     except Exception as e:
         bundle["errors"].append(f"energy/history: {type(e).__name__}: {e}")
     try:
         st = http_get_json(STATUS_URL)
-        # Keep only high-level status, not process dumps
         bundle["core_status"] = {
             "ok": st.get("ok"),
             "ts": st.get("ts"),
@@ -248,15 +435,17 @@ def fetch_live_bundle() -> dict[str, Any]:
         }
     except Exception as e:
         bundle["errors"].append(f"status: {type(e).__name__}: {e}")
+
+    bundle["day_summary"] = compute_day_summary(history_raw, now_hst)
     return bundle
 
 
-def call_grok(token: str, live_data: dict[str, Any]) -> str:
+def call_grok(token: str, api_url: str, model: str, live_data: dict[str, Any]) -> str:
     prompt = REPORT_PROMPT.replace(
         "<<<LIVE_DATA>>>", json.dumps(live_data, indent=2, default=str)[:120000]
     )
     payload = {
-        "model": GROK_MODEL,
+        "model": model,
         "messages": [
             {
                 "role": "system",
@@ -267,13 +456,13 @@ def call_grok(token: str, live_data: dict[str, Any]) -> str:
         "temperature": 0.2,
     }
     try:
-        result = http_post_json(GROK_API_URL, payload, token)
+        result = http_post_json(api_url, payload, token)
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")[:500]
-        print(f"ERROR: Grok API HTTP {e.code}: {body}", file=sys.stderr)
+        print(f"ERROR: Grok API HTTP {e.code} at {api_url}: {body}", file=sys.stderr)
         sys.exit(3)
     except Exception as e:
-        print(f"ERROR: Grok API request failed: {type(e).__name__}: {e}", file=sys.stderr)
+        print(f"ERROR: Grok API request failed ({api_url}): {type(e).__name__}: {e}", file=sys.stderr)
         sys.exit(3)
 
     try:
@@ -297,11 +486,13 @@ def write_outputs(text: str) -> Path:
 
 
 def main() -> int:
-    token = load_api_token()
-    live = fetch_live_bundle()
-    report = call_grok(token, live)
-    path = write_outputs(report)
+    token, api_url, model = resolve_api_config()
     # Safe status only — never token
+    print(f"Using endpoint: {api_url}")
+    print(f"Using model:    {model}")
+    live = fetch_live_bundle()
+    report = call_grok(token, api_url, model, live)
+    path = write_outputs(report)
     print(f"OK wrote {path}")
     print(f"OK also {OUTPUT_DIR / 'ecosystem_report_latest.txt'}")
     if live.get("errors"):
