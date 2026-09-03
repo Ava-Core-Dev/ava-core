@@ -1,15 +1,23 @@
 name = "rootrecord-cloud"
-main = "holding-worker.ts"
+main = "src/rootrecord-cloud/worker.ts"
 compatibility_date = "2026-09-01"
 account_id = "d2daf26398a805b29e12ddba2b2228cf"
 workers_dev = false
 
 routes = [
   { pattern = "rootrecord.cloud/*", zone_name = "rootrecord.cloud" },
+  { pattern = "www.rootrecord.cloud/*", zone_name = "rootrecord.cloud" },
 ]
 
-# Read-only here. ava-api writes the up/down log; this page only reports it.
+# Last-seen time and the measured outage log behind the holding page.
 [[d1_databases]]
 binding = "AVA_HEARTBEAT_DB"
 database_name = "ava-heartbeat"
 database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"
+
+[vars]
+AVA_ORIGIN_URL = "https://origin.rootrecord.cloud"
+
+# Probe the origin so the holding page knows when the desk was last seen.
+[triggers]
+crons = ["*/5 * * * *"]
