@@ -131,6 +131,15 @@ def main(argv: list[str]) -> int:
                     secrets = unstage_secrets(exe)
                     if secrets:
                         log("unstaged secrets: " + " ".join(secrets))
+                    staged = [
+                        f.strip().replace("\\", "/")
+                        for f in git(exe, "diff", "--cached", "--name-only").stdout.splitlines()
+                        if f.strip()
+                    ]
+                    extra = [f for f in staged if f not in WEBSITE_PATHS]
+                    if extra:
+                        git(exe, "restore", "--staged", "--", *extra)
+                        log("unstaged non-website: " + " ".join(extra[:12]))
                     dirty = git(exe, "diff", "--cached", "--quiet").returncode != 0
                     if dirty:
                         msg = f"auto: holding {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M %Z')}"
