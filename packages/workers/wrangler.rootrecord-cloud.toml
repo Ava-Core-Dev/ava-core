@@ -16,7 +16,8 @@ database_name = "ava-heartbeat"
 database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"
 
 [vars]
-AVA_ORIGIN_URL = "https://origin.rootrecord.cloud"
+# Same origin as origin.avaivy.cloud until the tunnel publishes origin.rootrecord.cloud.
+AVA_ORIGIN_URL = "https://origin.avaivy.cloud"
 
 # Probe the origin so the holding page knows when the desk was last seen.
 [triggers]
