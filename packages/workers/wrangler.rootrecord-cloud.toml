@@ -7,3 +7,9 @@ workers_dev = false
 routes = [
   { pattern = "rootrecord.cloud/*", zone_name = "rootrecord.cloud" },
 ]
+
+# Read-only here. ava-api writes the up/down log; this page only reports it.
+[[d1_databases]]
+binding = "AVA_HEARTBEAT_DB"
+database_name = "ava-heartbeat"
+database_id = "9991d162-a07f-4931-aa2f-2fbe6edc33c0"
