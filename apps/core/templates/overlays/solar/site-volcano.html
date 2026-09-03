@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Solar · Site + volcano</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+.wrap{position:fixed;top:360px;right:28px;width:448px;} .kila{font-size:18px;text-align:right;max-width:260px;line-height:1.25;}
+</style>
+</head>
+<body>
+<div class="wrap card"><div class="k">Site + volcano</div>
+  <div class="row"><span>Weather</span><span class="v" id="wx" style="font-size:18px">—</span></div>
+  <div class="row"><span>Kīlauea</span><span class="v warn kila" id="kila">—</span></div>
+  <div class="row"><span>Night off</span><span class="v" id="off">—</span></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function paint(){
+  try{
+    const s=await avaFetch('/api/obs/solar-desk');
+    const wx=s.weather||{}, k=s.kilauea||{};
+    const temp=wx.temperature_f!=null?wx.temperature_f+'°':'';
+    const fcRaw=(wx.forecast||wx.conditions||'').replace(/\s+/g,' ').trim();
+    const fc=(fcRaw && (!temp || fcRaw.replace('°','')!==String(wx.temperature_f))) ? fcRaw.slice(0,28) : '';
+    document.getElementById('wx').textContent=[temp,fc].filter(Boolean).join(' · ')||'—';
+    const lvl=(k.alert_level||'advisory').replace(/^./,c=>c.toUpperCase());
+    document.getElementById('kila').textContent=lvl+' · '+(k.erupting?'erupting':'not erupting');
+    document.getElementById('off').textContent=(s.shutdown&&s.shutdown.timeHst)||'22:00';
+  }catch(e){}
+}
+avaEvery(paint,8000);
+
+</script>
+</body>
+</html>

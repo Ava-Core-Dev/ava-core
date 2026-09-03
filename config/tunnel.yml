@@ -1,0 +1,9 @@
+# Intended Cloudflare Tunnel — documents hostnames only.
+# Live connector: cloudflared tunnel run --token-file %USERPROFILE%\.cloudflared\origin.token
+# New token. Do not reuse the dead Linux box token. Do not CNAME apex to this tunnel.
+
+tunnel: origin-avaivy
+ingress:
+  - hostname: origin.avaivy.cloud
+    service: http://127.0.0.1:8787
+  - service: http_status:404

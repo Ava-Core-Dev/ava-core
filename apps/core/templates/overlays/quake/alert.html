@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Quake · Alert</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .alert{position:fixed;top:36px;left:50%;transform:translateX(-50%);background:rgba(90,10,10,.92);padding:12px 24px;border-radius:12px;font-size:22px;font-weight:800;opacity:0;transition:opacity .25s;color:#fff}
+  .alert.on{opacity:1}
+  
+</style>
+</head>
+<body>
+<div class="alert" id="alert">Global seismic update</div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+let lastGen=0;
+async function tick(){
+  try{
+    const g=await avaFetch('/api/obs/overlay-gen');
+    if(g.gen&&g.gen!==lastGen){ lastGen=g.gen; const a=document.getElementById('alert'); a.classList.add('on'); setTimeout(()=>a.classList.remove('on'),4000); }
+  }catch(e){}
+}
+avaEvery(tick,5000);
+
+</script>
+</body>
+</html>

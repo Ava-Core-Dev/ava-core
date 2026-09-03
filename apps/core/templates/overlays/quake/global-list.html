@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Quake · Global list</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .box{position:fixed;top:36px;right:36px;width:520px;background:rgba(8,12,18,.9);border:2px solid rgba(255,200,80,.45);border-radius:14px;padding:14px 18px;color:#fff}
+  .h{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;margin-bottom:8px}
+  .item{font-size:17px;margin:6px 0;line-height:1.35}
+  .mag{color:#fbbf24;font-weight:800}
+  
+</style>
+</head>
+<body>
+<div class="box"><div class="h">Global · USGS 24h</div><div id="list"></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+function fmtTime(t){try{return new Date(t).toLocaleString('en-US',{timeZone:'Pacific/Honolulu',hour:'2-digit',minute:'2-digit',month:'short',day:'numeric'})}catch(e){return ''}}
+async function tick(){
+  try{
+    const d=await avaFetch('/api/obs/quake-desk?scope=global');
+    const rows=(d.quakes||[]).slice(0,6);
+    document.getElementById('list').innerHTML=rows.map(q=>`<div class="item"><span class="mag">M${q.mag??'?'}</span> · ${avaEsc(q.place)} · ${fmtTime(q.time)}</div>`).join('')||'<div class="item">No recent global events</div>';
+  }catch(e){}
+}
+avaEvery(tick,20000);
+
+</script>
+</body>
+</html>

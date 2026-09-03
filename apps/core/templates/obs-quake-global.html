@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Quake global ticker</title>
+<style>
+  html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;color:#fff;font-family:"Segoe UI",Inter,system-ui,sans-serif}
+  .box{position:fixed;top:36px;right:36px;width:520px;background:rgba(8,12,18,.9);border:2px solid rgba(255,200,80,.45);border-radius:14px;padding:14px 18px}
+  .h{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;margin-bottom:8px}
+  .item{font-size:17px;margin:6px 0;line-height:1.35}
+  .mag{color:#fbbf24;font-weight:800}
+  .alert{position:fixed;top:36px;left:50%;transform:translateX(-50%);background:rgba(90,10,10,.92);padding:12px 24px;border-radius:12px;font-size:22px;font-weight:800;opacity:0;transition:opacity .25s}
+  .alert.on{opacity:1}
+</style>
+</head>
+<body>
+  <div class="alert" id="alert">Global seismic update</div>
+  <div class="box">
+    <div class="h">Global · USGS M2.5+ 24h</div>
+    <div id="list"></div>
+  </div>
+<script>
+const origin='__ORIGIN__';
+let lastGen=0;
+function esc(s){return (s||'').replace(/</g,'&lt;');}
+function fmtTime(t){try{return new Date(t).toLocaleString('en-US',{timeZone:'Pacific/Honolulu',hour:'2-digit',minute:'2-digit',month:'short',day:'numeric'})}catch(e){return ''}}
+async function tick(){
+  try{
+    const [d,g]=await Promise.all([
+      fetch(origin+'/api/obs/quake-desk?scope=global').then(r=>r.json()),
+      fetch(origin+'/api/obs/overlay-gen').then(r=>r.json())
+    ]);
+    if(g.gen&&g.gen!==lastGen){ lastGen=g.gen; const a=document.getElementById('alert'); a.classList.add('on'); setTimeout(()=>a.classList.remove('on'),4000); }
+    const rows=(d.quakes||[]).slice(0,6);
+    document.getElementById('list').innerHTML=rows.map(q=>`<div class="item"><span class="mag">M${q.mag??'?'}</span> · ${esc(q.place)} · ${fmtTime(q.time)}</div>`).join('')||'<div class="item">No recent global events</div>';
+  }catch(e){}
+}
+tick(); setInterval(tick,10000);
+</script>
+</body>
+</html>

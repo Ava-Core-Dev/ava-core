@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Solar · Top bar</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .top{position:fixed;top:22px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(90deg,rgba(4,18,28,.88),rgba(8,28,40,.72));
+    border:1px solid rgba(0,229,255,.28);border-radius:16px;padding:12px 22px;}
+  .brand{font-size:26px;font-weight:800;letter-spacing:.04em;}
+  .brand span{color:#00e5ff;}
+  .clock{text-align:right;}
+  .clock .d{opacity:.7;font-size:13px;}
+  .clock .t{font-size:26px;font-weight:700;letter-spacing:1px;}
+  
+</style>
+</head>
+<body>
+<div class="top"><div class="brand"><span>SOLAR DESK</span> · ground array + EcoFlow</div>
+  <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+avaEvery(()=>{avaHstDate(document.getElementById('date'));avaHstClock(document.getElementById('time'));},1000);
+</script>
+</body>
+</html>

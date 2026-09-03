@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Goals report</title>
+<style>
+  html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;color:#fff;font-family:"Segoe UI",Inter,system-ui,sans-serif}
+  .top{position:fixed;top:24px;left:32px;right:32px;background:rgba(8,8,10,.82);border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:12px 20px;font-size:22px;font-weight:800}
+  .top span{color:#f59e0b}
+  .list{position:fixed;top:100px;left:32px;width:920px;max-height:880px;overflow:hidden}
+  .goal{background:rgba(8,10,14,.86);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 18px;margin-bottom:10px}
+  .goal h2{margin:0 0 6px;font-size:24px}
+  .goal p{margin:0;opacity:.82;font-size:16px;line-height:1.4}
+  .meta{font-size:13px;opacity:.65;margin-top:6px}
+</style>
+</head>
+<body>
+  <div class="top"><span>GOALS REPORT</span> · avaivy.cloud/status/goals</div>
+  <div class="list" id="list"></div>
+<script>
+const origin='__ORIGIN__';
+let lastGen=0;
+function esc(s){return (s||'').replace(/</g,'&lt;');}
+async function tick(){
+  try{
+    const [d,g]=await Promise.all([
+      fetch(origin+'/api/goals').then(r=>r.json()),
+      fetch(origin+'/api/obs/overlay-gen').then(r=>r.json())
+    ]);
+    if(g.gen&&g.gen!==lastGen){ lastGen=g.gen; document.getElementById('list').style.transform='scale(1.01)'; setTimeout(()=>document.getElementById('list').style.transform='',200); }
+    const goals=(d.goals||[]).slice(0,8);
+    document.getElementById('list').innerHTML=goals.map(x=>`<div class="goal"><h2>${esc(x.title||x.id)}</h2><p>${esc(x.summary||x.description||'')}</p><div class="meta">${esc(x.status||'active')} · priority ${x.priority_score??'—'}</div></div>`).join('')||'<div class="goal"><h2>No goals loaded</h2></div>';
+  }catch(e){}
+}
+tick(); setInterval(tick,20000);
+</script>
+</body>
+</html>

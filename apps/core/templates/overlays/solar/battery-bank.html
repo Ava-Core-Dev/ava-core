@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Solar · Battery bank</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .wrap{position:fixed;top:110px;left:28px;width:448px;}
+  .ringwrap{display:flex;gap:10px;justify-content:space-between;}
+  .ring{width:200px;text-align:center;}
+  .gauge{width:132px;height:132px;margin:0 auto 6px;border-radius:50%;
+    background:conic-gradient(#00e5ff var(--p), rgba(255,255,255,.08) 0);display:grid;place-items:center;}
+  .gauge>div{width:96px;height:96px;border-radius:50%;background:rgba(4,14,22,.95);
+    display:grid;place-items:center;font-size:26px;font-weight:800;}
+  .lab{font-size:14px;font-weight:650;}
+  
+</style>
+</head>
+<body>
+<div class="wrap card"><div class="k">Battery bank</div><div class="ringwrap" id="rings"></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+function ring(d){
+  const p=Math.max(0,Math.min(100,Number(d.soc)||0));
+  const bits=[];
+  if(d.online===false) bits.push('offline / last known');
+  else {
+    if(d.pv_w>2) bits.push(Math.round(d.pv_w)+' W PV');
+    if(d.ac_role==='appliances') bits.push(Math.round(d.ac_out_w)+' W appliances');
+    else if(d.ac_role==='generator') bits.push(Math.round(d.ac_in_w)+' W generator');
+    if(d.dc_out_w>2) bits.push(Math.round(d.dc_out_w)+' W DC');
+  }
+  const sub=bits.length?`<div style="opacity:.7;font-size:12px;line-height:1.3">${bits.join('<br>')}</div>`:'';
+  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div class="lab">${d.label||'pack'}</div>${sub}</div>`;
+}
+async function paint(){
+  try{
+    const s=await avaFetch('/api/obs/solar-desk');
+    const solar=s.solar||{};
+    const devices=solar.devices||[];
+    document.getElementById('rings').innerHTML = devices.length
+      ? devices.map(ring).join('')
+      : ring({label:'Bank', soc:solar.battery_pct, online:true});
+  }catch(e){}
+}
+avaEvery(paint,8000);
+
+</script>
+</body>
+</html>

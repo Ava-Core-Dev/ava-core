@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ava desk — no Cursor</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: system-ui, sans-serif; background:#0a0e14; color:#e5e7eb; max-width: 52rem; margin: 0 auto; padding: 1.5rem; }
+    h1 { font-size: 1.6rem; margin: 0 0 .35rem; }
+    .muted { color:#9ca3af; font-size: .95rem; }
+    section { background:#111827; border:1px solid #1f2937; border-radius:16px; padding:1rem 1.1rem; margin: 1rem 0; }
+    label { display:block; font-size:.8rem; color:#9ca3af; margin:.6rem 0 .25rem; }
+    input, select, textarea { width:100%; box-sizing:border-box; background:#0a0e14; color:inherit; border:1px solid #374151; border-radius:8px; padding:.55rem .7rem; font: inherit; }
+    textarea { min-height: 8rem; }
+    button { margin-top:.75rem; margin-right:.4rem; background:#06b6d4; color:#0a0e14; border:0; border-radius:999px; padding:.5rem 1rem; font-weight:700; cursor:pointer; }
+    button.secondary { background:#1f2937; color:#e5e7eb; }
+    pre { white-space:pre-wrap; background:#0a0e14; padding:.75rem; border-radius:8px; font-size:.8rem; }
+    a { color:#22d3ee; }
+    ul { padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>Ava desk</h1>
+  <p class="muted">This page only works on the Ava machine (<code>127.0.0.1</code>). No Cursor required. Local Ava (Ollama) can rewrite words.</p>
+
+  <section>
+    <h2>0. GitHub auto-push (Emergent safety)</h2>
+    <p class="muted">When <strong>OFF</strong>, the 2-minute timer will not commit/push. Turn OFF before Emergent pulls, then ON after Ava merges. Also: <code>bash scripts/github-auto-push-toggle.sh on|off</code></p>
+    <p id="gh-push-state" class="muted">Checking…</p>
+    <button type="button" id="gh-push-off">Turn OFF auto-push</button>
+    <button type="button" class="secondary" id="gh-push-on">Turn ON auto-push</button>
+    <button type="button" class="secondary" id="gh-push-refresh">Refresh</button>
+  </section>
+
+  <section>
+    <h2>0b. Google AdSense API (desk reports)</h2>
+    <p class="muted">This is <strong>not</strong> ad tags on public pages — Ava pulls revenue reports via API. Callback stays on this PC. Do not publish /ops. In Cloud Console → Authorized redirect URIs, paste exactly:</p>
+    <ul>
+      <li><code>http://127.0.0.1:8787/api/ops/adsense/oauth/callback</code></li>
+    </ul>
+    <p class="muted">Do <strong>not</strong> use <code>*.rootmc.net</code>. Guide: <code>docs/ADSENSE-OAUTH.md</code>.</p>
+    <p id="adsense-state" class="muted">Checking…</p>
+    <a id="adsense-auth" href="#" target="_blank" rel="noopener">Connect AdSense (browser)</a>
+    <button type="button" class="secondary" id="adsense-accounts">List accounts</button>
+    <button type="button" class="secondary" id="adsense-report">Run report now</button>
+  </section>
+
+  <section>
+    <h2>0c. Google AdMob API (desk reports)</h2>
+    <p class="muted">Same OAuth client as AdSense. Localhost callback only:</p>
+    <ul>
+      <li><code>http://127.0.0.1:8787/api/ops/admob/oauth/callback</code></li>
+    </ul>
+    <p class="muted">Enable <strong>AdMob API</strong> + scope <code>admob.readonly</code>. Reports: boot + 21:05 HST EOD. Guide: <code>docs/ADMOB-OAUTH.md</code>.</p>
+    <p id="admob-state" class="muted">Checking…</p>
+    <a id="admob-auth" href="#" target="_blank" rel="noopener">Connect AdMob (browser)</a>
+    <button type="button" class="secondary" id="admob-accounts">List AdMob accounts</button>
+    <button type="button" class="secondary" id="admob-report">Run AdMob report now</button>
+  </section>
+
+  <section>
+    <h2>0d. Staging (test.*) sites</h2>
+    <p class="muted">Deploy Emergent previews here before switching production.</p>
+    <ul>
+      <li><a href="https://test.avaivy.cloud" target="_blank" rel="noopener">test.avaivy.cloud</a></li>
+      <li><a href="https://test.alexrs94.site" target="_blank" rel="noopener">test.alexrs94.site</a></li>
+      <li><a href="https://test.rootrecord.online" target="_blank" rel="noopener">test.rootrecord.online</a></li>
+      <li><a href="https://test.rootmc.net" target="_blank" rel="noopener">test.rootmc.net</a></li>
+      <li><a href="https://test.rootrecord.info" target="_blank" rel="noopener">test.rootrecord.info</a></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>1. New blog post</h2>
+    <p class="muted">Pick the site that owns the topic. Minecraft → RootMC. Solar / volcano / Goals → Root Record. Runtime / Discord / “I” → Ava.</p>
+    <label>Site
+      <select id="brand">
+        <option value="ava">Ava Ivy (avaivy.cloud)</option>
+        <option value="rootmc">RootMC (rootmc.net)</option>
+        <option value="rootrecord">Root Record (rootrecord.online)</option>
+      </select>
+    </label>
+    <label>Category
+      <input id="category" placeholder="runtime  or  economy  or  solar" />
+    </label>
+    <label>Title <input id="title" /></label>
+    <label>Short teaser <input id="teaser" /></label>
+    <label>Date (YYYY-MM-DD or YYYY-MM) <input id="date" placeholder="2026-08-19" /></label>
+    <label>Full timestamp if you know it (ISO) <input id="published" placeholder="2026-08-19T19:30:00-10:00" /></label>
+    <label>Body (plain English). For RootMC you may paste simple HTML.
+      <textarea id="body"></textarea>
+    </label>
+    <div class="row" style="gap:0.5rem;flex-wrap:wrap;margin:0.4rem 0">
+      <button type="button" id="add-image">Add image</button>
+      <button type="button" id="add-sound">Add sound</button>
+      <button type="button" class="secondary" id="clear-media">Clear media</button>
+    </div>
+    <p class="muted" id="media-list">No media attached yet.</p>
+    <input id="file-image" type="file" accept="image/*,video/*" multiple hidden />
+    <input id="file-sound" type="file" accept="audio/*" multiple hidden />
+    <button type="button" id="save">Save post + rebuild blogs</button>
+  </section>
+
+  <section>
+    <h2>2. Upload a file</h2>
+    <p class="muted">Audio for a post, a photo, a report PDF. Goes into <code>media/</code> on this computer.</p>
+    <label>Kind
+      <select id="kind">
+        <option value="audio">Audio (reports)</option>
+        <option value="images">Image</option>
+        <option value="documents">Document</option>
+      </select>
+    </label>
+    <label>File <input id="file" type="file" /></label>
+    <button type="button" id="upload">Upload</button>
+  </section>
+
+  <section>
+    <h2>3. Rewrite with local Ava</h2>
+    <p class="muted">Uses Ollama on this box. Does not use Cursor or xAI credits.</p>
+    <label>Draft <textarea id="draft"></textarea></label>
+    <button type="button" id="rewrite">Rewrite clearly</button>
+  </section>
+
+  <section>
+    <h2>4. Publish</h2>
+    <button type="button" id="sync">Rebuild blogs only</button>
+    <button type="button" class="secondary" id="publish">Publish RootMC to the internet</button>
+    <p class="muted">Ava Ivy and Root Record update from GitHub sync. RootMC uses the Publish button.</p>
+  </section>
+
+  <section>
+    <h2>5. Report review</h2>
+    <p class="muted">Automations create report drafts. Review, then publish what you want to share.</p>
+    <button type="button" id="queue-refresh">Load pending drafts</button>
+    <label>Draft filename
+      <input id="queue-name" placeholder="2026-08-19T221500-summary-cron.md" />
+    </label>
+    <button type="button" class="secondary" id="queue-publish">Publish selected draft</button>
+  </section>
+
+  <section>
+    <h2>6. Words on the home page</h2>
+    <ul>
+      <li>Ava headline / nav: <code>packages/web/avaivy.cloud/src/content.json</code></li>
+      <li>Blog posts folder: <code>media/documents/reports/posts/</code></li>
+    </ul>
+    <p class="muted">Open those files in Text Editor. Save. Auto-push handles GitHub.</p>
+  </section>
+
+  <pre id="out">Ready.</pre>
+  <script>
+    const out = document.getElementById("out");
+    const media = { images: [], audio: [] };
+    function show(x) { out.textContent = typeof x === "string" ? x : JSON.stringify(x, null, 2); }
+    function renderMedia() {
+      const el = document.getElementById("media-list");
+      const bits = [];
+      media.images.forEach((p) => bits.push("image: " + p));
+      media.audio.forEach((p) => bits.push("sound: " + p));
+      el.textContent = bits.length ? bits.join("\n") : "No media attached yet.";
+    }
+    async function post(url, body, isForm) {
+      const res = await fetch(url, isForm ? { method: "POST", body } : {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      const t = await res.text();
+      try { return JSON.parse(t); } catch { return t; }
+    }
+    async function uploadMany(kind, fileList) {
+      for (const file of Array.from(fileList || [])) {
+        const fd = new FormData();
+        fd.append("kind", kind);
+        fd.append("file", file);
+        const j = await post("/api/ops/upload", fd, true);
+        if (!j?.ok || !j.media_path) throw new Error(j?.detail || "upload failed");
+        const bucket = kind === "audio" ? media.audio : media.images;
+        if (!bucket.includes(j.media_path)) bucket.push(j.media_path);
+      }
+      renderMedia();
+    }
+    document.getElementById("add-image").onclick = () => document.getElementById("file-image").click();
+    document.getElementById("add-sound").onclick = () => document.getElementById("file-sound").click();
+    document.getElementById("clear-media").onclick = () => {
+      media.images = [];
+      media.audio = [];
+      renderMedia();
+    };
+    document.getElementById("file-image").onchange = async (ev) => {
+      try { await uploadMany("images", ev.target.files); }
+      catch (e) { show(String(e.message || e)); }
+      ev.target.value = "";
+    };
+    document.getElementById("file-sound").onchange = async (ev) => {
+      try { await uploadMany("audio", ev.target.files); }
+      catch (e) { show(String(e.message || e)); }
+      ev.target.value = "";
+    };
+    document.getElementById("save").onclick = async () => {
+      const j = await post("/api/ops/blog", {
+        brand: document.getElementById("brand").value,
+        category: document.getElementById("category").value,
+        title: document.getElementById("title").value,
+        teaser: document.getElementById("teaser").value,
+        date: document.getElementById("date").value,
+        published: document.getElementById("published").value,
+        body: document.getElementById("body").value,
+        images: [...media.images],
+        audio: [...media.audio],
+      });
+      show(j);
+      if (j?.ok) {
+        media.images = [];
+        media.audio = [];
+        renderMedia();
+      }
+    };
+    document.getElementById("upload").onclick = async () => {
+      const f = document.getElementById("file").files[0];
+      if (!f) { show("Pick a file first."); return; }
+      const fd = new FormData();
+      fd.append("kind", document.getElementById("kind").value);
+      fd.append("file", f);
+      show(await post("/api/ops/upload", fd, true));
+    };
+    document.getElementById("rewrite").onclick = async () => {
+      show("Rewriting on this computer…");
+      show(await post("/api/ops/rewrite", { text: document.getElementById("draft").value }));
+    };
+    document.getElementById("sync").onclick = async () => show(await post("/api/ops/sync-blogs", {}));
+    document.getElementById("publish").onclick = async () => {
+      show("Publishing RootMC…");
+      show(await post("/api/ops/publish-rootmc", {}));
+    };
+    document.getElementById("queue-refresh").onclick = async () => {
+      const res = await fetch("/api/reports/queue");
+      show(await res.json());
+    };
+    document.getElementById("queue-publish").onclick = async () => {
+      const name = document.getElementById("queue-name").value.trim();
+      if (!name) { show("Enter a draft filename first."); return; }
+      show(await post(`/api/reports/queue/${encodeURIComponent(name)}/publish`, {}));
+    };
+
+    async function refreshGhPush() {
+      const el = document.getElementById("gh-push-state");
+      try {
+        const j = await fetch("/api/ops/github-auto-push").then((r) => r.json());
+        el.textContent = j.enabled
+          ? `Status: ON (timer ${j.timer || "?"})`
+          : `Status: OFF (timer ${j.timer || "?"}) — safe for Emergent`;
+        show(j);
+      } catch (e) {
+        el.textContent = String(e);
+      }
+    }
+    document.getElementById("gh-push-off").onclick = async () => {
+      show(await post("/api/ops/github-auto-push", { enabled: false }));
+      refreshGhPush();
+    };
+    document.getElementById("gh-push-on").onclick = async () => {
+      show(await post("/api/ops/github-auto-push", { enabled: true }));
+      refreshGhPush();
+    };
+    document.getElementById("gh-push-refresh").onclick = () => refreshGhPush();
+
+    async function refreshAdsense() {
+      const el = document.getElementById("adsense-state");
+      const link = document.getElementById("adsense-auth");
+      try {
+        const j = await fetch("/api/ops/adsense/status").then((r) => r.json());
+        el.textContent = j.token_present
+          ? "AdSense: connected (token on desk)"
+          : (j.client_configured ? "AdSense: client ready — connect once" : "AdSense: client JSON missing");
+        if (j.auth_url) link.href = j.auth_url;
+        show(j);
+      } catch (e) {
+        el.textContent = String(e);
+      }
+    }
+    document.getElementById("adsense-accounts").onclick = async () => {
+      show(await fetch("/api/ops/adsense/accounts").then((r) => r.json()));
+    };
+    document.getElementById("adsense-report").onclick = async () => {
+      show("Running AdSense report…");
+      show(await post("/api/ops/adsense/report?kind=manual", {}));
+    };
+
+    async function refreshAdmob() {
+      const el = document.getElementById("admob-state");
+      const link = document.getElementById("admob-auth");
+      try {
+        const j = await fetch("/api/ops/admob/status").then((r) => r.json());
+        el.textContent = j.token_present
+          ? "AdMob: connected (token on desk)"
+          : (j.client_configured ? "AdMob: client ready — connect once" : "AdMob: client JSON missing");
+        if (j.auth_url) link.href = j.auth_url;
+      } catch (e) {
+        el.textContent = String(e);
+      }
+    }
+    document.getElementById("admob-accounts").onclick = async () => {
+      show(await fetch("/api/ops/admob/accounts").then((r) => r.json()));
+    };
+    document.getElementById("admob-report").onclick = async () => {
+      show("Running AdMob report…");
+      show(await post("/api/ops/admob/report?kind=manual", {}));
+    };
+
+    renderMedia();
+    refreshGhPush();
+    refreshAdsense();
+    refreshAdmob();
+  </script>
+</body>
+</html>

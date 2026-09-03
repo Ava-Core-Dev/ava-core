@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Chrome · Clock</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+
+  .clock{position:fixed;top:28px;right:36px;background:rgba(4,14,22,.86);border:1px solid rgba(0,229,255,.28);
+    border-radius:14px;padding:10px 18px;text-align:right;}
+  .clock .d{opacity:.7;font-size:13px;} .clock .t{font-size:28px;font-weight:700;letter-spacing:1px;}
+  
+</style>
+</head>
+<body>
+<div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+avaEvery(()=>{avaHstDate(document.getElementById('date'));avaHstClock(document.getElementById('time'));},1000);
+</script>
+</body>
+</html>

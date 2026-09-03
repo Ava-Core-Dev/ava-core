@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Dev updates</title>
+<style>
+  html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:transparent;color:#e8f4ff;font-family:"Segoe UI",Inter,system-ui,sans-serif}
+  .panel{position:fixed;left:48px;top:100px;width:920px;max-height:860px;background:rgba(10,14,28,.9);border:1px solid rgba(129,140,248,.4);border-radius:20px;padding:24px 28px;box-sizing:border-box}
+  .k{letter-spacing:.16em;text-transform:uppercase;color:#818cf8;font-size:13px;margin-bottom:14px}
+  .list{display:flex;flex-direction:column;gap:12px}
+  .item{padding:14px 16px;border-radius:14px;background:rgba(129,140,248,.08);border:1px solid rgba(129,140,248,.22)}
+  .item.top{background:rgba(129,140,248,.16);border-color:rgba(165,180,252,.55)}
+  .meta{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#a5b4fc;margin-bottom:6px}
+  .title{font-size:26px;font-weight:700;line-height:1.2;margin:0 0 6px}
+  .teaser{font-size:18px;line-height:1.35;margin:0;opacity:.88}
+  .toast{position:fixed;top:48px;right:48px;background:rgba(129,140,248,.92);padding:14px 20px;border-radius:12px;font-weight:700;opacity:0;transition:opacity .3s}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+  <div class="toast" id="toast">Latest update</div>
+  <div class="panel">
+    <div class="k">Latest across all sites</div>
+    <div class="list" id="list">Loading…</div>
+  </div>
+<script>
+const origin='__ORIGIN__';
+let lastGen=0, lastKey='';
+function esc(s){
+  return String(s||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+async function tick(){
+  try{
+    const [d,g]=await Promise.all([
+      fetch(origin+'/api/obs/dev-updates-desk?limit=6').then(r=>r.json()),
+      fetch(origin+'/api/obs/overlay-gen').then(r=>r.json())
+    ]);
+    const items=Array.isArray(d.items)&&d.items.length?d.items:[d];
+    const list=document.getElementById('list');
+    list.innerHTML=items.map((it,i)=>`
+      <div class="item${i===0?' top':''}">
+        <div class="meta"><span>${esc(it.site_label||it.site||'—')}</span><span>${esc(it.date||'')}</span></div>
+        <div class="title">${esc(it.title||'—')}</div>
+        ${it.teaser?`<p class="teaser">${esc(it.teaser)}</p>`:''}
+      </div>`).join('');
+    const key=(items[0]&&(items[0].slug||'')+(items[0].date||''))||'';
+    if((g.gen&&g.gen!==lastGen)||(key&&key!==lastKey)){
+      lastGen=g.gen||lastGen; lastKey=key;
+      const t=document.getElementById('toast'); t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),3500);
+    }
+  }catch(e){}
+}
+tick(); setInterval(tick,15000);
+</script>
+</body>
+</html>

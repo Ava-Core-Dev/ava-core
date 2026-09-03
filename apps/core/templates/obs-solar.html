@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Ava Solar Desk</title>
+<style>
+  html,body{margin:0;padding:0;width:1920px;height:1080px;overflow:hidden;background:transparent;
+    color:#e8f4ff;font-family:"Segoe UI",Inter,system-ui,sans-serif;}
+  .top{position:fixed;top:22px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(90deg,rgba(4,18,28,.88),rgba(8,28,40,.72));
+    border:1px solid rgba(0,229,255,.28);border-radius:16px;padding:12px 22px;}
+  .brand{font-size:26px;font-weight:800;letter-spacing:.04em;}
+  .brand span{color:#00e5ff;}
+  .clock{text-align:right;}
+  .clock .d{opacity:.7;font-size:13px;}
+  .clock .t{font-size:26px;font-weight:700;letter-spacing:1px;}
+  .rail{position:fixed;top:110px;width:448px;display:flex;flex-direction:column;gap:12px;}
+  .left{left:28px;}
+  .right{right:28px;}
+  .card{background:rgba(4,14,22,.86);border:1px solid rgba(0,229,255,.22);border-radius:16px;padding:14px 16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#8ba3b8;margin-bottom:8px;}
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:5px 0;}
+  .row span:first-child{color:#9fb3c4;font-size:15px;}
+  .v{font-size:22px;font-weight:750;font-variant-numeric:tabular-nums;}
+  .sub{font-size:13px;color:#9fb3c4;margin-top:8px;line-height:1.35;}
+  .solar{color:#ffd54a;}
+  .cyan{color:#00e5ff;}
+  .ok{color:#4ade80;}
+  .warn{color:#fbbf24;}
+  .dim{opacity:.75;font-size:15px;font-weight:600;}
+  .ringwrap{display:flex;gap:10px;justify-content:space-between;}
+  .ring{width:200px;text-align:center;}
+  .gauge{width:132px;height:132px;margin:0 auto 6px;border-radius:50%;
+    background:conic-gradient(#00e5ff var(--p), rgba(255,255,255,.08) 0);
+    display:grid;place-items:center;}
+  .gauge>div{width:96px;height:96px;border-radius:50%;background:rgba(4,14,22,.95);
+    display:grid;place-items:center;font-size:26px;font-weight:800;}
+  .lab{font-size:14px;font-weight:650;}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:4px;}
+  .tile{background:rgba(255,255,255,.04);border-radius:10px;padding:8px 10px;}
+  .tile .n{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8ba3b8;}
+  .tile .x{font-size:20px;font-weight:750;margin-top:2px;font-variant-numeric:tabular-nums;}
+  .bottom{position:fixed;left:28px;right:28px;bottom:22px;display:flex;justify-content:space-between;align-items:center;
+    background:rgba(4,14,22,.86);border:1px solid rgba(0,229,255,.22);border-radius:16px;padding:12px 20px;}
+  .flow{display:flex;gap:20px;font-size:17px;}
+  .flow b{color:#ffd54a;}
+  .kila{font-size:18px;text-align:right;max-width:260px;line-height:1.25;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="brand"><span>SOLAR DESK</span> · ground array + EcoFlow</div>
+    <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
+  </div>
+  <div class="rail left">
+    <div class="card">
+      <div class="k">Battery bank</div>
+      <div class="ringwrap" id="rings"></div>
+    </div>
+    <div class="card">
+      <div class="k">Totals now</div>
+      <div class="split">
+        <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
+        <div class="tile"><div class="n">DC load</div><div class="x" id="load">—</div></div>
+        <div class="tile"><div class="n">AC gen / xfer</div><div class="x cyan" id="ac">—</div></div>
+        <div class="tile"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
+        <div class="tile"><div class="n">Net PV−DC</div><div class="x cyan" id="net">—</div></div>
+        <div class="tile"><div class="n">Bank avg</div><div class="x" id="bankAvg">—</div></div>
+      </div>
+      <div class="row" style="margin-top:10px"><span>State</span><span class="v cyan" id="state" style="font-size:16px;text-align:right;max-width:260px">—</span></div>
+    </div>
+    <div class="card">
+      <div class="k">Averages</div>
+      <div class="row"><span>Load 12h</span><span class="v" id="avgLoad">—</span></div>
+      <div class="row"><span>PV 12h</span><span class="v solar" id="avgPv">—</span></div>
+      <div class="row"><span>PV morning</span><span class="v solar" id="avgMorn">—</span></div>
+      <div class="row"><span>Bank avg</span><span class="v" id="avgSoc">—</span></div>
+    </div>
+  </div>
+  <div class="rail right">
+    <div class="card">
+      <div class="k" id="hostK">Root server</div>
+      <div class="row"><span>CPU now</span><span class="v" id="cpu">—</span></div>
+      <div class="row"><span>Load 1 / 5 / 15</span><span class="v dim" id="loadAvg">—</span></div>
+      <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
+      <div class="row"><span>Temp</span><span class="v" id="temp">—</span></div>
+      <div class="row"><span>Host charge</span><span class="v" id="charge">—</span></div>
+      <div class="row"><span>Disk</span><span class="v" id="disk">—</span></div>
+      <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div>
+    </div>
+    <div class="card">
+      <div class="k">Site + volcano</div>
+      <div class="row"><span>Weather</span><span class="v" id="wx" style="font-size:18px">—</span></div>
+      <div class="row"><span>Kīlauea</span><span class="v warn kila" id="kila">—</span></div>
+      <div class="row"><span>Night off</span><span class="v" id="off">—</span></div>
+    </div>
+  </div>
+  <div class="bottom">
+    <div>Ava Ivy · ground PV · HI Pacific Root Server · play.rootmc.net</div>
+    <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
+    <div id="src" style="opacity:.7">source —</div>
+  </div>
+<script>
+const ORIGIN = "__ORIGIN__";
+function tick(){
+  const n=new Date();
+  document.getElementById('date').textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric',timeZone:'Pacific/Honolulu'});
+  document.getElementById('time').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Pacific/Honolulu'})+' HST';
+}
+function ring(d){
+  const pct=d.soc, online=d.online, label=d.label||'pack';
+  const p=Math.max(0,Math.min(100,Number(pct)||0));
+  const bits=[];
+  if(online===false) bits.push('offline / last known');
+  else {
+    if(d.pv_w>2) bits.push(Math.round(d.pv_w)+' W PV');
+    const role=d.ac_role;
+    if(role==='appliances') bits.push(Math.round(d.ac_out_w)+' W appliances');
+    else if(role==='generator') bits.push(Math.round(d.ac_in_w)+' W generator');
+    else if(role==='transfer_out') bits.push(Math.round(d.transfer_w||d.ac_out_w||d.discharge_w)+' W transfer out');
+    else if(role==='transfer_in') bits.push(Math.round(d.transfer_w||d.ac_in_w||d.ac_charge_w)+' W transfer in');
+    if(d.dc_out_w>2) bits.push(Math.round(d.dc_out_w)+' W DC');
+  }
+  const sub=bits.length?`<div style="opacity:.7;font-size:12px;line-height:1.3">${bits.join('<br>')}</div>`:'';
+  return `<div class="ring"><div class="gauge" style="--p:${p}%"><div>${p.toFixed(0)}%</div></div><div class="lab">${label}</div>${sub}</div>`;
+}
+function watts(v){ if(v==null||v==='') return '—'; return Math.round(Number(v))+' W'; }
+function pct(v){ if(v==null||v==='') return '—'; return Number(v).toFixed(0)+'%'; }
+function dur(s){
+  s=Number(s)||0;
+  if(!s) return '—';
+  const d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60);
+  if(d) return d+'d '+h+'h';
+  return h+'h '+m+'m';
+}
+async function j(path){ const r=await fetch(ORIGIN+path); return r.json(); }
+async function paint(){
+  try{
+    const s=await j('/api/obs/solar-desk');
+    const solar=s.solar||{};
+    const tot=solar.totals||{};
+    const avg=solar.averages||{};
+    const host=s.host||{};
+    const wx=s.weather||{};
+    const k=s.kilauea||{};
+    const devices=solar.devices||[];
+    document.getElementById('rings').innerHTML = devices.length
+      ? devices.map(d=>ring(d)).join('')
+      : ring({label:'Bank', soc:solar.battery_pct, online:true});
+    const pv = tot.solar_in_w ?? solar.solar_in_w ?? solar.power_w;
+    const load = tot.dc_load_w ?? tot.load_w ?? solar.load_w;
+    const ac = (Number(tot.generator_w||0)+Number(tot.transfer_w||0)) || Number(tot.ac_in_w||0)+Number(tot.ac_out_w||0);
+    const appl = tot.appliance_w;
+    const net = tot.net_w ?? (Number(pv||0)-Number(load||0));
+    document.getElementById('solar').textContent=watts(pv);
+    document.getElementById('load').textContent=watts(load);
+    document.getElementById('ac').textContent=watts(ac);
+    document.getElementById('appl').textContent=watts(appl);
+    document.getElementById('net').textContent=watts(net);
+    document.getElementById('bankAvg').textContent=pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById('state').textContent=solar.state||'—';
+    document.getElementById('avgLoad').textContent=watts(avg.load_1h_w);
+    document.getElementById('avgPv').textContent=watts(avg.solar_1h_w);
+    document.getElementById('avgMorn').textContent=watts(avg.solar_morning_w);
+    document.getElementById('avgSoc').textContent=pct(tot.bank_avg_pct ?? avg.soc_1h_pct);
+    document.getElementById('hostK').textContent='Root server · '+(host.host||'ava-core');
+    document.getElementById('cpu').textContent=(host.cpu_pct!=null?host.cpu_pct.toFixed(0)+'%':'—');
+    document.getElementById('loadAvg').textContent=
+      [host.load_1,host.load_5,host.load_15].every(x=>x!=null)
+        ? `${host.load_1} / ${host.load_5} / ${host.load_15}`
+        : '—';
+    const ramNow=host.mem_pct!=null?host.mem_pct.toFixed(0)+'%':'—';
+    const ramAmt=(host.mem_used_gb!=null && host.mem_total_gb!=null)
+      ? ` · ${host.mem_used_gb}/${host.mem_total_gb} GB` : '';
+    document.getElementById('ram').textContent=ramNow+ramAmt;
+    const tempEl=document.getElementById('temp');
+    if(tempEl) tempEl.textContent=host.temp_c!=null?Number(host.temp_c).toFixed(1)+'°C':'—';
+    const chargeEl=document.getElementById('charge');
+    if(chargeEl){
+      chargeEl.textContent=host.host_battery_pct!=null
+        ? host.host_battery_pct.toFixed(0)+'%'+(host.host_battery_plugged?' AC':'')
+        : '—';
+    }
+    const diskEl=document.getElementById('disk');
+    if(diskEl) diskEl.textContent=host.disk_pct!=null?host.disk_pct.toFixed(0)+'%':'—';
+    document.getElementById('up').textContent=dur(host.boot_uptime_s||host.uptime_s);
+    const temp=wx.temperature_f!=null?wx.temperature_f+'°':'';
+    const fcRaw=(wx.forecast||wx.conditions||'').replace(/\s+/g,' ').trim();
+    const fc=(fcRaw && (!temp || fcRaw.replace('°','')!==String(wx.temperature_f))) ? fcRaw.slice(0,28) : '';
+    document.getElementById('wx').textContent=[temp,fc].filter(Boolean).join(' · ')||'—';
+    const lvl=(k.alert_level||'advisory').replace(/^./,c=>c.toUpperCase());
+    const head=(k.erupting?'erupting':'not erupting');
+    document.getElementById('kila').textContent=lvl+' · '+head;
+    document.getElementById('off').textContent=(s.shutdown&&s.shutdown.timeHst)||'22:00';
+    document.getElementById('flowIn').textContent=watts(pv);
+    document.getElementById('flowBank').textContent=pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById('flowOut').textContent=watts(load);
+    document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV')+(solar.updated_at?(' · '+String(solar.updated_at).slice(11,19)+'Z'):'');
+  }catch(e){}
+}
+tick(); setInterval(tick,1000);
+paint(); setInterval(paint,8000);
+</script>
+</body>
+</html>

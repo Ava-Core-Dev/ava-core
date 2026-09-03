@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Solar · Root server</title>
+<link rel="stylesheet" href="/obs/overlays/_shared/base.css"/>
+
+<style>
+.wrap{position:fixed;top:110px;right:28px;width:448px;}
+</style>
+</head>
+<body>
+<div class="wrap card"><div class="k" id="hostK">Root server</div>
+  <div class="row"><span>CPU now</span><span class="v" id="cpu">—</span></div>
+  <div class="row"><span>Load 1 / 5 / 15</span><span class="v dim" id="loadAvg">—</span></div>
+  <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
+  <div class="row"><span>Temp</span><span class="v" id="temp">—</span></div>
+  <div class="row"><span>Host charge</span><span class="v" id="charge">—</span></div>
+  <div class="row"><span>Disk</span><span class="v" id="disk">—</span></div>
+  <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div></div>
+<script>window.AVA_ORIGIN = "__ORIGIN__";</script>
+<script src="/obs/overlays/_shared/ava.js"></script>
+<script>
+
+async function paint(){
+  try{
+    const s=await avaFetch('/api/obs/solar-desk');
+    const host=s.host||{};
+    document.getElementById('hostK').textContent='Root server · '+(host.host||'ava-core');
+    document.getElementById('cpu').textContent=(host.cpu_pct!=null?host.cpu_pct.toFixed(0)+'%':'—');
+    document.getElementById('loadAvg').textContent=
+      [host.load_1,host.load_5,host.load_15].every(x=>x!=null)?`${host.load_1} / ${host.load_5} / ${host.load_15}`:'—';
+    const ramNow=host.mem_pct!=null?host.mem_pct.toFixed(0)+'%':'—';
+    const ramAmt=(host.mem_used_gb!=null&&host.mem_total_gb!=null)?` · ${host.mem_used_gb}/${host.mem_total_gb} GB`:'';
+    document.getElementById('ram').textContent=ramNow+ramAmt;
+    const tempEl=document.getElementById('temp');
+    if(tempEl) tempEl.textContent=host.temp_c!=null?Number(host.temp_c).toFixed(1)+'°C':'—';
+    const chargeEl=document.getElementById('charge');
+    if(chargeEl){
+      chargeEl.textContent=host.host_battery_pct!=null
+        ? host.host_battery_pct.toFixed(0)+'%'+(host.host_battery_plugged?' AC':'')
+        : '—';
+    }
+    const diskEl=document.getElementById('disk');
+    if(diskEl) diskEl.textContent=host.disk_pct!=null?host.disk_pct.toFixed(0)+'%':'—';
+    document.getElementById('up').textContent=avaDur(host.boot_uptime_s||host.uptime_s);
+  }catch(e){}
+}
+avaEvery(paint,8000);
+
+</script>
+</body>
+</html>

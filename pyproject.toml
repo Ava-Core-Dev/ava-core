@@ -1,0 +1,50 @@
+[project]
+name = "ava"
+version = "2.0.0"
+description = "Ava Ivy — AVA Core runtime"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "httpx>=0.27.0",
+    "jinja2>=3.1.0",
+    "pyyaml>=6.0",
+    "apscheduler>=3.10.0",
+    "websockets>=12.0",
+    "aiomysql>=0.2.0",
+    "aiosqlite>=0.20.0",
+    "psutil>=5.9.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[project.scripts]
+ava = "apps.core.main:cli"
+ava-voice = "apps.voice.director:cli"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+
+[tool.setuptools.packages.find]
+include = ["apps*", "ava_core*"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

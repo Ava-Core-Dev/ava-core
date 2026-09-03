@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Kīlauea cam LIVE</title>
+<style>
+  html,body{margin:0;padding:0;width:1920px;height:1080px;overflow:hidden;background:#000;
+    color:#fff;font-family:"Segoe UI",Inter,system-ui,sans-serif;}
+  #frame,#cam{position:fixed;inset:0;width:100%;height:100%;border:0;background:#000;}
+  #cam{object-fit:cover;display:none;}
+  .badge{position:fixed;top:24px;left:24px;z-index:5;background:rgba(8,8,10,.75);
+    border:1px solid rgba(251,113,133,.45);border-radius:12px;padding:8px 14px;
+    font-size:14px;letter-spacing:.08em;text-transform:uppercase;}
+  .badge.live{border-color:rgba(74,222,128,.55);color:#bbf7d0;}
+  .foot{position:fixed;left:24px;right:24px;bottom:20px;z-index:5;display:flex;
+    justify-content:space-between;font-size:15px;background:rgba(8,8,10,.72);
+    border-radius:12px;padding:10px 16px;}
+</style>
+</head>
+<body>
+  <iframe id="frame" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+  <img id="cam" alt="USGS HVO still fallback"/>
+  <div class="badge" id="label">USGS · loading</div>
+  <div class="foot">
+    <span id="title">HVO webcam</span>
+    <span id="ts">—</span>
+  </div>
+<script>
+const origin = location.origin;
+const camId = new URLSearchParams(location.search).get('cam') || 'usgs_v1';
+const frame = document.getElementById('frame');
+const still = document.getElementById('cam');
+const label = document.getElementById('label');
+let mode = 'loading';
+let embedUrl = '';
+let stillUrl = origin + '/api/obs/kilauea-still?cam=' + encodeURIComponent(camId);
+
+function showLive(url){
+  mode = 'live';
+  still.style.display = 'none';
+  frame.style.display = 'block';
+  if(frame.src !== url) frame.src = url;
+  label.textContent = camId.toUpperCase() + ' · LIVE';
+  label.classList.add('live');
+}
+function showStill(url){
+  mode = 'still';
+  frame.style.display = 'none';
+  frame.src = 'about:blank';
+  still.style.display = 'block';
+  still.src = url + (url.includes('?')?'&':'?') + 't=' + Date.now();
+  label.textContent = camId.toUpperCase() + ' · STILL';
+  label.classList.remove('live');
+}
+
+async function refresh(){
+  try{
+    const d = await fetch(origin+'/api/obs/kilauea-desk?cam='+encodeURIComponent(camId)+'&t='+Date.now())
+      .then(r=>r.json());
+    const c = d.cam || {};
+    document.getElementById('title').textContent = c.title || 'Kīlauea';
+    document.getElementById('ts').textContent = d.ts || '';
+    stillUrl = origin + '/api/obs/kilauea-still?cam=' + encodeURIComponent(c.id || camId);
+    const live = !!(c.live || c.kind === 'youtube');
+    const url = c.embed_url || c.url || '';
+    if(live && url && /youtube\.com\/embed/i.test(url)){
+      embedUrl = url;
+      showLive(url);
+      return;
+    }
+    showStill(stillUrl);
+  }catch(e){
+    showStill(stillUrl);
+  }
+}
+refresh();
+setInterval(refresh, 20000);
+setInterval(()=>{ if(mode==='still') showStill(stillUrl); }, 12000);
+</script>
+</body>
+</html>
