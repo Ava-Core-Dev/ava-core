@@ -1,0 +1,125 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Node / Workers
+node_modules/
+.wrangler/
+dist/
+*.tsbuildinfo
+
+# Next.js / Vercel build output — regenerated on every build
+.next/
+next-env.d.ts
+.vercel/
+**/.pages-out/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+origin.token
+**/origin.token
+credentials.env
+credentials.env.*
+**/recovery-phrase*
+**/wallet-secrets*
+identities.sqlite
+*.sqlite
+*.sqlite3
+*.db
+*.pem
+*.p12
+*.jks
+*.keystore
+**/.env.bak
+*.toml.bak
+*.toml.bak*
+
+# Runtime data — persisted on disk, not in git.
+# Ignore the whole tree: it holds report output, cam stills, sqlite indexes and
+# Discord/Telegram state, all of which regenerate and some of which is private.
+data/
+!data/**/README*
+
+# Desktop runtime state and the symlink to the old archive's node_modules
+apps/desktop/node_modules
+apps/desktop/data/
+**/telegram-context.json
+
+# Audio assets — not tracked in git (binary, large).
+# Canonical library: /home/ava-core/ava/media
+# These are local symlinks (git sees a symlink as a file — no trailing slash).
+/apps/voice/assets
+/apps/media
+/ava_core/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Operator private media (life story, 1:1, account exports) — never git
+**/media/private/
+
+# USB / E: junctions (files stay on E:). Slash and no-slash: git may see a junction as a symlink.
+/Media
+/Media/
+/workstations
+/workstations/
+/plugins
+/plugins/
+/apps/kilauea-alerts/
+/apps/rootmc-android/
+/apps/solana-rootrecord-site/
+/apps/weather-manager-web/
+/apps/business-manager-web/
+/apps/kilauea-alerts-web/
+/apps/account-hub-web/
+/apps/token-manager-web/
+/apps/root-farms-web/
+/apps/root-farms-mobile-web/
+/apps/root-goals-web/
+/apps/visiting-hawaii-web/
+/apps/realm-web/
+
+# GitHub trees that are not the live Windows layout (audio lives on Media → E:)
+# Do not ignore apps/core, apps/desktop, apps/voice, packages/, scripts/, windows/*.py
+/audio/
+/Thumbnails/
+/unsorted/
+/web/
+/context/
+
+# NTFS cannot store GitHub cron folders with ':' in the name (00:00 Start, 00:00, …)
+**/*:*/
+**/*:*
+
+# Local runtime / operator dumps — not product source
+windows/backups/
+**/.ava-core-state.json
+**/.run-ava-state.json
+/tools/Automated New Python Scripts Confirmed Working for Automation Drag and Drop/
+
+# OneDrive / Explorer noise
+desktop.ini
+ehthumbs.db
+~$*
+
+# Cursor IDE local config — never commit
+.cursor/
+
+# Desk secrets (AdSense OAuth tokens, etc.) — never commit
+data/secrets/
+**/google-adsense-*.json
