@@ -1,0 +1,177 @@
+/**
+ * Public offline / origin-down landing page.
+ * Canonical HTML: apps/core/static/maintenance.html
+ * Do not show CF 1033, HOST OFFLINE, goals, donate wallets, Snapdragon, or 1 TB copy.
+ */
+export function maintenanceHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>RootRecord — We’ll be back</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: Georgia, "Iowan Old Style", "Segoe UI", serif;
+      color: #f4efe6;
+      background: #0a1016;
+      line-height: 1.55;
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 3.5rem 1.25rem 4.5rem;
+    }
+    .brand {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #ff6a2a;
+      text-decoration: none;
+    }
+    h1 {
+      font-weight: 500;
+      font-size: clamp(1.85rem, 5vw, 2.6rem);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin: 1.4rem 0 0.85rem;
+    }
+    h2 {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #7d8a96;
+      margin: 2.1rem 0 0.7rem;
+    }
+    p { margin: 0 0 1rem; color: #c5ced6; }
+    .lede { font-size: 1.05rem; color: #e4ddd2; }
+    .card {
+      border: 1px solid #1c2a36;
+      background: #0d151c;
+      border-radius: 0.7rem;
+      padding: 1rem 1.05rem 0.85rem;
+      margin: 0 0 0.75rem;
+    }
+    .card h3 {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 650;
+      margin: 0 0 0.35rem;
+      color: #f4efe6;
+    }
+    .card p { margin: 0; font-size: 0.95rem; }
+    .up h3 { color: #3ee0c6; }
+    .held h3 { color: #d4a574; }
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0.85rem 0 0;
+    }
+    .pills span {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+      border: 1px solid #2a3d4c;
+      color: #c5ced6;
+      border-radius: 999px;
+      padding: 0.22rem 0.65rem;
+    }
+    .links { display: flex; flex-wrap: wrap; gap: 0.85rem 1.2rem; margin-top: 1.7rem; }
+    a { color: #3ee0c6; }
+    .clock { color: #7d8a96; font-size: 0.85rem; font-family: "Segoe UI", system-ui, sans-serif; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="brand" href="https://rootrecord.cloud">RootRecord</a>
+    <h1>The desk is dark right now.</h1>
+    <p class="lede">This page is the public door. The HI Pacific Solar Root Server is on. Minecraft is still up.</p>
+
+    <h2>What happened</h2>
+    <p>On Tuesday, August 25, the solar server died. The board failed.</p>
+    <p>Work moved to the HI Pacific Solar Root Server on the same island: an HP OmniBook, 16 GB of memory, 512 GB of storage.</p>
+    <div class="pills">
+      <span>OmniBook</span>
+      <span>16 GB</span>
+      <span>512 GB</span>
+      <span>Hawaiʻi</span>
+    </div>
+
+    <h2>What's up</h2>
+    <div class="card up">
+      <h3>RootMC</h3>
+      <p>Minecraft is up at play.rootmc.net. The RootMC website is held.</p>
+    </div>
+    <div class="card held">
+      <h3>Kīlauea Alerts</h3>
+      <p>Held on the public web. The volcano feed is running on the root server.</p>
+    </div>
+    <div class="card held">
+      <h3>Weather Manager</h3>
+      <p>Held on the public web. Weather is running on the root server.</p>
+    </div>
+    <div class="card held">
+      <h3>Business Manager</h3>
+      <p>Held on the public web. Money pages stay hidden.</p>
+    </div>
+    <div class="card held">
+      <h3>Sign-in and dashboards</h3>
+      <p>Account pages stay off. No public goals. No wallets.</p>
+    </div>
+
+    <p>The public web shows this page. Local tools stay on the root server.</p>
+    <div class="links">
+      <a href="https://play.rootmc.net">play.rootmc.net</a>
+      <a href=".">Retry</a>
+    </div>
+    <p class="clock" id="hst">Hawaiʻi time</p>
+  </main>
+  <script>
+    function tick() {
+      const el = document.getElementById("hst");
+      if (!el) return;
+      const t = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Pacific/Honolulu",
+        weekday: "short", hour: "numeric", minute: "2-digit", hour12: true
+      }).format(new Date());
+      el.textContent = t + " HST";
+    }
+    tick();
+    setInterval(tick, 15000);
+  </script>
+</body>
+</html>
+`;
+}
+
+export function maintenancePage(): Response {
+  return new Response(maintenanceHtml(), {
+    status: 503,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Retry-After": "120",
+      "X-Ava-Fallback": "maintenance",
+    },
+  });
+}
+
+export function goalsHiddenPage(): Response {
+  return new Response(maintenanceHtml(), {
+    status: 404,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "X-Ava-Goals": "hidden",
+    },
+  });
+}
