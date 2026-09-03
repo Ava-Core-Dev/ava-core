@@ -190,6 +190,15 @@ export function maintenanceHtml(facts?: UptimeFacts | null): string {
       return s + "s";
     }
 
+    function spanRough(sec) {
+      sec = Math.max(0, Math.round(sec));
+      var h = Math.floor(sec / 3600);
+      var m = Math.round((sec % 3600) / 60);
+      if (h > 0) return m > 0 ? h + "h " + m + "m" : h + " hours";
+      if (m > 0) return m + " minutes";
+      return sec + " seconds";
+    }
+
     function spanAgo(sec) {
       sec = Math.round(sec);
       if (sec < 90) return sec + " seconds ago";
@@ -221,17 +230,18 @@ export function maintenanceHtml(facts?: UptimeFacts | null): string {
       var basis = runs === 1 ? "one outage" : runs + " outages";
 
       if (!avg) {
-        back.innerHTML = "&nbsp;";
+        back.style.display = "none";
         note.textContent = "No average return time measured yet. It comes back when it works here.";
         return;
       }
+      back.style.display = "";
       var left = avg - down;
       if (left > 0) {
         back.textContent = "Back in about " + spanShort(left);
-        note.textContent = "It usually returns within " + spanShort(avg) + " of going dark, measured over " + basis + ".";
+        note.textContent = "It usually returns within " + spanRough(avg) + " of going dark, measured over " + basis + ".";
       } else {
         back.textContent = "Past the usual window";
-        note.textContent = "It usually returns within " + spanShort(avg) + " of going dark, measured over " + basis + ". This one is taking longer. It comes back when it works here.";
+        note.textContent = "It usually returns within " + spanRough(avg) + " of going dark, measured over " + basis + ". This one is taking longer. It comes back when it works here.";
       }
     }
     seenTick();
