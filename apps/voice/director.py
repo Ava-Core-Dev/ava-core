@@ -464,21 +464,115 @@ class StreamDirector:
             scene="Scene 3 - Kilauea Watch",
         )
 
+    @staticmethod
+    def _item_dict(item: AudioItem | None, *, invert_priority: bool = False) -> dict | None:
+        if item is None:
+            return None
+        pri = int(item.priority)
+        if invert_priority:
+            pri = -pri
+        label = None
+        try:
+            label = Priority(pri).name
+        except Exception:
+            label = str(pri)
+        return {
+            "name": item.name or (item.path.name if item.path else None),
+            "file": item.path.name if item.path else None,
+            "path": str(item.path) if item.path else None,
+            "priority": pri,
+            "priority_label": label,
+            "scene": item.scene,
+        }
+
+    def _peek_queue(self, limit: int = 12) -> list[dict]:
+        """Snapshot queued director items without draining (heap order)."""
+        try:
+            raw = list(getattr(self._queue, "_queue", []))
+        except Exception:
+            return []
+        out: list[dict] = []
+        for item in sorted(raw)[: max(0, limit)]:
+            if isinstance(item, AudioItem):
+                d = self._item_dict(item, invert_priority=True)
+                if d:
+                    out.append(d)
+        return out
+
+    def _music_next_name(self) -> str | None:
+        pl = self._music_playlist
+        if not pl:
+            return None
+        ni = self._music_index + 1
+        if 0 <= ni < len(pl):
+            return pl[ni].name
+        if self._music_tracks_n:
+            return "(reshuffle)"
+        return None
+
+    def _music_bed_held(self) -> bool:
+        return bool(self._music_hold or self._music_operator_hold)
+
     def get_status(self) -> dict:
+        voice_now = self._item_dict(self._current)
+        music_track = self._music_current.name if self._music_current else None
+        music_playing = bool(
+            self._music_enabled
+            and music_track
+            and self._music_proc is not None
+            and not self._music_bed_held()
+        )
+        queue = self._peek_queue()
         return {
             "running": self._running,
             "current": self._current.name if self._current else None,
             "paused": self._paused.name if self._paused else None,
             "queue_depth": self._queue.qsize(),
             "obs_connected": self._obs_ws is not None,
+            "currently_playing": {
+                "voice": voice_now,
+                "music": {
+                    "track": music_track,
+                    "playing": music_playing,
+                    "held": self._music_bed_held(),
+                },
+            },
+            "up_next": {
+                "voice": queue,
+                "music": self._music_next_name(),
+            },
+            "paused_item": self._item_dict(self._paused),
             "music": {
                 "enabled": self._music_enabled,
                 "hold": self._music_hold,
+                "operator_paused": self._music_operator_hold,
                 "tracks": self._music_tracks_n,
-                "current": self._music_current.name if self._music_current else None,
+                "current": music_track,
+                "next": self._music_next_name(),
+                "index": self._music_index,
                 "dir": str(music_dir()),
+                "single_bed": True,
+                "player_pid": self._music_proc_pid,
+                "loop_alive": bool(
+                    self._music_task is not None and not self._music_task.done()
+                ),
             },
         }
+
+    def pause_music_bed(self) -> dict:
+        """Operator pause — stop the single bed player until resume."""
+        self._music_operator_hold = True
+        self._kill_music_proc()
+        log.info("Music bed operator pause")
+        return {"ok": True, "operator_paused": True, **self.get_status()}
+
+    def resume_music_bed(self) -> dict:
+        """Clear operator pause; voice hold still applies if a report is playing."""
+        was = self._music_operator_hold
+        self._music_operator_hold = False
+        if was:
+            log.info("Music bed operator resume")
+        return {"ok": True, "operator_paused": False, **self.get_status()}
 
     async def start_music_bed(self) -> dict:
         """Start shuffled recursive playlist under public/audio/music. Loop forever.
@@ -560,23 +654,27 @@ class StreamDirector:
             tracks = list_music_tracks()
             self._music_tracks_n = len(tracks)
             if not tracks:
+                self._music_playlist = []
+                self._music_index = -1
                 await asyncio.sleep(30)
                 continue
             random.shuffle(tracks)
+            self._music_playlist = list(tracks)
             log.info("Music bed shuffle  n=%s", len(tracks))
-            for path in tracks:
+            for i, path in enumerate(tracks):
+                self._music_index = i
                 if not self._music_enabled or not self._running:
                     return
-                while self._music_hold:
+                while self._music_bed_held():
                     await asyncio.sleep(0.25)
                     if not self._music_enabled or not self._running:
                         return
                 if not path.is_file():
                     continue
                 finished = await self._play_music_track(path)
-                # Voice interrupt: wait for clear, then restart same track from the top.
-                if not finished and self._music_hold:
-                    while self._music_hold:
+                # Voice / operator interrupt: wait for clear, then restart same track.
+                if not finished and self._music_bed_held():
+                    while self._music_bed_held():
                         await asyncio.sleep(0.25)
                         if not self._music_enabled or not self._running:
                             return
@@ -584,7 +682,7 @@ class StreamDirector:
                         await self._play_music_track(path)
 
     async def _play_music_track(self, path: Path) -> bool:
-        """Play one bed track. Returns True if it finished; False if voice hold aborted it."""
+        """Play one bed track. Returns True if it finished; False if hold aborted it."""
         self._music_current = path
         player_cmd = _find_audio_player()
         if not player_cmd:
@@ -630,7 +728,7 @@ class StreamDirector:
                 self._music_proc_pid = None
             log.info("Music bed playing: %s", path.name)
             while proc.returncode is None:
-                if self._music_hold or not self._music_enabled:
+                if self._music_bed_held() or not self._music_enabled:
                     aborted = True
                     self._kill_music_proc()
                     break

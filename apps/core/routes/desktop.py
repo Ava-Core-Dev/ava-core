@@ -773,24 +773,111 @@ async def api_upgrade():
 
 @router.get("/voice/status")
 async def voice_status():
+    """Director now-playing + queue + single music bed + armed voice crons."""
     try:
         from apps.voice.director import get_director
 
-        return {"ok": True, **get_director().get_status()}
+        payload = {"ok": True, **get_director().get_status()}
+        payload["pending"] = _audio_pending_jobs()
+        return payload
     except Exception as e:
         return {"ok": False, "detail": str(e)}
 
 
-@router.post("/plugins/bump")
-@router.post("/plugins/build")
-@router.post("/plugins/release")
-@router.post("/apps/bump")
-@router.post("/apps/build")
-@router.post("/apps/release")
-async def release_action():
+# Voice-related scheduler jobs shown on Desk Audio → Pending / scheduled
+_AUDIO_JOB_IDS = frozenset(
+    {
+        "time-chime",
+        "remaining-tasks",
+        "morning-boot-replay",
+        "hourly-clip-prebuild",
+        "hourly-clip-reports",
+        "hourly-solar-weather",
+        "system-performance",
+        "player-economy-report",
+        "morning-report",
+        "day-reports-morning",
+        "day-reports-midday",
+        "day-reports-evening",
+        "merged-morning-summary",
+        "overnight-relay",
+        "economy-brief",
+    }
+)
+
+
+def _morning_boot_armed() -> dict:
+    path = STATE / "morning-boot-replay.json"
+    data = _read_json(path, {})
+    if not isinstance(data, dict) or not data:
+        return {"armed": False, "detail": "no_state"}
+    until_raw = str(data.get("until") or "").strip()
+    armed = bool(data.get("mp3") or data.get("path") or until_raw)
     return {
-        "ok": False,
-        "accepted": False,
-        "detail": "release_pipeline_not_on_python_origin",
-        "hint": "Use the workstation plugin/app trees. Origin will not spawn JDK builds from HTTP.",
+        "armed": armed,
+        "until": until_raw or None,
+        "mp3": data.get("mp3") or data.get("file") or None,
+        "day": data.get("day"),
+    }
+
+
+def _audio_pending_jobs() -> list[dict]:
+    out: list[dict] = []
+    try:
+        from apps.core.scheduler import get_scheduler
+
+        sched = get_scheduler()
+        jobs = sched.get_jobs() if sched is not None else []
+    except Exception:
+        jobs = []
+    for j in jobs:
+        jid = str(j.get("id") or "")
+        if jid not in _AUDIO_JOB_IDS:
+            continue
+        row = {
+            "id": jid,
+            "name": j.get("name") or jid,
+            "nextAt": j.get("nextAt") or 0,
+            "next_run": j.get("next_run"),
+            "cronHint": j.get("cronHint") or "",
+            "kind": "cron",
+        }
+        if jid == "morning-boot-replay":
+            row["morning_boot"] = _morning_boot_armed()
+        out.append(row)
+    out.sort(key=lambda x: int(x.get("nextAt") or 0) or 10**15)
+    return out
+
+
+class VoiceMusicBody(BaseModel):
+    action: str = Field(..., description="pause | resume | start")
+
+
+@router.post("/voice/music")
+async def voice_music(body: VoiceMusicBody):
+    """Operator music-bed controls (single bed only)."""
+    try:
+        from apps.voice.director import ensure_music_bed, get_director
+
+        action = str(body.action or "").strip().lower()
+        d = get_director()
+        if action == "pause":
+            return d.pause_music_bed()
+        if action == "resume":
+            return d.resume_music_bed()
+        if action == "start":
+            ensure_music_bed()
+            result = await d.start_music_bed()
+            return {"ok": bool(result.get("ok")), **result, **d.get_status()}
+        return {"ok": False, "detail": "action must be pause, resume, or start"}
+    except Exception as e:
+        return {"ok": False, "detail": str(e)}
+
+
+@router.post("/restart")
+async def api_restart():
+    return {
+        "ok": True,
+        "detail": "origin_stays_up",
+        "hint": "Desktop watchdog restarts Ava Core if /health dies. GUI close does not stop origin.",
     }
