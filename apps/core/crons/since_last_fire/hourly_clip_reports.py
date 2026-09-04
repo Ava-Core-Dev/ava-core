@@ -182,7 +182,12 @@ def weather_script(facts: str, now: datetime) -> str:
 
 
 def kilauea_script(facts: str, now: datetime) -> str:
-    low = facts.lower()
+    line = ""
+    for row in facts.splitlines():
+        if row.lower().startswith("kilauea"):
+            line = row.lower()
+            break
+    low = line
     if "erupting" in low or "eruption" in low:
         return _join(_clip_or("phrase_kilauea_eruption", ["kilauea", "eruption"]))
     if "watch" in low:
@@ -195,41 +200,30 @@ def kilauea_script(facts: str, now: datetime) -> str:
 
 
 def _facts_sync() -> str:
-    import asyncio
+    from apps.core.services import db_facts
+    from apps.core.services.persona import _kilauea_line
 
-    from apps.core.services import persona as persona_svc
-
+    lines = [db_facts.ecoflow_line(), db_facts.host_line(), _kilauea_line()]
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            return "\n".join(
-                [
-                    __import__("apps.core.services.db_facts", fromlist=["ecoflow_line"]).ecoflow_line(),
-                    __import__("apps.core.services.db_facts", fromlist=["host_line"]).host_line(),
-                ]
-            )
+        from apps.core.services import live_wx
+
+        lines.extend(live_wx.weather_lines_sync())
     except Exception:
         pass
-    from apps.core.services import db_facts
-
-    return "\n".join([db_facts.ecoflow_line(), db_facts.host_line()])
+    return "\n".join(lines)
 
 
-def build_all() -> dict[str, dict]:
-    facts = _facts_sync()
+async def _facts_live() -> str:
     try:
         from apps.core.services import persona as persona_svc
-        import asyncio
 
-        async def _more():
-            return await persona_svc.live_facts()
-
-        try:
-            facts = asyncio.run(_more())
-        except RuntimeError:
-            pass
+        return await persona_svc.live_facts()
     except Exception:
-        pass
+        return _facts_sync()
+
+
+def build_all(facts: str | None = None) -> dict[str, dict]:
+    facts = _facts_sync() if facts is None else facts
     now = datetime.now(HST)
     stamp = now.strftime("%Y%m%d-%H")
     out: dict[str, dict] = {}
@@ -271,7 +265,7 @@ def build_all() -> dict[str, dict]:
 
 
 async def prebuild() -> dict:
-    return build_all()
+    return build_all(await _facts_live())
 
 
 async def play() -> dict:
@@ -290,6 +284,6 @@ async def play() -> dict:
 
 async def run() -> dict:
     """Top of hour: ensure MP3s exist, then play."""
-    built = build_all()
+    built = build_all(await _facts_live())
     played = await play()
     return {"built": {k: v.get("ok") for k, v in built.items()}, "played": played}
