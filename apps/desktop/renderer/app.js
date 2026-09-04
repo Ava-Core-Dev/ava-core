@@ -62,6 +62,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
       refreshStartTimer();
       refreshShutdownTimer();
       refreshOpsBanner();
+      refreshGovernance();
     }
   });
 });
