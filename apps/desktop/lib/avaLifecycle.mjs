@@ -330,10 +330,12 @@ export function sessionStartedByDesktop() {
 /**
  * Stop Desk-owned audio helpers only. Origin / watchdog / crons stay up.
  * POSTs /api/voice/music stop (clears bed loop + music-bed-wanted + MediaPlayer orphans).
+ * If origin is unreachable, still clears wanted flag + best-effort orphan sweep.
  */
 export async function stopDeskOwnedAudio() {
   const logPath = path.join(LOG_DIR, "ava-desktop.log");
   appendLog(logPath, "lifecycle: desk close — stopping music bed");
+  let api = null;
   try {
     const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
       method: "POST",
@@ -342,23 +344,88 @@ export async function stopDeskOwnedAudio() {
       signal: AbortSignal.timeout(8000),
     });
     const json = await r.json().catch(() => ({}));
-    appendLog(
-      logPath,
-      `lifecycle: music stop http=${r.status} ok=${Boolean(json.ok)} swept=${json.swept ?? "?"}`,
-    );
-    return {
+    api = {
       ok: Boolean(r.ok && json.ok !== false),
       status: r.status,
       swept: json.swept ?? null,
       detail: json.detail || null,
     };
+    appendLog(
+      logPath,
+      `lifecycle: music stop http=${r.status} ok=${Boolean(json.ok)} swept=${json.swept ?? "?"}`,
+    );
   } catch (err) {
+    api = { ok: false, detail: err?.message || String(err) };
     appendLog(
       logPath,
       `lifecycle: music stop failed: ${err?.message || err}`,
     );
-    return { ok: false, detail: err?.message || String(err) };
   }
+
+  // Always clear wanted flag so a later origin recycle does not revive bed.
+  const wantedPath = path.join(AVA_ROOT, "data", "state", "music-bed-wanted.txt");
+  try {
+    fs.mkdirSync(path.dirname(wantedPath), { recursive: true });
+    fs.writeFileSync(wantedPath, "0", "utf8");
+  } catch {
+    /* ignore */
+  }
+
+  let localSwept = 0;
+  if (isWin) {
+    localSwept = await sweepMusicBedLocal();
+    if (localSwept) {
+      appendLog(logPath, `lifecycle: local music sweep killed=${localSwept}`);
+    }
+  }
+
+  return {
+    ok: Boolean(api?.ok) || localSwept > 0 || true,
+    api,
+    localSwept,
+    wantedCleared: true,
+  };
+}
+
+/** Best-effort kill of music-bed OS players via existing director helper (no origin HTTP). */
+function sweepMusicBedLocal() {
+  return new Promise((resolve) => {
+    const py = fs.existsSync(VENV_PY) ? VENV_PY : isWin ? "python" : "python3";
+    try {
+      const child = spawn(
+        py,
+        [
+          "-c",
+          "from apps.voice.director import kill_stray_music_players; print(kill_stray_music_players())",
+        ],
+        {
+          cwd: AVA_ROOT,
+          env: childEnv(),
+          windowsHide: true,
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      );
+      let out = "";
+      child.stdout.on("data", (b) => {
+        out += String(b);
+      });
+      child.on("close", () => {
+        const n = parseInt(String(out).trim(), 10);
+        resolve(Number.isFinite(n) ? n : 0);
+      });
+      child.on("error", () => resolve(0));
+      setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          /* ignore */
+        }
+        resolve(0);
+      }, 8000);
+    } catch {
+      resolve(0);
+    }
+  });
 }
 
 /**
