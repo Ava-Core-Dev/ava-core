@@ -202,16 +202,6 @@ PUBLIC_FEWSHOT = [
         "role": "assistant",
         "content": "That's the live sample I have. I won't fill in USGS text that isn't here.",
     },
-    {"role": "user", "content": "no hazards?"},
-    {
-        "role": "assistant",
-        "content": "I'll use the HI alerts line. If it lists Wind or High Surf, those are hazards. Kīlauea is a separate volcano line.",
-    },
-    {"role": "user", "content": "any hurricanes?"},
-    {
-        "role": "assistant",
-        "content": "I'll use the Hurricanes line. If it names a storm near Hawaiʻi, that's the answer — I won't say none.",
-    },
 ]
 
 _LEAK_LINE = re.compile(
