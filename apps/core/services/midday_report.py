@@ -41,7 +41,7 @@ Hard rules:
 Required shape:
 1. Open: "This is the Ava Core Root Record midday status for [weekday date], about 12 noon Hawaiian Standard Time."
 2. Hawaii Pacific Solar Root Server / host Ava Core / C-only / public doors / public tunnel → origin.
-3. Midday Summary, System Summary, Weather Summary, Kīlauea Summary, Power, Change vs previous midday when DIFFERENTIALS exist, Broken / needs work, Already landed, Priority.
+3. Midday Summary, System Summary, Weather Summary, NWS by County, Kīlauea Summary, Power, Change vs previous midday when DIFFERENTIALS exist, Broken / needs work, Already landed, Priority.
 4. End with: End of status.
 
 OUTPUT ONLY the report text. No preamble.
@@ -297,6 +297,14 @@ def _fallback_spoken(
     except Exception:
         pass
 
+    nws_county = "NWS Hawaii by county is not on file."
+    try:
+        from apps.core.services import nws_hawaii
+
+        nws_county = nws_hawaii.spoken_section_for_boot()
+    except Exception:
+        pass
+
     kil = "Kīlauea alert is not on file."
     alert = _read_json(config.DATA_DIR / "state" / "kilauea-alert.json")
     if alert:
@@ -327,6 +335,8 @@ Midday Summary. This is the noon status check. Sun and load posture matter most 
 System Summary. Origin is {origin}. The on-device brain is {brain}. Voice mode is local clip packs. Public chat runs edge to origin to the on-device brain when warm.
 
 Weather Summary. {wx}
+
+NWS by County. {nws_county}
 
 Kīlauea Summary. {kil}
 

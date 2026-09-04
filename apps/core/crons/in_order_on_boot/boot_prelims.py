@@ -1,6 +1,6 @@
 """Boot prelims — refresh live facts BEFORE morning Boot Report / day-board.
 
-Order: NOAA → Kīlauea → Boot Report (file-only). Does not call Grok.
+Order: NOAA → NWS Hawaii by county → Kīlauea → Boot Report (file-only). Does not call Grok.
 """
 from __future__ import annotations
 

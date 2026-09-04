@@ -60,6 +60,7 @@ MUST_FIRE_INTERVAL = (
 # Top of hour — auto. Hourly clip reports already speak solar/weather/kilauea/host.
 MUST_FIRE_HOURLY = (
     {"id": "rr-noaa", "when": ":00", "manual": False, "note": "NOAA weather"},
+    {"id": "nws-hawaii-counties", "when": "every 15m", "manual": False, "note": "NWS Hawaii by county (hash-gated)"},
     {"id": "rr-kilauea", "when": ":00", "manual": False, "note": "Kīlauea hash"},
     {"id": "hourly-solar-weather", "when": ":00", "manual": False, "note": "Solar plus weather file"},
     {"id": "system-performance", "when": ":00", "manual": False, "note": "Host performance file"},
