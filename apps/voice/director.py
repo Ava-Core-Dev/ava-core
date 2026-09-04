@@ -101,6 +101,8 @@ def _windows_play_mp3(path: Path) -> list[str]:
             dur = min(1800.0, max(12.0, size / 8000.0))
     except Exception:
         pass
+    # Hard deadline: Position can stall below NaturalDuration and never exit,
+    # which left _current set and _music_hold stuck after chimes/reports.
     script = (
         "Add-Type -AssemblyName PresentationCore; "
         "$m = New-Object System.Windows.Media.MediaPlayer; "
@@ -109,9 +111,13 @@ def _windows_play_mp3(path: Path) -> list[str]:
         "$guard = 0; "
         "while ($m.NaturalDuration.HasTimeSpan -eq $false -and $guard -lt 50) { "
         "  Start-Sleep -Milliseconds 100; $guard++ }; "
+        f"$deadline = [DateTime]::UtcNow.AddSeconds({dur:.1f}); "
         "if ($m.NaturalDuration.HasTimeSpan) { "
-        "  while ($m.Position -lt $m.NaturalDuration.TimeSpan) { Start-Sleep -Milliseconds 200 } "
-        f"}} else {{ Start-Sleep -Seconds {dur:.1f} }}"
+        "  while ($m.Position -lt $m.NaturalDuration.TimeSpan "
+        "-and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 200 } "
+        "} else { "
+        "  while ([DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 200 } "
+        "}"
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
     return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
@@ -692,6 +698,8 @@ class StreamDirector:
         self._music_operator_hold = False
         if was:
             log.info("Music bed operator resume")
+        # Also clear a stuck voice hold when nothing REPORT+ is live/queued.
+        self._release_music_if_idle()
         return {"ok": True, "operator_paused": False, **self.get_status()}
 
     def stop_music_bed(self) -> dict:
@@ -731,6 +739,8 @@ class StreamDirector:
                 swept = await _kill_stray_music_players_async(
                     keep_pid=self._music_proc_pid
                 )
+                self._music_operator_hold = False
+                self._release_music_if_idle()
                 return {
                     "ok": True,
                     "detail": "already_running",
@@ -771,8 +781,36 @@ class StreamDirector:
         self._music_hold = True
         self._kill_music_proc()
 
+    @staticmethod
+    def _priority_holds_music(priority: int) -> bool:
+        return int(priority) > Priority.AMBIENT
+
+    def _voice_busy_for_music(self) -> bool:
+        """True when current/paused/queued voice still needs the bed held (REPORT+).
+
+        Ambient queue items must not keep the bed silent after a chime/report.
+        """
+        cur = self._current
+        if cur is not None and self._priority_holds_music(cur.priority):
+            return True
+        paused = self._paused
+        if paused is not None and self._priority_holds_music(paused.priority):
+            return True
+        try:
+            for item in list(getattr(self._queue, "_queue", [])):
+                if not isinstance(item, AudioItem):
+                    continue
+                # Queue stores negated priority for heap ordering.
+                if self._priority_holds_music(-int(item.priority)):
+                    return True
+        except Exception:
+            if not self._queue.empty():
+                return True
+        return False
+
     def _release_music_if_idle(self) -> None:
-        if not self._queue.empty() or self._current is not None:
+        """Clear voice hold when no REPORT+ item is current, paused, or queued."""
+        if self._voice_busy_for_music():
             return
         if self._music_hold:
             log.info("Music bed resume")
@@ -1089,7 +1127,7 @@ class StreamDirector:
                 log.exception("Stream Director loop error")
 
     async def _play(self, item: AudioItem) -> None:
-        # Reports / chimes / alerts pause the music bed until the director is idle.
+        # Reports / chimes / alerts pause the music bed until no REPORT+ remains.
         if item.priority > Priority.AMBIENT:
             self._hold_music()
 
@@ -1098,19 +1136,26 @@ class StreamDirector:
             log.info("Pausing %s for %s (higher priority)", self._current.name, item.name)
 
         self._current = item
-        if item.scene:
-            await self._switch_scene(item.scene)
+        try:
+            if item.scene:
+                await self._switch_scene(item.scene)
 
-        self._broadcast(item)
-        # Also drive OBS ffmpeg "Ava Voice Bus" — reliable when browser autoplay fails.
-        await self._play_obs_voice_bus(item.path)
-        log.info("Playing: %s  priority=%s  file=%s",
-                 item.name, item.priority, item.path.name if item.path else "?")
+            self._broadcast(item)
+            # Also drive OBS ffmpeg "Ava Voice Bus" — reliable when browser autoplay fails.
+            await self._play_obs_voice_bus(item.path)
+            log.info(
+                "Playing: %s  priority=%s  file=%s",
+                item.name,
+                item.priority,
+                item.path.name if item.path else "?",
+            )
 
-        # ── Local desktop audio (always fires) ───────────────────────────────
-        await self._play_local(item.path)
-
-        self._current = None
+            # ── Local desktop audio (always fires) ───────────────────────────
+            await self._play_local(item.path)
+        finally:
+            # Always clear — exceptions used to leave hold stuck forever.
+            if self._current is item:
+                self._current = None
 
         if self._paused:
             log.info("Resuming %s", self._paused.name)
