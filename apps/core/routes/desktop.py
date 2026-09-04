@@ -708,8 +708,15 @@ async def api_governance(body: GovernanceBody | None = None):
     from apps.core.services import governance
 
     if body is not None:
-        patch = body.model_dump(exclude_none=True)
-        patch.pop("run_now", None)
+        patch = {}
+        if body.community_governance is not None:
+            patch["community_governance"] = body.community_governance
+        if body.self_update is not None:
+            patch["self_update"] = body.self_update
+        if body.cursor_min_free_pct is not None:
+            patch["cursor_min_free_pct"] = body.cursor_min_free_pct
+        if "cursor_context_free_pct" in body.model_fields_set:
+            patch["cursor_context_free_pct"] = body.cursor_context_free_pct
         if patch:
             governance.write_flags(patch)
         if body.run_now:

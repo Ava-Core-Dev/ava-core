@@ -5413,6 +5413,69 @@ async function saveOpsBanner() {
 $("ops-banner-refresh")?.addEventListener("click", () => refreshOpsBanner());
 $("ops-banner-save")?.addEventListener("click", () => saveOpsBanner());
 
+async function refreshGovernance() {
+  const st = $("gov-status");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/governance`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      if (st) st.textContent = d?.detail || "unavailable";
+      return;
+    }
+    if ($("gov-community")) $("gov-community").checked = Boolean(d.community_governance);
+    if ($("gov-self-update")) $("gov-self-update").checked = Boolean(d.self_update);
+    if ($("gov-min-free") && document.activeElement !== $("gov-min-free")) {
+      $("gov-min-free").value = String(d.cursor_min_free_pct ?? 25);
+    }
+    if ($("gov-free-now") && document.activeElement !== $("gov-free-now")) {
+      $("gov-free-now").value = d.cursor_context_free_pct == null ? "" : String(d.cursor_context_free_pct);
+    }
+    const last = d.last || {};
+    const passed = Array.isArray(last.passed) ? last.passed.length : 0;
+    const people = last.people ?? 0;
+    if (st) {
+      st.textContent = [
+        d.community_governance ? "governance on" : "governance off",
+        d.self_update ? "self-update on" : "self-update off",
+        `cursor ${d.cursor_gate || "?"}`,
+        last.source ? `last ${last.source}: ${people} people, ${passed} passed` : "no tally yet",
+      ].join(" · ");
+    }
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function saveGovernance(runNow) {
+  const st = $("gov-status");
+  if (st) st.textContent = runNow ? "tally…" : "saving…";
+  const freeRaw = String($("gov-free-now")?.value || "").trim();
+  const body = {
+    community_governance: Boolean($("gov-community")?.checked),
+    self_update: Boolean($("gov-self-update")?.checked),
+    cursor_min_free_pct: Number($("gov-min-free")?.value || 25),
+    cursor_context_free_pct: freeRaw === "" ? null : Number(freeRaw),
+    run_now: Boolean(runNow),
+  };
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/governance`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify(body),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshGovernance();
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+$("gov-refresh")?.addEventListener("click", () => refreshGovernance());
+$("gov-save")?.addEventListener("click", () => saveGovernance(false));
+$("gov-run")?.addEventListener("click", () => saveGovernance(true));
+
 async function refreshDisruptionBanner() {
   const st = $("disrupt-status");
   try {
@@ -5568,4 +5631,5 @@ refreshShutdownTimer().catch(() => {});
 refreshStartTimer().catch(() => {});
 refreshDisruptionBanner().catch(() => {});
 refreshOpsBanner().catch(() => {});
+refreshGovernance().catch(() => {});
 refreshGfsOutlook().catch(() => {});
