@@ -964,7 +964,6 @@ def _attach_rollups(snap: dict) -> dict:
     if not snap:
         return snap
     devices = snap.get("devices") or []
-    pv = sum(float(d.get("pv_w") or d.get("watts_in") or 0) for d in devices)
     dc = sum(float(d.get("dc_out_w") or 0) for d in devices)
     ac_in = sum(float(d.get("ac_in_w") or 0) for d in devices)
     ac_out = sum(float(d.get("ac_out_w") or 0) for d in devices)

@@ -140,7 +140,9 @@ def _host_battery_pct() -> float | None:
         return None
 
 
-def _night_note() -> str:
+def _night_note(*, ebatt: bool = False) -> str:
+    if ebatt:
+        return " Night: MPPT input is E-Batt (Ninebot 220 Wh nameplate), not solar."
     hour = datetime.now().hour
     if hour < 6 or hour >= 19:
         return " Night: PV ~0 W is expected. Do not invent cloud cover."
@@ -156,13 +158,24 @@ def _fmt_ecoflow(
     load: float | None,
     packs: list[dict[str, Any]],
 ) -> str:
+    from apps.core.services.load_categories import apply_ebatt, ebatt_in_w, solar_in_w
+
+    apply_ebatt(packs)
+    solar = solar_in_w(packs)
+    ebatt = ebatt_in_w(packs)
+    if ebatt >= 20:
+        pv = solar
     head = f"EcoFlow (source={source}"
     if last_at is not None:
         head += f", last {_clock(last_at)}"
-    head += "):" + _night_note()
+    head += "):" + _night_note(ebatt=ebatt >= 20)
 
     detail = energy.facts_lines(
-        packs, pv_w=pv, load_w=load, host_battery_pct=_host_battery_pct()
+        packs,
+        pv_w=pv if ebatt < 20 else solar,
+        load_w=load,
+        host_battery_pct=_host_battery_pct(),
+        ebatt_w=ebatt if ebatt >= 20 else None,
     )
     if detail:
         return "\n".join([head, *detail])
@@ -178,8 +191,8 @@ def _fmt_ecoflow(
     combined = []
     if bank_s is not None:
         combined.append(f"bank {bank_s}%")
-    if pv is not None:
-        combined.append(f"PV in {int(round(pv))} W")
+    if combined:
+        lines.append("- Bank combined (both packs): " + ", ".join(combined) + ".")
     if load is not None:
         combined.append(f"load out {int(round(load))} W")
     if combined:
@@ -240,6 +253,7 @@ def _ecoflow_from_jsonl() -> tuple[float | None, str | None]:
                 "online": bool(row.get("deviceOnline")),
                 "pv_w": row.get("solarW"),
                 "out_w": row.get("outW"),
+                "discharge_w": row.get("outW"),
             }
         )
     if not any_row:
@@ -284,7 +298,11 @@ def _ecoflow_from_quota() -> tuple[float | None, str | None]:
                 "soc": d.get("soc"),
                 "online": bool(d.get("online")),
                 "pv_w": d.get("pv_w"),
-                "out_w": d.get("ac_out_w"),
+                "ebatt_w": d.get("ebatt_w"),
+                "input_kind": d.get("input_kind"),
+                "out_w": d.get("ac_out_w") or d.get("out_w"),
+                "discharge_w": d.get("discharge_w"),
+                "ac_out_w": d.get("ac_out_w"),
             }
         )
     last_at = None
@@ -356,6 +374,7 @@ def _ecoflow_from_sqlite() -> tuple[float | None, str | None]:
                 "online": bool(row["online"]),
                 "pv_w": row["solar_w"],
                 "out_w": row["out_w"],
+                "discharge_w": row["out_w"],
             }
         )
     bank = _weighted_bank(packs, socs)
