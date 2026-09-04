@@ -23,7 +23,10 @@ router = APIRouter()
 
 AVA = config.AVA_HOME
 CORE = Path(__file__).resolve().parents[3]
-POSTS = AVA / "Media" / "documents" / "reports" / "posts"
+# Canonical posts tree matches sync-blogs (public). Legacy Media/documents kept as fallback.
+_POSTS_PUBLIC = AVA / "Media" / "public" / "documents" / "reports" / "posts"
+_POSTS_LEGACY = AVA / "Media" / "documents" / "reports" / "posts"
+POSTS = _POSTS_PUBLIC if _POSTS_PUBLIC.is_dir() else _POSTS_LEGACY
 MEDIA = AVA / "Media"
 OPS_HTML = Path(__file__).resolve().parents[1] / "static" / "ops.html"
 SYNC = CORE / "scripts" / "sync-blogs.py"

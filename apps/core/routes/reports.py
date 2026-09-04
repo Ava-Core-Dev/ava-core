@@ -111,3 +111,61 @@ async def test_report_dm():
         "This is not a development message.",
         channel=None,
     )
+
+
+class ReportGenPatchIn(BaseModel):
+    """Partial update for data/state/report-generation.json."""
+
+    reports: dict | None = None
+    week_of_grok: bool | None = None
+    context_urls: list[str] | None = None
+    fetch_urls: list[str] | None = None
+
+
+class ReportGenRunIn(BaseModel):
+    kind: str = Field(default="midday")
+    dry_run: bool = True
+    allow_tts: bool = False
+    publish: bool | None = None
+    force_engine: str | None = None
+
+
+@router.get("/generation")
+async def report_generation_status():
+    from apps.core.services import report_generation
+
+    return report_generation.status()
+
+
+@router.patch("/generation")
+async def report_generation_patch(body: ReportGenPatchIn, request: Request):
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    from apps.core.services import report_generation
+
+    patch: dict = {}
+    if body.reports is not None:
+        patch["reports"] = body.reports
+    if body.week_of_grok is not None:
+        patch["week_of_grok"] = body.week_of_grok
+    if body.context_urls is not None:
+        patch["context_urls"] = body.context_urls
+    if body.fetch_urls is not None:
+        patch["fetch_urls"] = body.fetch_urls
+    return {"ok": True, "config": report_generation.patch(patch)}
+
+
+@router.post("/generation/run")
+async def report_generation_run(body: ReportGenRunIn, request: Request):
+    """Dry-run (default) or live generate. TTS off unless allow_tts and toggle/spend allow."""
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    from apps.core.services import report_generation
+
+    return report_generation.generate(
+        body.kind,
+        dry_run=bool(body.dry_run),
+        force_engine=body.force_engine,
+        allow_tts=bool(body.allow_tts),
+        publish=body.publish,
+    )
