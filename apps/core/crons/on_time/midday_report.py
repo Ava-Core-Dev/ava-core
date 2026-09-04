@@ -1,7 +1,7 @@
 """Midday status cron — 11:55 HST prebuild; report presents as 12 noon.
 
 Prelims first. Engine from data/state/report-generation.json (grok|local).
-Ara TTS only when midday tts toggle is on (cron keeps allow_tts=False).
+Ara TTS when midday tts toggle is on (this cron passes allow_tts=True once for live noon).
 On successful text: disarm morning-boot-replay; close midday Grok spend window.
 """
 
@@ -56,7 +56,7 @@ async def run():
 
     engine = report_generation.engine_for("midday")
     result = report_generation.generate(
-        "midday", dry_run=False, allow_tts=False
+        "midday", dry_run=False, allow_tts=True
     )
     content = result.get("text") or ""
     if not content.strip():
