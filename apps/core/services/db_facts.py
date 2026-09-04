@@ -421,6 +421,16 @@ def _fmt_host(row: dict[str, Any], *, last_at: float | None, source: str) -> str
     mem = row.get("mem_pct")
     if mem is not None:
         bits.append(f"RAM {int(round(float(mem)))}%")
+    npu = row.get("npu_pct")
+    if npu is not None:
+        bits.append(f"npu {int(round(float(npu)))}%")
+    elif row.get("npu_present"):
+        bits.append("npu present")
+    gpu = row.get("gpu_pct")
+    if gpu is not None:
+        bits.append(f"i_gpu {int(round(float(gpu)))}%")
+    elif row.get("gpu_name"):
+        bits.append(str(row.get("gpu_name")))
     return "Host: " + (", ".join(bits) if bits else "sampled, thin")
 
 
