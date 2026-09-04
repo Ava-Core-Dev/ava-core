@@ -39,7 +39,7 @@ def is_addressed(msg: dict, bot_id: str) -> bool:
     return bool(re.search(r"\bava(?:\s+ivy)?\b", content, re.I))
 
 
-async def ava_reply(text: str, *, dm: bool = False) -> str:
+async def ava_reply(text: str, *, dm: bool = False, extra_lock: str = "") -> str:
     asked = (text or "").strip()
     if not asked:
         return ""
@@ -47,7 +47,9 @@ async def ava_reply(text: str, *, dm: bool = False) -> str:
         return "One sec — finishing another thought."
     async with _BUSY:
         facts = await persona_svc.live_facts()
-        if dm:
+        if extra_lock.strip():
+            prompt = extra_lock.strip()
+        elif dm:
             prompt, _ = persona_svc.system_prompt(surface="desk")
         else:
             prompt = DISCORD_LOCK.strip()
