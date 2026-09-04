@@ -29,12 +29,24 @@ from typing import Any
 import websockets
 
 
+CREATE_NO_WINDOW = 0x08000000
+
+
+def _windows_hidden() -> dict:
+    if os.name != "nt":
+        return {}
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    si.wShowWindow = 0
+    return {"creationflags": CREATE_NO_WINDOW, "startupinfo": si}
+
+
 def _find_audio_player() -> list[str] | None:
     """Return command prefix for the best available headless MP3 player."""
     if shutil.which("mpg123"):
         return ["mpg123", "-q"]
     if shutil.which("mpv"):
-        return ["mpv", "--no-video", "--really-quiet"]
+        return ["mpv", "--no-video", "--really-quiet", "--no-terminal"]
     if shutil.which("ffplay"):
         return ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
     if shutil.which("cvlc"):
@@ -43,7 +55,7 @@ def _find_audio_player() -> list[str] | None:
     if os.name == "nt":
         ps = shutil.which("powershell") or shutil.which("pwsh")
         if ps:
-            return [ps, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "_AVA_PLAY_MP3_"]
+            return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", "_AVA_PLAY_MP3_"]
     return None
 
 
@@ -64,7 +76,7 @@ def _windows_play_mp3(path: Path) -> list[str]:
         "} else { Start-Sleep -Seconds 8 }"
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
-    return [ps, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script]
+    return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
 
 log = logging.getLogger("ava.director")
 
@@ -479,6 +491,7 @@ class StreamDirector:
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 env=env,
+                **_windows_hidden(),
             )
             await proc.wait()
             log.debug("Local audio done: %s (exit %s)", path.name, proc.returncode)

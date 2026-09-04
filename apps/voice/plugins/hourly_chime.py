@@ -152,11 +152,13 @@ class HourlyChimePlugin(Plugin):
             else:  # sox play
                 cmd = ["play", "-q", "-v", str(self.volume), str(path)]
 
+            flags = 0x08000000 if os.name == "nt" else 0
             subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
+                creationflags=flags,
             )
         except Exception as e:
             log.error("Failed to play %s: %s", path.name, e)

@@ -7,12 +7,21 @@ No API calls. Used for deterministic content (numbers, time, status phrases).
 from __future__ import annotations
 
 import logging
+import os
 import re
 import subprocess
 import tempfile
 from pathlib import Path
 
 log = logging.getLogger("ava.clips")
+
+CREATE_NO_WINDOW = 0x08000000
+
+
+def _run(cmd: list[str], **kwargs):
+    if os.name == "nt":
+        kwargs.setdefault("creationflags", CREATE_NO_WINDOW)
+    return subprocess.run(cmd, **kwargs)
 
 # Clips live in the central media library (media/audio), not apps/voice/assets.
 from apps.core import config as _cfg
@@ -109,7 +118,7 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
 
         if SILENCE_MS > 0 and len(clips) > 1:
             silence = tmpdir / "silence.mp3"
-            subprocess.run(
+            _run(
                 [
                     "ffmpeg", "-y",
                     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
