@@ -147,11 +147,6 @@ function isRiver(d: Record<string, unknown>): boolean {
   return sn === "R621ZA16XH6K1155" || lab.includes("RIVER");
 }
 
-function sameWatts(a: number, b: number): boolean {
-  if (a < 20 || b < 20) return false;
-  return Math.abs(a - b) <= Math.max(40, 0.12 * Math.max(a, b));
-}
-
 function applyAcRoles(devices: Array<Record<string, unknown>>): void {
   for (const d of devices) {
     d.ac_role = null;
