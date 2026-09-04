@@ -215,22 +215,23 @@ def _weather_url_part(s: str) -> str:
 
 
 def _list_weather_current() -> list[dict]:
+    """Current leftover scenes for the board grid (GIFs only; JPGs stay in dir counts)."""
     current = WEATHER_GIFS / "current"
     out: list[dict] = []
     if not current.is_dir():
         return out
     for f in sorted(current.iterdir()):
-        if f.is_file() and f.suffix.lower() in _WEATHER_IMAGE_EXTS:
+        if f.is_file() and f.suffix.lower() == ".gif":
             out.append(
                 _weather_image_entry(
                     f,
                     url_parts=["current", f.name],
-                    location=f.stem.split("_")[0] if "_" in f.stem else "other",
+                    location="other",
                 )
             )
     for loc in sorted(p for p in current.iterdir() if p.is_dir()):
         for f in sorted(loc.iterdir()):
-            if f.is_file() and f.suffix.lower() in _WEATHER_IMAGE_EXTS:
+            if f.is_file() and f.suffix.lower() == ".gif":
                 out.append(
                     _weather_image_entry(
                         f,
@@ -247,7 +248,7 @@ def _list_weather_loops() -> list[dict]:
     if not loops.is_dir():
         return out
     for f in sorted(loops.rglob("*")):
-        if not f.is_file() or f.suffix.lower() not in _WEATHER_IMAGE_EXTS:
+        if not f.is_file() or f.suffix.lower() != ".gif":
             continue
         rel = f.relative_to(WEATHER_GIFS)
         parts = list(rel.parts)
