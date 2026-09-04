@@ -15,7 +15,9 @@ One sentence each unless noted.
 | `phrase_midday_slot` | Midday reports are due. |
 | `phrase_evening_slot` | Evening reports are due. |
 | `phrase_morning_report` | The long morning report still needs you. |
-| `morning_boot_report` | Spoken Ava Core Root Record morning status (see `persona/MORNING_BOOT_REPORT.txt`). Never all-caps AVA; never bare HI/HST in TTS scripts. |
+| `morning_boot_report` | Spoken Ava Core Root Record morning status (see `persona/MORNING_BOOT_REPORT.txt`). Never all-caps AVA; never bare HI/HST in TTS scripts. Full may stamp clock; offline stub must not. |
+| `phrase_midday_report` | The midday status still needs you. |
+| `midday_boot_report` | Spoken Ava Core Root Record midday / noon status (see `persona/MIDDAY_BOOT_REPORT.txt`). Trigger 11:55 HST; presents as 12 noon. Full may stamp noon; offline stub must not. Never all-caps AVA; never bare HI/HST. |
 | `phrase_merged_morning` | The merged morning summary still needs you. |
 | `phrase_governance_daily` | Governance daily is due. |
 | `phrase_api_prices` | API price catalog is due. |
@@ -28,7 +30,8 @@ One sentence each unless noted.
 
 ## Slot functions (33)
 
-Each is one function and one clip. Morning 10:00, midday 13:00, evening 18:00 HST.
+Each is one function and one clip. Morning 10:00, midday slot 13:00, evening 18:00 HST.
+Long-form midday status prebuilds at 11:55 HST and presents as 12 noon (see `midday_boot_report`).
 
 | File | Say |
 |---|---|

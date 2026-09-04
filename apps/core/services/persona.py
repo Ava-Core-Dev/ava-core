@@ -268,6 +268,13 @@ def morning_boot_lock() -> str:
     return boot_report.load_boot_lock()
 
 
+def midday_boot_lock() -> str:
+    """Spoken midday / noon status format. Used by midday_report generation."""
+    from apps.core.services import midday_report
+
+    return midday_report.load_midday_lock()
+
+
 def system_prompt(*, surface: str = "desk") -> tuple[str, str]:
     """Return (prompt, source_label). Desk gets the 1:1 lock plus SYSTEM.txt head."""
     raw = load_system_txt()
@@ -277,6 +284,10 @@ def system_prompt(*, surface: str = "desk") -> tuple[str, str]:
     if surface == "morning_boot":
         return morning_boot_lock(), str(
             config.PUBLIC_MEDIA / "documents" / "persona" / "MORNING_BOOT_REPORT.txt"
+        )
+    if surface == "midday_boot":
+        return midday_boot_lock(), str(
+            config.PUBLIC_MEDIA / "documents" / "persona" / "MIDDAY_BOOT_REPORT.txt"
         )
     lock = {
         "desk": DESK_LOCK,

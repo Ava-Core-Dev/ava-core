@@ -37,14 +37,19 @@ async def run():
             include_timestamp=True,
         )
         content = written.get("text") or ""
-        reports.queue_public_draft("midday", content, source="cron_local")
-        report_store.write_current(content, kind="midday", source="cron_local")
+        stamped = bool(written.get("include_timestamp"))
+        reports.queue_public_draft(
+            "midday", content, source="cron_local", include_timestamp=stamped
+        )
+        report_store.write_current(
+            content, kind="midday", source="cron_local", include_timestamp=stamped
+        )
         log.info(
             "Midday status via on-device brain engine=%s scrub=%s automation=%s stamp=%s",
             written.get("engine"),
             written.get("scrub"),
             midday_report.midday_automation_enabled(),
-            written.get("include_timestamp"),
+            stamped,
         )
         return
 
@@ -83,8 +88,12 @@ async def run():
         content = f"**Ava midday report** — {now_hst} (presents as 12 noon)\n\n{summary}"
     else:
         content = f"**Ava midday report**\n\n{summary}"
-    reports.queue_public_draft("midday", content, source="cron")
-    report_store.write_current(content, kind="midday", source="cron")
+    reports.queue_public_draft(
+        "midday", content, source="cron", include_timestamp=include_timestamp
+    )
+    report_store.write_current(
+        content, kind="midday", source="cron", include_timestamp=include_timestamp
+    )
     log.info(
         "Midday report drafted for operator review engine=%s stamp=%s (no Ara TTS)",
         engine,

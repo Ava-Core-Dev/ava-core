@@ -148,6 +148,10 @@ class Scheduler:
         s.add_job(self._run("day_reports_morning"), CronTrigger(hour=10, minute=0),
                   id="day-reports-morning", name="Morning slot reports", misfire_grace_time=300)
 
+        # Midday status prebuild (11:55 HST) — spoken/text presents as 12 noon. No Ara TTS here.
+        s.add_job(self._run("midday_report"), CronTrigger(hour=11, minute=55),
+                  id="midday-report", name="Midday status (11:55 → noon)", misfire_grace_time=300)
+
         s.add_job(self._run("day_reports_midday"), CronTrigger(hour=13, minute=0),
                   id="day-reports-midday", name="Midday slot reports", misfire_grace_time=300)
 

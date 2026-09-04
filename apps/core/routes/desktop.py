@@ -797,6 +797,7 @@ _AUDIO_JOB_IDS = frozenset(
         "player-economy-report",
         "morning-report",
         "day-reports-morning",
+        "midday-report",
         "day-reports-midday",
         "day-reports-evening",
         "merged-morning-summary",

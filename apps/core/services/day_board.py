@@ -125,6 +125,15 @@ CLOCK_JOBS = (
         "note": "Only if the queue has a job",
     },
     {
+        "id": "midday-report",
+        "label": "Midday status (noon)",
+        "hour": 11,
+        "minute": 55,
+        "manual": True,
+        "phrase": "phrase_midday_report",
+        "note": "Prebuild at 11:55; presents as 12 noon. Text first; Ara later",
+    },
+    {
         "id": "day-reports-midday",
         "label": "Midday slot reports",
         "hour": 13,
@@ -218,6 +227,7 @@ EVENT_PHRASES = (
     {"id": "phrase_manual_drafts", "when": "Public report drafts are waiting for you"},
     {"id": "phrase_remaining_tasks", "when": "Lead-in for the :30 remaining-task brief"},
     {"id": "phrase_clear_window", "when": "Nothing left in the next four hours and no drafts"},
+    {"id": "phrase_midday_report", "when": "Long-form midday status due (11:55 → noon)"},
 )
 
 

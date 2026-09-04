@@ -63,12 +63,28 @@ async def run():
         "Do not invent watts. If PV is near zero, say the array is on the ground / being reset, not that the roof is empty. "
         "Use only the provided data. Do not invent numbers."
     )
-    summary = synth.polish("morning", system, f"Morning data:\n{raw[:3000]}", factual=factual)
-    now_hst = config.hst_now_text(date_first=True)
-    content = f"**Ava morning report** — {now_hst}\n\n{summary}"
-    reports.queue_public_draft("morning", content, source="cron")
-    report_store.write_current(content, kind="morning", source="cron")
-    log.info("Morning report drafted for operator review")
+    polished = synth.polish_ex(
+        "morning", system, f"Morning data:\n{raw[:3000]}", factual=factual
+    )
+    summary = polished["text"]
+    # Full Grok/ollama may stamp; offline factual stub must not.
+    include_timestamp = bool(polished.get("include_timestamp"))
+    if include_timestamp:
+        now_hst = config.hst_now_text(date_first=True)
+        content = f"**Ava morning report** — {now_hst}\n\n{summary}"
+    else:
+        content = f"**Ava morning report**\n\n{summary}"
+    reports.queue_public_draft(
+        "morning", content, source="cron", include_timestamp=include_timestamp
+    )
+    report_store.write_current(
+        content, kind="morning", source="cron", include_timestamp=include_timestamp
+    )
+    log.info(
+        "Morning report drafted for operator review engine=%s stamp=%s",
+        polished.get("engine"),
+        include_timestamp,
+    )
     try:
         import asyncio
 
@@ -129,11 +145,24 @@ async def run_merged():
         "Cover: solar/power, weather, Kīlauea, earthquakes, player economy, Minecraft servers. "
         "Under 400 words. Warm tone. Use only the provided data. Do not invent numbers."
     )
-    summary = synth.polish(
+    polished = synth.polish_ex(
         "summary", system, all_data[:4000], factual=factual, channel="ava_home"
     )
-    now_hst = config.hst_now_text(date_first=True)
-    content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
-    reports.queue_public_draft("summary", content, source="cron")
-    reports.write_current(content, kind="summary", source="cron")
-    log.info("Merged morning summary drafted for operator review")
+    summary = polished["text"]
+    include_timestamp = bool(polished.get("include_timestamp"))
+    if include_timestamp:
+        now_hst = config.hst_now_text(date_first=True)
+        content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
+    else:
+        content = f"**Merged Morning Summary**\n\n{summary}"
+    reports.queue_public_draft(
+        "summary", content, source="cron", include_timestamp=include_timestamp
+    )
+    reports.write_current(
+        content, kind="summary", source="cron", include_timestamp=include_timestamp
+    )
+    log.info(
+        "Merged morning summary drafted for operator review engine=%s stamp=%s",
+        polished.get("engine"),
+        include_timestamp,
+    )
