@@ -10,7 +10,10 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import psutil
+from urllib.parse import quote
+
 from fastapi import APIRouter, Request
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .. import config
@@ -18,6 +21,7 @@ from ..services import ollama as ollama_svc
 from ..services import persona as persona_svc
 
 router = APIRouter(prefix="/api")
+legacy_router = APIRouter()
 HST = ZoneInfo("Pacific/Honolulu")
 STATE = config.DATA_DIR / "state"
 
@@ -201,14 +205,12 @@ def _weather_image_entry(path: Path, *, url_parts: list[str], location: str) -> 
         "name": path.name,
         "location": location,
         "locationLabel": _weather_loc_label(location),
-        "url": "/weather/gifs/" + "/".join(encodeURIComponent(p) for p in url_parts),
+        "url": "/weather/gifs/" + "/".join(_weather_url_part(p) for p in url_parts),
         "mtimeMs": mtime or None,
     }
 
 
-def encodeURIComponent(s: str) -> str:
-    from urllib.parse import quote
-
+def _weather_url_part(s: str) -> str:
     return quote(str(s), safe="")
 
 
@@ -316,9 +318,8 @@ def weather_gifs_board_html() -> str:
 </main>
 <script>
   function esc(s) {
-    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"
-    }[c]));
+    return String(s ?? "").replace(/[&<>"']/g, (c) =>
+      ({"&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"}[c]));
   }
   function ago(ms) {
     if (!ms) return "";
