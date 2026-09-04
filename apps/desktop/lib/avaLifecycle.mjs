@@ -323,3 +323,92 @@ export function stopAvaSession() {
 export function sessionStartedByDesktop() {
   return startedByUs;
 }
+
+/**
+ * Stop Desk-owned audio helpers only. Origin / watchdog / crons stay up.
+ * POSTs /api/voice/music stop (clears bed loop + music-bed-wanted + MediaPlayer orphans).
+ */
+export async function stopDeskOwnedAudio() {
+  const logPath = path.join(LOG_DIR, "ava-desktop.log");
+  appendLog(logPath, "lifecycle: desk close — stopping music bed");
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "stop" }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const json = await r.json().catch(() => ({}));
+    appendLog(
+      logPath,
+      `lifecycle: music stop http=${r.status} ok=${Boolean(json.ok)} swept=${json.swept ?? "?"}`,
+    );
+    return {
+      ok: Boolean(r.ok && json.ok !== false),
+      status: r.status,
+      swept: json.swept ?? null,
+      detail: json.detail || null,
+    };
+  } catch (err) {
+    appendLog(
+      logPath,
+      `lifecycle: music stop failed: ${err?.message || err}`,
+    );
+    return { ok: false, detail: err?.message || String(err) };
+  }
+}
+
+/**
+ * Snapshot music intent from origin before stop (for desk-ui restore).
+ */
+export async function peekMusicBedStatus() {
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/status`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    const json = await r.json().catch(() => ({}));
+    const music = json.music || {};
+    const playing = Boolean(json?.currently_playing?.music?.playing);
+    return {
+      ok: Boolean(r.ok && json.ok !== false),
+      musicWanted: Boolean(music.enabled || music.loop_alive || playing),
+      musicTrack: music.current || json?.currently_playing?.music?.track || null,
+      playing,
+    };
+  } catch (err) {
+    return { ok: false, detail: err?.message || String(err) };
+  }
+}
+
+/**
+ * Restore music bed after Desk relaunch when last session had it on.
+ */
+export async function restoreMusicBedIfWanted(wanted) {
+  if (!wanted) return { ok: true, skipped: true };
+  const logPath = path.join(LOG_DIR, "ava-desktop.log");
+  appendLog(logPath, "lifecycle: desk start — restoring music bed");
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "start" }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const json = await r.json().catch(() => ({}));
+    appendLog(
+      logPath,
+      `lifecycle: music start http=${r.status} ok=${Boolean(json.ok)} detail=${json.detail || ""}`,
+    );
+    return {
+      ok: Boolean(r.ok && json.ok !== false),
+      status: r.status,
+      detail: json.detail || null,
+    };
+  } catch (err) {
+    appendLog(
+      logPath,
+      `lifecycle: music restore failed: ${err?.message || err}`,
+    );
+    return { ok: false, detail: err?.message || String(err) };
+  }
+}

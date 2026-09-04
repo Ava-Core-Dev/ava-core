@@ -58,6 +58,9 @@ import { listOpsCatalog, opsCommandById } from "./lib/opsCommands.mjs";
 import { listAvaLinks } from "./lib/avaLinks.mjs";
 import {
   startAvaSession,
+  stopDeskOwnedAudio,
+  peekMusicBedStatus,
+  restoreMusicBedIfWanted,
 } from "./lib/avaLifecycle.mjs";
 import {
   loadConnectionConfig,
@@ -72,6 +75,12 @@ import {
   saveGitSyncPrefs,
   runGitLiveSync,
 } from "./lib/gitLiveSync.mjs";
+import {
+  deskAvaRoot,
+  loadDeskUiState,
+  saveDeskUiState,
+  checkMorningReportStatus,
+} from "./lib/deskState.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONTEXT_LIMIT = 150;
@@ -128,6 +137,11 @@ let mainWindow = null;
 /** @type {import('node:child_process').ChildProcess | null} */
 let runningOps = null;
 let runningOpsId = null;
+/** Guard: window-all-closed + before-quit both fire on Windows quit. */
+let deskCloseHandled = false;
+let lastDeskPage = "terminal";
+
+const DESK_ROOT = deskAvaRoot();
 
 function nodeBin() {
   const home = os.homedir();
