@@ -129,14 +129,16 @@ def chat(
 
         usage = data.get("usage") if isinstance(data, dict) else None
         if isinstance(usage, dict):
+            details = usage.get("prompt_tokens_details")
+            cached = 0
+            if isinstance(details, dict):
+                cached = int(details.get("cached_tokens") or 0)
             api_ledger.record_usage(
                 "xai",
                 model=payload.get("model") or config.GROK_MODEL,
                 input_tokens=int(usage.get("prompt_tokens") or 0),
                 output_tokens=int(usage.get("completion_tokens") or 0),
-                cached_tokens=int((usage.get("prompt_tokens_details") or {}).get("cached_tokens") or 0)
-                if isinstance(usage.get("prompt_tokens_details"), dict)
-                else 0,
+                cached_tokens=cached,
                 surface="xai.chat",
             )
     except Exception:

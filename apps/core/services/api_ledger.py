@@ -475,7 +475,7 @@ def _fetch(url: str, alt: str | None) -> tuple[str, str, bytes]:
         if not candidate:
             continue
         try:
-            r = requests.get(candidate, headers=headers, timeout=20)
+            r = requests.get(candidate, headers=headers, timeout=12)
             if r.status_code >= 400:
                 last_err = f"HTTP {r.status_code}"
                 continue
