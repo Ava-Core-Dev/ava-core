@@ -24,7 +24,9 @@ def _load() -> dict:
     if not p.is_file():
         return {}
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
+        # utf-8-sig: PowerShell Set-Content -Encoding utf8 may write a BOM that
+        # plain utf-8 json.loads rejects → empty state → silent skip (no play).
+        data = json.loads(p.read_text(encoding="utf-8-sig"))
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
