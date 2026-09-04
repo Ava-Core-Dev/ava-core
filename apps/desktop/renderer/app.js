@@ -1046,6 +1046,8 @@ async function refreshReports() {
 
     $("reports-status").textContent = "";
     await refreshReportAudioManual();
+    if (typeof tickCountdowns === "function") tickCountdowns();
+    if (typeof ensureCronLive === "function") ensureCronLive();
   } catch (e) {
     meta.textContent = String(e?.message || e);
   }
