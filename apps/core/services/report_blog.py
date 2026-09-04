@@ -81,7 +81,7 @@ def publish_report_post(
         "midday": "Midday",
         "evening": "Evening",
     }.get(report_type, report_type.title())
-    title = f"{kind} status — {now.strftime('%b')} {now.day}, {now.year}"
+    title = f"{kind} status - {now.strftime('%b')} {now.day}, {now.year}"
 
     brands = brands or ["ava"]
     written: list[dict] = []

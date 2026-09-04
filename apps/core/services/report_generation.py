@@ -467,13 +467,23 @@ def generate(
         fetched_n = 0
         if isinstance(pkg, dict) and pkg.get("fetched_markdown"):
             fetched_n = len(str(pkg.get("fetched_markdown")))
+        # Optional offline stub preview (no Ollama/Grok) so operators can see shape.
+        preview = ""
+        preview_engine = None
+        if offline:
+            stub = _generate_local(kind, offline=True)
+            preview = str(stub.get("text") or "")
+            preview_engine = stub.get("engine") or "offline_stub"
         return {
             "ok": True,
             "dry_run": True,
             "kind": kind,
+            "engine": preview_engine or engine,
             "engine_would": engine,
             "wanted_engine": wanted,
-            "include_timestamp": not offline,
+            "include_timestamp": False if offline else (engine != "local" or not offline),
+            "text": preview or None,
+            "text_preview": (preview[:500] + ("…" if len(preview) > 500 else "")) if preview else None,
             "settings": {
                 "engine": settings.get("engine"),
                 "tts": settings.get("tts"),
@@ -489,7 +499,10 @@ def generate(
             "context_urls": (pkg or {}).get("bundle", {}).get("context_urls")
             if isinstance(pkg, dict)
             else None,
-            "note": "dry_run — no model call, no Media write, no blog, no TTS",
+            "note": (
+                "dry_run — no Media write, no blog, no TTS"
+                + ("; offline stub text included" if offline else "; no model call")
+            ),
             "grok_spend_ok": _spend_ok(),
         }
 
