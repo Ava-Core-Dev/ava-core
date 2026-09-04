@@ -1,0 +1,292 @@
+"""EcoFlow load buckets. Measured watts only. Never the hidden third pack."""
+
+from __future__ import annotations
+
+import json
+import logging
+import time
+from datetime import datetime
+from pathlib import Path
+
+from apps.core.services.data_layout import device_role, ecoflow_dir, ensure_data_layout
+
+log = logging.getLogger("ava.loads")
+
+APPLIANCE_AC_W = 1000.0
+CAR_W_MIN = 5.0
+NIGHT_IN_W = 20.0
+PV_FLAT_W = 15.0
+USB_KEYS = (
+    "pd.usb1Watts",
+    "pd.usb2Watts",
+    "pd.qcUsb1Watts",
+    "pd.typec1Watts",
+    "pd.typec2Watts",
+)
+CAR_KEYS = ("pd.carWatts", "mppt.carOutWatts", "mppt.dcdc12vWatts")
+KEEP_LOAD_DAYS = 14
+
+
+def _num(data: dict, *keys: str):
+    for k in keys:
+        v = data.get(k)
+        if v is not None and v != "":
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def watts(raw) -> float:
+    if raw is None:
+        return 0.0
+    n = float(raw)
+    if abs(n) >= 10_000:
+        n = n / 1000.0
+    return round(max(0.0, n), 1)
+
+
+def pack_power(data: dict | None) -> dict:
+    """Split PV, AC, USB, and 12V. AC is never counted as solar."""
+    data = data or {}
+    pv = watts(_num(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts"))
+    ac_in = watts(_num(data, "inv.inputWatts", "inv.acInWatts"))
+    ac_out = watts(_num(data, "inv.outputWatts", "inv.outWatts"))
+    pd_in = watts(_num(data, "pd.wattsInSum", "pd.inputWatts"))
+    pd_out = watts(_num(data, "pd.wattsOutSum", "pd.outputWatts"))
+    usb = 0.0
+    for k in USB_KEYS:
+        usb += watts(_num(data, k))
+    car = 0.0
+    for k in CAR_KEYS:
+        car += watts(_num(data, k))
+    leftover = max(0.0, pd_out - ac_out - car)
+    dc_out = max(usb, leftover)
+    ac_charge = max(ac_in, max(0.0, pd_in - pv))
+    discharge = max(ac_out, pd_out)
+    dc_in = max(0.0, pd_in - pv - ac_in)
+    return {
+        "pv_w": pv,
+        "ac_in_w": ac_in,
+        "ac_out_w": ac_out,
+        "ac_charge_w": round(ac_charge, 1),
+        "discharge_w": round(discharge, 1),
+        "usb_w": round(usb, 1),
+        "car_w": round(car, 1),
+        "dc_out_w": round(dc_out, 1),
+        "dc_in_w": round(dc_in, 1),
+        "watts_in": pv,
+        "watts_out": round(dc_out, 1),
+    }
+
+
+def same_watts(a: float, b: float) -> bool:
+    a, b = float(a or 0), float(b or 0)
+    if a < 20 or b < 20:
+        return False
+    slack = max(40.0, 0.12 * max(a, b))
+    return abs(a - b) <= slack
+
+
+def _is_delta(d: dict) -> bool:
+    return device_role(str(d.get("sn") or d.get("label") or "")) == "delta"
+
+
+def _is_river(d: dict) -> bool:
+    return device_role(str(d.get("sn") or d.get("label") or "")) == "river"
+
+
+def apply_roles(devices: list[dict]) -> None:
+    for d in devices:
+        d["ac_role"] = None
+        d["transfer_sure"] = False
+        d.pop("transfer_w", None)
+        d.pop("appliance_w", None)
+        d.pop("starlink_w", None)
+        d.pop("emergency_w", None)
+    delta = next((d for d in devices if _is_delta(d)), None)
+    river = next((d for d in devices if _is_river(d)), None)
+
+    def _pair(src: dict, dst: dict) -> bool:
+        src_out = max(float(src.get("ac_out_w") or 0), float(src.get("discharge_w") or 0))
+        dst_in = max(float(dst.get("ac_in_w") or 0), float(dst.get("ac_charge_w") or 0))
+        if not same_watts(src_out, dst_in):
+            return False
+        src["ac_role"] = "transfer_out"
+        dst["ac_role"] = "transfer_in"
+        src["transfer_sure"] = True
+        dst["transfer_sure"] = True
+        src["transfer_w"] = round(src_out, 1)
+        dst["transfer_w"] = round(dst_in, 1)
+        return True
+
+    if delta and river and (_pair(delta, river) or _pair(river, delta)):
+        return
+
+    extra = 0.0
+    if delta and river:
+        extra = max(0.0, float(delta.get("ac_out_w") or 0) - float(river.get("ac_in_w") or 0))
+    kettle = extra >= APPLIANCE_AC_W or extra >= 800
+
+    for d in devices:
+        aco = float(d.get("ac_out_w") or 0)
+        if aco < 20:
+            continue
+        if aco >= APPLIANCE_AC_W or (_is_delta(d) and kettle and extra >= APPLIANCE_AC_W):
+            d["ac_role"] = "appliances"
+            d["appliance_w"] = round(aco if aco >= APPLIANCE_AC_W else extra, 1)
+        elif _is_delta(d):
+            d["ac_role"] = "starlink_lights"
+            d["starlink_w"] = round(aco, 1)
+        elif _is_river(d):
+            d["ac_role"] = "emergency"
+            d["emergency_w"] = round(aco, 1)
+        else:
+            d["ac_role"] = "ac_out"
+
+
+def categories(devices: list[dict]) -> dict:
+    transfer = 0.0
+    appliances = 0.0
+    starlink = 0.0
+    emergency = 0.0
+    server = 0.0
+    drives = 0.0
+    for d in devices:
+        role = d.get("ac_role")
+        if role == "transfer_out":
+            transfer += float(d.get("transfer_w") or d.get("ac_out_w") or 0)
+        elif role == "appliances":
+            appliances += float(d.get("appliance_w") or d.get("ac_out_w") or 0)
+        elif role == "starlink_lights":
+            starlink += float(d.get("starlink_w") or d.get("ac_out_w") or 0)
+        elif role == "emergency":
+            emergency += float(d.get("emergency_w") or d.get("ac_out_w") or 0)
+        usb = float(d.get("dc_out_w") or 0)
+        car = float(d.get("car_w") or 0)
+        if car >= CAR_W_MIN:
+            drives += car
+        server += max(0.0, usb)
+    return {
+        "server_mobile_w": round(server, 1),
+        "starlink_lights_w": round(starlink, 1),
+        "appliances_w": round(appliances, 1),
+        "emergency_pack_w": round(emergency, 1),
+        "hard_drives_12v_w": round(drives, 1),
+        "transfer_w": round(transfer, 1),
+    }
+
+
+def bank_state(devices: list[dict]) -> str:
+    bits: list[str] = []
+    cats = categories(devices)
+    if cats["appliances_w"] >= 20:
+        bits.append("appliances")
+    src = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_out"), None)
+    dst = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_in"), None)
+    if src and dst:
+        bits.append(f"transfer {src} → {dst}")
+    elif cats["transfer_w"] >= 20:
+        bits.append("AC transfer")
+    if cats["starlink_lights_w"] >= 20:
+        bits.append("Starlink + lights")
+    if cats["emergency_pack_w"] >= 20:
+        bits.append("emergency pack")
+    if cats["hard_drives_12v_w"] >= CAR_W_MIN:
+        bits.append("hard drives 12V")
+    if sum(float(d.get("pv_w") or 0) for d in devices) > 20:
+        bits.append("PV charging")
+    if cats["server_mobile_w"] > 20:
+        bits.append("server + mobile")
+    return " · ".join(bits) or "idle"
+
+
+def night_charge_callout(devices: list[dict], *, sun: dict | None = None) -> dict | None:
+    """Past sunset, PV ~0, measured AC or DC in. No invented watts."""
+    sun = sun or {}
+    if not sun.get("after_sunset"):
+        return None
+    pv = sum(float(d.get("pv_w") or 0) for d in devices)
+    if pv > PV_FLAT_W:
+        return None
+    ac_in = sum(float(d.get("ac_in_w") or 0) for d in devices)
+    dc_in = sum(float(d.get("dc_in_w") or 0) for d in devices)
+    charge = max(ac_in, dc_in)
+    if charge < NIGHT_IN_W:
+        return None
+    emergency = any(d.get("ac_role") == "transfer_in" and _is_river(d) for d in devices)
+    kind = "emergency_topup" if emergency else "night_charge"
+    title = "Emergency pack top-up" if emergency else "Night charge"
+    return {
+        "show": True,
+        "kind": kind,
+        "title": title,
+        "detail": "Measured charge after sunset. Not solar.",
+        "in_w": round(charge, 1),
+        "sunset": sun.get("sunset") or "",
+    }
+
+
+def _loads_dir() -> Path:
+    return ecoflow_dir() / "loads"
+
+
+def append_history(cats: dict) -> None:
+    if not cats:
+        return
+    ensure_data_layout()
+    root = _loads_dir()
+    root.mkdir(parents=True, exist_ok=True)
+    day = datetime.now().strftime("%Y-%m-%d")
+    path = root / f"{day}.jsonl"
+    row = {"at": int(time.time() * 1000), **cats}
+    try:
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row) + "\n")
+    except OSError as e:
+        log.debug("load history skipped: %s", e)
+        return
+    cutoff = datetime.now() - __import__("datetime").timedelta(days=KEEP_LOAD_DAYS)
+    for old in root.glob("*.jsonl"):
+        try:
+            if old.stem < cutoff.strftime("%Y-%m-%d"):
+                old.unlink()
+        except OSError:
+            pass
+
+
+def history_averages(hours: float = 1) -> dict:
+    root = _loads_dir()
+    if not root.is_dir():
+        return {}
+    cutoff = time.time() * 1000 - hours * 3600 * 1000
+    buckets: dict[str, list[float]] = {}
+    for path in sorted(root.glob("*.jsonl"))[-3:]:
+        try:
+            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line.startswith("{"):
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            if float(row.get("at") or 0) < cutoff:
+                continue
+            for k, v in row.items():
+                if k == "at":
+                    continue
+                try:
+                    n = float(v)
+                except (TypeError, ValueError):
+                    continue
+                buckets.setdefault(k, []).append(n)
+    out = {}
+    for k, vals in buckets.items():
+        if vals:
+            out[k] = round(sum(vals) / len(vals), 1)
+    out["samples"] = max((len(v) for v in buckets.values()), default=0)
+    return out

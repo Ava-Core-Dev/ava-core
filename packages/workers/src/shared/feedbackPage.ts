@@ -1,0 +1,73 @@
+/** Static feedback form for when the origin is dark. */
+
+export function feedbackPageHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Feedback — RootRecord</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: Georgia, "Iowan Old Style", "Segoe UI", serif; color:#f4efe6; background:#0a1016; margin:0; }
+  main { max-width:40rem; margin:0 auto; padding:2.4rem 1.25rem; }
+  h1 { font-weight:500; }
+  label { display:block; font-family:"Segoe UI",system-ui,sans-serif; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:#7d8a96; }
+  input, textarea, select { width:100%; margin:0 0 1rem; padding:.65rem; border:1px solid #1c2a36; border-radius:.45rem; background:#0d151c; color:#f4efe6; }
+  textarea { min-height:8rem; }
+  button { background:#ff6a2a; color:#140a06; border:0; border-radius:.45rem; padding:.7rem 1.1rem; font-weight:700; }
+  .ok { color:#3ee0c6; } .err { color:#fb7185; }
+  a { color:#3ee0c6; }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="https://rootrecord.cloud/">RootRecord</a></p>
+  <h1>Feedback</h1>
+  <p>The desk is dark. This still reaches us.</p>
+  <form id="f">
+    <label for="kind">Type</label>
+    <select id="kind"><option value="general">General</option><option value="bug">Bug</option><option value="feature">Feature</option></select>
+    <label for="message">Message</label>
+    <textarea id="message" required></textarea>
+    <label for="email">Reply email (optional)</label>
+    <input id="email" type="email"/>
+    <button type="submit">Send</button>
+  </form>
+  <p id="out"></p>
+</main>
+<script>
+document.getElementById("f").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const out = document.getElementById("out");
+  out.textContent = "Sending…";
+  try {
+    const r = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        type: document.getElementById("kind").value,
+        message: document.getElementById("message").value,
+        reply_email: document.getElementById("email").value || null,
+        surface: location.hostname,
+      }),
+    });
+    const d = await r.json().catch(() => ({}));
+    out.className = r.ok ? "ok" : "err";
+    out.textContent = r.ok ? "Got it. Thank you." : (d.detail || "Could not send.");
+    if (r.ok) document.getElementById("message").value = "";
+  } catch (_) {
+    out.className = "err";
+    out.textContent = "Could not send.";
+  }
+});
+</script>
+</body>
+</html>`;
+}
+
+export function feedbackPage(): Response {
+  return new Response(feedbackPageHtml(), {
+    headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
+  });
+}

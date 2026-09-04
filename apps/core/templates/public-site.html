@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>RootRecord</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: Georgia, "Iowan Old Style", "Segoe UI", serif;
+    color: #f4efe6;
+    background: #0a1016;
+    line-height: 1.55;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 1rem 1.25rem;
+    border-bottom: 1px solid #1c2a36;
+  }
+  .brand {
+    letter-spacing: 0.12em; text-transform: uppercase;
+    font-size: 0.72rem; font-weight: 700;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #ff6a2a; text-decoration: none;
+  }
+  nav { display: flex; flex-wrap: wrap; gap: 0.85rem 1.1rem; }
+  nav a {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.85rem; color: #9fb0bc; text-decoration: none;
+  }
+  nav a.on, nav a:hover { color: #f4efe6; }
+  main { max-width: 40rem; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
+  h1 {
+    font-weight: 500; font-size: clamp(1.85rem, 5vw, 2.5rem);
+    line-height: 1.15; letter-spacing: -0.03em; margin: 0 0 0.7rem;
+  }
+  .lede { font-size: 1.05rem; color: #e4ddd2; margin: 0 0 1.2rem; }
+  p { margin: 0 0 1rem; color: #c5ced6; }
+  .big {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 1.6rem; font-weight: 700; color: #3ee0c6;
+    margin: 0 0 0.4rem;
+  }
+  .card {
+    border: 1px solid #1c2a36; background: #0d151c;
+    border-radius: 0.7rem; padding: 1rem 1.05rem; margin: 0 0 0.75rem;
+  }
+  .k {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #7d8a96; margin: 0 0 0.35rem;
+  }
+  a { color: #3ee0c6; }
+  .clock { color: #7d8a96; font-size: 0.85rem; font-family: "Segoe UI", system-ui, sans-serif; margin-top: 2rem; }
+</style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="https://rootrecord.cloud/" target="_top">RootRecord</a>
+    <nav aria-label="Site">
+      <a href="https://rootrecord.cloud/" target="_top" data-match="/">Home</a>
+      <a href="https://rootrecord.cloud/status" target="_top" data-match="/status">Status</a>
+      <a href="https://rootrecord.cloud/kilauea" target="_top" data-match="/kilauea">Kīlauea</a>
+      <a href="https://rootrecord.cloud/weather" target="_top" data-match="/weather">Weather</a>
+      <a href="https://rootmc.net/" target="_top" data-match="/rootmc">RootMC</a>
+      <a href="https://rootrecord.cloud/feedback" target="_top" data-match="/feedback">Feedback</a>
+    </nav>
+  </header>
+  <main>
+    <h1 id="title">RootRecord</h1>
+    <p class="lede" id="lede"></p>
+    <div class="card">
+      <p class="k" id="kicker">Now</p>
+      <p class="big" id="hero">—</p>
+      <p id="detail"></p>
+    </div>
+    <p id="more"></p>
+    <p class="clock" id="hst">Hawaiʻi time</p>
+  </main>
+<script>
+const path = location.pathname.replace(/\/$/, "") || "/";
+document.querySelectorAll("nav a[data-match]").forEach((a) => {
+  const m = a.getAttribute("data-match");
+  if (m === "/" && path === "/") a.classList.add("on");
+  else if (m !== "/" && path === m) a.classList.add("on");
+});
+function clock() {
+  const t = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Pacific/Honolulu", weekday: "short", hour: "numeric", minute: "2-digit", hour12: true
+  }).format(new Date());
+  document.getElementById("hst").textContent = t + " HST";
+}
+clock();
+setInterval(clock, 15000);
+
+function set(id, text) { document.getElementById(id).textContent = text; }
+
+async function kilauea() {
+  document.title = "Kīlauea — RootRecord";
+  set("title", "Kīlauea");
+  set("lede", "The volcano feed on the HI Pacific Solar Root Server.");
+  set("kicker", "Alert");
+  try {
+    const d = await (await fetch("/api/kilauea", { cache: "no-store" })).json();
+    const lvl = String(d.alert_level || "advisory");
+    set("hero", lvl.replace(/^./, (c) => c.toUpperCase()));
+    set("detail", "Not a forecast. This is the last level we have on the root server.");
+    const when = d.updated_at ? String(d.updated_at).replace("T", " ").slice(0, 16) + " UTC" : "";
+    set("more", when ? "Last written " + when + "." : "");
+  } catch (_) {
+    set("hero", "Not live");
+    set("detail", "The volcano page could not read the last report.");
+  }
+}
+
+async function weather() {
+  document.title = "Weather — RootRecord";
+  set("title", "Weather");
+  set("lede", "The last National Weather Service report we have for this island.");
+  set("kicker", "Last report");
+  try {
+    const d = await (await fetch("/api/weather", { cache: "no-store" })).json();
+    const t = d.temperature_f != null ? d.temperature_f + "°F" : "";
+    set("hero", [d.period, t].filter(Boolean).join(" · ") || "Last report");
+    set("detail", d.forecast || "No forecast line in the last file.");
+    const when = d.updated_at ? String(d.updated_at).replace("T", " ").slice(0, 16) + " UTC" : "";
+    set("more", when ? "That file was written " + when + ". If it is old, say so — it is not now." : "");
+  } catch (_) {
+    set("hero", "Not live");
+    set("detail", "Weather could not read the last report.");
+  }
+}
+
+function rootmc() {
+  document.title = "RootMC — RootRecord";
+  set("title", "RootMC");
+  set("lede", "Minecraft on the Root Server network.");
+  set("kicker", "Play");
+  set("hero", "play.rootmc.net");
+  set("detail", "Java Edition. Site: rootmc.net · API: api.rootmc.net.");
+  document.getElementById("more").innerHTML = '<a href="https://play.rootmc.net" target="_top">play.rootmc.net</a> · <a href="https://rootmc.net/" target="_top">rootmc.net</a>';
+}
+
+if (path === "/kilauea") kilauea();
+else if (path === "/weather") weather();
+else if (path === "/rootmc") rootmc();
+else {
+  set("title", "RootRecord");
+  set("lede", "The public door for the HI Pacific Solar Root Server.");
+  set("hero", "Open status");
+  set("detail", "Live bank, packs, and this server.");
+  document.getElementById("more").innerHTML = '<a href="https://rootrecord.cloud/status" target="_top">Status desk</a>';
+}
+</script>
+</body>
+</html>

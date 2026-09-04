@@ -14,6 +14,6 @@ Public home: **rootrecord.cloud**. Tunnel: `origin.avaivy.cloud` → `:8787`.
 
 Timings: `operations/cronologicals` (`always-on`, `on-time`, `since-last-fire`, `in-order-on-boot`).
 
-Task Scheduler: `pythonw.exe` only — `windows\watchdog.py`, `scripts\auto-push.py` (30s, commits dirty safe paths), `scripts\auto-pull.py` (10 min, ff-only, refuses dirty), `scripts\site-update.py` (5 min, holding worker). Never `powershell.exe`.
+Task Scheduler: `pythonw.exe` only — `windows\watchdog.py`, `scripts\auto-push.py` (1 min task; script checks twice so dirty files hit GitHub in about 30s; Windows rejects PT30S), `scripts\auto-pull.py` (10 min, ff-only, refuses dirty), `scripts\site-update.py` (5 min, holding worker). Never `powershell.exe`.
 
 C-only check: `windows\assert_c_only.py`. Workstation verify (does not recreate USB junctions): `scripts\import_workstations.ps1`.

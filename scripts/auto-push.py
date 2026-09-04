@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,6 +29,22 @@ from git_win import (
     unstage_secrets,
 )
 
+# New source under these trees is auto-staged. Not Media, not data, not packages/web leftovers.
+SAFE_ADD = (
+    "AGENTS.md",
+    "apps/core/",
+    "apps/desktop/",
+    "packages/workers/",
+    "scripts/auto-push.py",
+    "scripts/git_win.py",
+    "scripts/auto-pull.py",
+    "windows/register-services.ps1",
+    "windows/auto-push.xml",
+    "windows/auto-pull.xml",
+    "windows/watchdog.xml",
+    "windows/site-update.xml",
+    "windows/assert_c_only.py",
+)
 LOG = LOG_DIR / "auto-push.log"
 FLAG_WIN = Path.home() / ".ava" / "github-auto-push.off"
 FLAG_NIX = Path.home() / ".local" / "state" / "ava" / "github-auto-push.off"
@@ -58,8 +75,11 @@ def _staged_names(exe: str) -> list[str]:
 
 
 def _commit_safe(exe: str, dry: bool) -> bool:
-    """Stage tracked changes that are safe, commit if anything remains."""
+    """Stage tracked changes plus new product source that is safe, then commit."""
     git(exe, "add", "-u")
+    existing = [p for p in SAFE_ADD if (REPO / p).exists()]
+    if existing:
+        git(exe, "add", "--", *existing)
     secrets = unstage_secrets(exe)
     if secrets:
         log("unstaged secrets: " + " ".join(secrets[:12]))
@@ -87,6 +107,7 @@ def _commit_safe(exe: str, dry: bool) -> bool:
 
 def main(argv: list[str]) -> int:
     dry = "--dry-run" in argv
+    once = "--once" in argv
     if os.environ.get("AVA_AUTO_PUSH", "1").lower() in {"0", "false", "no"}:
         return 0
     if FLAG_WIN.is_file() or FLAG_NIX.is_file():
@@ -101,6 +122,19 @@ def main(argv: list[str]) -> int:
     if not exe:
         log("skip: git.exe not found")
         return 1
+
+    # Task Scheduler will not take PT30S on this Windows. Tick twice per 1-min task.
+    deadline = time.monotonic() + (0 if once or dry else 50)
+    rc = 0
+    while True:
+        rc = _tick(exe, dry)
+        if once or dry or time.monotonic() + 30 > deadline:
+            break
+        time.sleep(30)
+    return rc
+
+
+def _tick(exe: str, dry: bool) -> int:
     lock = acquire_lock()
     if lock is None:
         log("skip: git-sync lock held")

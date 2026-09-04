@@ -1,0 +1,10 @@
+name = "kilauea-public"
+main = "kilauea-worker.ts"
+compatibility_date = "2026-09-01"
+account_id = "d2daf26398a805b29e12ddba2b2228cf"
+workers_dev = false
+
+routes = [
+  { pattern = "kilauea.cloud/*", zone_name = "kilauea.cloud" },
+  { pattern = "www.kilauea.cloud/*", zone_name = "kilauea.cloud" },
+]

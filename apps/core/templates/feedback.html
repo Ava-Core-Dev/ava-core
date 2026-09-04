@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Feedback — RootRecord</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: Georgia, "Iowan Old Style", "Segoe UI", serif;
+    color: #f4efe6;
+    background: #0a1016;
+    line-height: 1.55;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 1rem 1.25rem;
+    border-bottom: 1px solid #1c2a36;
+  }
+  .brand {
+    letter-spacing: 0.12em; text-transform: uppercase;
+    font-size: 0.72rem; font-weight: 700;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #ff6a2a; text-decoration: none;
+  }
+  nav { display: flex; flex-wrap: wrap; gap: 0.85rem 1.1rem; }
+  nav a {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.85rem; color: #9fb0bc; text-decoration: none;
+  }
+  nav a.on, nav a:hover { color: #f4efe6; }
+  main { max-width: 40rem; margin: 0 auto; padding: 2.4rem 1.25rem 4rem; }
+  h1 {
+    font-weight: 500; font-size: clamp(1.85rem, 5vw, 2.5rem);
+    line-height: 1.15; letter-spacing: -0.03em; margin: 0 0 0.7rem;
+  }
+  .lede { font-size: 1.05rem; color: #e4ddd2; margin: 0 0 1.2rem; }
+  p { margin: 0 0 1rem; color: #c5ced6; }
+  label {
+    display: block; font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #7d8a96; margin: 0 0 0.35rem;
+  }
+  input, textarea, select {
+    width: 100%; margin: 0 0 1rem; padding: 0.65rem 0.7rem;
+    border: 1px solid #1c2a36; border-radius: 0.45rem;
+    background: #0d151c; color: #f4efe6; font: inherit;
+  }
+  textarea { min-height: 8rem; resize: vertical; }
+  button {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: #ff6a2a; color: #140a06; border: 0; border-radius: 0.45rem;
+    padding: 0.7rem 1.1rem; font-weight: 700; cursor: pointer;
+  }
+  .ok { color: #3ee0c6; }
+  .err { color: #fb7185; }
+</style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="https://rootrecord.cloud/" target="_top">RootRecord</a>
+    <nav aria-label="Site">
+      <a href="https://rootrecord.cloud/" target="_top">Home</a>
+      <a href="https://rootrecord.cloud/status" target="_top">Status</a>
+      <a href="https://rootrecord.cloud/kilauea" target="_top">Kīlauea</a>
+      <a href="https://rootrecord.cloud/weather" target="_top">Weather</a>
+      <a class="on" href="https://rootrecord.cloud/feedback" target="_top">Feedback</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Feedback</h1>
+    <p class="lede">Tell RootRecord what worked, what broke, or what you want next.</p>
+    <form id="f" method="post" action="/api/feedback">
+      <label for="kind">Type</label>
+      <select id="kind" name="type">
+        <option value="general">General</option>
+        <option value="bug">Bug</option>
+        <option value="feature">Feature</option>
+      </select>
+      <label for="message">Message</label>
+      <textarea id="message" name="message" required maxlength="8000" placeholder="What happened?"></textarea>
+      <label for="email">Reply email (optional)</label>
+      <input id="email" name="reply_email" type="email" maxlength="160" placeholder="you@example.com"/>
+      <button type="submit">Send</button>
+    </form>
+    <p id="out"></p>
+  </main>
+<script>
+const out = document.getElementById("out");
+document.getElementById("f").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  out.textContent = "Sending…";
+  out.className = "";
+  const body = {
+    type: document.getElementById("kind").value,
+    message: document.getElementById("message").value,
+    reply_email: document.getElementById("email").value || null,
+    surface: location.hostname,
+  };
+  try {
+    const r = await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.ok === false) {
+      out.className = "err";
+      out.textContent = d.detail || "Could not send. Try again.";
+      return;
+    }
+    out.className = "ok";
+    out.textContent = "Got it. Thank you.";
+    document.getElementById("message").value = "";
+  } catch (_) {
+    out.className = "err";
+    out.textContent = "Could not send. Try again.";
+  }
+});
+</script>
+</body>
+</html>

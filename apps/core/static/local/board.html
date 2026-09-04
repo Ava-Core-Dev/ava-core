@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>HI Pacific Solar Root Server</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0a0e14;
+      --card: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --cyan: #22d3ee;
+      --amber: #f59e0b;
+      --green: #34d399;
+      --rose: #fb7185;
+      --held: #d4a574;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      position: sticky; top: 0; z-index: 5;
+      background: rgba(10,14,20,.94);
+      border-bottom: 1px solid var(--border);
+      padding: .7rem 1rem .55rem;
+    }
+    .brand { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--amber); font-weight: 700; }
+    h1 { margin: .2rem 0 0; font-size: 1.15rem; font-weight: 750; }
+    .sub { color: var(--muted); font-size: .88rem; margin: .2rem 0 0; }
+    nav { display: flex; flex-wrap: wrap; gap: .35rem .55rem; margin-top: .7rem; }
+    nav a {
+      color: var(--muted); font-size: .8rem; border: 1px solid var(--border);
+      border-radius: 999px; padding: .22rem .7rem;
+    }
+    nav a.on { color: #0a0e14; background: var(--cyan); border-color: var(--cyan); }
+    main { max-width: 64rem; margin: 0 auto; padding: 1rem 1rem 3rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: .75rem; }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: .7rem;
+      padding: .9rem 1rem;
+    }
+    .card h2, .card h3 { margin: 0 0 .45rem; font-size: .95rem; }
+    .k { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 .45rem; }
+    .big { font-size: 1.7rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .muted { color: var(--muted); }
+    .ok { color: var(--green); }
+    .warn { color: var(--amber); }
+    .down { color: var(--rose); }
+    .held { color: var(--held); }
+    .row { display: flex; justify-content: space-between; gap: .75rem; margin: .28rem 0; font-size: .92rem; }
+    .row span:first-child { color: var(--muted); }
+    .v { font-variant-numeric: tabular-nums; font-weight: 650; }
+    ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+    li { margin: .15rem 0; }
+    .lede { margin: 0 0 1rem; }
+    svg.spark { width: 100%; height: 56px; display: block; background: rgba(255,255,255,.03); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th, td { text-align: left; padding: .28rem 0; border-bottom: 1px solid #1f2937; }
+    th { color: var(--muted); font-weight: 600; }
+    .note { font-size: .85rem; color: var(--muted); margin-top: .6rem; }
+    @media (max-width: 640px) {
+      h1 { font-size: 1.02rem; }
+      .big { font-size: 1.35rem; }
+      main { padding: .75rem .75rem 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">RootRecord</div>
+    <h1>HI Pacific Solar Root Server</h1>
+    <p class="sub" id="clock">This PC only · 127.0.0.1:8787</p>
+    <nav id="nav"></nav>
+  </header>
+  <main id="main"><p class="muted">Loading live facts…</p></main>
+  <script>
+    const NAV = [
+      ["/", "Home"],
+      ["/system", "System"],
+      ["/host", "Host"],
+      ["/ecoflow", "Solar"],
+      ["/weather", "Weather"],
+      ["/kilauea", "Kīlauea"],
+      ["/business", "Business"],
+      ["/identities", "Identities"],
+      ["/media", "Media"],
+      ["/minecraft", "RootMC"],
+      ["/holding", "Holding"]
+    ];
+    const path = (location.pathname.replace(/\/$/, "") || "/");
+    const main = document.getElementById("main");
+    const nav = document.getElementById("nav");
+    NAV.forEach(([href, label]) => {
+      const a = document.createElement("a");
+      a.href = href;
+      a.textContent = label;
+      if (href === path) a.className = "on";
+      nav.appendChild(a);
+    });
+
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+    const dash = (v, unit) => (v === null || v === undefined || v === "") ? "not live" : (unit ? `${v}${unit}` : String(v));
+    const cls = (ok) => ok ? "ok" : "down";
+    function row(k, v, klass) {
+      return `<div class="row"><span>${esc(k)}</span><span class="v ${klass || ""}">${v}</span></div>`;
+    }
+    function card(title, body) {
+      return `<section class="card"><h2>${esc(title)}</h2>${body}</section>`;
+    }
+    function spark(points, key) {
+      const vals = (points || []).map((p) => p[key]).filter((n) => typeof n === "number");
+      if (vals.length < 2) return `<p class="held">Chart not live.</p>`;
+      const min = Math.min(...vals), max = Math.max(...vals);
+      const span = (max - min) || 1;
+      const w = 320, h = 56;
+      const d = vals.map((n, i) => {
+        const x = (i / (vals.length - 1)) * w;
+        const y = h - 4 - ((n - min) / span) * (h - 8);
+        return `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+      return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d}" fill="none" stroke="#22d3ee" stroke-width="2"/></svg>`;
+    }
+
+    async function load() {
+      const res = await fetch("/api/local/board", { cache: "no-store" });
+      if (res.status === 404) {
+        main.innerHTML = `<p class="down">This page is for this PC only.</p>`;
+        return;
+      }
+      const j = await res.json();
+      if (!j || !j.ok) {
+        main.innerHTML = `<p class="down">${esc(j && j.detail ? j.detail : "Board did not load.")}</p>`;
+        return;
+      }
+      document.getElementById("clock").textContent = `${j.clock_hst} · this PC only · 127.0.0.1:8787`;
+      if (path === "/") renderHome(j);
+      else if (path === "/system") renderSystem(j);
+      else if (path === "/host") renderHost(j);
+      else if (path === "/ecoflow") renderSolar(j);
+      else if (path === "/weather") renderWeather(j);
+      else if (path === "/kilauea") renderKilauea(j);
+      else if (path === "/business") renderBusiness(j);
+      else if (path === "/identities") renderIdentities(j);
+      else if (path === "/media") renderMedia(j);
+      else if (path === "/minecraft") renderMinecraft(j);
+    }
+
+    function pill(ok, live, held) {
+      if (ok) return `<span class="ok">${live || "live"}</span>`;
+      return `<span class="${held ? "held" : "down"}">${held || "not live"}</span>`;
+    }
+
+    function renderHome(j) {
+      const s = j.solar || {};
+      const h = j.host || {};
+      const w = j.weather || {};
+      const k = j.kilauea || {};
+      const b = j.business || {};
+      const id = j.identities || {};
+      const o = j.origin || {};
+      main.innerHTML = `
+        <p class="lede">Live facts from this origin. If a feed is down, the card says so.</p>
+        <div class="grid">
+          ${card("Origin", `
+            ${row("Health", "up", "ok")}
+            ${row("Bind", esc(o.bind))}
+            ${row("D1 heartbeat", esc(o.d1_heartbeat), o.d1_heartbeat === "live" ? "ok" : "held")}
+            ${row("Tunnel", esc((j.tunnel || {}).note))}
+            ${row("Ollama", j.ollama && j.ollama.up ? "up" : "down", cls(j.ollama && j.ollama.up))}
+            ${row("MySQL", j.mysql && j.mysql.live ? "live" : "not live", j.mysql && j.mysql.live ? "ok" : "held")}
+            <p class="note"><a href="/system">System board</a></p>
+          `)}
+          ${card("Solar", `
+            <div class="big">${s.live ? dash(s.battery_pct, "%") : "not live"}</div>
+            <p class="muted">${s.live ? "Bank now" : "EcoFlow not live"}</p>
+            ${row("PV", s.live ? dash(s.solar_in_w, " W") : "not live")}
+            ${row("Load", s.live ? dash(s.load_w, " W") : "not live")}
+            <p class="note"><a href="/ecoflow">Solar board</a> · <a href="/status">Full status desk</a></p>
+          `)}
+          ${card("Host", `
+            ${row("CPU", dash(h.cpu_pct, "%"))}
+            ${row("RAM", dash(h.mem_pct, "%"))}
+            ${row("Host charge", dash(h.host_battery_pct, "%"))}
+            ${row("Disk", dash(h.disk_pct, "%"))}
+            <p class="note"><a href="/host">Host board</a></p>
+          `)}
+          ${card("Weather + Kīlauea", `
+            ${row("Weather", w.ok ? esc(w.forecast || w.period) : "not live", w.ok ? "" : "held")}
+            ${row("Temp", w.ok ? dash(w.temperature_f, "°F") : "not live")}
+            ${row("Kīlauea", k.ok ? esc(k.alert_level) : "not live", k.ok ? "ok" : "held")}
+            <p class="note"><a href="/weather">Weather</a> · <a href="/kilauea">Kīlauea</a></p>
+          `)}
+          ${card("Business", `
+            ${row("Ledger", b.ledger_ok ? "on this PC" : "held", b.ledger_ok ? "ok" : "held")}
+            ${row("Stripe", b.stripe_live ? "snapshot on disk" : "not live", b.stripe_live ? "ok" : "held")}
+            <p class="note"><a href="/business">Business board</a></p>
+          `)}
+          ${card("Identities", `
+            ${row("Records", dash(id.identities))}
+            ${row("Email ids", dash((id.by_kind || {}).email))}
+            ${row("Counts only", "no lists")}
+            <p class="note"><a href="/identities">Identity counts</a></p>
+          `)}
+        </div>
+        <p class="note">Public web stays on the holding page. These URLs are this PC only.</p>
+      `;
+    }
+
+    function renderSystem(j) {
+      const o = j.origin || {};
+      const t = j.tunnel || {};
+      const p = j.procs || {};
+      const ol = j.ollama || {};
+      const inbox = j.inbox || {};
+      const jobs = (o.jobs || []).map((x) => `<li>${esc(x.id || x.name)} — next ${esc(x.next_run || "not set")}</li>`).join("");
+      const models = (ol.models || []).map((m) => `<li>${esc(m)}</li>`).join("") || "<li>none listed</li>";
+      main.innerHTML = `
+        <p class="lede">Origin health as this process sees it. Watchdog does not stay running.</p>
+        <div class="grid">
+          ${card("Origin", `
+            ${row("Health", "up", "ok")}
+            ${row("Bind", esc(o.bind))}
+            ${row("Host uptime", dash(o.uptime_s, " s"))}
+            ${row("Desk up", dash(o.desk_uptime_s, " s"))}
+            ${row("Last return", o.last_return_at ? esc(String(o.last_return_at).replace("T"," ").slice(0,16)) : "not live")}
+            ${row("Sunrise", o.sunrise ? esc(o.sunrise) + " HST" : "not live")}
+            ${row("Sunset", o.sunset ? esc(o.sunset) + " HST" : "not live")}
+            ${row("D1 heartbeat", esc(o.d1_heartbeat), o.d1_heartbeat === "live" ? "ok" : "held")}
+            ${row("Uvicorn copies", dash(p.uvicorn_n))}
+            ${row("Origin log", p.origin_log_mtime ? esc(p.origin_log_mtime) : "not live")}
+            <p class="note">${esc(p.watchdog || "")}</p>
+          `)}
+          ${card("Tunnel", `
+            ${row("Processes", dash(t.process_count))}
+            ${row("Metrics", t.metrics_ok ? "answered" : "not live", t.metrics_ok ? "ok" : "held")}
+            ${row("Ready connections", t.connections == null ? "not live" : t.connections)}
+            <p class="note">${esc(t.note || "")}</p>
+          `)}
+          ${card("Ollama", `
+            ${row("Status", ol.up ? "up" : "down", cls(ol.up))}
+            ${row("URL", esc(ol.url))}
+            <p class="k">Tags</p>
+            <ul>${models}</ul>
+          `)}
+          ${card("Inbox", `
+            ${row("Discord token on disk", inbox.discord_token_set ? "set" : "missing", inbox.discord_token_set ? "ok" : "held")}
+            ${row("Report subscribers", dash(inbox.report_subscribers))}
+            ${row("Inbox file", inbox.inbox_file ? "present" : "missing")}
+            <p class="note">No tokens on this screen.</p>
+          `)}
+          ${card("MySQL", `
+            ${row("Local MySQL", j.mysql && j.mysql.live ? "live" : "not live", j.mysql && j.mysql.live ? "ok" : "held")}
+          `)}
+        </div>
+        <section class="card" style="margin-top:.75rem">
+          <h2>Scheduler jobs</h2>
+          ${jobs ? `<ul>${jobs}</ul>` : `<p class="held">No job list.</p>`}
+        </section>
+      `;
+    }
+
+    function renderHost(j) {
+      const h = j.host || {};
+      const last = h.history_last || null;
+      const disks = (h.disks || []).map((d) =>
+        `<tr><td>${esc(d.mount)}</td><td class="v">${dash(d.pct, "%")}</td><td class="v">${dash(d.used_gb)} / ${dash(d.total_gb)} GB</td></tr>`
+      ).join("");
+      main.innerHTML = `
+        <p class="lede">This is host charge, not EcoFlow bank. NPU watts are not measured.</p>
+        <div class="grid">
+          ${card("Now", `
+            ${row("CPU", dash(h.cpu_pct, "%"))}
+            ${row("RAM", `${dash(h.mem_used_gb)} / ${dash(h.mem_total_gb)} GB · ${dash(h.mem_pct, "%")}`)}
+            ${row("Temp", h.temp_c == null ? "not live" : `${h.temp_c}°C`)}
+            ${row("Temp source", h.temp_src ? esc(h.temp_src) : "not live")}
+            ${row("Host charge", dash(h.host_battery_pct, "%"))}
+            ${row("Charge", h.host_battery_plugged == null ? "not live" : (h.host_battery_plugged ? "Charging" : "On battery"))}
+            ${row("C: disk", dash(h.disk_pct, "%"))}
+            ${row("GPU", h.gpu_name ? esc(h.gpu_name) : "not live")}
+            ${row("NPU present", h.npu_present ? "yes" : "no")}
+            ${row("NPU watts", "not live")}
+          `)}
+          ${card("Last history row", last ? `
+            ${row("CPU", dash(last.cpu_pct, "%"))}
+            ${row("RAM", dash(last.mem_pct, "%"))}
+            ${row("Host charge", dash(last.battery_pct, "%"))}
+            ${row("Temp", last.temp_c == null ? "not live" : `${last.temp_c}°C`)}
+          ` : `<p class="held">Host history file not live.</p>`)}
+        </div>
+        <section class="card" style="margin-top:.75rem">
+          <h2>Disks</h2>
+          ${disks ? `<table><thead><tr><th>Mount</th><th>Used</th><th>Space</th></tr></thead><tbody>${disks}</tbody></table>` : `<p class="held">No disk list.</p>`}
+        </section>
+      `;
+    }
+
+    async function renderSolar(j) {
+      const s = j.solar || {};
+      const en = s.energy && s.energy.ok ? s.energy : null;
+      const enWh = {};
+      if (en) for (const p of en.packs || []) enWh[p.label] = p;
+      const packs = (s.devices || []).map((d) => {
+        const e = enWh[d.label];
+        return `
+        <section class="card">
+          <h3>${esc(d.label)}</h3>
+          ${row("Online", d.online ? "yes" : "no", d.online ? "ok" : "down")}
+          ${row("SOC", dash(d.soc, "%"))}
+          ${e ? row("Stored", `${e.stored_wh} Wh of ${e.capacity_wh} Wh`) : ""}
+          ${row("PV", dash(d.pv_w, " W"))}
+          ${row("AC out", dash(d.ac_out_w, " W"))}
+        </section>
+      `;
+      }).join("");
+      const f = en ? (en.flow || {}) : {};
+      const runtime = f.hours_to_empty != null
+        ? `${f.hours_to_empty} h to empty`
+        : (f.hours_to_full != null ? `${f.hours_to_full} h to full` : "—");
+      const energyCard = en ? card("Energy stored", `
+            <div class="big">${en.stored_kwh.toFixed(2)} kWh</div>
+            <p class="muted">of ${en.capacity_kwh.toFixed(2)} kWh nameplate · ${en.bank_pct}% capacity-weighted</p>
+            ${row("In (PV)", dash(f.pv_w, " W"))}
+            ${row("Out (combined)", dash(f.load_w, " W"))}
+            ${row("Net", f.net_w != null ? `${f.net_w} W ${esc(f.direction || "")}` : "—")}
+            ${row("At this rate", runtime)}
+            ${row("This host battery", en.host_stored_wh != null ? `${en.host_stored_wh} Wh of ${en.host_capacity_wh} Wh` : `${en.host_capacity_wh} Wh spec`)}
+            ${row("Packs + host", en.total_stored_wh != null ? `${en.total_stored_wh} Wh of ${en.total_capacity_wh} Wh` : "—")}
+            <p class="note">Capacity is vendor spec. SOC and watts are live.</p>
+          `) : "";
+      main.innerHTML = `
+        <p class="lede">Live EcoFlow sample. Night PV near 0 is real. History chart only if the API has points.</p>
+        <div class="grid">
+          ${card("Bank", `
+            <div class="big">${s.live ? dash(s.battery_pct, "%") : "not live"}</div>
+            ${row("Source", esc(s.source || "none"), s.live ? "ok" : "held")}
+            ${row("State", dash(s.state))}
+            ${row("PV in", s.live ? dash(s.solar_in_w, " W") : "not live")}
+            ${row("Load", s.live ? dash(s.load_w, " W") : "not live")}
+            <p class="note"><a href="/status">Full status desk</a></p>
+          `)}
+          ${energyCard}
+          ${packs || `<section class="card"><p class="held">No pack list.</p></section>`}
+        </div>
+        <section class="card" style="margin-top:.75rem">
+          <h2>Last hour SOC</h2>
+          <div id="solar-chart"><p class="muted">Checking history…</p></div>
+        </section>
+      `;
+      try {
+        const h = await fetch("/api/solar/history?hours=1", { cache: "no-store" }).then((r) => r.json());
+        const el = document.getElementById("solar-chart");
+        if (!h || !h.ok || !h.points || !h.points.length) {
+          el.innerHTML = `<p class="held">History not live.</p>`;
+        } else {
+          const last = h.points[h.points.length - 1];
+          el.innerHTML = spark(h.points, "soc") + row("Last SOC", dash(last.soc, "%")) + row("Last PV", dash(last.solar_w, " W"));
+        }
+      } catch (e) {
+        const el = document.getElementById("solar-chart");
+        if (el) el.innerHTML = `<p class="held">History not live.</p>`;
+      }
+    }
+
+    function renderWeather(j) {
+      const w = j.weather || {};
+      const k = j.kilauea || {};
+      main.innerHTML = `
+        <p class="lede">NWS report on this origin. Public weather JSON stays held.</p>
+        <div class="grid">
+          ${card("Weather", w.ok ? `
+            ${row("Period", esc(w.period))}
+            ${row("Temp", dash(w.temperature_f, "°F"))}
+            ${row("Forecast", esc(w.forecast))}
+            ${row("Alerts in report", dash(w.alerts_active))}
+            ${row("Updated", esc(w.updated_at))}
+          ` : `<p class="held">${esc(w.detail || "Weather not live.")}</p>`)}
+          ${card("Kīlauea", k.ok ? `
+            ${row("Alert", esc(k.alert_level))}
+            ${row("Multiplier", dash(k.multiplier))}
+            ${row("Updated", esc(k.updated_at))}
+            <p class="note"><a href="/kilauea">Kīlauea board</a></p>
+          ` : `<p class="held">${esc(k.detail || "Kīlauea not live.")}</p>`)}
+        </div>
+      `;
+    }
+
+    function renderKilauea(j) {
+      const k = j.kilauea || {};
+      main.innerHTML = `
+        <p class="lede">Volcano state from the root server. Public Kīlauea Alerts app stays held.</p>
+        <div class="grid">
+          ${card("Alert", k.ok ? `
+            <div class="big">${esc(k.alert_level)}</div>
+            ${row("Multiplier", dash(k.multiplier))}
+            ${row("Nearby events", k.events_nearby == null ? "not in this file" : k.events_nearby)}
+            ${row("Max magnitude", k.max_magnitude == null ? "not in this file" : k.max_magnitude)}
+            ${row("Updated", esc(k.updated_at))}
+            ${row("Source", esc(k.source || "state file"))}
+          ` : `<p class="held">${esc(k.detail || "Kīlauea not live.")}</p>`)}
+        </div>
+      `;
+    }
+
+    function renderBusiness(j) {
+      const b = j.business || {};
+      const stripe = b.stripe || {};
+      const lines = (b.lines || []).map((r) =>
+        `<tr><td>${esc(r.kind)}</td><td>${esc(r.project)}</td><td>${esc(r.label)}</td><td class="v">${dash(r.monthly_usd)}</td></tr>`
+      ).join("");
+      main.innerHTML = `
+        <p class="lede">Local ledger. Public Business Manager stays held. No wallets on this page.</p>
+        <div class="grid">
+          ${card("Ledger", b.ledger_ok ? `
+            ${row("Status", "on this PC", "ok")}
+            ${row("Expense rows", dash(b.expense_rows))}
+            ${row("Income rows", dash(b.income_rows))}
+            ${row("Expense / mo", dash(b.expense_monthly_usd))}
+            ${row("Income / mo", dash(b.income_monthly_usd))}
+          ` : `<p class="held">${esc(b.detail || "Ledger held.")}</p>`)}
+          ${card("Stripe snapshot", stripe.live ? `
+            ${row("30d income", dash(stripe.income30dUsd))}
+            ${row("30d fees", dash(stripe.fees30dUsd))}
+            ${row("Available", stripe.usdAvailable == null ? "not in snapshot" : stripe.usdAvailable)}
+            ${row("Fetched", stripe.fetched_at ? esc(stripe.fetched_at) : "not live")}
+          ` : `<p class="held">Stripe snapshot not live.</p>`)}
+        </div>
+        <section class="card" style="margin-top:.75rem">
+          <h2>Ledger lines</h2>
+          ${lines ? `<table><thead><tr><th>Kind</th><th>Project</th><th>Label</th><th>$ / mo</th></tr></thead><tbody>${lines}</tbody></table>` : `<p class="held">No lines.</p>`}
+        </section>
+      `;
+    }
+
+    function renderIdentities(j) {
+      const id = j.identities || {};
+      const kind = id.by_kind || {};
+      const m = j.rootmc_membership || {};
+      const kindRows = Object.keys(kind).map((k) => row(k, dash(kind[k]))).join("");
+      main.innerHTML = `
+        <p class="lede">Counts by kind only. No emails, Discord ids, UUIDs, or wallet keys.</p>
+        <div class="grid">
+          ${card("Local store", `
+            ${row("Identities", dash(id.identities))}
+            ${row("Members flagged", dash(id.members_flagged))}
+            ${row("UUID present", dash(id.uuid_present))}
+            ${kindRows}
+            <p class="note">${esc(id.store || "")}</p>
+          `)}
+          ${card("RootMC membership", m.ok ? `
+            ${row("Paid members", dash(m.paid_members))}
+            ${row("Pro", dash(m.paid_pro))}
+            ${row("Lifetime", dash(m.lifetime))}
+            ${row("MRR USD", dash(m.mrr_usd))}
+            ${row("api.rootmc.net", m.canonical_ok ? "live" : "held", m.canonical_ok ? "ok" : "held")}
+            <p class="note">${esc(m.note || "")}</p>
+          ` : `<p class="held">${esc(m.note || m.detail || "Membership not live.")}</p>`)}
+        </div>
+      `;
+    }
+
+    function renderMedia(j) {
+      const pub = (j.media || {}).public || {};
+      const priv = (j.media || {}).private || {};
+      const cron = j.cronologicals || {};
+      const typeList = (block) => {
+        if (!block.exists) return `<p class="held">Folder not on this PC.</p>`;
+        if (!block.types || !block.types.length) return `<p class="held">No type folders.</p>`;
+        return block.types.map((t) =>
+          `<li><strong>${esc(t.name)}</strong>${t.categories && t.categories.length ? " — " + t.categories.map(esc).join(", ") : ""}</li>`
+        ).join("");
+      };
+      const buckets = (cron.buckets || []).map((b) =>
+        `<li><strong>${esc(b.name)}</strong>${b.exists ? ": " + (b.jobs || []).map(esc).join(", ") : " — missing"}</li>`
+      ).join("");
+      main.innerHTML = `
+        <p class="lede">Folder names only. Private notes are not dumped here.</p>
+        <div class="grid">
+          ${card("Public media", `<p class="muted">${esc(pub.path || "")}</p><ul>${typeList(pub)}</ul>`)}
+          ${card("Private media", `<p class="muted">${esc(priv.path || "")}</p><ul>${typeList(priv)}</ul>`)}
+        </div>
+        <section class="card" style="margin-top:.75rem">
+          <h2>Cronologicals</h2>
+          <p class="muted">${esc(cron.path || "")}</p>
+          ${buckets ? `<ul>${buckets}</ul>` : `<p class="held">Cronologicals folder not found.</p>`}
+        </section>
+      `;
+    }
+
+    function renderMinecraft(j) {
+      const m = j.minecraft || {};
+      const live = m.live || {};
+      const test = m.test || {};
+      const mem = j.rootmc_membership || {};
+      main.innerHTML = `
+        <p class="lede">play.rootmc.net is the public game host. Ava origin is not on *.rootmc.net.</p>
+        <div class="grid">
+          ${card("play.rootmc.net", `
+            ${row("Online", live.online ? "yes" : "no", live.online ? "ok" : "down")}
+            ${row("Host", esc(live.host || "play.rootmc.net"))}
+            ${row("Port", dash(live.port))}
+            ${row("Latency", live.latency_ms == null ? "not live" : `${live.latency_ms} ms`)}
+          `)}
+          ${card("Local test jar", `
+            ${row("Folder present", m.dir_present ? "yes" : "no")}
+            ${row("Jar", m.jar ? esc(m.jar) : "not live")}
+            ${row("Plugin jars", dash(m.plugins))}
+            ${row("Test TCP", test.online ? "open" : "closed", test.online ? "ok" : "held")}
+          `)}
+          ${card("Membership", mem.ok ? `
+            ${row("Paid members", dash(mem.paid_members))}
+            ${row("MRR USD", dash(mem.mrr_usd))}
+            ${row("Public API", mem.canonical_ok ? "live" : "held", mem.canonical_ok ? "ok" : "held")}
+          ` : `<p class="held">${esc(mem.note || "Membership not live.")}</p>`)}
+        </div>
+      `;
+    }
+
+    load().catch((e) => { main.innerHTML = `<p class="down">${esc(e.message || e)}</p>`; });
+    setInterval(() => { load().catch(() => {}); }, 20000);
+  </script>
+</body>
+</html>
