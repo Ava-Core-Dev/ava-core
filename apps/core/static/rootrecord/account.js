@@ -412,7 +412,16 @@
     if (!headers.has("Content-Type") && opts?.body) {
       headers.set("Content-Type", "application/json");
     }
-    return fetch(apiUrl(path), { ...opts, headers, credentials: "include" });
+    const url = apiUrl(path);
+    let credentials = "include";
+    try {
+      if (new URL(url, window.location.href).origin !== window.location.origin) {
+        credentials = "omit";
+      }
+    } catch {
+      credentials = "omit";
+    }
+    return fetch(url, { ...opts, headers, credentials });
   }
 
   function showPanel(name) {
