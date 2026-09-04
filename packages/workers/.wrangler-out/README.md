@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "ava-api" generated at 2026-09-04T19:20:23.882Z.
