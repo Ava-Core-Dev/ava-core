@@ -182,7 +182,7 @@ async def live_facts() -> str:
         f"Numbers for this turn ({config.hst_now_text()}). Speak in your own words. Do not print a LIVE FACTS heading.",
         db_facts.ecoflow_line(),
         db_facts.host_line(),
-        _weather_line(),
+        *wx_lines,
         _kilauea_line(),
         db_facts.identity_line(),
         "RootMC MySQL: " + ("UP" if _mysql_up() else "DOWN"),
