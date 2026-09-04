@@ -122,7 +122,7 @@ async def telegram_loop() -> None:
         log.info("Telegram inbox off (no bot token)")
         return
     log.info("Telegram report-subscribe inbox running")
-    from apps.core.services import telegram_rooms
+    from apps.core.services import telegram_rooms, people
 
     bot_id = ""
     try:
@@ -202,7 +202,7 @@ async def telegram_loop() -> None:
                     except Exception:
                         pass
                     reply = await discord_chat.ava_reply(asked, extra_lock=extra)
-                elif from_id == telegram_rooms.ALEX_TG:
+                elif from_id in people.ALEX_TELEGRAM:
                     reply = await discord_chat.ava_reply(asked, dm=True)
                 else:
                     extra = persona_lock_public()

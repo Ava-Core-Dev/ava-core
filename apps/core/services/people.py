@@ -58,6 +58,23 @@ def connect() -> sqlite3.Connection:
           chat_id TEXT,
           at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS plants (
+          id INTEGER PRIMARY KEY,
+          person_id INTEGER NOT NULL REFERENCES people(id),
+          name TEXT,
+          cultivar TEXT,
+          row_label TEXT,
+          location TEXT,
+          notes TEXT,
+          updated_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS person_notes (
+          id INTEGER PRIMARY KEY,
+          person_id INTEGER NOT NULL REFERENCES people(id),
+          kind TEXT,
+          text TEXT,
+          at TEXT NOT NULL
+        );
         """
     )
     return conn
@@ -162,6 +179,14 @@ def observe(surface: str, sid: str, *, username: str = "", first_name: str = "",
         agri = None
         if text:
             agri = _maybe_agri(conn, pid, text, chat_id)
+            named = re.search(r"\bcall me ([A-Za-z][A-Za-z' -]{1,30})\b", text, re.I)
+            if named:
+                nm = named.group(1).strip(" .,")
+                if nm.lower() not in {"ava", "you"}:
+                    conn.execute(
+                        "UPDATE people SET call_name=?, updated_at=? WHERE id=?",
+                        (nm, _now(), pid),
+                    )
         row = conn.execute("SELECT call_name FROM people WHERE id=?", (pid,)).fetchone()
         conn.commit()
         ident = identities.connect()
@@ -240,6 +265,37 @@ def set_call_name(surface: str, sid: str, name: str) -> None:
     try:
         pid = _ensure_person(conn, surface, str(sid), call_name=name)
         conn.execute("UPDATE people SET call_name=?, updated_at=? WHERE id=?", (name, _now(), pid))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def add_note(surface: str, sid: str, kind: str, text: str) -> None:
+    text = str(text or "").strip()[:800]
+    if not text:
+        return
+    conn = connect()
+    try:
+        pid = _ensure_person(conn, surface, str(sid))
+        conn.execute(
+            "INSERT INTO person_notes (person_id, kind, text, at) VALUES (?, ?, ?, ?)",
+            (pid, (kind or "fact")[:40], text, _now()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def add_plant(surface: str, sid: str, *, name: str, cultivar: str = "", count: int = 1, notes: str = "") -> None:
+    conn = connect()
+    try:
+        pid = _ensure_person(conn, surface, str(sid))
+        for i in range(max(1, int(count))):
+            conn.execute(
+                """INSERT INTO plants (person_id, name, cultivar, row_label, location, notes, updated_at)
+                   VALUES (?, ?, ?, NULL, NULL, ?, ?)""",
+                (pid, name, cultivar or None, notes or None, _now()),
+            )
         conn.commit()
     finally:
         conn.close()
