@@ -124,27 +124,30 @@ async def api_chat(req: ChatRequest, request: Request):
 
     reply = await ollama_svc.chat(messages, timeout=45)
     if reply:
-        reply = persona_svc.scrub_reply(reply)
-        if reply:
-            return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL, "surface": surface}
+        cleaned = persona_svc.scrub_reply(reply)
+        if cleaned:
+            return {"reply": cleaned, "brain": "ollama", "model": config.OLLAMA_MODEL, "surface": surface}
 
-    if not config.XAI_API_KEY:
-        return JSONResponse({"error": "no AI backend available"}, status_code=503)
+    if config.XAI_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                r = await client.post(
+                    "https://api.x.ai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {config.XAI_API_KEY}",
+                             "Content-Type": "application/json"},
+                    json={"model": config.GROK_MODEL, "messages": messages,
+                          "max_tokens": req.max_tokens},
+                )
+            if r.status_code == 200:
+                data = r.json()
+                cleaned = persona_svc.scrub_reply(data["choices"][0]["message"]["content"].strip())
+                if cleaned:
+                    return {"reply": cleaned, "brain": "xai", "model": config.GROK_MODEL, "surface": surface}
+        except Exception as e:
+            log.error("xAI chat failed: %s", e)
 
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.post(
-                "https://api.x.ai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {config.XAI_API_KEY}",
-                         "Content-Type": "application/json"},
-                json={"model": config.GROK_MODEL, "messages": messages,
-                      "max_tokens": req.max_tokens},
-            )
-        if r.status_code == 200:
-            data = r.json()
-            reply = data["choices"][0]["message"]["content"].strip()
-            return {"reply": reply, "brain": "xai", "model": config.GROK_MODEL, "surface": surface}
-        return JSONResponse({"error": f"xAI {r.status_code}"}, status_code=502)
-    except Exception as e:
-        log.error("xAI chat failed: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=502)
+    return {
+        "reply": "I didn't get a clean sentence that time. Ask me again.",
+        "brain": "empty",
+        "surface": surface,
+    }

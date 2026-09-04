@@ -94,22 +94,30 @@ function add(role, text) {
   log.appendChild(d);
   log.scrollTop = log.scrollHeight;
 }
-add("ava", "Aloha — I'm Ava Ivy. Ask whatever you want.");
+add("ava", "Aloha — I'm Ava Ivy. What do you want to know?");
+const history = [];
 async function send() {
   const input = document.getElementById("q");
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
   add("user", text);
+  history.push({ role: "user", content: text });
   try {
     const r = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ message: text, surface: document.getElementById("surface").value }),
+      body: JSON.stringify({
+        message: text,
+        surface: document.getElementById("surface").value,
+        history: history.slice(-10),
+      }),
     });
     const d = await r.json().catch(() => ({}));
-    add("ava", d.reply || d.error || "I could not answer just then.");
+    const reply = d.reply || d.error || "I could not answer just then.";
+    add("ava", reply);
+    history.push({ role: "assistant", content: reply });
   } catch {
     add("ava", "Connection dropped. The Root Server may be on night bank. Try again in a bit.");
   }
