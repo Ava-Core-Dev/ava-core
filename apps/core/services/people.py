@@ -24,7 +24,7 @@ _AGRI_RE = re.compile(
 )
 
 
-def db_path() -> Path:
+def db_path():
     return config.DB_DIR / "people.sqlite"
 
 
