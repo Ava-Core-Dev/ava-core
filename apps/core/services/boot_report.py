@@ -264,7 +264,8 @@ _WALL_POWER_ADVICE = re.compile(
     r"|dock\s+(?:for\s+)?(?:power|charging)"
     r"|on\s+(?:the\s+)?(?:wall\s+)?dock\s+for\s+power"
     r"|wall\s+power"
-    r")\b"
+    r")\b",
+)
 
 
 def scrub_spoken(text: str) -> str:
