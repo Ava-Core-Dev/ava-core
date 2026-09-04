@@ -2908,6 +2908,15 @@ async function audioMusicAction(action) {
     });
     const j = await res.json();
     $("audio-status").textContent = j?.ok === false ? JSON.stringify(j, null, 2) : "";
+    const a = String(action || "").toLowerCase();
+    if (a === "start" || a === "resume") {
+      window.avaDesktop?.deskUiSave?.({
+        musicWanted: true,
+        musicTrack: j?.music?.current || j?.currently_playing?.music?.track || null,
+      }).catch(() => {});
+    } else if (a === "stop") {
+      window.avaDesktop?.deskUiSave?.({ musicWanted: false }).catch(() => {});
+    }
     await refreshAudioPage();
   } catch (err) {
     $("audio-status").textContent = String(err.message || err);
