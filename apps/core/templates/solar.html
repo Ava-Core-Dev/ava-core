@@ -364,7 +364,7 @@
           <div class="pack">
             <h4>River 2 Pro</h4>
             <div class="big" id="packRiverSoc">—</div>
-            <div class="meta">PV <span id="packRiverPv">—</span> · <span id="packRiverState">—</span></div>
+            <div class="meta"><span id="packRiverInLab">PV</span> <span id="packRiverPv">—</span> · <span id="packRiverState">—</span></div>
           </div>
         </div>
         <div class="card">
@@ -407,7 +407,7 @@
       <div class="scroll-hint"><a href="#averages">Scroll for averages ↓</a></div>
       <div class="bottom">
         <div>Ava Ivy · ground PV · locked lander</div>
-        <div class="flow"><span>PV <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
+        <div class="flow"><span><span id="flowInLab">PV</span> <b id="flowIn">0 W</b></span><span>→ bank <b id="flowBank">—</b></span><span>→ DC <b id="flowOut">0 W</b></span></div>
         <div id="src">source —</div>
       </div>
     </div>
@@ -743,9 +743,18 @@ async function paint(){
     const k = s.kilauea||{};
     const devices = solar.devices||[];
     document.getElementById("rings").innerHTML = devices.length ? devices.map(ring).join("") : ring({label:"Bank", soc:solar.battery_pct, online:true});
-    const pv = tot.solar_in_w ?? solar.solar_in_w ?? solar.power_w;
+    const ebatt = Number(tot.ebatt_in_w ?? solar.ebatt_in_w ?? 0);
+    const pv = ebatt >= 20 ? ebatt : (tot.solar_in_w ?? solar.solar_in_w ?? solar.power_w);
+    const inLab = ebatt >= 20 ? "E-Batt in" : "PV in";
+    const inShort = ebatt >= 20 ? "E-Batt" : "PV";
     const load = tot.dc_load_w ?? tot.load_w ?? solar.load_w;
     document.getElementById("solar").textContent = watts(pv);
+    const solarLab = document.getElementById("solarInLab");
+    if (solarLab) solarLab.textContent = inLab;
+    const heroLab = document.getElementById("heroPvLab");
+    if (heroLab) heroLab.textContent = inLab;
+    const flowLab = document.getElementById("flowInLab");
+    if (flowLab) flowLab.textContent = inShort;
     document.getElementById("load").textContent = watts(tot.server_mobile_w ?? load);
     document.getElementById("xfer").textContent = watts(tot.transfer_w);
     document.getElementById("star").textContent = watts(tot.starlink_lights_w);
@@ -823,8 +832,12 @@ async function paint(){
     const river = devices.find((d) => /river/i.test(String(d.label||""))) || null;
     set("packDeltaSoc", delta && delta.soc!=null ? Math.round(Number(delta.soc))+"%" : "—");
     set("packRiverSoc", river && river.soc!=null ? Math.round(Number(river.soc))+"%" : "—");
-    set("packDeltaPv", watts(delta && (delta.pv_w ?? delta.solar_w)));
-    set("packRiverPv", watts(river && (river.pv_w ?? river.solar_w)));
+    const deltaEb = delta && delta.input_kind === "ebatt";
+    const riverEb = river && river.input_kind === "ebatt";
+    set("packDeltaInLab", deltaEb ? "E-Batt" : "PV");
+    set("packRiverInLab", riverEb ? "E-Batt" : "PV");
+    set("packDeltaPv", watts(delta && (deltaEb ? (delta.ebatt_w ?? delta.pv_w) : (delta.pv_w ?? delta.solar_w))));
+    set("packRiverPv", watts(river && (riverEb ? (river.ebatt_w ?? river.pv_w) : (river.pv_w ?? river.solar_w))));
     set("packDeltaState", delta ? (delta.online===false ? "offline" : "online") : "—");
     set("packRiverState", river ? (river.online===false ? "offline" : "online") : "—");
     const sun = solar.sun || s.sun || {};
