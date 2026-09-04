@@ -43,6 +43,8 @@ function outboundHeaders(request: Request, keepClientIp = false): Headers {
     headers.delete(name);
   }
   if (keepClientIp && visitorIp) {
+    // Custom header — CF may overwrite cf-connecting-ip on the Worker→origin hop.
+    headers.set("x-ava-client-ip", visitorIp);
     headers.set("cf-connecting-ip", visitorIp);
   }
   return headers;

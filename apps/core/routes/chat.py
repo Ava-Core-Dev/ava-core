@@ -59,7 +59,11 @@ def _bump(key: str) -> int:
 
 
 def _client_ip(request: Request) -> str:
-    cf = request.headers.get("cf-connecting-ip")
+    # Worker sets x-ava-client-ip; CF may rewrite cf-connecting-ip on the tunnel hop.
+    ava = (request.headers.get("x-ava-client-ip") or "").strip()
+    if ava:
+        return ava
+    cf = (request.headers.get("cf-connecting-ip") or "").strip()
     if cf:
         return cf
     xff = request.headers.get("x-forwarded-for") or ""
