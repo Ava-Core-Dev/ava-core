@@ -1,4 +1,4 @@
-"""Public Ava chat — local llama3.2 first. Canned free. Live turns in SQLite."""
+"""Public Ava chat — every turn goes to local llama3.2 with live facts."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from .. import config
 from ..services import ollama as ollama_svc
 from ..services import persona as persona_svc
-from ..services.public_chat import directory_reply, match_public_reply
 
 router = APIRouter(prefix="/api")
 log = logging.getLogger("ava.chat")
@@ -92,22 +91,15 @@ async def api_chat(req: ChatRequest, request: Request):
     import httpx
 
     raw = (req.message or "").strip()
-    canned = match_public_reply(raw)
-    if canned:
-        return canned
-
-    logged = _has_session(request)
-    cap = LOGGED_IN_LIVE if logged else FREE_LIVE_PER_IP
-    used = _bump("ip:" + _client_ip(request))
-    if used > cap:
-        return {
-            "reply": directory_reply(),
-            "gated": True,
-            "login": "https://rootrecord.cloud/account",
-            "brain": "free-limit",
-        }
+    if not raw:
+        return {"reply": "Aloha — I'm Ava Ivy. What do you want to know?", "brain": "canned", "topic": "greet"}
 
     surface = req.surface if req.surface in _SURFACES else "public"
+    try:
+        _bump("ip:" + _client_ip(request))
+    except Exception:
+        pass
+
     system, _src = persona_svc.system_prompt(surface=surface)
     try:
         facts = await persona_svc.live_facts()
