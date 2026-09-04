@@ -162,13 +162,11 @@ def apply_roles(devices: list[dict]) -> None:
     for d, w in house_devs:
         if d is starlink_pick:
             d["starlink_w"] = round(w, 1)
-            if d.get("ac_role") != "transfer_out":
+            if d.get("ac_role") not in ("transfer_out", "transfer_in"):
                 d["ac_role"] = "starlink_lights"
         else:
             d["emergency_w"] = round(w, 1)
-            if d.get("ac_role") != "transfer_out" and d.get("ac_role") != "transfer_in":
-                d["ac_role"] = "emergency"
-            elif d.get("ac_role") == "transfer_in" and not d.get("starlink_w"):
+            if d.get("ac_role") not in ("transfer_out", "transfer_in"):
                 d["ac_role"] = "emergency"
 
 
@@ -180,15 +178,10 @@ def categories(devices: list[dict]) -> dict:
     server = 0.0
     drives = 0.0
     for d in devices:
-        role = d.get("ac_role")
-        if role == "transfer_out":
-            transfer += float(d.get("transfer_w") or d.get("ac_out_w") or 0)
-        elif role == "appliances":
-            appliances += float(d.get("appliance_w") or d.get("ac_out_w") or 0)
-        elif role == "starlink_lights":
-            starlink += float(d.get("starlink_w") or d.get("ac_out_w") or 0)
-        elif role == "emergency":
-            emergency += float(d.get("emergency_w") or d.get("ac_out_w") or 0)
+        transfer += float(d.get("transfer_w") or 0) if d.get("ac_role") == "transfer_out" else 0.0
+        appliances += float(d.get("appliance_w") or 0)
+        starlink += float(d.get("starlink_w") or 0)
+        emergency += float(d.get("emergency_w") or 0)
         usb = float(d.get("dc_out_w") or 0)
         car = float(d.get("car_w") or 0)
         if car >= CAR_W_MIN:
