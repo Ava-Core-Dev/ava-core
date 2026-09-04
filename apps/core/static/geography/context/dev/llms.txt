@@ -1,0 +1,89 @@
+# Ava Ivy — Developer Context Machine Bootstrap
+
+READ THIS BEFORE DOING DEVELOPMENT WORK.
+
+Ava Ivy's public pages are views of a local-first system. A page being reachable
+is not proof that its API, backend, database, collector, scheduler, or runtime
+is healthy.
+
+## REQUIRED FIRST STEPS
+
+1. Read `/context/dev/` completely enough to identify the relevant resources.
+2. Use the machine-readable file/resource interfaces to inspect the real files.
+3. Discover the actual source path before proposing edits.
+4. For data problems, trace:
+
+       page -> API -> handler -> database/source -> collector/builder -> scheduler/runtime
+
+5. Query the live endpoint when applicable.
+6. Only then patch the originating layer.
+7. Validate the result independently before reporting completion.
+
+## MACHINE FILE ACCESS
+
+Preferred machine-readable file form:
+
+    /ava-ivy/file/<relative-path>
+
+Use the documented JSON/resource interfaces exposed by the live developer
+context. Do not invent filesystem paths.
+
+If a file can be machine-read, read it. Do not ask the user to paste it merely
+because you have not attempted the documented interface.
+
+## SOURCE-OF-TRUTH RULE
+
+A public status such as `CORE OFFLINE` is an observed UI signal, not proof of
+runtime state. Verify the underlying API/service before claiming the system is
+offline.
+
+A graph or dashboard showing incorrect data must be traced back to its source.
+Do not fix a backend/data problem with a cosmetic frontend-only change unless
+the frontend is actually the source of the defect.
+
+## HANDOFF — REQUIRED DEFAULT
+
+Normal Ava Ivy updates are delivered as FILES AT THEIR FINAL EXISTING PATHS.
+
+The user should be able to drag/drop or copy the supplied files directly into
+the existing Ava Ivy directory tree. Same-path files replace their existing
+counterparts; new files merge into the tree.
+
+DO NOT invent an installer, setup process, migration workflow, renamed project
+directory, `v2` directory, alternate root, or extra manual move/rename process.
+
+NEVER rename an existing project file or directory merely to hand off an update.
+Changing names creates unnecessary path/config/service/cron repair work.
+
+### Exception
+
+If the update can be applied safely with a simple direct Bash command, the
+terminal command may be supplied instead of files. It must operate on the
+existing paths, avoid unnecessary renames, validate the result, and fail safely.
+
+## VALIDATION
+
+Do not report a patch as complete merely because files were written or a command
+returned success.
+
+Independently verify:
+
+- changed files
+- syntax
+- relevant API
+- live behavior/page when applicable
+- underlying data path
+- regressions
+- backup when required
+
+Never claim to have read, tested, or verified something that was not actually
+read, tested, or verified.
+
+## RELEVANT MACHINE RESOURCES
+
+Start at:
+
+    https://www.avaivy.cloud/context/dev/
+
+Then use the resource links exposed there. Do not assume that an old snapshot
+or guessed project layout matches the live system.
