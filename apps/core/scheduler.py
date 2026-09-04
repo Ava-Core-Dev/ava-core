@@ -43,10 +43,13 @@ def _job_wave(job_id: str) -> int:
     wave4 = {
         "morning-report", "merged-morning-summary", "cursor-fallback",
         "economy-brief", "overnight-relay", "governance-daily", "governance-self-update",
-        "api-prices",
+        "api-prices", "day-reports-morning", "day-reports-midday", "day-reports-evening",
     }
     wave5 = {"adsense-eod", "admob-eod"}
-    wave6 = {"time-chime", "broadcast-loop", "hourly-clip-prebuild", "hourly-clip-reports"}
+    wave6 = {
+        "time-chime", "broadcast-loop", "hourly-clip-prebuild", "hourly-clip-reports",
+        "remaining-tasks",
+    }
     if job_id in wave1 or job_id == "heartbeat":
         return 1
     if job_id in wave2:
@@ -110,6 +113,9 @@ class Scheduler:
         s.add_job(self._run("hourly_chime"), CronTrigger(minute="0,30"),
                   id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=90)
 
+        s.add_job(self._run("remaining_tasks"), CronTrigger(minute=30),
+                  id="remaining-tasks", name="Remaining tasks (:30, 4h window)", misfire_grace_time=90)
+
         s.add_job(self._run_clip_prebuild, CronTrigger(minute=55),
                   id="hourly-clip-prebuild", name="Prebuild hourly clip reports", misfire_grace_time=120)
 
@@ -131,6 +137,15 @@ class Scheduler:
         # ── Morning report (10:00 HST) ────────────────────────────────────────
         s.add_job(self._run("morning_report"), CronTrigger(hour=10, minute=0),
                   id="morning-report", name="Morning report", misfire_grace_time=300)
+
+        s.add_job(self._run("day_reports_morning"), CronTrigger(hour=10, minute=0),
+                  id="day-reports-morning", name="Morning slot reports", misfire_grace_time=300)
+
+        s.add_job(self._run("day_reports_midday"), CronTrigger(hour=13, minute=0),
+                  id="day-reports-midday", name="Midday slot reports", misfire_grace_time=300)
+
+        s.add_job(self._run("day_reports_evening"), CronTrigger(hour=18, minute=0),
+                  id="day-reports-evening", name="Evening slot reports", misfire_grace_time=300)
 
         # ── Merged morning summary (10:05 HST) ───────────────────────────────
         # Only cron that posts to #updates. Everything else → #automations.

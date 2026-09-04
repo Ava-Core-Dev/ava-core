@@ -10,7 +10,6 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from apps.core import config
 from apps.voice.local_tts import GENERATED, clock_tokens, speak_script
 
 log = logging.getLogger("ava.cron.remaining_tasks")

@@ -23,12 +23,16 @@ PUBLIC_KINDS = {"morning", "summary", "solar", "weather", "kilauea"}
 CURRENT_MD_NAME = "morning-report-current.md"
 QUEUE_DIR_NAME = "queue"
 _REPORT_JOBS = (
+    ("day-reports-morning", "Morning slot reports", "10:00 HST"),
     ("morning-report", "Morning report", "10:00 HST"),
     ("merged-morning-summary", "Merged morning summary", "10:05 HST"),
+    ("day-reports-midday", "Midday slot reports", "13:00 HST"),
     ("economy-brief", "Economy brief", "15:00 HST"),
+    ("day-reports-evening", "Evening slot reports", "18:00 HST"),
     ("adsense-eod", "AdSense EOD close", "21:00 HST (+ boot)"),
     ("admob-eod", "AdMob EOD close", "21:05 HST (+ boot)"),
     ("overnight-relay", "Late-night relay", "overnight"),
+    ("remaining-tasks", "Remaining tasks", "every :30 · next 4h"),
 )
 
 
