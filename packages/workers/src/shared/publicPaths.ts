@@ -49,6 +49,7 @@ const PUBLIC_PREFIX = [
   "/wiki/",
   "/css/",
   "/js/",
+  "/assets/",
 ];
 
 /** Public pages, after the Worker has normalised the path. */
@@ -78,8 +79,15 @@ const PUBLIC_PAGES = new Set([
   "/discord-verify",
   "/discord-verify.html",
   "/discord-verify.js",
-  "/account.js",
-  "/site-nav.js",
+  "/kilauea-alerts.html",
+  "/rootrecord-weather-manager.html",
+  "/rootrecord-business-manager.html",
+  "/styles.css",
+  "/favicon.ico",
+  "/favicon-32.png",
+  "/favicon-16.png",
+  "/favicon-180.png",
+  "/site.webmanifest",
 ]);
 
 /** Never public, on any surface, whatever else changes. */

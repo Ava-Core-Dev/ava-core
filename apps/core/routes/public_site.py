@@ -75,6 +75,7 @@ async def product_js(request: Request):
 
 @router.get("/kilauea")
 @router.get("/kilauea/")
+@router.get("/kilauea-alerts.html")
 async def kilauea_page():
     for cand in (_STATIC_RR / "kilauea-alerts.html",):
         found = _file_or_none(cand)
@@ -85,11 +86,45 @@ async def kilauea_page():
 
 @router.get("/weather")
 @router.get("/weather/")
+@router.get("/rootrecord-weather-manager.html")
 async def weather_page():
     found = _file_or_none(_STATIC_RR / "rootrecord-weather-manager.html")
     if found is not None:
         return found
     return _page()
+
+
+@router.get("/rootrecord-business-manager.html")
+async def business_product_page():
+    found = _file_or_none(_STATIC_RR / "rootrecord-business-manager.html")
+    if found is not None:
+        return found
+    return _page()
+
+
+@router.get("/styles.css")
+async def rr_styles():
+    found = _file_or_none(_STATIC_RR / "styles.css")
+    return found or HTMLResponse("", status_code=404)
+
+
+@router.get("/favicon.ico")
+@router.get("/favicon-32.png")
+@router.get("/favicon-16.png")
+@router.get("/favicon-180.png")
+@router.get("/site.webmanifest")
+async def rr_brand(request: Request):
+    name = request.url.path.rstrip("/").split("/")[-1]
+    found = _file_or_none(_STATIC_RR / name)
+    return found or HTMLResponse("", status_code=404)
+
+
+@router.get("/assets/{rest:path}")
+async def rr_assets(rest: str):
+    p = (_STATIC_RR / "assets" / rest).resolve()
+    if _STATIC_RR not in p.parents and not str(p).startswith(str(_STATIC_RR)):
+        return HTMLResponse("", status_code=404)
+    return _file_or_none(p) or HTMLResponse("", status_code=404)
 
 
 @router.get("/rootmc")
