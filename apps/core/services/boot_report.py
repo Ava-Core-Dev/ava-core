@@ -575,10 +575,15 @@ def _fallback_spoken(facts: str, *, now: datetime | None = None) -> str:
     kil = "Kīlauea alert is not on file."
     alert = _read_json(config.DATA_DIR / "state" / "kilauea-alert.json")
     if alert:
-        kil = (
-            f"Kīlauea on file is {alert.get('alert_level') or alert.get('alert') or 'unknown'}"
-            f"{', ' + str(alert.get('color')) if alert.get('color') else ''}."
-        )
+        level = alert.get("alert_level") or alert.get("alert") or "unknown"
+        erupting = bool(alert.get("erupting"))
+        if erupting:
+            kil = f"Kīlauea on file is {level} and is erupting."
+        else:
+            kil = (
+                f"Kīlauea on file is {level}, not erupting"
+                f"{', ' + str(alert.get('headline')) if alert.get('headline') else ''}."
+            )
 
     power = "Power numbers are not in this sample."
     try:
