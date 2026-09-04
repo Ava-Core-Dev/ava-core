@@ -9,18 +9,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .. import config
+from ..services import guests as guests_svc
 from ..services import ollama as ollama_svc
 from ..services import persona as persona_svc
 
 router = APIRouter(prefix="/api")
 log = logging.getLogger("ava.chat")
 
-FREE_LIVE_PER_IP = 3
-LOGGED_IN_LIVE = 40
+FREE_LIVE_PER_IP = guests_svc.FREE_LIVE
+LOGGED_IN_LIVE = guests_svc.MEMBER_LIVE
 _SURFACES = frozenset({"public", "rootmc", "kilauea"})
+LOGIN_URL = "https://rootrecord.cloud/account"
+MEMBERSHIP_REPLY = guests_svc.MEMBERSHIP_REPLY
 
 
 def _db() -> Path:
