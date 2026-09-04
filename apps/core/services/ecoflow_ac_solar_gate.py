@@ -19,6 +19,7 @@ DELTA leftover AC is cut when this gate turns AC OFF; see common-bugs.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -34,6 +35,15 @@ from apps.core.services.data_layout import ensure_data_layout
 from apps.core.services.load_categories import pack_power, watts
 
 log = logging.getLogger("ava.ecoflow.ac_solar_gate")
+
+# Desktop notify phrases (Media/public/audio/words/ecoflow/). Starlink rides
+# DELTA leftover AC — OFF uses the Starlink caution line.
+PHRASE_AC_ON = "phrase_ecoflow_ac_on_solar_low"
+PHRASE_AC_OFF = "phrase_ecoflow_ac_off_starlink"
+PHRASE_AC_FAIL = "phrase_ecoflow_ac_change_failed"
+PHRASE_GATE_ARMED = "phrase_ecoflow_ac_gate_armed"
+PHRASE_GATE_DISABLED = "phrase_ecoflow_ac_gate_disabled"
+VOICE_COOLDOWN_S = 90
 
 DELTA_SN = "R331ZAB5SG6S2858"
 DEFAULT_BASE = "https://api-a.ecoflow.com"
@@ -175,6 +185,40 @@ def decide(input_w: float, *, off_at: float = OFF_AT_W, on_at: float = ON_AT_W) 
     if w <= float(on_at):
         return "on"
     return None
+
+
+def phrase_for_action(action: str | None) -> str | None:
+    """Map a gate action to a whole-phrase clip id (or None = silence)."""
+    if action == "put_ac_on":
+        return PHRASE_AC_ON
+    if action == "put_ac_off":
+        return PHRASE_AC_OFF
+    if isinstance(action, str) and action.startswith("put_failed_"):
+        return PHRASE_AC_FAIL
+    return None
+
+
+def _enqueue_announce(phrase: str) -> None:
+    """Fire-and-forget REPORT announce so the quota cron is not held on audio."""
+    name = (phrase or "").strip()
+    if not name:
+        return
+
+    async def _run() -> None:
+        try:
+            from apps.core.services import voice_events
+
+            await voice_events.announce(name, cooldown_s=VOICE_COOLDOWN_S, priority="REPORT")
+        except Exception as e:
+            log.debug("ac-solar-gate voice skip: %s", e)
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # CLI / no loop — skip desk play; cron path always has a loop.
+        log.debug("ac-solar-gate voice skip (no event loop): %s", name)
+        return
+    loop.create_task(_run())
 
 
 def _flatten(obj: Any, prefix: str = "") -> dict[str, str]:
@@ -454,6 +498,10 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         state["last_decision"] = f"put_failed_{desired}"
         state["last_skip_reason"] = report["skipped"]
         log.error("ac-solar-gate PUT failed: %s", put)
+    phrase = phrase_for_action(report.get("action"))
+    report["announce"] = phrase
+    if phrase:
+        _enqueue_announce(phrase)
     save_state(state)
     return report
 
@@ -487,7 +535,14 @@ def main(argv: list[str] | None = None) -> int:
         st = load_state()
         st["enabled"] = bool(args.enable) and not args.disable
         save_state(st)
-        print(json.dumps({"ok": True, "enabled": st["enabled"], "path": str(state_path())}, indent=2))
+        phrase = PHRASE_GATE_ARMED if st["enabled"] else PHRASE_GATE_DISABLED
+        out = {
+            "ok": True,
+            "enabled": st["enabled"],
+            "path": str(state_path()),
+            "announce": phrase,
+        }
+        print(json.dumps(out, indent=2))
         return 0
     report = evaluate(execute=bool(args.execute))
     print(json.dumps(report, indent=2))

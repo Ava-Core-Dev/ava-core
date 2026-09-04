@@ -101,13 +101,15 @@ def _number_to_clips(n: int) -> list[str]:
 def _find_clip(name: str) -> Path | None:
     """Search numbers/ first so 1.mp3 is the digit, not a word collision.
 
-    Also checks words/nws/ (NWS All Hazards pack) after flat words/ so existing
-    weather/number clips keep priority and the pack stays a separable subtree.
+    Also checks words/nws/ (NWS All Hazards) and words/ecoflow/ (AC solar-gate
+    pack) after flat words/ so existing weather/number clips keep priority and
+    each pack stays a separable subtree.
     """
     search_dirs = (
         NUMBERS_DIR,
         WORDS_DIR,
         WORDS_DIR / "nws",
+        WORDS_DIR / "ecoflow",
         TIME_DIR,
         SOUNDS_DIR,
         PHONEME_DIR,
