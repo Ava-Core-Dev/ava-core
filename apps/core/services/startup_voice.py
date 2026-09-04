@@ -1,6 +1,7 @@
-"""Gate the 'Root Record is online. I'm back.' startup clip.
+"""Startup voice: satellite reconnect vs full I'm-back.
 
-Brief uvicorn / watchdog flaps must not spam the desk every minute.
+Downtime under 60s → satellite_connection.mp3.
+Longer (and past the 30m spam gate, or first boot) → phrase_device_startup.
 """
 
 from __future__ import annotations
@@ -8,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from apps.core import config
@@ -15,9 +17,10 @@ from apps.core import config
 log = logging.getLogger("ava.startup_voice")
 
 STATE_PATH = config.DATA_DIR / "state" / "startup-voice.json"
-# Don't replay just because origin bounced for a second.
-MIN_INTERVAL_S = 30 * 60  # 30 minutes between announcements
-CLIP_NAME = "phrase_device_startup"
+MIN_INTERVAL_S = 30 * 60
+SHORT_DOWN_S = 60
+CLIP_BACK = "phrase_device_startup"
+CLIP_SAT = "satellite_connection"
 
 
 def _load() -> dict:
@@ -34,9 +37,53 @@ def _save(data: dict) -> None:
     STATE_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+def note_down() -> None:
+    """Call when origin is going away so the next boot knows the gap."""
+    st = _load()
+    st["last_seen_down_at"] = time.time()
+    st["last_seen_down_iso"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    _save(st)
+
+
+def _parse_iso(raw: str) -> float | None:
+    try:
+        t = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        return t.astimezone(timezone.utc).timestamp()
+    except Exception:
+        return None
+
+
+def downtime_s() -> float:
+    """Seconds since last healthy tick / recorded down. Huge if unknown (first boot)."""
+    now = time.time()
+    st = _load()
+    candidates: list[float] = []
+    down_at = st.get("last_seen_down_at")
+    if down_at:
+        try:
+            candidates.append(max(0.0, now - float(down_at)))
+        except (TypeError, ValueError):
+            pass
+    marker = config.DATA_DIR / "state" / "uptime-marker.json"
+    if marker.is_file():
+        try:
+            m = json.loads(marker.read_text(encoding="utf-8"))
+        except Exception:
+            m = {}
+        for key in ("last_stop_at", "last_tick_at"):
+            ts = _parse_iso(str(m.get(key) or ""))
+            if ts:
+                candidates.append(max(0.0, now - ts))
+    if not candidates:
+        return 10**9
+    return min(candidates)
+
+
 def should_announce(*, force: bool = False, min_interval_s: float = MIN_INTERVAL_S) -> bool:
-    """Return True only if we should play the I'm-back clip."""
+    gap = downtime_s()
     if force:
+        return True
+    if gap < SHORT_DOWN_S:
         return True
     now = time.time()
     st = _load()
@@ -48,32 +95,47 @@ def should_announce(*, force: bool = False, min_interval_s: float = MIN_INTERVAL
     return True
 
 
-def mark_announced() -> None:
+def mark_announced(*, clip: str = "") -> None:
     st = _load()
     st["last_played_at"] = time.time()
     st["last_played_iso"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if clip:
+        st["last_clip"] = clip
     _save(st)
 
 
-def clip_path() -> Path:
-    return config.ASSETS_DIR / "words" / f"{CLIP_NAME}.mp3"
+def clip_path(name: str = CLIP_BACK) -> Path:
+    return config.ASSETS_DIR / "words" / f"{name}.mp3"
+
+
+def choose_clip(*, force: bool = False) -> tuple[str, Path, float]:
+    """Return (clip_name, path, downtime_s)."""
+    gap = downtime_s()
+    if gap < SHORT_DOWN_S:
+        name = CLIP_SAT
+    else:
+        name = CLIP_BACK
+    path = clip_path(name)
+    if not path.is_file() and name == CLIP_SAT:
+        name = CLIP_BACK
+        path = clip_path(name)
+    return name, path, gap
 
 
 async def queue_if_allowed(*, force: bool = False, name: str = "startup") -> dict:
-    """Queue the startup clip through the Stream Director when cooldown allows."""
     from apps.voice.director import Priority, get_director
 
-    path = clip_path()
+    clip, path, gap = choose_clip(force=force)
     if not path.is_file():
-        return {"ok": False, "detail": "clip_missing", "path": str(path)}
+        return {"ok": False, "detail": "clip_missing", "path": str(path), "downtime_s": gap}
     if not should_announce(force=force):
-        return {"ok": True, "played": False, "detail": "cooldown"}
+        return {"ok": True, "played": False, "detail": "cooldown", "clip": clip, "downtime_s": gap}
     await get_director().queue(
         path,
         name=name,
         priority=Priority.CRITICAL,
         scene=None,
     )
-    mark_announced()
-    log.info("Startup voice queued (force=%s)", force)
-    return {"ok": True, "played": True}
+    mark_announced(clip=clip)
+    log.info("Startup voice queued clip=%s downtime_s=%.1f force=%s", clip, gap, force)
+    return {"ok": True, "played": True, "clip": clip, "downtime_s": round(gap, 1)}
