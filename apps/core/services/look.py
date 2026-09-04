@@ -164,4 +164,12 @@ def notes_sync(asked: str) -> str:
 async def notes(asked: str) -> str:
     import asyncio
 
-    return await asyncio.to_thread(notes_sync, asked or "")
+    text = await asyncio.to_thread(notes_sync, asked or "")
+    if text and "LOOK (" in text and "looker quiet" not in text:
+        try:
+            from apps.core.services import voice_events
+
+            await voice_events.announce("phrase_looker", cooldown_s=120)
+        except Exception as e:
+            log.debug("looker voice skip: %s", e)
+    return text
