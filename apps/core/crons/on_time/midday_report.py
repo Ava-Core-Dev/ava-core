@@ -2,6 +2,7 @@
 
 Prelims first. Engine from data/state/report-generation.json (grok|local).
 Ara TTS when midday tts toggle is on (this cron passes allow_tts=True once for live noon).
+On successful TTS: queue the MP3 on the desk (REPORT) — same class as morning-boot-replay.
 On successful text: disarm morning-boot-replay; close midday Grok spend window.
 """
 
@@ -42,6 +43,21 @@ def _after_midday_success(*, engine: str, content: str) -> dict:
         out["spend_window"] = {"ok": False, "detail": type(e).__name__}
     out["chars"] = len(content or "")
     return out
+
+
+async def _play_midday_mp3(tts: dict | None) -> dict | None:
+    """Desk playback after Ara write — file on disk, no re-TTS."""
+    tts = tts or {}
+    if not tts.get("ok"):
+        return {"ok": False, "skipped": True, "detail": "tts_not_ok", "tts": tts}
+    from apps.core.services import voice_events
+
+    return await voice_events.play_report_mp3(
+        tts.get("current"),
+        tts.get("mp3"),
+        name="midday_report",
+        kind="midday",
+    )
 
 
 async def run():
@@ -87,19 +103,29 @@ async def run():
     reports.queue_public_draft("summary", content, source=f"cron_midday_{engine}")
     report_store.write_current(content, kind="summary", source=f"cron_midday_{engine}")
     after = None
+    play = None
     # Only disarm replay / close spend when we actually got full report text.
     if content.strip() and result.get("ok", True) and not result.get("blocked"):
         after = _after_midday_success(
             engine=str(result.get("engine") or engine),
             content=content,
         )
+        play = await _play_midday_mp3(result.get("tts"))
     log.info(
-        "Midday report engine_req=%s engine=%s blog=%s tts=%s dated=%s after=%s blocked=%s",
+        "Midday report engine_req=%s engine=%s blog=%s tts=%s play=%s dated=%s after=%s blocked=%s",
         engine,
         result.get("engine"),
         (result.get("blog") or {}).get("ok"),
         (result.get("tts") or {}).get("skipped", result.get("tts")),
+        play,
         result.get("dated") or (result.get("files") or {}).get("dated"),
         after,
         result.get("blocked"),
     )
+    return {
+        "ok": bool(content.strip()) and not result.get("blocked"),
+        "engine": result.get("engine") or engine,
+        "tts": result.get("tts"),
+        "play": play,
+        "after": after,
+    }

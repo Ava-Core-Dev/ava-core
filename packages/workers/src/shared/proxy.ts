@@ -14,7 +14,14 @@ export interface ProxyOptions {
   path?: string;
 }
 
-function outboundHeaders(request: Request): Headers {
+function outboundHeaders(request: Request, keepClientIp = false): Headers {
+  // Capture the real visitor before we strip CF hop headers. Without this,
+  // origin sees one shared Worker egress IP and burns the 3 free live talks
+  // for everyone on the first three public chats of the day.
+  const visitorIp =
+    request.headers.get("cf-connecting-ip") ||
+    (request.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+    "";
   const headers = new Headers(request.headers);
   // Visitor Host (avaivy.cloud) on a fetch to origin.avaivy.cloud is a
   // cross-zone mismatch: 403, or a loop back into this Worker → timeout →
@@ -34,6 +41,9 @@ function outboundHeaders(request: Request): Headers {
     "content-length",
   ]) {
     headers.delete(name);
+  }
+  if (keepClientIp && visitorIp) {
+    headers.set("cf-connecting-ip", visitorIp);
   }
   return headers;
 }
@@ -67,7 +77,7 @@ export async function proxyToOrigin(
   try {
     const res = await fetch(target, {
       method: request.method,
-      headers: outboundHeaders(request),
+      headers: outboundHeaders(request, true),
       body: request.method !== "GET" && request.method !== "HEAD"
         ? request.body : undefined,
       signal: controller.signal,

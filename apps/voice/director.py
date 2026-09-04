@@ -34,8 +34,11 @@ import websockets
 MUSIC_AUDIO_EXTS = {
     ".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".wma", ".opus",
 }
-# Short overlap when advancing to the next shuffled track (winsound has no volume fade).
-MUSIC_BLEND_S = 1.35
+# Overlap when advancing to the next shuffled track (winsound has no volume fade).
+# Long enough to cover poll jitter (~0.35s) + typical trailing WAV hush (~0–1.6s).
+MUSIC_BLEND_S = 2.5
+# Tiny slop past wave-header length only — was +1.0s and left dead air after natural end.
+MUSIC_WAIT_PAD_S = 0.05
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -152,15 +155,15 @@ def _music_wait_seconds(path: Path) -> float:
     """How long the bed should keep one track before the playlist may advance."""
     measured = _audio_file_duration_s(path)
     if measured and measured > 1.0:
-        return min(7200.0, measured + 1.0)
+        return min(7200.0, measured + MUSIC_WAIT_PAD_S)
     try:
         size = path.stat().st_size
     except Exception:
         size = 0
     if path.suffix.lower() == ".wav":
         # PCM stereo 16-bit 48kHz ≈ 192000 B/s; 44.1kHz ≈ 176400 B/s.
-        return min(7200.0, max(30.0, (size / 176400.0) + 2.0) if size else 600.0)
-    return min(7200.0, max(30.0, (size / 16000.0) + 2.0) if size else 600.0)
+        return min(7200.0, max(30.0, (size / 176400.0) + MUSIC_WAIT_PAD_S) if size else 600.0)
+    return min(7200.0, max(30.0, (size / 16000.0) + MUSIC_WAIT_PAD_S) if size else 600.0)
 
 
 def _music_bed_python() -> str:
@@ -906,6 +909,7 @@ class StreamDirector:
 
         Near each track's end, briefly overlaps the next file (MUSIC_BLEND_S) so
         there is no dead air between songs. No stacking beyond that overlap window.
+        Inter-track advance does not call kill_stray (multi-second on this PC).
         """
         continue_existing = False
         while self._music_enabled and self._running:
@@ -952,10 +956,13 @@ class StreamDirector:
                     i += 1
                     continue
                 nxt = tracks[i + 1] if (i + 1) < len(tracks) else None
+                # Orphan sweep only after hold / cold start — not between every track
+                # (kill_stray is ~2s on this PC and was the long music-bed gap).
                 finished, handed_off = await self._play_music_track(
                     path,
                     blend_into=nxt,
                     continue_existing=continue_existing,
+                    sweep_orphans=False,
                 )
                 continue_existing = False
                 # Voice / operator interrupt: wait for clear, then restart same track.
@@ -969,6 +976,7 @@ class StreamDirector:
                             path,
                             blend_into=nxt,
                             continue_existing=False,
+                            sweep_orphans=True,
                         )
                 if handed_off and nxt is not None:
                     continue_existing = True
@@ -982,6 +990,7 @@ class StreamDirector:
         *,
         blend_into: Path | None = None,
         continue_existing: bool = False,
+        sweep_orphans: bool = False,
     ) -> tuple[bool, bool]:
         """Play one bed track until natural end.
 
@@ -1025,9 +1034,14 @@ class StreamDirector:
         blend_proc: asyncio.subprocess.Process | None = None
         blend_pid: int | None = None
         started = time.monotonic()
-        # Require ~95% of measured length before treating an early process exit as done.
-        min_ok = max(5.0, wait_s * 0.95)
-        blend_at = max(5.0, wait_s - MUSIC_BLEND_S)
+        # Do not treat exit as "done" until the blend window — otherwise a slightly
+        # early player exit skips blend and pays a cold-start gap on the next track.
+        # Floor is 0.5s (not 5s) so short proof/force clips can still hand off.
+        blend_at = max(0.5, wait_s - MUSIC_BLEND_S)
+        if wait_s >= 10.0:
+            min_ok = max(5.0, blend_at)
+        else:
+            min_ok = max(0.5, wait_s * 0.9)
 
         async def _spawn(target: Path) -> asyncio.subprocess.Process:
             return await asyncio.create_subprocess_exec(
@@ -1037,6 +1051,33 @@ class StreamDirector:
                 env=env,
                 **_windows_hidden(),
             )
+
+        async def _ensure_blend() -> None:
+            nonlocal blend_proc, blend_pid
+            if (
+                blend_proc is not None
+                or blend_into is None
+                or not blend_into.is_file()
+                or self._music_bed_held()
+                or not self._music_enabled
+            ):
+                return
+            try:
+                blend_proc = await _spawn(blend_into)
+                try:
+                    blend_pid = blend_proc.pid
+                except Exception:
+                    blend_pid = None
+                log.info(
+                    "Music bed blend into %s  pid=%s  from=%s",
+                    blend_into.name,
+                    blend_pid,
+                    path.name,
+                )
+            except Exception as e:
+                log.warning("Music bed blend spawn failed: %s", e)
+                blend_proc = None
+                blend_pid = None
 
         try:
             proc: asyncio.subprocess.Process | None = None
@@ -1055,8 +1096,10 @@ class StreamDirector:
                     wait_s,
                 )
             else:
-                # One stream only — clear orphans before first spawn of this track.
-                await _kill_stray_music_players_async()
+                # Optional orphan sweep (start / after hold). Skip on playlist
+                # advance — kill_stray is multi-second dead air on AVA-CORE.
+                if sweep_orphans:
+                    await _kill_stray_music_players_async()
                 if self._music_bed_held() or not self._music_enabled:
                     return False, False
                 proc = await _spawn(path)
@@ -1080,37 +1123,19 @@ class StreamDirector:
                     break
                 elapsed = time.monotonic() - started
                 if elapsed >= wait_s:
+                    await _ensure_blend()
                     break
 
                 # Near end: start next track under the current one (short overlap).
-                if (
-                    blend_into is not None
-                    and blend_into.is_file()
-                    and blend_proc is None
-                    and elapsed >= blend_at
-                    and not self._music_bed_held()
-                    and self._music_enabled
-                ):
-                    try:
-                        blend_proc = await _spawn(blend_into)
-                        try:
-                            blend_pid = blend_proc.pid
-                        except Exception:
-                            blend_pid = None
-                        log.info(
-                            "Music bed blend into %s  pid=%s  from=%s",
-                            blend_into.name,
-                            blend_pid,
-                            path.name,
-                        )
-                    except Exception as e:
-                        log.warning("Music bed blend spawn failed: %s", e)
-                        blend_proc = None
-                        blend_pid = None
+                if elapsed >= blend_at:
+                    await _ensure_blend()
 
                 if proc.returncode is not None:
                     early = time.monotonic() - started
                     if early >= wait_s or early >= min_ok:
+                        # Catch-up blend if the outgoing file ended before we polled
+                        # the blend window — avoids cold-start silence.
+                        await _ensure_blend()
                         break
                     if self._music_bed_held() or not self._music_enabled:
                         aborted = True
@@ -1130,7 +1155,7 @@ class StreamDirector:
                         min_ok,
                         path.name,
                     )
-                    await asyncio.sleep(1.0)
+                    await asyncio.sleep(0.15)
                     await _kill_stray_music_players_async()
                     if self._music_bed_held() or not self._music_enabled:
                         aborted = True
@@ -1164,7 +1189,7 @@ class StreamDirector:
                     break
 
                 try:
-                    await asyncio.wait_for(proc.wait(), timeout=0.35)
+                    await asyncio.wait_for(proc.wait(), timeout=0.25)
                 except asyncio.TimeoutError:
                     pass
 

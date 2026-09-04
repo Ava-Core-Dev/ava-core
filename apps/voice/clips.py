@@ -33,7 +33,7 @@ TIME_DIR    = ASSETS_DIR / "time_clips"
 SOUNDS_DIR  = ASSETS_DIR / "sounds"
 PHONEME_DIR = ASSETS_DIR / "phonemes"
 
-SILENCE_MS  = 90  # gap between clips in ms
+SILENCE_MS  = 50  # gap between clips in ms (tight radio blend; was 90)
 
 
 def ffmpeg_bin() -> str | None:

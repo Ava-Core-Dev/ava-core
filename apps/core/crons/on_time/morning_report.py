@@ -42,12 +42,24 @@ async def run():
 
     reports.queue_public_draft("morning", content, source=f"cron_{engine}")
     report_store.write_current(content, kind="morning", source=f"cron_{engine}")
+    play = None
+    tts = result.get("tts") or {}
+    if tts.get("ok"):
+        from apps.core.services import voice_events
+
+        play = await voice_events.play_report_mp3(
+            tts.get("current"),
+            tts.get("mp3"),
+            name="morning_report",
+            kind="morning",
+        )
     log.info(
-        "Morning report engine_req=%s engine=%s blog=%s tts=%s dated=%s",
+        "Morning report engine_req=%s engine=%s blog=%s tts=%s play=%s dated=%s",
         engine,
         result.get("engine"),
         (result.get("blog") or {}).get("ok"),
         (result.get("tts") or {}).get("skipped", result.get("tts")),
+        play,
         result.get("dated"),
     )
 

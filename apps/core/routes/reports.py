@@ -178,13 +178,44 @@ async def report_generation_run(body: ReportGenRunIn, request: Request):
     """Dry-run (default) or live generate. TTS off unless allow_tts and toggle/spend allow."""
     if not _allow_mutate(request):
         return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
-    from apps.core.services import report_generation
+    from apps.core.services import report_generation, voice_events
 
-    return report_generation.generate(
+    out = report_generation.generate(
         body.kind,
         dry_run=bool(body.dry_run),
         force_engine=body.force_engine,
         allow_tts=bool(body.allow_tts),
         publish=body.publish,
         offline=bool(body.offline),
+    )
+    tts = (out or {}).get("tts") or {}
+    if not body.dry_run and tts.get("ok"):
+        out["play"] = await voice_events.play_report_mp3(
+            tts.get("current"),
+            tts.get("mp3"),
+            name=f"{body.kind}_report",
+            kind=str(body.kind or "report"),
+        )
+    return out
+
+
+class ReportPlayIn(BaseModel):
+    kind: str = Field(default="midday")
+    mp3: str | None = None
+
+
+@router.post("/generation/play-mp3")
+async def report_generation_play_mp3(body: ReportPlayIn, request: Request):
+    """Queue an existing report MP3 on the desk (REPORT). No TTS spend."""
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    from apps.core import config
+    from apps.core.services import voice_events
+
+    kind = (body.kind or "midday").strip().lower()
+    return await voice_events.play_report_mp3(
+        body.mp3,
+        config.GENERATED_DIR / f"{kind}-report-current.mp3",
+        name=f"{kind}_report",
+        kind=kind,
     )
