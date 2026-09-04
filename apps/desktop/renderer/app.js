@@ -52,6 +52,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "feedback") refreshFeedbackPage();
     if (btn.dataset.page === "minecraft") refreshMinecraft();
     if (btn.dataset.page === "stream") refreshStreamOps();
+    if (btn.dataset.page === "audio") refreshAudioPage();
     if (btn.dataset.page === "sites") refreshSitesPage();
     if (btn.dataset.page === "backgrounds") refreshBackgroundsPage();
     if (btn.dataset.page === "automation") refreshAutomationPage();
