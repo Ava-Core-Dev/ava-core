@@ -54,8 +54,12 @@ def _origin_process_present() -> bool:
         return False
     try:
         for p in psutil.process_iter(["pid", "cmdline"]):
-            cmd = " ".join(p.info.get("cmdline") or []).lower()
-            if "apps.core.main" in cmd or ("uvicorn" in cmd and "apps.core" in cmd):
+            parts = p.info.get("cmdline") or []
+            if not parts or (len(parts) > 1 and parts[1] == "-c"):
+                continue
+            cmd = " ".join(parts).lower()
+            # Require uvicorn + apps.core so ad-hoc `python -c "...apps.core..."` is ignored.
+            if "uvicorn" in cmd and "apps.core" in cmd:
                 return True
     except Exception:
         return False
@@ -114,14 +118,14 @@ def _ensure_tunnel() -> None:
 
 
 online = net_gate.internet_up()
-origin_up = _health_ok() or _port_open()
+origin_up = _health_ok() or _port_open() or _origin_process_present()
 decision = net_gate.tick(online=online, origin_up=origin_up)
 if not decision.get("allow_origin"):
     sys.exit(0)
 
 _ensure_tunnel()
 
-if _health_ok() or _port_open():
+if _health_ok() or _port_open() or _origin_process_present():
     if decision.get("restart_desk"):
         net_gate.start_desk()
     sys.exit(0)
