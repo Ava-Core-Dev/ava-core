@@ -140,6 +140,18 @@ async def states_pages(rest: str):
     return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
 
 
+@router.get("/css/{rest:path}")
+async def geo_css(rest: str):
+    found = _geo_file("css", rest)
+    return found or HTMLResponse("", status_code=404)
+
+
+@router.get("/js/{rest:path}")
+async def geo_js(rest: str):
+    found = _geo_file("js", rest)
+    return found or HTMLResponse("", status_code=404)
+
+
 @router.get("/weather/{rest:path}")
 async def weather_geo_pages(rest: str):
     found = _geo_file("weather", rest)

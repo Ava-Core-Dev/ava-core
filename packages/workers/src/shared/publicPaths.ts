@@ -45,6 +45,8 @@ const PUBLIC_PREFIX = [
   "/states/",
   "/charts/",
   "/wiki/",
+  "/css/",
+  "/js/",
 ];
 
 /** Public pages, after the Worker has normalised the path. */
