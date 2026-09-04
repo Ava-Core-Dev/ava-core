@@ -91,13 +91,20 @@ async def _live_facts() -> str:
         solar = await live_snapshot()
         batt = solar.get("battery_pct")
         pv = solar.get("solar_in_w") or solar.get("power_w")
+        ebatt = solar.get("ebatt_in_w") or 0
         load = solar.get("load_w")
         src = solar.get("source") or "unknown"
         state = solar.get("state") or ""
         parts = [f"Power source: {src}"]
         if batt is not None:
             parts.append(f"battery {batt}%")
-        if pv is not None:
+        try:
+            ebatt_n = float(ebatt)
+        except (TypeError, ValueError):
+            ebatt_n = 0.0
+        if ebatt_n >= 20:
+            parts.append(f"E-Batt in {ebatt_n} W")
+        elif pv is not None:
             parts.append(f"solar in {pv} W")
         if load is not None:
             parts.append(f"load {load} W")
@@ -109,8 +116,11 @@ async def _live_facts() -> str:
             label = d.get("label") or d.get("sn") or "unit"
             soc = d.get("soc")
             online = "online" if d.get("online") else "offline"
-            pv_w = d.get("pv_w")
-            extra = f", PV {pv_w} W" if pv_w is not None else ""
+            if d.get("input_kind") == "ebatt":
+                extra = f", E-Batt {d.get('ebatt_w') or d.get('pv_w')} W"
+            else:
+                pv_w = d.get("pv_w")
+                extra = f", PV {pv_w} W" if pv_w is not None else ""
             soc_s = f"{soc}%" if soc is not None else "n/a"
             lines.append(f"  - {label}: {online}, SOC {soc_s}{extra}")
     except Exception as e:

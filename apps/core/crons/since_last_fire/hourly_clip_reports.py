@@ -82,9 +82,13 @@ def solar_script(facts: str, now: datetime) -> str:
         m = re.search(r"RIVER[^%\d]{0,40}(\d{1,3})\s*%", facts, re.I)
         if m:
             bits += [m.group(1), "percent"]
-    m = re.search(r"PV in\s+(\d+)\s*W", facts, re.I)
+    m = re.search(r"E-Batt in\s+(\d+)\s*W", facts, re.I)
     if m:
-        bits += ["solar", "in", m.group(1), "watts"]
+        bits += ["emergency", "in", m.group(1), "watts"]
+    else:
+        m = re.search(r"PV in\s+(\d+)\s*W", facts, re.I)
+        if m:
+            bits += ["solar", "in", m.group(1), "watts"]
     m = re.search(r"load out\s+(\d+)\s*W", facts, re.I)
     if m:
         bits += ["load", "out", m.group(1), "watts"]

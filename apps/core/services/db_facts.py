@@ -191,8 +191,10 @@ def _fmt_ecoflow(
     combined = []
     if bank_s is not None:
         combined.append(f"bank {bank_s}%")
-    if combined:
-        lines.append("- Bank combined (both packs): " + ", ".join(combined) + ".")
+    if ebatt >= 20:
+        combined.append(f"E-Batt in {int(round(ebatt))} W")
+    elif pv is not None:
+        combined.append(f"PV in {int(round(pv))} W")
     if load is not None:
         combined.append(f"load out {int(round(load))} W")
     if combined:
