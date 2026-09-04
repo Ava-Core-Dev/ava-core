@@ -154,8 +154,9 @@ def build_facts(*, source: str = "boot") -> str:
     lines = [
         f"FACTS for morning Boot Report (source {source}). Use only these. Do not invent.",
         f"Now: {now.strftime('%A, %B %d, %Y')}, about {now.strftime('%H:%M')} Hawaiian Standard Time.",
-        "Host name (spoken as Ava Core): AVA-CORE. Role: HI Pacific Solar Root Server. Live tree: C only.",
+        "Host name spoken: Ava Core (never AVA-CORE letters). Role spoken: Hawaii Pacific Solar Root Server (never HI Pacific). Live tree: C only.",
         "Public doors: rootrecord.cloud and avaivy.cloud. Public tunnel reaches local origin.",
+        "Timezone spoken: Hawaiian Standard Time (never bare HST).",
     ]
 
     stopped = net.get("stopped_at")
@@ -261,6 +262,13 @@ def scrub_spoken(text: str) -> str:
     out = re.sub(r"\bAVA Core\b", "Ava Core", out)
     out = re.sub(r"\bAVA Ivy\b", "Ava Ivy", out)
     out = re.sub(r"\bAVA\b", "Ava", out)
+    # Island / timezone: never bare HI or HST (Ara spells H-I / H-S-T).
+    out = re.sub(r"\bHI Pacific Solar Root Server\b", "Hawaii Pacific Solar Root Server", out)
+    out = re.sub(r"\bthe HI Pacific\b", "the Hawaii Pacific", out)
+    out = re.sub(r"\bHI Pacific\b", "Hawaii Pacific", out)
+    out = re.sub(r"\bHST\b", "Hawaiian Standard Time", out)
+    out = re.sub(r"Hawai[`ʻ']i", "Hawaii", out)
+    out = re.sub(r"\bHI\b", "Hawaii", out)
     if not out.rstrip().endswith("End of status."):
         if "End of status" not in out:
             out = out.rstrip() + "\n\nEnd of status."
@@ -309,7 +317,7 @@ def _fallback_spoken(facts: str, *, now: datetime | None = None) -> str:
 
     body = f"""This is the Ava Core Root Record morning status for {weekday}, about {about} Hawaiian Standard Time.
 
-You are listening on the HI Pacific Solar Root Server. Host name Ava Core. The live tree is on C only. Public doors are rootrecord.cloud and avaivy.cloud. The public tunnel reaches the local origin.
+You are listening on the Hawaii Pacific Solar Root Server. Host name Ava Core. The live tree is on C only. Public doors are rootrecord.cloud and avaivy.cloud. The public tunnel reaches the local origin.
 
 Boot Summary. Net-gate stopped overnight and restored this morning. Gap on file is {gap_txt}. Restore stamp is {_iso_spoken(str(net.get('restored_at') or ''))}. Desk should be visible after restore. If Desk ever opens as a blank shell, use the start-desk path.
 
@@ -415,7 +423,7 @@ def write_boot_report(*, source: str = "boot", text: str | None = None) -> dict:
         "source": source,
         "engine": engine,
         "day": day,
-        "stamp": now.strftime("%Y-%m-%d %H:%M HST"),
+        "stamp": now.strftime("%Y-%m-%d %H:%M") + " Hawaiian Standard Time",
         "dated": str(dated),
         "current": str(current),
         "bytes": len(body.encode("utf-8")),

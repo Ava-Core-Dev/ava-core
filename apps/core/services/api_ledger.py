@@ -26,10 +26,16 @@ HST = ZoneInfo("Pacific/Honolulu")
 
 STATE_PATH = config.DATA_DIR / "state" / "api-ledger.json"
 LAST_PATH = config.DATA_DIR / "state" / "api-ledger-last.json"
+AUDIO_COST_JSONL = config.DATA_DIR / "state" / "audio-cost.jsonl"
+AUDIO_COST_SUMMARY = config.DATA_DIR / "state" / "audio-cost.json"
 
 # Operator-reported 2026-09-03 HST. Not live-metered.
 CURSOR_SEED_USED_PCT = 73
 XAI_SEED_USD = 5.00
+# Successful Ara / report TTS clip: meter $0.10 (round up from ~$0.07 actual).
+# ~3 report clips/day → $0.30/day → ~$9/month (operator membership context).
+REPORT_AUDIO_CLIP_USD = 0.10
+REPORT_AUDIO_CLIP_ACTUAL_USD = 0.07
 
 SOURCES = (
     {
