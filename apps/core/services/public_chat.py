@@ -93,14 +93,13 @@ TOPICS: list[tuple[str, tuple[str, ...], str]] = [
     (
         "kilauea",
         ("kilauea", "kīlauea", "volcano", "lava", "erupt"),
-        "Kīlauea is Root Record — real Hawaiʻi, not the Minecraft map. "
-        f"USGS-style activity sits on the live dashboard: {LINKS['record']}. "
-        "I don't invent alert levels; if the host is up, the card is live.",
+        "Kīlauea is real Hawaiʻi — USGS-style activity on the Root Record desk. "
+        "I don't invent alert levels.",
     ),
     (
         "weather",
         ("weather", "noaa", "rain", "forecast", "hilo", "big island"),
-        f"NOAA / Big Island weather is on Root Record: {LINKS['record']}. "
+        "NOAA / Big Island weather is on the Root Record desk. "
         "Public label is HI Pacific Solar Root Server — I don't publish a street or town.",
     ),
     (
