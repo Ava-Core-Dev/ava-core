@@ -86,7 +86,7 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {config.XAI_API_KEY}", "Content-Type": "application/json"}
 
 
-def _check(r: requests.Response, what: str) -> None:
+def _check(r: requests.Response, what: str, *, model: str | None = None) -> None:
     if r.status_code < 400:
         return
     body = (r.text or "")[:800]
@@ -96,7 +96,7 @@ def _check(r: requests.Response, what: str) -> None:
     elif r.status_code == 403:
         msg += " → Key disabled or out of credits. Check console.x.ai → Billing"
     elif r.status_code == 404:
-        msg += f" → Model {payload.get('model') if 'payload' in dir() else config.GROK_MODEL} not found"
+        msg += f" → Model {model or config.GROK_MODEL} not found"
     log.error(msg)
     raise XAIError(msg)
 
@@ -111,14 +111,15 @@ def chat(
 ) -> str:
     if grok_is_down():
         raise XAIError("Grok circuit-open (credits/auth). Skipping until cooldown.")
+    chosen = model_pick.pick("xai", model=model)
     payload: dict[str, Any] = {
-        "model": model or config.GROK_MODEL,
+        "model": chosen,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
     r = requests.post(CHAT_URL, headers=_headers(), json=payload, timeout=timeout)
-    _check(r, "chat")
+    _check(r, "chat", model=chosen)
     data = r.json()
     try:
         text = data["choices"][0]["message"]["content"].strip()
@@ -136,7 +137,7 @@ def chat(
                 cached = int(details.get("cached_tokens") or 0)
             api_ledger.record_usage(
                 "xai",
-                model=payload.get("model") or config.GROK_MODEL,
+                model=chosen,
                 input_tokens=int(usage.get("prompt_tokens") or 0),
                 output_tokens=int(usage.get("completion_tokens") or 0),
                 cached_tokens=cached,

@@ -718,6 +718,8 @@ def snapshot() -> dict:
         write_flags({})
         st = flags()
     _seed_prices("snapshot")
+    from apps.core.services import model_pick
+
     return {
         "ok": True,
         "capture_enabled": st["capture_enabled"],
@@ -726,13 +728,7 @@ def snapshot() -> dict:
         "balances": _balance_block(st),
         "prices": latest_catalog(),
         "auto": auto_turn_estimates(),
-        "defaults": {
-            "xai": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("xai"),
-            "openai": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("openai"),
-            "gemini": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("gemini"),
-            "cursor": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("cursor"),
-            "anthropic": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("anthropic"),
-        },
+        "defaults": {v: model_pick.pick(v) for v in ("xai", "openai", "gemini", "cursor", "anthropic")},
         "last": last,
         "self_update": {
             "on": False,

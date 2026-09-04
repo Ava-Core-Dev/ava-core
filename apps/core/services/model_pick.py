@@ -85,8 +85,23 @@ def _eligible(row: dict) -> bool:
 def cheapest(vendor: str) -> str:
     from apps.core.services import api_ledger
 
+    rows = list(api_ledger.latest_catalog())
+    seen = {(r.get("vendor"), r.get("model")) for r in rows}
+    for seed in api_ledger.SEED_ROWS:
+        key = (seed.get("vendor"), seed.get("model"))
+        if key in seen:
+            continue
+        rows.append(
+            {
+                "vendor": seed["vendor"],
+                "model": seed["model"],
+                "input_per_m": seed.get("input"),
+                "output_per_m": seed.get("output"),
+                "unit": seed.get("unit") or "1M tokens",
+            }
+        )
     scored: list[tuple[float, int, str]] = []
-    for row in api_ledger.latest_catalog():
+    for row in rows:
         if row.get("vendor") != vendor or not _eligible(row):
             continue
         blend = 0.5 * float(row["input_per_m"]) + 0.5 * float(row["output_per_m"])
