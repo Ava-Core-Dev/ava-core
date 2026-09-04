@@ -147,7 +147,7 @@ ICON_1024      = PUBLIC_MEDIA / "images" / "brand" / "ava-icon-1024.png"
 
 MEDIA_SUBDIRS = (
     "public/audio/station", "public/audio/reports", "public/audio/crons",
-    "public/audio/words", "public/audio/numbers",
+    "public/audio/words", "public/audio/numbers", "public/audio/music",
     "public/audio/time_clips", "public/audio/sounds", "public/audio/voice",
     "public/audio/voice/generated", "public/audio/current", "public/audio/youtube",
     "public/video/clips", "public/video/reports", "public/video/current",

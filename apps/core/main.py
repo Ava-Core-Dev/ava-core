@@ -80,10 +80,13 @@ async def lifespan(app: FastAPI):
 
     # Drain the audio queue in this process — crons and /api/voice/* enqueue here
     try:
-        from apps.voice.director import ensure_running
+        from apps.voice.director import ensure_music_bed, ensure_running
+
         ensure_running()
+        ensure_music_bed()
+        log.info("Stream Director + music bed started")
     except Exception as e:
-        log.warning("Stream Director loop failed to start: %s", e)
+        log.warning("Stream Director / music bed failed to start: %s", e)
 
     # Fire startup voice clip once — skip brief reconnect / watchdog flaps
     try:

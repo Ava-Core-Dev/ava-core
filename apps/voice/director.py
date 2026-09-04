@@ -454,26 +454,30 @@ class StreamDirector:
                         return
                 if not path.is_file():
                     continue
-                await self._play_music_track(path)
+                finished = await self._play_music_track(path)
+                # Voice interrupt: wait for clear, then restart same track from the top.
+                if not finished and self._music_hold:
+                    while self._music_hold:
+                        await asyncio.sleep(0.25)
+                        if not self._music_enabled or not self._running:
+                            return
+                    if path.is_file() and self._music_enabled and self._running:
+                        await self._play_music_track(path)
 
-    async def _play_music_track(self, path: Path) -> None:
-        """Play one bed track; abort if voice hold rises mid-track."""
+    async def _play_music_track(self, path: Path) -> bool:
+        """Play one bed track. Returns True if it finished; False if voice hold aborted it."""
         self._music_current = path
         player_cmd = _find_audio_player()
         if not player_cmd:
             log.warning("Music bed: no audio player — skipping %s", path.name)
             await asyncio.sleep(2.0)
             self._music_current = None
-            return
+            return True
 
         if player_cmd[-1] == "_AVA_PLAY_MP3_":
             cmd = _windows_play_music(path)
         else:
-            # ffplay/mpg123/mpv: keep going until kill or natural end
             cmd = list(player_cmd) + [str(path)]
-            if cmd[0].endswith("ffplay") or Path(cmd[0]).name.lower().startswith("ffplay"):
-                # already has -autoexit from _ffplay_cmd
-                pass
 
         env = dict(os.environ)
         if os.name != "nt":
@@ -489,6 +493,7 @@ class StreamDirector:
             env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
 
         proc: asyncio.subprocess.Process | None = None
+        aborted = False
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -501,6 +506,7 @@ class StreamDirector:
             log.info("Music bed playing: %s", path.name)
             while proc.returncode is None:
                 if self._music_hold or not self._music_enabled:
+                    aborted = True
                     self._kill_music_proc()
                     break
                 try:
@@ -509,10 +515,12 @@ class StreamDirector:
                     continue
         except Exception as e:
             log.warning("Music bed play failed (%s): %s", path.name, e)
+            aborted = False
         finally:
             if proc is not None and self._music_proc is proc:
                 self._music_proc = None
             self._music_current = None
+        return not aborted
 
     # ── OBS WebSocket ─────────────────────────────────────────────────────────
 
