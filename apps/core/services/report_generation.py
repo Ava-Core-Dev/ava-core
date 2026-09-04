@@ -408,8 +408,72 @@ def resolve_engine(kind: str, *, offline: bool = False, force: str | None = None
     return wanted
 
 
+def _context_urls_for_kind(kind: str, cfg: dict | None = None) -> list[str]:
+    """Config context URLs with report-links typed for this kind + required /data pages."""
+    from apps.core.services import live_data_pages
+
+    cfg = cfg or load()
+    kind = (kind or "morning").strip().lower()
+    urls: list[str] = []
+    seen: set[str] = set()
+
+    def _add(url: str) -> None:
+        u = str(url or "").strip()
+        if not u or u in seen:
+            return
+        seen.add(u)
+        urls.append(u)
+
+    for raw in cfg.get("context_urls") or []:
+        u = str(raw or "").strip()
+        if "report-links" in u and "type=" in u:
+            # Never hand morning links to a midday Grok call (and vice versa).
+            if f"type={kind}" in u:
+                _add(u)
+            else:
+                _add(
+                    f"https://origin.avaivy.cloud/data/report-links?type={kind}&format=md"
+                )
+            continue
+        _add(u)
+
+    live = live_data_pages.link_bundle(report_type=kind)
+    for key in (
+        "data_hub",
+        "report_links",
+        "hub",
+        "hub_rootrecord",
+        "llms",
+        "context_md",
+        "status_desk",
+        "solar",
+    ):
+        val = (live.get("context") or {}).get(key)
+        if val:
+            _add(str(val) if "format=" in str(val) or not str(val).endswith("/data/report-links") else f"{val}?format=md")
+    # report_links without format — add md form explicitly
+    rl = (live.get("context") or {}).get("report_links")
+    if rl:
+        _add(f"{rl}&format=md" if "?" in str(rl) else f"{rl}?format=md")
+    for row in live.get("resources") or []:
+        md = row.get("md")
+        if md:
+            _add(str(md))
+    # Hard requirements for noon/morning packages
+    for must in (
+        f"https://origin.avaivy.cloud/data/report-links?type={kind}&format=md",
+        "https://origin.avaivy.cloud/data/power?format=md",
+        "https://origin.avaivy.cloud/data/weather?format=md",
+        "https://origin.avaivy.cloud/data/kilauea?format=md",
+        "https://origin.avaivy.cloud/data/origin?format=md",
+        "https://origin.avaivy.cloud/data/day-board?format=md",
+    ):
+        _add(must)
+    return urls
+
+
 def link_bundle(kind: str = "morning") -> dict:
-    """Context URLs from config + live /data pages."""
+    """Context URLs from config + live /data pages (kind-correct report-links)."""
     from apps.core.services import live_data_pages
 
     cfg = load()
@@ -418,7 +482,7 @@ def link_bundle(kind: str = "morning") -> dict:
         "schema": "ava-report-link-bundle/v1",
         "kind": kind,
         "built_hst": datetime.now(HST).strftime("%Y-%m-%d %H:%M Hawaiian Standard Time"),
-        "context_urls": list(cfg.get("context_urls") or []),
+        "context_urls": _context_urls_for_kind(kind, cfg),
         "fetch_urls": list(cfg.get("fetch_urls") or []),
         "live_data": live,
     }
@@ -437,22 +501,164 @@ def _fetch_url_text(url: str, *, timeout: int = 20) -> str:
         return f"[fetch {url} → {type(e).__name__}]\n"
 
 
+def _kind_operator_facts(kind: str) -> str:
+    """Midday/morning spoken FACTS block (Broken / Already landed / diffs / Priority).
+
+    live_data_pages alone does not carry these — Grok noon 2026-09-04 said
+    'I do not have it live' for Broken/Already landed because they were missing.
+    """
+    kind = (kind or "morning").strip().lower()
+    try:
+        if kind == "midday":
+            from apps.core.services import midday_report
+
+            return midday_report.build_facts(source="report_generation_grok", include_timestamp=True)
+        if kind == "morning":
+            from apps.core.services import boot_report
+
+            return boot_report.build_facts(source="report_generation_grok")
+    except Exception as e:
+        log.warning("%s operator facts failed: %s", kind, e)
+        return f"[operator facts unavailable: {type(e).__name__}]"
+    return ""
+
+
+_REQUIRED_MARKERS = {
+    "midday": (
+        "Broken / needs work",
+        "Already landed",
+        "Priority:",
+        "Kīlauea",
+    ),
+    "morning": (
+        "Broken / needs work",
+        "Already landed",
+        "Priority:",
+        "Kīlauea",
+    ),
+}
+
+_REQUIRED_LIVE_IDS = (
+    "origin",
+    "power",
+    "weather",
+    "kilauea",
+    "day-board",
+)
+
+
+def validate_prompt_package(pkg: dict, *, kind: str) -> dict:
+    """Fail loud when the Grok package is incomplete — do not spend on thin garbage."""
+    kind = (kind or "morning").strip().lower()
+    missing: list[str] = []
+    facts = str(pkg.get("local_live_facts") or "")
+    op = str(pkg.get("operator_facts") or "")
+    combined = facts + "\n" + op
+    fetched = str(pkg.get("fetched_markdown") or "")
+    bundle = pkg.get("bundle") if isinstance(pkg.get("bundle"), dict) else {}
+    urls = [str(u) for u in (bundle.get("context_urls") or [])]
+    live = bundle.get("live_data") if isinstance(bundle.get("live_data"), dict) else {}
+    live_ids = {str(r.get("id") or "") for r in (live.get("resources") or []) if isinstance(r, dict)}
+
+    if len(facts.strip()) < 800:
+        missing.append("local_live_facts_too_short")
+    if kind in _REQUIRED_MARKERS and len(op.strip()) < 400:
+        missing.append("operator_facts_too_short")
+    for marker in _REQUIRED_MARKERS.get(kind, ()):
+        if marker not in combined:
+            missing.append(f"marker:{marker}")
+    for rid in _REQUIRED_LIVE_IDS:
+        if rid not in live_ids:
+            missing.append(f"live_resource:{rid}")
+    report_link = f"report-links?type={kind}"
+    if not any(report_link in u for u in urls):
+        missing.append(f"url:{report_link}")
+    for must in ("/data/power", "/data/weather", "/data/kilauea", "/data/day-board"):
+        if not any(must in u for u in urls):
+            missing.append(f"url:{must}")
+    fetch_errors = fetched.count("[fetch ")
+    fetch_ok_blocks = fetched.count("### http")
+    if fetch_ok_blocks < 1:
+        missing.append("fetched_context_empty")
+    if fetch_errors and fetch_ok_blocks == 0:
+        missing.append("fetched_context_all_failed")
+
+    ok = not missing
+    return {
+        "ok": ok,
+        "kind": kind,
+        "missing": missing,
+        "facts_chars": len(facts),
+        "operator_facts_chars": len(op),
+        "fetched_chars": len(fetched),
+        "context_url_count": len(urls),
+        "live_resource_count": len(live_ids),
+        "detail": "complete" if ok else "incomplete_package:" + ",".join(missing[:12]),
+    }
+
+
 def build_prompt_package(kind: str) -> dict:
-    """URLs + fetched context + origin live facts for Grok/local."""
+    """URLs + fetched context + live /data facts + kind operator FACTS for Grok/local."""
     from apps.core.services import live_data_pages
 
     cfg = load()
+    kind = (kind or "morning").strip().lower()
     bundle = link_bundle(kind)
     fetched: list[str] = []
     for url in cfg.get("fetch_urls") or []:
         fetched.append(_fetch_url_text(str(url)))
     # Always include origin live facts (no public round-trip required).
     local_facts = live_data_pages.facts_block_for_report(report_type=kind)
-    return {
+    operator_facts = _kind_operator_facts(kind)
+    # Single block handed to the model: live pages + spoken FACTS with Broken/landed/Priority.
+    combined = local_facts
+    if operator_facts.strip():
+        combined = (
+            local_facts.rstrip()
+            + "\n\n=== KIND OPERATOR FACTS (required spoken sections) ===\n"
+            + operator_facts.strip()
+            + "\n"
+        )
+    pkg = {
         "bundle": bundle,
         "fetched_markdown": "\n".join(fetched),
-        "local_live_facts": local_facts,
+        "local_live_facts": combined,
+        "operator_facts": operator_facts,
+        "live_data_facts_only": local_facts,
     }
+    pkg["validation"] = validate_prompt_package(pkg, kind=kind)
+    return pkg
+
+
+def dump_prompt_package(kind: str, *, dest: Path | None = None) -> dict:
+    """Write a dry package dump for operator proof (no Grok spend)."""
+    kind = (kind or "morning").strip().lower()
+    pkg = build_prompt_package(kind)
+    path = dest or (config.DATA_DIR / "state" / f"report-package-dump-{kind}.md")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    val = pkg.get("validation") or {}
+    urls = "\n".join(f"- {u}" for u in ((pkg.get("bundle") or {}).get("context_urls") or []))
+    body = (
+        f"# Report package dump — {kind}\n\n"
+        f"Built: {datetime.now(HST).isoformat()}\n"
+        f"Validation: {json.dumps(val, ensure_ascii=False)}\n\n"
+        f"## Context URLs ({val.get('context_url_count')})\n\n{urls}\n\n"
+        f"## Fetched context ({val.get('fetched_chars')} chars)\n\n"
+        f"{pkg.get('fetched_markdown') or ''}\n\n"
+        f"## Combined live + operator facts ({val.get('facts_chars')} chars)\n\n"
+        f"{pkg.get('local_live_facts') or ''}\n"
+    )
+    path.write_text(body, encoding="utf-8")
+    meta = {
+        "ok": bool(val.get("ok")),
+        "kind": kind,
+        "path": str(path),
+        "validation": val,
+        "bytes": len(body.encode("utf-8")),
+    }
+    meta_path = config.DATA_DIR / "state" / f"report-package-dump-{kind}.json"
+    meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    return meta
 
 
 def _persona_lock(kind: str) -> str:
