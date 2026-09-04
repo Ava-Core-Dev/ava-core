@@ -157,6 +157,9 @@ async def lifespan(app: FastAPI):
         from apps.core.services import uptime_log, schedule_clock
         schedule_clock.sample_day_stop()
         uptime_log.record_origin_stop()
+        from apps.core.services.startup_voice import note_down
+
+        note_down()
     except Exception:
         pass
     if _scheduler:

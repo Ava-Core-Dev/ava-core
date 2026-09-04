@@ -44,7 +44,7 @@ def _job_wave(job_id: str) -> int:
         "economy-brief", "overnight-relay",
     }
     wave5 = {"adsense-eod", "admob-eod"}
-    wave6 = {"time-chime", "broadcast-loop"}
+    wave6 = {"time-chime", "broadcast-loop", "hourly-clip-prebuild", "hourly-clip-reports"}
     if job_id in wave1 or job_id == "heartbeat":
         return 1
     if job_id in wave2:
@@ -107,6 +107,12 @@ class Scheduler:
         # Uses all 48 clips (time_0000 … time_2330) via Stream Director → desktop + OBS
         s.add_job(self._run("hourly_chime"), CronTrigger(minute="0,30"),
                   id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=90)
+
+        s.add_job(self._run("hourly_clip_reports", attr="prebuild"), CronTrigger(minute=55),
+                  id="hourly-clip-prebuild", name="Prebuild hourly clip reports", misfire_grace_time=120)
+
+        s.add_job(self._run("hourly_clip_reports"), CronTrigger(minute=0),
+                  id="hourly-clip-reports", name="Play hourly clip reports", misfire_grace_time=120)
 
         # ── Hourly solar + weather (top of every hour) ────────────────────────
         s.add_job(self._run("solar_weather"), CronTrigger(minute=0),
