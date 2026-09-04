@@ -56,6 +56,8 @@ async def run(*, write_report: bool = True) -> dict:
                 "dated": written.get("dated"),
                 "current": written.get("current"),
                 "bytes": written.get("bytes"),
+                "engine": written.get("engine"),
+                "grok": False,
             }
         except Exception as e:
             log.exception("boot prelims report write failed")

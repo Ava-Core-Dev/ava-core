@@ -40,11 +40,14 @@ async def run():
     if xai.grok_is_down():
         from apps.core.services import boot_report
 
-        content = boot_report.build_text(source="morning_cron_file")
-        reports.queue_public_draft("morning", content, source="cron_file")
-        report_store.write_current(content, kind="morning", source="cron_file")
-        boot_report.write_boot_report(source="morning_cron_file")
-        log.info("Morning report wrote file facts only (Grok halted)")
+        written = boot_report.write_boot_report(source="morning_cron_local")
+        content = written.get("text") or ""
+        reports.queue_public_draft("morning", content, source="cron_local")
+        report_store.write_current(content, kind="morning", source="cron_local")
+        log.info(
+            "Morning Boot Report via on-device brain (Grok halted) engine=%s",
+            written.get("engine"),
+        )
         return
 
     from apps.core.services import synth
@@ -107,15 +110,14 @@ async def run_merged():
     if xai.grok_is_down():
         from apps.core.services import boot_report
 
-        content = boot_report.build_text(source="merged_morning_file")
-        content = content.replace(
-            "**Ava morning Boot Report**",
-            "**Merged Morning Summary**",
-            1,
+        written = boot_report.write_boot_report(source="merged_morning_local")
+        content = written.get("text") or ""
+        reports.queue_public_draft("summary", content, source="cron_local")
+        reports.write_current(content, kind="summary", source="cron_local")
+        log.info(
+            "Merged morning Boot Report via on-device brain (Grok halted) engine=%s",
+            written.get("engine"),
         )
-        reports.queue_public_draft("summary", content, source="cron_file")
-        reports.write_current(content, kind="summary", source="cron_file")
-        log.info("Merged morning wrote file facts only (Grok halted)")
         return
 
     from apps.core.services import synth
