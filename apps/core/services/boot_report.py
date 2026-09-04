@@ -3,6 +3,7 @@
 Prelims refresh first (caller). Prose comes from the on-device brain with a
 fixed format lock. Never Grok. Never paid cloud voice. Never secrets.
 Never emit all-caps AVA as a standalone TTS token (Ara spells A-V-A).
+Never emit bare HI or HST in TTS text (Ara spells H-I / H-S-T).
 """
 from __future__ import annotations
 
@@ -33,10 +34,11 @@ Hard rules:
 - Short sentences. Numbers spoken naturally (seven fifty-four, not 07:54). Separate paragraphs with blank lines.
 - Do not use markdown ## headings. Use spoken lead-ins as plain sentences.
 - Pronunciation: never write all-caps AVA as a standalone token. TTS spells A-V-A. Prefer “Ava”, “Ava Core”, “Ava Ivy”, or “Root Record”. Say host name as “Ava Core”, not AVA-CORE.
+- Pronunciation: never write bare HI or HST. TTS spells H-I / H-S-T. Prefer “Hawaii”, “Hawaiian Standard Time”, and “Hawaii Pacific Solar Root Server” (or “the Hawaii Pacific Solar Root Server”). Do not write “HI Pacific…”.
 
 Required shape:
 1. Open exactly in this spirit: "This is the Ava Core Root Record morning status for [weekday date], about [time] Hawaiian Standard Time."
-2. Then Root Server / host Ava Core / C-only / public doors / public tunnel → origin — plain spoken sentences.
+2. Then Hawaii Pacific Solar Root Server / host Ava Core / C-only / public doors / public tunnel → origin — plain spoken sentences.
 3. Then these paragraphs, each with a clear spoken lead-in:
    - Boot Summary (overnight downtime, restore/boot time, net-gate stop/restore, desk restore issues if any)
    - System Summary (origin, tunnel, on-device brain, Desk, watchdog tasks, voice mode local, public chat path when warm)
@@ -74,7 +76,10 @@ def _iso_spoken(raw: str | None) -> str:
             clock = f"{h12} o'clock"
         else:
             clock = f"{h12} {m:02d}"
-        return f"{t.strftime('%A')} about {clock} {ampm} Hawaiian Standard Time ({t.strftime('%Y-%m-%d %H:%M HST')})"
+        return (
+            f"{t.strftime('%A')} about {clock} {ampm} Hawaiian Standard Time "
+            f"({t.strftime('%Y-%m-%d %H:%M')})"
+        )
     except Exception:
         return str(raw)[:40]
 
