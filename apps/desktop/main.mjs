@@ -243,22 +243,15 @@ async function handleDeskClose(reason) {
       }
     }
     const peek = await peekMusicBedStatus();
-    if (peek.ok) {
-      saveDeskUiState(
-        {
-          musicWanted: Boolean(peek.musicWanted || peek.playing),
-          musicTrack: peek.musicTrack || null,
-          closedAt: new Date().toISOString(),
-          closeReason: reason,
-        },
-        DESK_ROOT,
-      );
-    } else {
-      saveDeskUiState(
-        { closedAt: new Date().toISOString(), closeReason: reason },
-        DESK_ROOT,
-      );
-    }
+    saveDeskUiState(
+      {
+        musicWanted: Boolean(peek.musicWanted || peek.playing),
+        musicTrack: peek.musicTrack || null,
+        closedAt: new Date().toISOString(),
+        closeReason: reason,
+      },
+      DESK_ROOT,
+    );
   } catch {
     /* ignore */
   }

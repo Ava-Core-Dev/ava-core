@@ -380,7 +380,7 @@ export async function stopDeskOwnedAudio() {
   }
 
   return {
-    ok: Boolean(api?.ok) || localSwept > 0 || true,
+    ok: true,
     api,
     localSwept,
     wantedCleared: true,
@@ -430,6 +430,7 @@ function sweepMusicBedLocal() {
 
 /**
  * Snapshot music intent from origin before stop (for desk-ui restore).
+ * Falls back to data/state/music-bed-wanted.txt when origin is down.
  */
 export async function peekMusicBedStatus() {
   try {
@@ -446,7 +447,21 @@ export async function peekMusicBedStatus() {
       playing,
     };
   } catch (err) {
-    return { ok: false, detail: err?.message || String(err) };
+    let wanted = false;
+    try {
+      const p = path.join(AVA_ROOT, "data", "state", "music-bed-wanted.txt");
+      const raw = fs.readFileSync(p, "utf8").trim().toLowerCase();
+      wanted = raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+    } catch {
+      /* ignore */
+    }
+    return {
+      ok: false,
+      detail: err?.message || String(err),
+      musicWanted: wanted,
+      musicTrack: null,
+      playing: false,
+    };
   }
 }
 
