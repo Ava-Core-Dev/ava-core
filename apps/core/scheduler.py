@@ -104,6 +104,13 @@ class Scheduler:
         s.add_job(self._run("noaa"), IntervalTrigger(minutes=60),
                   id="rr-noaa", name="NOAA weather", misfire_grace_time=180)
 
+        # ── NWS Hawaiʻi by-county hazards (15 min). Hash-gated speech. ────────
+        # Loose align with HFO AFD windows (~05/11/17 HST) via frequent poll;
+        # voice/draft only when product hash changes (or boot force).
+        s.add_job(self._run("nws_hawaii"), IntervalTrigger(minutes=15),
+                  id="nws-hawaii-counties", name="NWS Hawaii by county",
+                  misfire_grace_time=120)
+
         # ── Kīlauea (hourly). Hash ignores the clock so unchanged USGS/HVO
         #    does not republish. Grok/Cursor synthesis is a separate 2×/day drain.
         s.add_job(self._run("kilauea"), IntervalTrigger(minutes=60),

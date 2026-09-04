@@ -26,6 +26,21 @@ async def run(*, write_report: bool = True) -> dict:
         out["ok"] = False
 
     try:
+        from apps.core.crons.since_last_fire import nws_hawaii as nws_hawaii_cron
+
+        nws_out = await nws_hawaii_cron.run(reason="boot", force_speak=True)
+        out["steps"]["nws_hawaii"] = {
+            "ok": bool(nws_out.get("ok")),
+            "alerts": nws_out.get("alerts"),
+            "changed": nws_out.get("changed"),
+            "source": nws_out.get("source"),
+        }
+    except Exception as e:
+        log.exception("boot prelims NWS Hawaii counties failed")
+        out["steps"]["nws_hawaii"] = f"fail:{type(e).__name__}"
+        out["ok"] = False
+
+    try:
         from apps.core.crons.since_last_fire import kilauea
 
         await kilauea.run()
