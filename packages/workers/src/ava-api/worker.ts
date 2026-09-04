@@ -58,6 +58,7 @@ export default {
     const origin = env.AVA_ORIGIN_URL || ORIGIN;
     const urlPath = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
     if (isPublicWrite(request.method, urlPath === "/feedback" ? "/feedback" : urlPath)) {
+      const chat = urlPath === "/api/chat";
       let snapshot: Record<string, unknown> = {};
       try {
         snapshot = (await request.clone().json()) || {};
@@ -66,8 +67,14 @@ export default {
       }
       return proxyToOrigin(request, {
         originUrl: origin,
-        timeoutMs: 8000,
+        timeoutMs: chat ? 60000 : 8000,
         offlineFallback: async () => {
+          if (chat) {
+            return Response.json({
+              reply: "I am offline on the Root Server. Try again when the desk is up.",
+              brain: "offline",
+            });
+          }
           try {
             const stored = await storeOfflineFeedback(env, snapshot);
             return Response.json({ ok: true, stored: "offline", id: stored.id });

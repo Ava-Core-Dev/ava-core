@@ -26,8 +26,8 @@ import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://origin.avaivy.cloud";
 
-/** Landing page. The desk is the home page. */
-const HOME_PAGE = "/status";
+/** Landing page. Product home. Status desk is /status. */
+const HOME_PAGE = "/";
 
 function gone(status: number): Response {
   return new Response(null, { status });
