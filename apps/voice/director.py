@@ -249,8 +249,19 @@ class StreamDirector:
         await self._queue.put(item)
         log.info("Queued: %s  priority=%s", name or path.name, priority)
 
-    async def queue_chime(self, path: Path) -> None:
-        await self.queue(path, name="Hourly Chime", priority=Priority.SCHEDULED, scene=None)
+    async def queue_number(self, n: int, *, name: str = "", priority: int = Priority.REPORT) -> Path | None:
+        """Concatenate Ara number clips and queue them. No cloud TTS."""
+        from apps.core import config as _cfg
+        from apps.voice.clips import speak_number
+
+        dest = Path(_cfg.GENERATED_DIR) / f"spoken-{int(n)}.mp3"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        got = speak_number(int(n), dest)
+        if not got:
+            log.warning("No number clips for %s", n)
+            return None
+        await self.queue(got, name=name or f"number_{n}", priority=priority, scene=None)
+        return got
 
     async def queue_report(self, path: Path, name: str, report_type: str = "") -> None:
         scene = SCENE_MAP.get(report_type.lower())

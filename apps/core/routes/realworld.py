@@ -162,6 +162,27 @@ class VoicePlayRequest(BaseModel):
     force: bool = False  # bypass cooldown for intentional ops triggers
 
 
+class VoiceNumberRequest(BaseModel):
+    number: int
+    priority: str = "report"
+
+
+@router.post("/voice/speak-number")
+async def api_voice_speak_number(req: VoiceNumberRequest):
+    """Build a spoken integer from on-disk Ara clips and queue it."""
+    try:
+        from apps.voice.director import Priority, get_director
+
+        pri = getattr(Priority, req.priority.upper(), Priority.REPORT)
+        director = get_director()
+        path = await director.queue_number(req.number, priority=pri)
+        if not path:
+            return JSONResponse({"ok": False, "detail": "no_clips"}, status_code=404)
+        return {"ok": True, "number": req.number, "mp3": path.name}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 @router.post("/voice/play")
 async def api_voice_play(req: VoicePlayRequest):
     """Trigger a named voice clip through the Stream Director.
