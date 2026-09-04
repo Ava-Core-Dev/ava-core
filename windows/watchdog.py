@@ -163,4 +163,6 @@ subprocess.Popen(
     stderr=log_f,
     stdin=subprocess.DEVNULL,
 )
+if decision.get("restart_desk"):
+    net_gate.start_desk()
 sys.exit(0)
