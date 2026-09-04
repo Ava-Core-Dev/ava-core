@@ -70,6 +70,19 @@ def _parse_cmd(text: str) -> str | None:
     return None
 
 
+def _tg_addressed(msg: dict, text: str) -> bool:
+    raw = str(text or "")
+    if re.search(r"\bava(?:\s+ivy)?\b", raw, re.I):
+        return True
+    low = raw.lower()
+    if "@ava_ivy_bot" in low:
+        return True
+    for ent in msg.get("entities") or []:
+        if str(ent.get("type") or "") in {"mention", "text_mention"}:
+            return True
+    return False
+
+
 async def _handle(surface: str, sid: str, cmd: str, *, label: str = "") -> str:
     if cmd == "help":
         return HELP
