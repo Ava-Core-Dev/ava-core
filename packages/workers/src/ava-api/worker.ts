@@ -56,7 +56,7 @@ export default {
   async fetch(request: Request, env: AvaEnv): Promise<Response> {
     const url = new URL(request.url);
     // Phone browsers often hit www; apex is the only public door.
-    if (url.hostname.replace(/^www\./i, "").toLowerCase() === "avaivy.cloud" && /^www\./i.test(url.hostname)) {
+    if (url.hostname.toLowerCase() === "www.avaivy.cloud") {
       const dest = new URL(request.url);
       dest.protocol = "https:";
       dest.hostname = "avaivy.cloud";
