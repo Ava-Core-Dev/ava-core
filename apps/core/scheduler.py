@@ -108,7 +108,7 @@ class Scheduler:
         s.add_job(self._run("hourly_chime"), CronTrigger(minute="0,30"),
                   id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=90)
 
-        s.add_job(self._run("hourly_clip_reports", attr="prebuild"), CronTrigger(minute=55),
+        s.add_job(self._run_clip_prebuild, CronTrigger(minute=55),
                   id="hourly-clip-prebuild", name="Prebuild hourly clip reports", misfire_grace_time=120)
 
         s.add_job(self._run("hourly_clip_reports"), CronTrigger(minute=0),
@@ -230,6 +230,12 @@ class Scheduler:
         from apps.core.crons.on_time import admob_report
 
         await admob_report.run("eod")
+
+    @staticmethod
+    async def _run_clip_prebuild():
+        from apps.core.crons.since_last_fire import hourly_clip_reports
+
+        await hourly_clip_reports.prebuild()
 
     @staticmethod
     def _run(name: str):
