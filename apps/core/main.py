@@ -288,6 +288,7 @@ for _route in (
     "ops",
     "local_site",
     "brain",
+    "review",
     "vercel_builds",
     "site_backgrounds",
 ):

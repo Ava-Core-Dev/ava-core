@@ -44,6 +44,7 @@ def _job_wave(job_id: str) -> int:
         "morning-report", "merged-morning-summary", "cursor-fallback",
         "economy-brief", "overnight-relay", "governance-daily", "governance-self-update",
         "api-prices", "day-reports-morning", "day-reports-midday", "day-reports-evening",
+        "code-review",
     }
     wave5 = {"adsense-eod", "admob-eod"}
     wave6 = {
