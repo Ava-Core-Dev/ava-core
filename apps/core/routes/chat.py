@@ -75,6 +75,7 @@ class ChatRequest(BaseModel):
     surface: str = "public"
     max_tokens: int = 512
     history: list[dict] = []
+    session_id: str = ""
 
 
 @router.get("/auth/session")
@@ -101,6 +102,27 @@ async def api_chat(req: ChatRequest, request: Request):
         pass
 
     system, _src = persona_svc.system_prompt(surface=surface)
+    if surface == "public":
+        system += (
+            "\nThis is a 1:1 talk on the public site. They already opened the chat — "
+            "every message is for you. They do not need to say Ava. Small talk is useful context. "
+            "Treat them as an individual from notes on file. Never invent a fact about them."
+        )
+    try:
+        import re
+        from apps.core.services import people
+
+        sid = str(req.session_id or request.cookies.get("ava_web_sid") or "").strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", sid):
+            sid = ""
+        if not sid:
+            import uuid
+
+            sid = uuid.uuid4().hex
+        people.observe("web", sid, text=raw)
+        system += "\n\n" + people.lock_addon("web", sid)
+    except Exception:
+        sid = ""
     try:
         facts = await persona_svc.live_facts()
         if facts:

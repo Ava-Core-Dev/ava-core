@@ -403,7 +403,13 @@ async def api_finance_public():
 @router.get("/ava/status/")
 async def ava_status_page():
     """Full solar desk — same board as /solar — for every /status surface."""
-    return HTMLResponse(_solar_html())
+    return HTMLResponse(
+        _solar_html(),
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Security-Policy": "frame-ancestors 'self' https://avaivy.cloud https://www.avaivy.cloud",
+        },
+    )
 
 
 @router.get("/ava/status.json")

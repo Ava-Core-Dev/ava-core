@@ -136,8 +136,7 @@ async def rootmc_page():
 @router.get("/chat")
 @router.get("/chat/")
 async def ava_chat_page():
-    text = _CHAT.read_text(encoding="utf-8") if _CHAT.is_file() else "<p>chat missing</p>"
-    return HTMLResponse(text, headers={"Cache-Control": "no-store"})
+    return RedirectResponse("https://avaivy.cloud/#talk", status_code=302)
 
 
 @router.get("/api/site-config")
