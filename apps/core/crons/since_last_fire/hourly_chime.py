@@ -29,7 +29,7 @@ async def run() -> None:
         hour, minute = now.hour, now.minute
 
     dest = GENERATED / f"chime-{hour:02d}{minute:02d}.mp3"
-    built = build_time_announcement(hour, minute, dest)
+    built = build_time_announcement(hour, minute, dest, now=now)
     if not built.get("ok"):
         log.warning("Chime concat failed: %s", built)
         return

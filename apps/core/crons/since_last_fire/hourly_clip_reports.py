@@ -158,10 +158,15 @@ def build_all() -> dict[str, dict]:
     stamp = now.strftime("%Y%m%d-%H")
     out: dict[str, dict] = {}
     jobs = {
-        "solar": solar_script(facts),
-        "system": system_script(facts),
-        "weather": weather_script(facts),
-        "kilauea": kilauea_script(facts),
+        "solar": solar_script(facts, now),
+        "system": system_script(facts, now),
+        "weather": weather_script(facts, now),
+        "kilauea": kilauea_script(facts, now),
+    }
+    current_names = {
+        "solar": "solar-weather-current.mp3",
+        "system": "system-performance-current.mp3",
+        "kilauea": "Kilauea_Current.mp3",
     }
     for cat, script in jobs.items():
         dest = Path(GENERATED) / f"hourly-{cat}-{stamp}.mp3"
@@ -171,6 +176,12 @@ def build_all() -> dict[str, dict]:
             import shutil
 
             shutil.copy2(dest, latest)
+            pub = Path(config.AUDIO_CURRENT_DIR) / current_names[cat]
+            try:
+                pub.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(dest, pub)
+            except OSError:
+                pass
         result["script"] = script
         out[cat] = result
         log.info("clip report %s ok=%s missing=%s", cat, result.get("ok"), result.get("missing"))
