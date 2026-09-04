@@ -76,17 +76,28 @@ def _spend_blocked() -> bool:
 
 
 def mark_grok_down(reason: str) -> None:
-    until = datetime.now(timezone.utc) + timedelta(hours=max(1, config.GROK_DOWN_HOURS))
-    _save_status({
+    st = _load_status()
+    payload: dict[str, Any] = {
         "ok": False,
         "reason": reason[:300],
-        "until": until.isoformat(),
         "at": datetime.now(timezone.utc).isoformat(),
-    })
-    log.warning("Grok marked down until %s (%s)", until.isoformat(), reason[:120])
+    }
+    if st.get("halt"):
+        payload["halt"] = True
+    else:
+        until = datetime.now(timezone.utc) + timedelta(hours=max(1, config.GROK_DOWN_HOURS))
+        payload["until"] = until.isoformat()
+        log.warning("Grok marked down until %s (%s)", until.isoformat(), reason[:120])
+        _save_status(payload)
+        return
+    log.warning("Grok halt held (%s)", reason[:120])
+    _save_status(payload)
 
 
 def mark_grok_up() -> None:
+    st = _load_status()
+    if st.get("halt"):
+        return
     _save_status({"ok": True, "at": datetime.now(timezone.utc).isoformat()})
 
 
@@ -124,8 +135,8 @@ def chat(
     max_tokens: int = 340,
     timeout: int = 60,
 ) -> str:
-    if grok_is_down():
-        raise XAIError("Grok circuit-open (credits/auth). Skipping until cooldown.")
+    if _spend_blocked():
+        raise XAIError("Grok spend off (halt or spend_master).")
     chosen = model_pick.pick("xai", model=model)
     payload: dict[str, Any] = {
         "model": chosen,
@@ -165,7 +176,7 @@ def chat(
 
 def try_chat(messages: list[dict[str, str]], **kwargs) -> str | None:
     """Grok chat that returns None on failure and trips the credit breaker."""
-    if not config.XAI_API_KEY or grok_is_down():
+    if not config.XAI_API_KEY or _spend_blocked():
         return None
     try:
         return chat(messages, **kwargs)
@@ -178,6 +189,8 @@ def try_chat(messages: list[dict[str, str]], **kwargs) -> str | None:
 
 def tts(text: str, out_path: Path, *, voice: str | None = None,
         language: str = "en", timeout: int = 90) -> Path:
+    if _spend_blocked():
+        raise XAIError("Grok spend off (halt or spend_master).")
     payload = {
         "text": text,
         "voice_id": voice or config.TTS_VOICE,

@@ -639,7 +639,9 @@ def refresh(*, source: str = "daily") -> dict:
 
 def _balance_block(st: dict | None = None) -> dict:
     st = st or flags()
-    xai_live = _probe_xai_prepaid() if _mgmt_ready("xai") else {"ok": False, "detail": "no_mgmt_key"}
+    xai_live = {"ok": False, "detail": "spend_off"}
+    if st.get("spend_master") and _mgmt_ready("xai"):
+        xai_live = _probe_xai_prepaid()
     out = {}
     for key, acc in (st.get("accounts") or {}).items():
         spent = spent_usd(key)
