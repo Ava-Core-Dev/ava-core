@@ -868,7 +868,9 @@ async def voice_music(body: VoiceMusicBody):
         if action == "stop":
             return d.stop_music_bed()
         if action == "start":
-            kill_stray_music_players()
+            # Do not kill the active bed player here — start_music_bed sweeps with
+            # keep_pid when already running. Blind kill looked like natural end and
+            # advanced the playlist early.
             ensure_music_bed()
             result = await d.start_music_bed()
             return {"ok": bool(result.get("ok")), **result, **d.get_status()}

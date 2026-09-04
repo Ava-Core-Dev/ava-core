@@ -169,9 +169,7 @@ def _windows_play_music(path: Path) -> list[str]:
         "Add-Type -AssemblyName PresentationCore; "
         "$m = New-Object System.Windows.Media.MediaPlayer; "
         f"$m.Open([Uri]'{p}'); "
-        "$guard = 0; "
-        "while ($m.DownloadProgress -lt 1.0 -and $guard -lt 50) { "
-        "  Start-Sleep -Milliseconds 100; $guard++ }; "
+        "Start-Sleep -Milliseconds 400; "
         "$m.Play(); "
         f"Start-Sleep -Seconds {dur:.2f}; "
         "$m.Stop(); $m.Close()"
@@ -811,19 +809,22 @@ class StreamDirector:
                         await self._play_music_track(path)
 
     async def _play_music_track(self, path: Path) -> bool:
-        """Play one bed track. Returns True if it finished; False if hold aborted it."""
+        """Play one bed track until natural end. Returns False if hold aborted it.
+
+        Playlist advance is gated on measured file duration (wave/ffmpeg), not on the
+        OS player exiting. MediaPlayer Position/MediaEnded used to return in seconds–
+        ~1min while the WAV was still minutes long; kill_stray mid-song also looked
+        like a finished track and skipped ahead. If the player dies early we respawn
+        the same file until the duration clock is satisfied (unless held).
+        """
         self._music_current = path
+        wait_s = _music_wait_seconds(path)
         player_cmd = _find_audio_player()
         if not player_cmd:
             log.warning("Music bed: no audio player — skipping %s", path.name)
             await asyncio.sleep(2.0)
             self._music_current = None
             return True
-
-        if player_cmd[-1] == "_AVA_PLAY_MP3_":
-            cmd = _windows_play_music(path)
-        else:
-            cmd = list(player_cmd) + [str(path)]
 
         env = dict(os.environ)
         if os.name != "nt":
@@ -838,48 +839,85 @@ class StreamDirector:
                 env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
             env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
 
-        proc: asyncio.subprocess.Process | None = None
+        def _build_cmd() -> list[str]:
+            if player_cmd[-1] == "_AVA_PLAY_MP3_":
+                return _windows_play_music(path)
+            return list(player_cmd) + [str(path)]
+
         aborted = False
+        started = time.monotonic()
+        # Require ~95% of measured length before treating an early process exit as done.
+        min_ok = max(5.0, wait_s * 0.95)
         try:
-            # One stream only — clear orphans before spawning this track.
+            # One stream only — clear orphans before first spawn of this track.
             kill_stray_music_players()
-            proc = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                env=env,
-                **_windows_hidden(),
-            )
-            self._music_proc = proc
-            try:
-                self._music_proc_pid = proc.pid
-            except Exception:
-                self._music_proc_pid = None
-            # Second sweep keeping our new pid — races with recycle/Desk can spawn twins.
-            await asyncio.sleep(0.15)
-            kill_stray_music_players(keep_pid=self._music_proc_pid)
-            log.info(
-                "Music bed playing: %s  pid=%s  dur_hint=%s",
-                path.name,
-                self._music_proc_pid,
-                _audio_file_duration_s(path),
-            )
-            while proc.returncode is None:
+            while True:
                 if self._music_bed_held() or not self._music_enabled:
                     aborted = True
-                    self._kill_music_proc()
                     break
+                elapsed = time.monotonic() - started
+                if elapsed >= wait_s:
+                    break
+
+                cmd = _build_cmd()
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    env=env,
+                    **_windows_hidden(),
+                )
+                self._music_proc = proc
                 try:
-                    await asyncio.wait_for(proc.wait(), timeout=0.4)
-                except asyncio.TimeoutError:
+                    self._music_proc_pid = proc.pid
+                except Exception:
+                    self._music_proc_pid = None
+                log.info(
+                    "Music bed playing: %s  pid=%s  wait_s=%.1f  elapsed=%.1f",
+                    path.name,
+                    self._music_proc_pid,
+                    wait_s,
+                    elapsed,
+                )
+                while proc.returncode is None:
+                    if self._music_bed_held() or not self._music_enabled:
+                        aborted = True
+                        self._kill_music_proc()
+                        break
+                    if (time.monotonic() - started) >= wait_s:
+                        # Natural wall-clock end — stop player and advance.
+                        self._kill_music_proc()
+                        break
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=0.4)
+                    except asyncio.TimeoutError:
+                        continue
+
+                if aborted:
+                    break
+                if (time.monotonic() - started) >= wait_s:
+                    break
+
+                early = time.monotonic() - started
+                if early < min_ok and self._music_enabled and not self._music_bed_held():
+                    log.warning(
+                        "Music bed player exited early (%.1fs < %.1fs) — respawning %s",
+                        early,
+                        min_ok,
+                        path.name,
+                    )
+                    await asyncio.sleep(0.2)
+                    kill_stray_music_players()
                     continue
+                break
         except Exception as e:
             log.warning("Music bed play failed (%s): %s", path.name, e)
             aborted = False
         finally:
-            if proc is not None and self._music_proc is proc:
-                self._music_proc = None
-                self._music_proc_pid = None
+            if self._music_proc is not None:
+                self._kill_music_proc()
+            self._music_proc = None
+            self._music_proc_pid = None
             self._music_current = None
         return not aborted
 
