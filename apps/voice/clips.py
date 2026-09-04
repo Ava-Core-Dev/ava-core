@@ -99,8 +99,21 @@ def _number_to_clips(n: int) -> list[str]:
 
 
 def _find_clip(name: str) -> Path | None:
-    """Search numbers/ first so 1.mp3 is the digit, not a word collision."""
-    for directory in (NUMBERS_DIR, WORDS_DIR, TIME_DIR, SOUNDS_DIR, PHONEME_DIR, ASSETS_DIR):
+    """Search numbers/ first so 1.mp3 is the digit, not a word collision.
+
+    Also checks words/nws/ (NWS All Hazards pack) after flat words/ so existing
+    weather/number clips keep priority and the pack stays a separable subtree.
+    """
+    search_dirs = (
+        NUMBERS_DIR,
+        WORDS_DIR,
+        WORDS_DIR / "nws",
+        TIME_DIR,
+        SOUNDS_DIR,
+        PHONEME_DIR,
+        ASSETS_DIR,
+    )
+    for directory in search_dirs:
         for ext in (".mp3", ".wav"):
             p = directory / (name + ext)
             if p.exists():
