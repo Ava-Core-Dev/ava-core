@@ -105,7 +105,7 @@ export default {
       return proxyToOrigin(request, {
         originUrl: origin,
         path: originPath,
-        timeoutMs: 8000,
+        timeoutMs: 15000,
         offlineFallback: () => (path === "/feedback" ? feedbackPage() : holding()),
       });
     }
