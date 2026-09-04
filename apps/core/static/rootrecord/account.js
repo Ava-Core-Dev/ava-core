@@ -906,7 +906,7 @@
       title: "RootRecord Business Manager",
       platform: "Android / web",
       href: "/rootrecord-business-manager.html",
-      webAppUrl: "https://business.rootrecord.info/",
+      webAppUrl: "https://rootrecord.cloud/rootrecord-business-manager.html",
       playStoreUrl:
         "https://play.google.com/store/apps/details?id=com.rootrecord.businessmanager",
       note: "Cloud business workspace or Roots activity on this account.",
@@ -915,14 +915,14 @@
       title: "Root Record Weather Manager",
       platform: "Windows / web",
       href: "/rootrecord-weather-manager.html",
-      webAppUrl: "https://weather.rootrecord.info/",
+      webAppUrl: "https://rootrecord.cloud/weather",
       note: "Saved locations, synced weather, or earn activity for this account.",
     },
     rootrecord_weather_manager_android: {
       title: "Root Record Weather Manager",
       platform: "Android / web",
       href: "/rootrecord-weather-manager.html",
-      webAppUrl: "https://weather.rootrecord.info/",
+      webAppUrl: "https://rootrecord.cloud/weather",
       playStoreUrl:
         "https://play.google.com/store/apps/details?id=com.rootrecord.weathermanager",
       note: "Mobile notifications, earn activity, or signed-in weather app use.",
@@ -931,7 +931,7 @@
       title: "Kilauea Alerts",
       platform: "Android / web",
       href: "/kilauea-alerts.html",
-      webAppUrl: "https://kilauea.rootrecord.info/",
+      webAppUrl: "https://kilauea.cloud/",
       playStoreUrl: "https://play.google.com/store/apps/details?id=com.rootrecord.kilauea",
       note: "Signed-in Kīlauea dashboard or earn activity on this account.",
     },
@@ -939,7 +939,7 @@
       title: "RootRecord Token Manager",
       platform: "Android / web",
       href: "/products.html",
-      webAppUrl: "https://token.rootrecord.info/",
+      webAppUrl: "https://rootrecord.cloud/products.html",
       note: "Signed-in token manager or earn activity on this account.",
     },
     rootrecord_account_hub_android: {
@@ -951,7 +951,7 @@
     root_farms: {
       title: "Roots Idle Farmer",
       platform: "Web",
-      href: "https://farms.rootrecord.info/",
+      href: "https://rootrecord.cloud/root-units",
       external: true,
       note: "Root Farms progress or earn activity saved for this account.",
     },

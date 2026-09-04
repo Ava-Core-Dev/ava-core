@@ -187,7 +187,6 @@
   let apiBase = "";
   const API_FALLBACK_BASES = [
     "https://rootrecord-api-account.rootrecord.workers.dev",
-    "https://api.rootrecord.info",
   ];
 
   async function loadConfig() {
