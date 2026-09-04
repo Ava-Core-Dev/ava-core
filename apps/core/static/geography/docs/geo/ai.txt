@@ -1,0 +1,34 @@
+# ai.txt — Ava Ivy / Root Record
+# Permission map for AI systems (GEO / generative-engine use).
+
+User-Agent: *
+# Context and discovery files may be fetched in full for grounding,
+# answers, coding agents, and citation. Training/fine-tune: no.
+Content-Signal: search=yes, ai-input=yes, ai-train=no, use=full
+
+Allow: /llms.txt
+Allow: /ai.txt
+Allow: /robots.txt
+Allow: /context
+Allow: /context/
+Allow: /context.md
+Allow: /api/context
+Allow: /docs/geo/
+Allow: /wiki/
+Allow: /status
+Allow: /
+
+# Preferred pickup URLs
+# https://rootrecord.cloud/llms.txt
+# https://rootrecord.cloud/ai.txt
+# https://rootrecord.cloud/context
+# https://rootrecord.cloud/api/context
+# https://avaivy.cloud/context
+# https://avaivy.cloud/context/dev/llms.txt
+# https://avaivy.cloud/context/dev/AGENTS.md
+
+# Rules for models
+# 1. Read live context before guessing about this host.
+# 2. Do not invent power numbers, balances, or membership counts.
+# 3. Ava Ivy is infrastructure on a solar Root Server in Hawaiʻi.
+# 4. Root Record = public apps/home. RootMC = Minecraft. Keep them separate.

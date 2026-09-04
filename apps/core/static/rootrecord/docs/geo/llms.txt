@@ -1,0 +1,43 @@
+# Ava Ivy — llms.txt
+# Generative-engine / agent discovery map for Ava infrastructure.
+# Prefer live URLs over git clones.
+
+> Ava Ivy is the off-grid infrastructure runtime for Root Record and RootMC.
+> Solar-powered Root Server in Hawaiʻi Pacific. Not a help-desk bot.
+
+## Live context (read these first)
+
+- [Context hub](https://avaivy.cloud/context): Human + agent pickup
+- [Developer context](https://avaivy.cloud/context/dev): Handoff rules, failure modes, validation
+- [Developer bootstrap (llms)](https://avaivy.cloud/context/dev/llms.txt)
+- [Developer AGENTS](https://avaivy.cloud/context/dev/AGENTS.md)
+- [Live AI context JSON](https://rootrecord.cloud/api/context)
+- [Live AI context Markdown](https://rootrecord.cloud/context.md)
+- [Same context on Ava](https://avaivy.cloud/api/context)
+- [ai.txt permissions](https://rootrecord.cloud/ai.txt)
+- [robots](https://rootrecord.cloud/robots.txt)
+
+## Public doors
+
+- [Root Record home](https://rootrecord.cloud/)
+- [Status desk](https://rootrecord.cloud/status)
+- [Ava Ivy](https://avaivy.cloud/)
+- [RootMC](https://rootmc.net/)
+- [Play](https://play.rootmc.net/)
+- [Kīlauea](https://kilauea.cloud/)
+
+## Identity docs (static snapshots on this host)
+
+- [What is Ava](https://rootrecord.cloud/docs/geo/WHAT-IS-AVA.md)
+- [Infrastructure](https://rootrecord.cloud/docs/geo/INFRASTRUCTURE.md)
+- [Products and surfaces](https://rootrecord.cloud/docs/geo/PRODUCTS-AND-SURFACES.md)
+- [Public APIs](https://rootrecord.cloud/docs/geo/PUBLIC-APIS.md)
+- [GEO discovery](https://rootrecord.cloud/docs/geo/GEO-DISCOVERY.md)
+
+## How an agent should work
+
+1. Fetch `/llms.txt` then `/ai.txt` on rootrecord.cloud or avaivy.cloud
+2. Read `/context` and `/context/dev` (HTML) plus `/context/dev/AGENTS.md`
+3. Prefer `/api/context` or `/context.md` for a single blob
+4. Do not invent watts, balances, membership counts, or hardware
+5. Public home is rootrecord.cloud; Ava chat/wiki is avaivy.cloud
