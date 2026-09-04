@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sqlite3
 from datetime import datetime, timezone
@@ -89,7 +90,6 @@ async def api_session(request: Request):
 
 @router.post("/chat")
 async def api_chat(req: ChatRequest, request: Request):
-    import httpx
 
     raw = (req.message or "").strip()
     if not raw:
@@ -155,19 +155,19 @@ async def api_chat(req: ChatRequest, request: Request):
 
     if config.XAI_API_KEY:
         try:
-            async with httpx.AsyncClient(timeout=30) as client:
-                r = await client.post(
-                    "https://api.x.ai/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {config.XAI_API_KEY}",
-                             "Content-Type": "application/json"},
-                    json={"model": config.GROK_MODEL, "messages": messages,
-                          "max_tokens": req.max_tokens},
-                )
-            if r.status_code == 200:
-                data = r.json()
-                cleaned = persona_svc.scrub_reply(data["choices"][0]["message"]["content"].strip())
-                if cleaned:
-                    return {"reply": cleaned, "brain": "xai", "model": config.GROK_MODEL, "surface": surface}
+            from apps.core.services import model_pick, xai
+
+            grok = await asyncio.to_thread(
+                xai.try_chat, messages, max_tokens=req.max_tokens
+            )
+            cleaned = persona_svc.scrub_reply(grok or "")
+            if cleaned:
+                return {
+                    "reply": cleaned,
+                    "brain": "xai",
+                    "model": model_pick.pick("xai"),
+                    "surface": surface,
+                }
         except Exception as e:
             log.error("xAI chat failed: %s", e)
 

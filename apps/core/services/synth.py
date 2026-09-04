@@ -26,8 +26,9 @@ def polish(kind: str, system: str, user: str, *, factual: str, channel: str | No
     if grok:
         return grok
     from . import ollama as ollama_svc
+    from apps.core import config
 
-    local = ollama_svc.chat_sync(messages, model="qwen3:8b", timeout=90)
+    local = ollama_svc.chat_sync(messages, model=config.OLLAMA_MODEL, timeout=90)
     if local and local.strip():
         log.info("%s: Grok missed — used local Ollama", kind)
         return local.strip()

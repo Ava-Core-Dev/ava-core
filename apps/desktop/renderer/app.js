@@ -5575,6 +5575,7 @@ async function refreshLedger() {
         auto.typical_range_usd
           ? `Auto turn on Grok 4.6 ~$${auto.typical_range_usd[0]}–$${auto.typical_range_usd[1]}`
           : "",
+        d.defaults?.xai ? `default grok ${d.defaults.xai}` : "",
         last.source ? `last ${last.source}` : "no fetch yet",
       ].filter(Boolean).join("\n");
     }

@@ -81,7 +81,9 @@ class VoiceReportPlugin(Plugin):
         voice.GENERATED_DIR = config.GENERATED_DIR
         voice.VOICE_MODE = mode
         voice.XAI_API_KEY = config.XAI_API_KEY
-        voice.GROK_MODEL = config.GROK_MODEL
+        from apps.core.services import model_pick
+
+        voice.GROK_MODEL = model_pick.pick("xai")
         voice.TTS_VOICE = config.TTS_VOICE
         voice.MAX_SECONDS = config.MAX_SECONDS
 

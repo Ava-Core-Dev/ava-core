@@ -115,11 +115,16 @@ def ask(system: str, user: str) -> str | None:
         "Do not call tools. Reply with the report text only.\n\n"
         f"{user.strip()}"
     )
+    from apps.core.services import model_pick
+
+    cursor_model = model_pick.pick("cursor")
+    if "[" not in cursor_model:
+        cursor_model = f"{cursor_model}[fast=false]"
     cmd = [
         "cursor", "agent", "-p",
         "--mode", "ask",
         "--output-format", "text",
-        "--model", "composer-2.5[fast=false]",
+        "--model", cursor_model,
         prompt,
     ]
     env = os.environ.copy()
