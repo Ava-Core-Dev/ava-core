@@ -110,3 +110,37 @@ async def api_quakes_global():
 @router.get("/api/news/global")
 async def api_news_global():
     return geo.news()
+
+
+def _geo_file(kind: str, rest: str):
+    base = _STATIC_GEO / kind
+    p = (base / rest).resolve()
+    if base not in p.parents and p != base:
+        return None
+    if p.is_dir():
+        p = p / "index.html"
+    return _file_or_none(p)
+
+
+@router.get("/earthquakes/{rest:path}")
+async def earthquakes_pages(rest: str):
+    found = _geo_file("earthquakes", rest)
+    return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
+
+
+@router.get("/news/{rest:path}")
+async def news_pages(rest: str):
+    found = _geo_file("news", rest)
+    return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
+
+
+@router.get("/states/{rest:path}")
+async def states_pages(rest: str):
+    found = _geo_file("states", rest)
+    return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
+
+
+@router.get("/wx/{rest:path}")
+async def weather_geo_pages(rest: str):
+    found = _geo_file("weather", rest)
+    return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
