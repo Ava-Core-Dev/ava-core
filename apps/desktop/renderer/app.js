@@ -2914,7 +2914,10 @@ async function audioMusicAction(action) {
         musicWanted: true,
         musicTrack: j?.music?.current || j?.currently_playing?.music?.track || null,
       }).catch(() => {});
-    } else if (a === "stop") {
+    } else if (a === "stop" || a === "pause") {
+      // Intentional operator off/pause — do not auto-resume on next Desk start.
+      // Desk close stop is separate: main process peeks before stop and keeps
+      // musicWanted when the bed was live.
       window.avaDesktop?.deskUiSave?.({ musicWanted: false }).catch(() => {});
     }
     await refreshAudioPage();

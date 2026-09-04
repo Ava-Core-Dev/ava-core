@@ -330,6 +330,9 @@ export function sessionStartedByDesktop() {
 /**
  * Stop Desk-owned audio helpers only. Origin / watchdog / crons stay up.
  * POSTs /api/voice/music stop (clears bed loop + music-bed-wanted + MediaPlayer orphans).
+ * Does not mean "operator wants bed off forever" — that intent is desk-ui musicWanted
+ * (saved by handleDeskClose before this runs). Clearing music-bed-wanted.txt only
+ * prevents origin recycle from reviving the bed while Desk is closed.
  * If origin is unreachable, still clears wanted flag + best-effort orphan sweep.
  */
 export async function stopDeskOwnedAudio() {
@@ -362,7 +365,7 @@ export async function stopDeskOwnedAudio() {
     );
   }
 
-  // Always clear wanted flag so a later origin recycle does not revive bed.
+  // Clear origin recycle flag only — desk-ui.json keeps resume intent.
   const wantedPath = path.join(AVA_ROOT, "data", "state", "music-bed-wanted.txt");
   try {
     fs.mkdirSync(path.dirname(wantedPath), { recursive: true });
@@ -428,11 +431,24 @@ function sweepMusicBedLocal() {
   });
 }
 
+function readMusicBedWantedFile() {
+  try {
+    const p = path.join(AVA_ROOT, "data", "state", "music-bed-wanted.txt");
+    const raw = fs.readFileSync(p, "utf8").trim().toLowerCase();
+    return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Snapshot music intent from origin before stop (for desk-ui restore).
- * Falls back to data/state/music-bed-wanted.txt when origin is down.
+ * Live bed OR music-bed-wanted.txt count as wanted. Operator pause alone does not
+ * (intentional pause for the session). Always reads the wanted file too — after a
+ * prior desk close the file is 0, so callers must preserve desk-ui when ambiguous.
  */
 export async function peekMusicBedStatus() {
+  const wantedFile = readMusicBedWantedFile();
   try {
     const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/status`, {
       signal: AbortSignal.timeout(4000),
@@ -440,25 +456,35 @@ export async function peekMusicBedStatus() {
     const json = await r.json().catch(() => ({}));
     const music = json.music || {};
     const playing = Boolean(json?.currently_playing?.music?.playing);
+    const enabled = Boolean(music.enabled);
+    const loopAlive = Boolean(music.loop_alive);
+    const operatorPaused = Boolean(music.operator_paused);
+    // Intentional operator pause ⇒ do not auto-resume on next Desk start.
+    const liveWanted = Boolean(enabled || loopAlive || playing || wantedFile);
+    const musicWanted = liveWanted && !operatorPaused;
     return {
       ok: Boolean(r.ok && json.ok !== false),
-      musicWanted: Boolean(music.enabled || music.loop_alive || playing),
+      musicWanted,
+      liveWanted,
+      operatorPaused,
+      enabled,
+      loopAlive,
+      wantedFile,
+      ambiguous: !liveWanted && !operatorPaused,
       musicTrack: music.current || json?.currently_playing?.music?.track || null,
       playing,
     };
   } catch (err) {
-    let wanted = false;
-    try {
-      const p = path.join(AVA_ROOT, "data", "state", "music-bed-wanted.txt");
-      const raw = fs.readFileSync(p, "utf8").trim().toLowerCase();
-      wanted = raw === "1" || raw === "true" || raw === "yes" || raw === "on";
-    } catch {
-      /* ignore */
-    }
     return {
       ok: false,
       detail: err?.message || String(err),
-      musicWanted: wanted,
+      musicWanted: wantedFile,
+      liveWanted: wantedFile,
+      operatorPaused: false,
+      enabled: false,
+      loopAlive: false,
+      wantedFile,
+      ambiguous: !wantedFile,
       musicTrack: null,
       playing: false,
     };
@@ -467,12 +493,24 @@ export async function peekMusicBedStatus() {
 
 /**
  * Restore music bed after Desk relaunch when last session had it on.
+ * POST start clears any leftover operator pause and spins a single bed player.
  */
 export async function restoreMusicBedIfWanted(wanted) {
   if (!wanted) return { ok: true, skipped: true };
   const logPath = path.join(LOG_DIR, "ava-desktop.log");
   appendLog(logPath, "lifecycle: desk start — restoring music bed");
   try {
+    // Clear sticky pause from older stop() paths before start.
+    try {
+      await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "resume" }),
+        signal: AbortSignal.timeout(5000),
+      });
+    } catch {
+      /* start still clears operator hold */
+    }
     const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -480,14 +518,20 @@ export async function restoreMusicBedIfWanted(wanted) {
       signal: AbortSignal.timeout(15000),
     });
     const json = await r.json().catch(() => ({}));
+    const track =
+      json?.music?.current || json?.currently_playing?.music?.track || null;
+    const pid = json?.music?.player_pid ?? null;
     appendLog(
       logPath,
-      `lifecycle: music start http=${r.status} ok=${Boolean(json.ok)} detail=${json.detail || ""}`,
+      `lifecycle: music start http=${r.status} ok=${Boolean(json.ok)} track=${track || "—"} pid=${pid ?? "—"} detail=${json.detail || ""}`,
     );
     return {
       ok: Boolean(r.ok && json.ok !== false),
       status: r.status,
       detail: json.detail || null,
+      track,
+      player_pid: pid,
+      tracks: json?.music?.tracks ?? json?.tracks ?? null,
     };
   } catch (err) {
     appendLog(

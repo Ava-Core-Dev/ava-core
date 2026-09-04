@@ -242,11 +242,26 @@ async function handleDeskClose(reason) {
         /* ignore */
       }
     }
+    const existing = loadDeskUiState(DESK_ROOT);
     const peek = await peekMusicBedStatus();
+    // Close stops playback + clears music-bed-wanted.txt so origin recycle stays
+    // quiet — but desk-ui must remember resume intent. Only wipe musicWanted when
+    // the operator intentionally paused/stopped this session. If status is already
+    // silent (prior desk close), keep the previous desk-ui flag.
+    let musicWanted;
+    if (peek.operatorPaused && !peek.playing) {
+      musicWanted = false;
+    } else if (peek.musicWanted || peek.playing) {
+      musicWanted = true;
+    } else if (peek.ambiguous) {
+      musicWanted = Boolean(existing.musicWanted);
+    } else {
+      musicWanted = false;
+    }
     saveDeskUiState(
       {
-        musicWanted: Boolean(peek.musicWanted || peek.playing),
-        musicTrack: peek.musicTrack || null,
+        musicWanted,
+        musicTrack: peek.musicTrack || existing.musicTrack || null,
         closedAt: new Date().toISOString(),
         closeReason: reason,
       },

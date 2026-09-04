@@ -750,9 +750,14 @@ class StreamDirector:
         return {"ok": True, "operator_paused": False, **self.get_status()}
 
     def stop_music_bed(self) -> dict:
-        """Fully stop bed loop + kill every OS music player (silence)."""
+        """Fully stop bed loop + kill every OS music player (silence).
+
+        Clears operator pause. Stop means off — not a sticky OPERATOR PAUSE.
+        Desk close uses this for silence; resume intent lives in desk-ui.json
+        (musicWanted), not music-bed-wanted.txt / operator_paused.
+        """
         self._music_enabled = False
-        self._music_operator_hold = True
+        self._music_operator_hold = False
         self._music_hold = False
         set_music_bed_wanted(False)
         self._kill_music_proc()
