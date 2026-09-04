@@ -88,7 +88,19 @@ def _pack_soc(facts: str, label: str) -> str | None:
     return m.group(1).split(".")[0] if m else None
 
 
+def _soc_bits(label: str, pct: str) -> list[str]:
+    """Pack name + number + state_of_charge (or percent fallback)."""
+    bits = [label, pct]
+    if _has_clip("state_of_charge"):
+        bits.append("state_of_charge")
+    else:
+        bits.append("percent")
+    return bits
+
+
 def solar_script(facts: str, now: datetime) -> str:
+    if "DOWN" in facts and "EcoFlow" in facts:
+        return _join(_clip_or("phrase_ecoflow_down", ["solar", "status", "offline"]))
     bits = _clip_or(
         "phrase_hourly_solar",
         ["solar", "report"],
@@ -96,33 +108,34 @@ def solar_script(facts: str, now: datetime) -> str:
     low = facts.lower()
     delta_pct = _pack_soc(facts, "DELTA 2")
     if delta_pct:
-        bits += ["delta", delta_pct, "percent"]
+        bits += _soc_bits("delta", delta_pct)
     elif "delta" in low:
         bits += ["delta"]
     river_pct = _pack_soc(facts, "RIVER 2 Pro")
     if river_pct:
-        bits += ["river", river_pct, "percent"]
+        bits += _soc_bits("river", river_pct)
     elif "river" in low:
         bits += ["river"]
     m = re.search(r"E-Batt in\s+(\d+)\s*W", facts, re.I)
     if m:
-        bits += ["emergency", "in", m.group(1), "watts"]
+        bits += ["emergency", m.group(1)]
+        bits += _clip_or("watts_in", ["watts"])
     else:
         m = re.search(r"Bank combined[^\n]*PV in\s+(\d+)\s*W", facts, re.I) or re.search(
             r"PV in\s+(\d+)\s*W", facts, re.I
         )
         if m:
-            bits += ["solar", "in", m.group(1), "watts"]
+            bits += [m.group(1)]
+            bits += _clip_or("watts_in", ["watts"])
     m = re.search(r"load out\s+(\d+)\s*W", facts, re.I)
     if m:
-        bits += ["load", "out", m.group(1), "watts"]
+        bits += [m.group(1)]
+        bits += _clip_or("watts_out", ["watts"])
     m = re.search(r"~(\d+(?:\.\d+)?)\s*h (?:left|to full)", facts, re.I)
     if m:
-        hours = m.group(1).split(".")[0]
-        bits += [hours, "hours"]
+        bits += [m.group(1).split(".")[0]]
+        bits += _clip_or("hours_remaining", ["hours"])
     bits += _ac_role_tokens()
-    if "DOWN" in facts and "EcoFlow" in facts:
-        bits = _clip_or("phrase_hourly_solar", ["solar", "status", "offline"])
     return _join(bits)
 
 
@@ -135,9 +148,9 @@ def system_script(facts: str, now: datetime) -> str:
     if m:
         bits += ["memory", m.group(1), "percent"]
     if re.search(r"\bnpu\b", facts.lower()):
-        bits += ["npu", "load"]
+        bits += _clip_or("npu_load", ["npu", "load"])
     if "840m" in facts.lower() or "igpu" in facts.lower() or "i_gpu" in facts.lower() or "radeon" in facts.lower():
-        bits += ["i_gpu", "load"]
+        bits += _clip_or("i_gpu_load", ["i_gpu", "load"])
     return _join(bits)
 
 
@@ -151,6 +164,10 @@ def weather_script(facts: str, now: datetime) -> str:
             break
     condition = ""
     for word in (
+        "isolated_showers",
+        "scattered_showers",
+        "trade_winds",
+        "wind_advisory",
         "partly_cloudy",
         "mostly_cloudy",
         "partly_sunny",
@@ -211,7 +228,7 @@ def kilauea_script(facts: str, now: datetime) -> str:
         return _join(_clip_or("phrase_kilauea_eruption", ["kilauea", "eruption"]))
     if "normal" in low or "green" in low:
         return _join(_clip_or("phrase_kilauea_normal", ["kilauea", "normal"]))
-    return _join(["kilauea", "status", "report"])
+    return _join(_clip_or("phrase_hourly_kilauea", ["kilauea", "status", "report"]))
 
 
 def _facts_sync() -> str:
