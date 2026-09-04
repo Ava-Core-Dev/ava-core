@@ -2,6 +2,8 @@
 
 Does not list interval jobs. Does not play items more than 4 hours ahead.
 Uses local clips only. Missing phrase files are skipped, not invented by Grok.
+Lead: phrase_remaining_tasks. Manual drafts: phrase_manual_drafts. Slot due lines
+use the day-board phrase ids (phrase_*_slot and report phrases).
 """
 from __future__ import annotations
 
@@ -26,7 +28,7 @@ def _script(items: list[dict], _now: datetime) -> str:
     if _find_clip(lead):
         bits.append(lead)
     else:
-        bits += ["remaining", "tasks"]
+        bits += [t for t in ("remaining", "tasks") if _find_clip(t)]
     spoken = 0
     for row in items:
         if spoken >= MAX_SPOKEN:

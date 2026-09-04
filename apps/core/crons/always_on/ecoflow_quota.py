@@ -18,3 +18,16 @@ async def run() -> None:
         snap.get("load_w"),
         len(snap.get("devices") or []),
     )
+    devices = list(snap.get("devices") or [])
+    down = (
+        not snap
+        or snap.get("state") == "offline"
+        or (not devices and snap.get("battery_pct") is None)
+    )
+    if down:
+        try:
+            from apps.core.services import voice_events
+
+            await voice_events.announce("phrase_ecoflow_down", cooldown_s=30 * 60)
+        except Exception as e:
+            log.debug("ecoflow_down voice skip: %s", e)
