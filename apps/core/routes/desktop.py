@@ -21,8 +21,9 @@ router = APIRouter(prefix="/api")
 HST = ZoneInfo("Pacific/Honolulu")
 STATE = config.DATA_DIR / "state"
 
-WEATHER_COLLECTOR = Path.home() / "Desktop" / "ava-weather-gif-collector-hawaii-pacific-v7." / "ava-weather-gif-collector"
-WEATHER_GIFS = config.MEDIA_DIR / "weather" / "gifs"
+# Live Windows layout — not Linux Desktop …/hawaii-pacific-v7./…
+WEATHER_COLLECTOR = config.AVA_HOME / "workstations" / "weather-gif-collector"
+WEATHER_GIFS = config.PUBLIC_MEDIA / "images" / "weather" / "gifs"
 
 
 def _read_json(path: Path, default):
@@ -185,7 +186,7 @@ def _dir_info(kind: str, path: Path) -> dict:
 
 @router.get("/weather-gifs")
 async def weather_gifs():
-    leftover = config.MEDIA_DIR / "weather"
+    leftover = config.PUBLIC_MEDIA / "images" / "weather"
     dirs = [
         _dir_info("media-weather", leftover),
         _dir_info("gifs", WEATHER_GIFS),
@@ -193,7 +194,7 @@ async def weather_gifs():
     ]
     return {
         "ok": True,
-        "message": "Collector lives on the desktop Hawaii-Pacific v7 tree, not Ava-core.",
+        "message": "Collector workstation + Media public images/weather on C: (not Linux Desktop).",
         "collector": str(WEATHER_COLLECTOR),
         "updater": {"abs": str(WEATHER_COLLECTOR)},
         "directories": dirs,

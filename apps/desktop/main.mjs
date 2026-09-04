@@ -844,9 +844,8 @@ function safeAvaPath(target) {
     dumps: path.join(AVA_HOME, "media", "documents", "reports"),
     solarDays: path.join(AVA_HOME, "data", "state", "solar-history"),
     data: path.join(AVA_HOME, "data"),
-    weatherGifs: path.join(AVA_HOME, "media", "weather", "gifs"),
-    weatherGifsCollector:
-      "/home/ava-core/Desktop/ava-weather-gif-collector-hawaii-pacific-v7./ava-weather-gif-collector",
+    weatherGifs: path.join(AVA_HOME, "Media", "public", "images", "weather", "gifs"),
+    weatherGifsCollector: path.join(AVA_HOME, "workstations", "weather-gif-collector"),
     claimPlans: path.join(AVA_HOME, "data", "ava-claim-plans"),
     root: AVA_HOME,
   };

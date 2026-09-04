@@ -1043,9 +1043,9 @@ async function refreshWeatherGifsPage() {
         <div class="id">Desktop collector</div>
         <div class="muted">${escapeHtml(d.collector || up.abs || "")}</div>
       </div>
-      <div>Hawaii-Pacific v7</div>
-      <div class="muted">not Ava-core</div>
-      <div class="muted">${escapeHtml(d.message || "Ava-core no longer downloads weather GIFs.")}</div>
+      <div>workstations collector</div>
+      <div class="muted">C: live tree</div>
+      <div class="muted">${escapeHtml(d.message || "Weather GIFs live under Media public images/weather.")}</div>
       <div class="actions"></div>
     `;
     const uact = urow.querySelector(".actions");
@@ -1086,7 +1086,7 @@ async function refreshWeatherGifsPage() {
         dirHost.innerHTML = `<div class="cron-row"><div class="muted">No leftover Ava-core GIF folders.</div></div>`;
       }
     }
-    if (stEl) stEl.textContent = d.message || "Collector is the Desktop Hawaii-Pacific v7 tool.";
+    if (stEl) stEl.textContent = d.message || "Collector is workstations/weather-gif-collector on C:.";
   } catch (err) {
     meta.textContent = String(err.message || err);
     if (stEl) stEl.textContent = `Brain must be up on ${lastBrainUrl || "the selected connection"}`;
