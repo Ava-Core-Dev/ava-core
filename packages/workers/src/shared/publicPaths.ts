@@ -79,6 +79,8 @@ const PUBLIC_PAGES = new Set([
   "/discord-verify",
   "/discord-verify.html",
   "/discord-verify.js",
+  "/account.js",
+  "/site-nav.js",
   "/kilauea-alerts.html",
   "/rootrecord-weather-manager.html",
   "/rootrecord-business-manager.html",
