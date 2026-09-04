@@ -17,6 +17,8 @@ import {
   isPublicPage,
   isPublicWrite,
   isReadMethod,
+  htmlRedirectTarget,
+  originHtmlPath,
   normalisePath,
 } from "../shared/publicPaths";
 import { storeOfflineFeedback } from "../shared/offlineInbox";
@@ -80,10 +82,19 @@ export default {
       return Response.redirect(url.origin + HOME_PAGE, 301);
     }
 
+    // One pattern for every HTML file: /about.html → /about (query kept).
+    const prettyHtml = htmlRedirectTarget(path);
+    if (prettyHtml != null) {
+      const dest = new URL(request.url);
+      dest.pathname = prettyHtml;
+      return Response.redirect(dest.toString(), 301);
+    }
+
     if (path === "/" || isPublicPage(path) || isPublicData(path)) {
+      const originPath = originHtmlPath(path) ?? (path === "/" ? HOME_PAGE : path);
       return proxyToOrigin(request, {
         originUrl: origin,
-        path: path === "/" ? HOME_PAGE : path,
+        path: originPath,
         timeoutMs: 8000,
         offlineFallback: () => (path === "/feedback" ? feedbackPage() : holding()),
       });

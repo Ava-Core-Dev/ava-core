@@ -52,6 +52,43 @@ const PUBLIC_PREFIX = [
   "/assets/",
 ];
 
+/**
+ * Pretty paths for HTML files under apps/core/static/rootrecord.
+ * Files stay `*.html` on disk; the Worker 301s `/name.html` → `/name` and
+ * fetches `/name.html` from origin. Do not add photos-admin here.
+ */
+const HTML_PAGES = new Set([
+  "/about",
+  "/account",
+  "/account-signup",
+  "/android-closed-testing",
+  "/app-build-request",
+  "/beta-tester-rewards",
+  "/billing",
+  "/contact",
+  "/data-deletion",
+  "/development-notice",
+  "/discord-verify",
+  "/faq",
+  "/join-tester-group",
+  "/kilauea-alerts",
+  "/my-apps",
+  "/partnership-signup",
+  "/pricing",
+  "/privacy",
+  "/products",
+  "/root-goals",
+  "/root-goals/public-goal",
+  "/root-goals/public-profile",
+  "/root-units",
+  "/rootrecord-business-manager",
+  "/rootrecord-weather-manager",
+  "/terms",
+  "/visiting-hawaii",
+  "/visiting-hawaii-sponsor",
+  "/weather-developer",
+]);
+
 /** Public pages, after the Worker has normalised the path. */
 const PUBLIC_PAGES = new Set([
   "/status",
@@ -60,30 +97,12 @@ const PUBLIC_PAGES = new Set([
   "/rootmc",
   "/feedback",
   "/chat",
-  "/products",
-  "/pricing",
-  "/about",
-  "/faq",
-  "/contact",
-  "/account",
-  "/account-signup",
-  "/billing",
-  "/products.html",
-  "/pricing.html",
-  "/about.html",
-  "/faq.html",
-  "/contact.html",
-  "/account.html",
-  "/account-signup.html",
-  "/billing.html",
-  "/discord-verify",
-  "/discord-verify.html",
+  "/roadmap",
+  "/account/emails",
+  "/products/rootunits",
   "/discord-verify.js",
   "/account.js",
   "/site-nav.js",
-  "/kilauea-alerts.html",
-  "/rootrecord-weather-manager.html",
-  "/rootrecord-business-manager.html",
   "/styles.css",
   "/favicon.ico",
   "/favicon-32.png",
@@ -91,6 +110,29 @@ const PUBLIC_PAGES = new Set([
   "/favicon-180.png",
   "/site.webmanifest",
 ]);
+
+/** `/about.html` → `/about`. `/index.html` → `/`. Null if this is not an HTML URL. */
+export function withoutHtmlExtension(path: string): string | null {
+  if (!path.toLowerCase().endsWith(".html")) return null;
+  const stem = path.slice(0, -5);
+  if (stem === "" || stem === "/") return "/";
+  return stem;
+}
+
+/** Visitor asked for `*.html` — send them to the pretty path (one Worker pattern). */
+export function htmlRedirectTarget(path: string): string | null {
+  const pretty = withoutHtmlExtension(path);
+  if (pretty == null) return null;
+  if (pretty === "/") return "/";
+  if (HTML_PAGES.has(pretty)) return pretty;
+  return null;
+}
+
+/** Origin still stores the file as `name.html`. Null means leave the path alone. */
+export function originHtmlPath(path: string): string | null {
+  if (HTML_PAGES.has(path)) return `${path}.html`;
+  return null;
+}
 
 /** Never public, on any surface, whatever else changes. */
 const PRIVATE_PREFIX = [
@@ -132,8 +174,10 @@ export function isHiddenPath(path: string): boolean {
 }
 
 export function isPublicPage(path: string): boolean {
-  if (PUBLIC_PAGES.has(path)) return true;
-  return ["/earthquakes", "/news", "/states", "/charts", "/wiki", "/products.html"].some(
+  const pretty = withoutHtmlExtension(path);
+  if (pretty && HTML_PAGES.has(pretty)) return true;
+  if (HTML_PAGES.has(path) || PUBLIC_PAGES.has(path)) return true;
+  return ["/earthquakes", "/news", "/states", "/charts", "/wiki", "/products", "/roadmap"].some(
     (p) => path === p || path.startsWith(p + "/"),
   );
 }

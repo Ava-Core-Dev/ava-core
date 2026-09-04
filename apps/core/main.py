@@ -271,6 +271,40 @@ async def api_config():
     return config.as_dict()
 
 
+# Last so /ops, /status, /api/* keep their routers. Serves rootrecord HTML
+# files and folder index.html. Pretty /about is the Worker; origin still
+# answers /about.html (and /about when the file exists).
+_RR_STATIC = Path(__file__).resolve().parent / "static" / "rootrecord"
+
+
+@app.get("/{rest:path}")
+async def rootrecord_static_fallback(rest: str):
+    from fastapi.responses import FileResponse, HTMLResponse
+
+    if not rest or rest.startswith(("api/", "ops", "ops/")):
+        return HTMLResponse("", status_code=404)
+    try:
+        target = (_RR_STATIC / rest).resolve()
+        target.relative_to(_RR_STATIC.resolve())
+    except ValueError:
+        return HTMLResponse("", status_code=404)
+    candidates = []
+    if target.is_file():
+        candidates.append(target)
+    if not rest.lower().endswith(".html"):
+        candidates.append(_RR_STATIC / f"{rest}.html")
+        candidates.append(_RR_STATIC / rest / "index.html")
+    for cand in candidates:
+        try:
+            resolved = cand.resolve()
+            resolved.relative_to(_RR_STATIC.resolve())
+        except ValueError:
+            continue
+        if resolved.is_file():
+            return FileResponse(resolved, headers={"Cache-Control": "no-store"})
+    return HTMLResponse("", status_code=404)
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def cli():
