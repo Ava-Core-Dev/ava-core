@@ -167,6 +167,9 @@ class LedgerBody(BaseModel):
 
 # ── Weather GIFs ──────────────────────────────────────────────────────────────
 
+_WEATHER_IMAGE_EXTS = {".gif", ".jpg", ".jpeg", ".png", ".webp"}
+
+
 def _dir_info(kind: str, path: Path) -> dict:
     files = 0
     latest = 0
@@ -184,12 +187,223 @@ def _dir_info(kind: str, path: Path) -> dict:
     }
 
 
+def _weather_loc_label(slug: str) -> str:
+    return str(slug or "other").replace("-", " ").title()
+
+
+def _weather_image_entry(path: Path, *, url_parts: list[str], location: str) -> dict:
+    mtime = 0
+    try:
+        mtime = int(path.stat().st_mtime * 1000)
+    except OSError:
+        pass
+    return {
+        "name": path.name,
+        "location": location,
+        "locationLabel": _weather_loc_label(location),
+        "url": "/weather/gifs/" + "/".join(encodeURIComponent(p) for p in url_parts),
+        "mtimeMs": mtime or None,
+    }
+
+
+def encodeURIComponent(s: str) -> str:
+    from urllib.parse import quote
+
+    return quote(str(s), safe="")
+
+
+def _list_weather_current() -> list[dict]:
+    current = WEATHER_GIFS / "current"
+    out: list[dict] = []
+    if not current.is_dir():
+        return out
+    for f in sorted(current.iterdir()):
+        if f.is_file() and f.suffix.lower() in _WEATHER_IMAGE_EXTS:
+            out.append(
+                _weather_image_entry(
+                    f,
+                    url_parts=["current", f.name],
+                    location=f.stem.split("_")[0] if "_" in f.stem else "other",
+                )
+            )
+    for loc in sorted(p for p in current.iterdir() if p.is_dir()):
+        for f in sorted(loc.iterdir()):
+            if f.is_file() and f.suffix.lower() in _WEATHER_IMAGE_EXTS:
+                out.append(
+                    _weather_image_entry(
+                        f,
+                        url_parts=["current", loc.name, f.name],
+                        location=loc.name,
+                    )
+                )
+    return out
+
+
+def _list_weather_loops() -> list[dict]:
+    loops = WEATHER_GIFS / "loops" / "24h"
+    out: list[dict] = []
+    if not loops.is_dir():
+        return out
+    for f in sorted(loops.rglob("*")):
+        if not f.is_file() or f.suffix.lower() not in _WEATHER_IMAGE_EXTS:
+            continue
+        rel = f.relative_to(WEATHER_GIFS)
+        parts = list(rel.parts)
+        loc = parts[2] if len(parts) > 2 else "other"
+        out.append(_weather_image_entry(f, url_parts=parts, location=str(loc)))
+    return out
+
+
+def resolve_weather_gif_file(parts: list[str]) -> Path | None:
+    if not parts or any(p in ("", ".", "..") or "/" in p or "\\" in p for p in parts):
+        return None
+    try:
+        root = WEATHER_GIFS.resolve()
+        target = (WEATHER_GIFS.joinpath(*parts)).resolve()
+        target.relative_to(root)
+    except (ValueError, OSError):
+        return None
+    if not target.is_file():
+        return None
+    if target.suffix.lower() not in _WEATHER_IMAGE_EXTS:
+        return None
+    return target
+
+
+def weather_gifs_board_html() -> str:
+    """Minimal leftover board — lists Media public images/weather/gifs via /api/weather-gifs."""
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weather GIFs — leftover board</title>
+  <style>
+    :root { --bg:#0b1220; --ink:#f4f7fb; --muted:#8fa3b8; --line:rgba(120,170,220,.22); --accent:#7ec8ff; }
+    * { box-sizing: border-box; }
+    body { margin:0; min-height:100vh; font-family:Segoe UI,system-ui,sans-serif; color:var(--ink);
+      background: radial-gradient(900px 420px at 12% -10%, #1a3355 0%, transparent 55%), linear-gradient(165deg,#071018,#0d1828); }
+    main { max-width:1100px; margin:0 auto; padding:1.5rem 1rem 2.5rem; }
+    h1 { margin:0 0 .25rem; font-size:clamp(1.5rem,3.5vw,2rem); }
+    .sub,.meta { color:var(--muted); margin:0 0 .85rem; }
+    .links { display:flex; flex-wrap:wrap; gap:.4rem; margin:0 0 1rem; }
+    .links a { color:var(--accent); text-decoration:none; border:1px solid var(--line); padding:.35rem .65rem; border-radius:8px; font-size:.8rem; }
+    .dirs { display:grid; gap:.35rem; margin:0 0 1.1rem; font-family:ui-monospace,Consolas,monospace; font-size:.78rem; }
+    .dirs div { border:1px solid var(--line); border-radius:8px; padding:.45rem .65rem; display:flex; gap:.75rem; flex-wrap:wrap; }
+    .dirs .kind { color:var(--accent); min-width:7rem; }
+    .loc-nav { display:flex; flex-wrap:wrap; gap:.35rem; margin:0 0 1rem; }
+    .loc-nav a { color:var(--accent); text-decoration:none; border:1px solid var(--line); padding:.25rem .5rem; border-radius:8px; font-size:.72rem; }
+    h2 { font-size:1.05rem; margin:1.2rem 0 .45rem; }
+    h2 .n,h3 { color:var(--muted); font-weight:500; font-size:.8rem; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:.7rem; }
+    a.card { display:block; border:1px solid var(--line); border-radius:10px; overflow:hidden; color:inherit; text-decoration:none; background:rgba(8,16,28,.55); }
+    a.card img { width:100%; height:150px; object-fit:cover; background:#061018; display:block; }
+    a.card figcaption { padding:.4rem .55rem .5rem; font-size:.7rem; color:var(--muted); word-break:break-word; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Weather GIFs</h1>
+  <p class="sub">Leftover board for Media public images/weather/gifs on this PC. Collector home is workstations/weather-gif-collector.</p>
+  <nav class="links">
+    <a href="/api/weather-gifs">API</a>
+  </nav>
+  <p class="meta" id="meta">Loading…</p>
+  <h2>Directories</h2>
+  <div class="dirs" id="dirs"></div>
+  <nav class="loc-nav" id="loc-nav"></nav>
+  <div id="boards"></div>
+</main>
+<script>
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\\"":"&quot;","'":"&#39;"
+    }[c]));
+  }
+  function ago(ms) {
+    if (!ms) return "";
+    const s = Math.max(0, Math.floor((Date.now() - Number(ms)) / 1000));
+    if (s < 60) return s + "s ago";
+    if (s < 3600) return Math.floor(s / 60) + "m ago";
+    if (s < 86400) return Math.floor(s / 3600) + "h ago";
+    return Math.floor(s / 86400) + "d ago";
+  }
+  function card(f) {
+    const url = esc(f.url);
+    const name = esc(f.name);
+    return '<a class="card" href="' + url + '" target="_blank" rel="noopener"><figure><img src="' +
+      url + '" alt="' + name + '"><figcaption>' + name + "</figcaption></figure></a>";
+  }
+  (async () => {
+    const res = await fetch("/api/weather-gifs", { cache: "no-store" });
+    const d = await res.json();
+    document.getElementById("meta").textContent =
+      (d.message || "Leftover weather media") +
+      " · " + ((d.current || []).length) + " current · " + ((d.loops || []).length) + " loops";
+    const topDirs = (d.directories || []).filter((x) => !String(x.kind || "").startsWith("location"));
+    document.getElementById("dirs").innerHTML = topDirs.map((x) =>
+      "<div><span class=\\"kind\\">" + esc(x.kind) + "</span><span>" + esc(x.abs) +
+      "</span><span>" + esc(String(x.files || 0)) + " files" +
+      (x.latestMtimeMs ? " · " + ago(x.latestMtimeMs) : "") + "</span></div>"
+    ).join("") || "<div>No directories</div>";
+    const locs = d.locations || [];
+    document.getElementById("loc-nav").innerHTML = locs.map((loc) =>
+      "<a href=\\"#loc-" + esc(loc.key) + "\\">" + esc(loc.label) +
+      " (" + esc(String((loc.current || 0) + (loc.loops || 0))) + ")</a>"
+    ).join("");
+    const byLoc = new Map();
+    const add = (kind, f) => {
+      const key = f.location || "other";
+      if (!byLoc.has(key)) byLoc.set(key, { key, label: f.locationLabel || key, loops: [], current: [] });
+      byLoc.get(key)[kind].push(f);
+    };
+    (d.loops || []).forEach((f) => add("loops", f));
+    (d.current || []).concat(d.legacy || []).forEach((f) => add("current", f));
+    const order = locs.map((x) => x.key);
+    const keys = [...byLoc.keys()].sort((a, b) => {
+      const ia = order.indexOf(a); const ib = order.indexOf(b);
+      return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+    });
+    document.getElementById("boards").innerHTML = keys.map((key) => {
+      const g = byLoc.get(key);
+      let html = "<h2 id=\\"loc-" + esc(key) + "\\">" + esc(g.label) +
+        " <span class=\\"n\\">" + g.loops.length + " loops · " + g.current.length + " current</span></h2>";
+      if (g.loops.length) html += "<h3>24-hour loops</h3><div class=\\"grid\\">" + g.loops.map(card).join("") + "</div>";
+      if (g.current.length) html += "<h3>Current scenes</h3><div class=\\"grid\\">" + g.current.map(card).join("") + "</div>";
+      return html;
+    }).join("") || "<p class=\\"meta\\">No leftover current scenes under Media public images/weather/gifs.</p>";
+  })().catch((err) => {
+    document.getElementById("meta").textContent = "Failed to load: " + err.message;
+  });
+</script>
+</body>
+</html>
+"""
+
+
 @router.get("/weather-gifs")
 async def weather_gifs():
     leftover = config.PUBLIC_MEDIA / "images" / "weather"
+    current = _list_weather_current()
+    loops = _list_weather_loops()
+    loc_keys: dict[str, dict] = {}
+    for f in current:
+        key = f["location"]
+        row = loc_keys.setdefault(
+            key, {"key": key, "label": f["locationLabel"], "current": 0, "loops": 0, "enabled": True}
+        )
+        row["current"] += 1
+    for f in loops:
+        key = f["location"]
+        row = loc_keys.setdefault(
+            key, {"key": key, "label": f["locationLabel"], "current": 0, "loops": 0, "enabled": True}
+        )
+        row["loops"] += 1
     dirs = [
         _dir_info("media-weather", leftover),
         _dir_info("gifs", WEATHER_GIFS),
+        _dir_info("current", WEATHER_GIFS / "current"),
+        _dir_info("archive", WEATHER_GIFS / "archive"),
         _dir_info("collector", WEATHER_COLLECTOR),
     ]
     return {
@@ -198,6 +412,10 @@ async def weather_gifs():
         "collector": str(WEATHER_COLLECTOR),
         "updater": {"abs": str(WEATHER_COLLECTOR)},
         "directories": dirs,
+        "current": current,
+        "loops": loops,
+        "legacy": [],
+        "locations": sorted(loc_keys.values(), key=lambda x: x["key"]),
     }
 
 
