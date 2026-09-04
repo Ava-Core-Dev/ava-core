@@ -508,10 +508,19 @@ async def api_core_chat(body: CoreChatBody):
     if not history:
         return {"ok": False, "detail": "empty_text"}
     started = time.time()
+    last_user = next((m.get("content") or "" for m in reversed(history) if m.get("role") == "user"), "")
+    person_block = ""
+    try:
+        from apps.core.services import people
+
+        people.observe("desk", "alex", username="Alex", text=str(last_user or ""))
+        person_block = people.lock_addon("desk", "alex")
+    except Exception:
+        person_block = ""
     _, source = persona_svc.system_prompt(surface="desk")
     facts = await persona_svc.live_facts()
     reply = await ollama_svc.chat(
-        persona_svc.core_messages(history, facts=facts), timeout=120
+        persona_svc.core_messages(history, facts=facts, person_block=person_block), timeout=120
     )
     ms = int((time.time() - started) * 1000)
     if not reply:

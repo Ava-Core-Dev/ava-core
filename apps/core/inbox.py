@@ -197,25 +197,21 @@ async def telegram_loop() -> None:
                         extra += "\n" + people.lock_addon("telegram", from_id)
                     except Exception:
                         pass
-                    reply = await discord_chat.ava_reply(asked, extra_lock=extra, person_surface="telegram", person_sid=from_id)
+                    reply = await discord_chat.ava_reply(asked, extra_lock=extra)
                 elif from_id in people.ALEX_TELEGRAM:
                     extra = ""
                     try:
-                        from apps.core.services import people
-
                         extra = people.lock_addon("telegram", from_id)
                     except Exception:
                         pass
-                    reply = await discord_chat.ava_reply(asked, dm=True, extra_lock=extra, person_surface="telegram", person_sid=from_id)
+                    reply = await discord_chat.ava_reply(asked, dm=True, extra_lock=extra)
                 else:
                     extra = persona_lock_public()
                     try:
-                        from apps.core.services import people
-
                         extra += "\n" + people.lock_addon("telegram", from_id)
                     except Exception:
                         pass
-                    reply = await discord_chat.ava_reply(asked, extra_lock=extra, person_surface="telegram", person_sid=from_id)
+                    reply = await discord_chat.ava_reply(asked, extra_lock=extra)
                 if reply:
                     telegram_rooms.append_log(cid, "reply", reply, "ava")
                     sent = await telegram.send_message(chat_id, reply)
@@ -313,6 +309,18 @@ async def _discord_tick() -> None:
             if not uid or uid == bot_id:
                 continue
             content = str(msg.get("content") or "")
+            try:
+                from apps.core.services import people
+
+                people.observe(
+                    "discord",
+                    uid,
+                    username=str(author.get("username") or ""),
+                    text=content,
+                    chat_id=cid,
+                )
+            except Exception:
+                pass
             cmd = _parse_cmd(content)
             if cmd:
                 label = str(author.get("username") or "")
@@ -329,7 +337,9 @@ async def _discord_tick() -> None:
                 if not asked and dm:
                     asked = content.strip() or "hey"
                 if asked:
-                    reply = await discord_chat.ava_reply(asked, dm=dm)
+                    reply = await discord_chat.ava_reply(
+                        asked, dm=dm, person_surface="discord", person_sid=uid
+                    )
                     if reply:
                         await discord.post_message(
                             cid, reply, ref_id=str(msg.get("id") or "") or None
@@ -389,12 +399,20 @@ async def slack_loop() -> None:
                     if uid and uid == bot_id:
                         continue
                     text = str(msg.get("text") or "")
+                    try:
+                        from apps.core.services import people
+
+                        people.observe("slack", uid, text=text, chat_id=cid)
+                    except Exception:
+                        pass
                     if not _slack_addressed(text, bot_id):
                         continue
                     asked = re.sub(rf"<@{re.escape(bot_id)}>", " ", text).strip() if bot_id else text.strip()
                     from apps.core.services import discord_chat
 
-                    reply = await discord_chat.ava_reply(asked or "hey", dm=False)
+                    reply = await discord_chat.ava_reply(
+                        asked or "hey", dm=False, person_surface="slack", person_sid=uid
+                    )
                     if reply:
                         await slack.post_message(cid, reply)
                 last[cid] = newest or prev
