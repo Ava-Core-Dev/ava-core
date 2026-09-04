@@ -907,9 +907,10 @@ class StreamDirector:
     async def _music_loop(self) -> None:
         """Shuffle all recursive tracks, play through, reshuffle, repeat.
 
-        Near each track's end, briefly overlaps the next file (MUSIC_BLEND_S) so
-        there is no dead air between songs. No stacking beyond that overlap window.
-        Inter-track advance does not call kill_stray (multi-second on this PC).
+        Windows winsound bed: play each file to process exit (no overlap blend;
+        killing at measured wait_s cut mid-track). Other platforms may briefly
+        overlap the next file (MUSIC_BLEND_S). Inter-track advance does not call
+        kill_stray (multi-second on this PC).
         """
         continue_existing = False
         while self._music_enabled and self._running:
