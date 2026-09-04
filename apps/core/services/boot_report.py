@@ -38,7 +38,7 @@ Hard rules:
 - Pronunciation: never write bare HI or HST. TTS spells H-I / H-S-T. Prefer “Hawaii”, “Hawaiian Standard Time”, and “Hawaii Pacific Solar Root Server” (or “the Hawaii Pacific Solar Root Server”). Do not write “HI Pacific…”.
 
 Required shape:
-1. Open exactly in this spirit: "This is the Ava Core Root Record morning status for [weekday date], about [time] Hawaiian Standard Time."
+1. Open exactly in this spirit: "This is the Ava Core Root Record morning status for [weekday date], about [time] Hawaiian Standard Time." Full reports may include that clock stamp. Offline short stubs omit the clock — weekday date only.
 2. Then Hawaii Pacific Solar Root Server / host Ava Core / C-only / public doors / public tunnel → origin — plain spoken sentences.
 3. Then these paragraphs, each with a clear spoken lead-in:
    - Boot Summary (overnight downtime, restore/boot time, net-gate stop/restore, desk restore issues if any)
@@ -549,13 +549,17 @@ def scrub_spoken(text: str) -> str:
     return out.strip() + "\n"
 
 
-def _fallback_spoken(facts: str, *, now: datetime | None = None) -> str:
-    """Deterministic spoken draft if the on-device brain is cold."""
+def _fallback_spoken(
+    facts: str, *, now: datetime | None = None, include_timestamp: bool = False
+) -> str:
+    """Deterministic short/offline stub if the on-device brain is cold.
+
+    Offline stub path must NOT get a clock stamp (operator rule).
+    """
+    # Force no clock on the offline stub regardless of caller.
+    include_timestamp = False
     now = now or datetime.now(HST)
     weekday = now.strftime("%A, %B ") + str(now.day) + now.strftime(", %Y")
-    hour = now.hour % 12 or 12
-    minute = now.minute
-    about = f"{hour} {minute:02d}" if minute else f"{hour} o'clock"
     net = _read_json(config.DATA_DIR / "state" / "net-gate.json")
     gap = _gap_minutes(net.get("stopped_at"), net.get("restored_at"))
     gap_txt = f"about {gap} minutes" if gap is not None else "not measured on file"
@@ -594,7 +598,17 @@ def _fallback_spoken(facts: str, *, now: datetime | None = None) -> str:
     except Exception:
         pass
 
-    body = f"""This is the Ava Core Root Record morning status for {weekday}, about {about} Hawaiian Standard Time.
+    opener = f"This is the Ava Core Root Record morning status for {weekday}."
+    if include_timestamp:
+        hour = now.hour % 12 or 12
+        minute = now.minute
+        about = f"{hour} {minute:02d}" if minute else f"{hour} o'clock"
+        opener = (
+            f"This is the Ava Core Root Record morning status for {weekday}, "
+            f"about {about} Hawaiian Standard Time."
+        )
+
+    body = f"""{opener}
 
 You are listening on the Hawaii Pacific Solar Root Server. Host name Ava Core. The live tree is on C only. Public doors are rootrecord.cloud and avaivy.cloud. The public tunnel reaches the local origin.
 
@@ -619,10 +633,32 @@ End of status.
     return scrub_spoken(body)
 
 
-def generate_spoken(*, source: str = "boot", timeout: int = 180) -> dict:
-    """Refresh is caller's job. Generate with on-device brain; fallback if cold. No Grok."""
+def generate_spoken(
+    *,
+    source: str = "boot",
+    timeout: int = 180,
+    include_timestamp: bool = True,
+    offline: bool = False,
+) -> dict:
+    """Refresh is caller's job. Generate with on-device brain; fallback if cold. No Grok.
+
+    Full path may include a clock stamp. Offline short stub must not.
+    """
     from apps.core.services import ollama as ollama_svc
     from apps.core.services import xai
+
+    if offline:
+        facts = build_facts(source=source)
+        text = _fallback_spoken(facts, include_timestamp=False)
+        return {
+            "ok": True,
+            "text": text,
+            "source": source,
+            "engine": "offline_stub",
+            "include_timestamp": False,
+            "grok": False,
+            "facts": facts,
+        }
 
     if not xai.grok_is_down():
         # Still never call Grok here — operator asked for local only.
@@ -630,12 +666,18 @@ def generate_spoken(*, source: str = "boot", timeout: int = 180) -> dict:
 
     facts = build_facts(source=source)
     lock = load_boot_lock()
+    stamp_note = (
+        "Include about [time] Hawaiian Standard Time in the opening line."
+        if include_timestamp
+        else "OFFLINE STUB MODE: do not put any clock time in the opening — weekday date only."
+    )
     messages = [
         {"role": "system", "content": lock},
         {
             "role": "user",
             "content": (
-                "Write today's morning Boot Report from these FACTS only.\n\n" + facts
+                f"Write today's morning Boot Report from these FACTS only.\n{stamp_note}\n\n"
+                + facts
             ),
         },
     ]
@@ -654,10 +696,12 @@ def generate_spoken(*, source: str = "boot", timeout: int = 180) -> dict:
         keep_alive="10m",
     )
     used = "on_device_brain"
+    stamped = include_timestamp
     if not reply or len(reply.strip()) < 80:
-        log.warning("boot report brain thin/empty — using spoken fallback")
-        text = _fallback_spoken(facts)
-        used = "fallback_spoken"
+        log.warning("boot report brain thin/empty — using offline stub (no clock stamp)")
+        text = _fallback_spoken(facts, include_timestamp=False)
+        used = "offline_stub"
+        stamped = False
     else:
         text = scrub_spoken(reply)
 
@@ -667,6 +711,7 @@ def generate_spoken(*, source: str = "boot", timeout: int = 180) -> dict:
         "source": source,
         "engine": used,
         "warm": bool(warm),
+        "include_timestamp": stamped,
         "grok": False,
         "facts": facts,
     }
