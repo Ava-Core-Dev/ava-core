@@ -253,17 +253,18 @@ _FORBIDDEN = re.compile(
 
 
 _WALL_POWER_ADVICE = re.compile(
-    r"(?i)\b("
-    r"prefer\s+wall\s+power(?:\s+if\s+the\s+site\s+bank\s+is\s+low)?"
+    r"(?i)(?<!never advise )(?<!never say )(?<!never say prefer )(?<!do not advise )\b("
+    r"prefer(?:ence)?(?:\s+is\s+to\s+use)?\s+wall\s+power(?:\s+if\s+the\s+site\s+bank\s+is\s+low)?"
     r"|a\s+preference\s+for\s+wall\s+power(?:\s+when\s+the\s+site\s+bank\s+is\s+low)?"
-    r"|wall\s+power"
+    r"|preference\s+is\s+to\s+use\s+wall\s+power(?:\s+if\s+the\s+site\s+bank\s+is\s+low)?"
+    r"|use\s+wall\s+power(?:\s+if\s+the\s+site\s+bank\s+is\s+low)?"
     r"|wall\s+outlet"
     r"|AC\s+power"
     r"|plug(?:\s+it)?\s+in(?:to)?(?:\s+(?:the\s+)?(?:wall|outlet|grid))?"
     r"|dock\s+(?:for\s+)?(?:power|charging)"
     r"|on\s+(?:the\s+)?(?:wall\s+)?dock\s+for\s+power"
-    r")\b[^.]*\.?"
-)
+    r"|wall\s+power"
+    r")\b"
 
 
 def scrub_spoken(text: str) -> str:
@@ -294,6 +295,8 @@ def scrub_spoken(text: str) -> str:
         "keep Starlink and the site bank alive on solar packs, sun, and load management",
         out,
     )
+    # Host charge state: never leave bare "AC" after a percent (sounds like wall power).
+    out = re.sub(r"(?i)(\d+\s*%)\s+AC\b", r"\1 charging", out)
     out = re.sub(r"[ \t]{2,}", " ", out)
     out = re.sub(r"\n{3,}", "\n\n", out)
     if not out.rstrip().endswith("End of status."):
