@@ -143,6 +143,224 @@ def load_boot_lock() -> str:
     return BOOT_LOCK
 
 
+def load_previous_boot_report(
+    *, exclude_day: str | None = None
+) -> tuple[Path | None, str]:
+    """Newest morning-boot-*.md on disk (dated files), optionally skipping one day."""
+    try:
+        config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    dated = sorted(
+        (
+            p
+            for p in config.REPORTS_DIR.glob("morning-boot-*.md")
+            if p.name != CURRENT_NAME and "draft" not in p.name.lower()
+        ),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    for path in dated:
+        if exclude_day and exclude_day in path.name:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        if text.strip():
+            return path, text
+    current = config.REPORTS_DIR / CURRENT_NAME
+    if current.is_file():
+        try:
+            text = current.read_text(encoding="utf-8", errors="replace")
+            if text.strip():
+                return current, text
+        except Exception:
+            pass
+    return None, ""
+
+
+def _first_pct(text: str, *patterns: str) -> float | None:
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if m:
+            try:
+                return float(m.group(1))
+            except Exception:
+                continue
+    return None
+
+
+def _first_hours(text: str, *patterns: str) -> float | None:
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if not m:
+            continue
+        try:
+            if m.lastindex and m.lastindex >= 2 and m.group(2) is not None:
+                return float(m.group(1)) + float(m.group(2)) / 60.0
+            return float(m.group(1))
+        except Exception:
+            continue
+    return None
+
+
+def _extract_boot_metrics(text: str) -> dict[str, float]:
+    """Pull measured percents / hours from a prior Boot Report. Missing keys stay out."""
+    out: dict[str, float] = {}
+    host = _first_pct(text, r"charge\s+(\d+(?:\.\d+)?)\s*%", r"host[^%\n]{0,40}?(\d+(?:\.\d+)?)\s*%\s*charg")
+    if host is not None:
+        out["host_charge_pct"] = host
+    bank = _first_pct(
+        text,
+        r"Bank combined[^%\n]{0,80}?(\d+(?:\.\d+)?)\s*%",
+        r"bank[^%\n]{0,40}?(\d+(?:\.\d+)?)\s*%\s*capacity",
+        r"(\d+(?:\.\d+)?)\s*%\s*capacity-weighted",
+    )
+    if bank is not None:
+        out["bank_pct"] = bank
+    delta = _first_pct(text, r"DELTA\s*2[^%\n]{0,40}?(\d+(?:\.\d+)?)\s*%\s*SOC")
+    if delta is not None:
+        out["delta2_soc_pct"] = delta
+    river = _first_pct(text, r"RIVER\s*2\s*Pro[^%\n]{0,40}?(\d+(?:\.\d+)?)\s*%\s*SOC")
+    if river is not None:
+        out["river2_soc_pct"] = river
+    hours = _first_hours(
+        text,
+        r"~\s*(\d+(?:\.\d+)?)\s*h\s+to\s+full",
+        r"about\s+(\d+)\s+hours?\s+(\d+)\s+minutes?\s+to\s+full",
+        r"(\d+(?:\.\d+)?)\s*hours?\s+to\s+full",
+    )
+    if hours is not None:
+        out["hours_to_full"] = hours
+    gap = _first_hours(
+        text,
+        r"Overnight gap about\s+(\d+)\s+hours?\s+(\d+)\s+minutes?",
+        r"Overnight gap about\s+(\d+)\s+minutes?",
+        r"gap on file is about\s+(\d+)\s+hours?\s+(\d+)\s+minutes?",
+    )
+    if gap is not None:
+        out["overnight_gap_hours"] = gap
+    return out
+
+
+def _live_boot_metrics() -> dict[str, float]:
+    """Measured live metrics for differential lines. Skip anything not on disk."""
+    out: dict[str, float] = {}
+    try:
+        from apps.core.services import db_facts
+
+        host = db_facts.host_line()
+        eco = db_facts.ecoflow_line()
+    except Exception:
+        return out
+    h = _first_pct(host, r"charge\s+(\d+(?:\.\d+)?)\s*%")
+    if h is not None:
+        out["host_charge_pct"] = h
+    d = _first_pct(eco, r"DELTA\s*2[^%\n]{0,40}?(\d+(?:\.\d+)?)\s*%\s*SOC")
+    if d is not None:
+        out["delta2_soc_pct"] = d
+    r = _first_pct(eco, r"RIVER\s*2\s*Pro[^%\n]{0,40}?(\d+(?:\.\d+)?)\s*%\s*SOC")
+    if r is not None:
+        out["river2_soc_pct"] = r
+    b = _first_pct(
+        eco,
+        r"Bank combined[^%\n]{0,120}?(\d+(?:\.\d+)?)\s*%",
+        r"(\d+(?:\.\d+)?)\s*%\s*capacity-weighted",
+    )
+    if b is not None:
+        out["bank_pct"] = b
+    hours = _first_hours(eco, r"~\s*(\d+(?:\.\d+)?)\s*h\s+to\s+full")
+    if hours is not None:
+        out["hours_to_full"] = hours
+    return out
+
+
+def build_diff_facts(previous_text: str) -> list[str]:
+    """Human lines: previous → now with absolute and percent change when both exist."""
+    prev = _extract_boot_metrics(previous_text)
+    live = _live_boot_metrics()
+    labels = {
+        "host_charge_pct": "Host charge",
+        "bank_pct": "Bank capacity-weighted",
+        "delta2_soc_pct": "DELTA 2 SOC",
+        "river2_soc_pct": "RIVER 2 Pro SOC",
+        "hours_to_full": "Hours to full (packs)",
+        "overnight_gap_hours": "Overnight gap hours",
+    }
+    lines: list[str] = []
+    for key, label in labels.items():
+        if key not in prev or key not in live:
+            continue
+        a = prev[key]
+        b = live[key]
+        delta = b - a
+        if abs(a) > 1e-6:
+            pct = (delta / abs(a)) * 100.0
+            pct_s = f"{pct:+.1f}% relative"
+        else:
+            pct_s = "relative n/a (previous was zero)"
+        unit = " h" if "hours" in key or key.endswith("_hours") else " %"
+        # overnight_gap_hours / hours_to_full already hours; percents already %
+        if key.endswith("_pct"):
+            lines.append(
+                f"- {label}: previous {a:.1f}% → now {b:.1f}% (change {delta:+.1f} points, {pct_s})."
+            )
+        else:
+            lines.append(
+                f"- {label}: previous {a:.2f}{unit} → now {b:.2f}{unit} (change {delta:+.2f}{unit}, {pct_s})."
+            )
+    return lines
+
+
+def scrub_path_clean(text: str) -> dict:
+    """Confidence checks for morning automation: pronunciation + off-grid voice."""
+    t = text or ""
+    bad = []
+    if re.search(r"\bAVA\b", t) and not re.search(r"\bAva\b", t):
+        bad.append("standalone_AVA")
+    if re.search(r"\bAVA-CORE\b", t):
+        bad.append("AVA-CORE")
+    if re.search(r"\bHI\b", t):
+        bad.append("bare_HI")
+    if re.search(r"\bHST\b", t):
+        bad.append("bare_HST")
+    if re.search(r"(?i)\b(prefer\s+wall\s+power|wall\s+outlet|plug\s+in(?:to)?\s+the\s+wall)\b", t):
+        bad.append("wall_power_advice")
+    scrubbed = scrub_spoken(t)
+    if re.search(r"\bAVA\b", scrubbed):
+        bad.append("scrub_left_AVA")
+    if re.search(r"\bHI\b", scrubbed):
+        bad.append("scrub_left_HI")
+    if re.search(r"\bHST\b", scrubbed):
+        bad.append("scrub_left_HST")
+    return {"ok": not bad, "bad": bad}
+
+
+def automation_flag_path() -> Path:
+    return config.DATA_DIR / "state" / "morning-boot-automation.json"
+
+
+def set_morning_automation(enabled: bool, *, reason: str) -> dict:
+    path = automation_flag_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "enabled": bool(enabled),
+        "reason": reason,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "engine": "on_device_brain",
+        "tts": False,
+        "grok": False,
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
+
+
+def morning_automation_enabled() -> bool:
+    row = _read_json(automation_flag_path())
+    return bool(row.get("enabled"))
+
+
 def build_facts(*, source: str = "boot") -> str:
     """Operator/facts block for the on-device brain. Plain words. Measured only."""
     now = datetime.now(HST)
@@ -213,14 +431,38 @@ def build_facts(*, source: str = "boot") -> str:
         lines.append(f"Latest NWS report file age: about {age_min:.0f} minutes ({nws[0].name}).")
 
     if alert:
+        level = str(alert.get("alert_level") or alert.get("alert") or "unknown")
+        erupting = bool(alert.get("erupting"))
         bits = [
-            str(alert.get("alert_level") or alert.get("alert") or "unknown"),
+            level,
+            f"erupting={str(erupting).lower()}",
+            "not erupting" if not erupting else "is erupting",
+            str(alert.get("headline") or ""),
             str(alert.get("color") or ""),
             str(alert.get("updated") or alert.get("at") or alert.get("updated_at") or ""),
         ]
         lines.append("Kīlauea on file: " + " · ".join(b for b in bits if b))
+        lines.append(
+            "Kīlauea speak rule: advisory / not erupting / paused is NOT an eruption. "
+            "Say advisory and not erupting when erupting=false."
+        )
     else:
         lines.append("Kīlauea: no alert file.")
+
+    # Differentials vs last morning-boot-*.md on disk (measured numbers only).
+    prev_path, prev_text = load_previous_boot_report(exclude_day=None)
+    if prev_path and prev_text:
+        lines.append(f"Previous morning Boot Report on disk: {prev_path.name}.")
+        diff_lines = build_diff_facts(prev_text)
+        if diff_lines:
+            lines.append("DIFFERENTIALS vs that previous report (measured only — do not invent):")
+            lines.extend(diff_lines)
+        else:
+            lines.append(
+                "DIFFERENTIALS: previous report on disk but no comparable measured percents/hours found."
+            )
+    else:
+        lines.append("Previous morning Boot Report: none on disk yet — no differentials.")
 
     try:
         from apps.core.services import live_wx
