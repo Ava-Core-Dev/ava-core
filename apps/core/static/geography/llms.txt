@@ -17,6 +17,18 @@
 - [ai.txt permissions](https://rootrecord.cloud/ai.txt)
 - [robots](https://rootrecord.cloud/robots.txt)
 
+## Live data pages (for reports)
+
+Measured facts only — prefer these over scraping internals:
+
+- [Live data hub](https://origin.avaivy.cloud/data)
+- [Origin health](https://origin.avaivy.cloud/data/origin)
+- [Power / solar](https://origin.avaivy.cloud/data/power)
+- [Weather](https://origin.avaivy.cloud/data/weather)
+- [Kīlauea](https://origin.avaivy.cloud/data/kilauea)
+- [Report link bundle](https://origin.avaivy.cloud/data/report-links?type=morning&format=md)
+- Add `?format=md` or `?format=json` on any `/data/*` page
+
 ## Public doors
 
 - [Root Record home](https://rootrecord.cloud/)

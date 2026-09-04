@@ -183,6 +183,8 @@ def patch(updates: dict) -> dict:
     cfg = load()
     if "week_of_grok" in updates:
         cfg["week_of_grok"] = bool(updates["week_of_grok"])
+    if "week_note" in updates and updates["week_note"]:
+        cfg["week_note"] = str(updates["week_note"])
     if "context_urls" in updates and isinstance(updates["context_urls"], list):
         cfg["context_urls"] = [str(u) for u in updates["context_urls"] if str(u).strip()]
     if "fetch_urls" in updates and isinstance(updates["fetch_urls"], list):
@@ -197,6 +199,11 @@ def patch(updates: dict) -> dict:
                 if k == "engine" and str(v).lower() not in {"grok", "local"}:
                     continue
                 cur[k] = v
+    # Drop legacy dual-schema keys so one shape wins.
+    cfg.pop("types", None)
+    cfg.pop("defaults", None)
+    cfg.pop("schema", None)
+    cfg.pop("note", None)
     return _write(cfg)
 
 
@@ -502,9 +509,9 @@ def generate(
             report_type=kind,
             text=text,
             engine=engine,
-            brands=list(settings.get("blog_brands") or ["ava"]),
+            brands=list(settings.get("blog_brands") or ["ava", "rootrecord"]),
             audio_rel=None,
-            sync=False,
+            sync=True,
         )
         out["blog"] = blog
 

@@ -31,7 +31,7 @@ async def run():
     log.info("morning prelims ok=%s", prelim.get("ok"))
 
     engine = report_generation.engine_for("morning")
-    result = report_generation.generate_report(
+    result = report_generation.generate(
         "morning", dry_run=False, allow_tts=False
     )
     content = result.get("text") or ""

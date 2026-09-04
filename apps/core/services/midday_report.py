@@ -552,7 +552,7 @@ def grok_full_scaffold_ok(*, include_timestamp: bool = True) -> dict:
         "called": False,
         "engine_toggle": eng,
         "include_timestamp": include_timestamp,
-        "state": str(report_generation.config_path()),
+        "state": str(report_generation.STATE_PATH),
         "note": (
             "Full Grok midday may stamp noon; offline stub must not. "
             "Live call only when engine=grok and spend is open."
