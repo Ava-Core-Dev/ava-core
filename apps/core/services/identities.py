@@ -28,7 +28,7 @@ UUID_RE = re.compile(
 )
 DISCORD_RE = re.compile(r"^\d{15,22}$")
 SOLANA_RE = re.compile(r"^[1-9A-HJ-NP-Za-km-z]{32,44}$")
-KINDS = ("email", "discord", "uuid", "solana", "username", "account_id", "membership_id")
+KINDS = ("email", "discord", "uuid", "solana", "username", "account_id", "membership_id", "telegram")
 ALIASES = {
     "minecraft_uuid": "uuid",
     "player_uuid": "uuid",
@@ -44,6 +44,9 @@ ALIASES = {
     "minecraft_username": "username",
     "minecraftname": "username",
     "mc_name": "username",
+    "telegram": "telegram",
+    "telegram_id": "telegram",
+    "tg_id": "telegram",
 }
 
 
