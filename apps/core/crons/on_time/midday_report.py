@@ -1,13 +1,14 @@
 """Midday status cron — 11:55 HST prebuild; report presents as 12 noon.
 
-Refreshes NOAA/Kīlauea first. On-device text only while Grok is halted.
-No Ara TTS from this cron. Optional later Ara is a separate operator path.
+Prelims first. Engine from data/state/report-generation.json (grok|local).
+Grok path uses public context URLs. Ara TTS only when midday tts toggle is on.
 """
 
 from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 log = logging.getLogger("ava.cron.midday")
 
@@ -21,8 +22,7 @@ async def _refresh_prelims() -> dict:
 
 async def run():
     log.info("Midday report cron (11:55 → noon)  %s", datetime.now(timezone.utc).isoformat())
-    from apps.core import config
-    from apps.core.services import midday_report, reports, xai
+    from apps.core.services import midday_report, report_generation, reports
     from apps.core.services import reports as report_store
 
     if not midday_report.midday_automation_enabled():
@@ -30,72 +30,34 @@ async def run():
     prelim = await _refresh_prelims()
     log.info("midday prelims ok=%s", prelim.get("ok"))
 
-    # Preferred path: on-device midday status (Grok halted or local automation).
-    if xai.grok_is_down() or midday_report.midday_automation_enabled():
+    engine = report_generation.engine_for("midday")
+    result = report_generation.generate("midday", dry_run=False, allow_tts=False)
+    content = ""
+    current = (result.get("files") or {}).get("current")
+    if current:
+        try:
+            content = Path(current).read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            content = result.get("text_preview") or ""
+    if not content:
         written = midday_report.write_midday_report(
-            source="midday_cron_local",
+            source="midday_cron_fallback",
             include_timestamp=True,
         )
         content = written.get("text") or ""
-        stamped = bool(written.get("include_timestamp"))
-        reports.queue_public_draft(
-            "midday", content, source="cron_local", include_timestamp=stamped
-        )
-        report_store.write_current(
-            content, kind="midday", source="cron_local", include_timestamp=stamped
-        )
-        log.info(
-            "Midday status via on-device brain engine=%s scrub=%s automation=%s stamp=%s",
-            written.get("engine"),
-            written.get("scrub"),
-            midday_report.midday_automation_enabled(),
-            stamped,
-        )
-        return
+        result = {
+            "engine": written.get("engine"),
+            "files": {"scrub": written.get("scrub"), "dated": written.get("dated")},
+        }
 
-    # Full Grok path (scaffolded): timestamps allowed. Do not burn TTS here.
-    from apps.core.services import synth
+    reports.queue_public_draft("summary", content, source=f"cron_midday_{engine}")
+    report_store.write_current(content, kind="summary", source=f"cron_midday_{engine}")
 
-    scaffold = midday_report.grok_full_scaffold_ok(include_timestamp=True)
-    log.info("midday Grok full path scaffold=%s", scaffold)
-
-    raw_parts = []
-    for pattern in ("midday-boot-*.md", "morning-boot-*.md", "nws-weather-*.md"):
-        for r in sorted(
-            config.REPORTS_DIR.glob(pattern),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )[:4]:
-            raw_parts.append(r.read_text(errors="replace")[:400])
-    raw = "\n---\n".join(raw_parts)
-    factual = f"_Live snapshot (Grok unavailable or cooling down)._\n\n{raw[:1500]}"
-    system = (
-        "You are Ava Ivy, the AI runtime of the Hawaii Pacific Solar Root Server. "
-        "Write a concise midday status under 300 words for about 12 noon Hawaiian Standard Time. "
-        "Cover solar (ground-mounted arrays only), weather, Kīlauea (advisory is not eruption), "
-        "and server status. Friendly tone. Use only the provided data. Do not invent numbers. "
-        "Never advise wall power — off-grid solar only."
-    )
-    polished = synth.polish_ex(
-        "midday", system, f"Midday data:\n{raw[:3000]}", factual=factual
-    )
-    summary = polished["text"]
-    engine = polished.get("engine") or "unknown"
-    # Full Grok/ollama may stamp; offline factual stub must not.
-    include_timestamp = engine != "factual"
-    if include_timestamp:
-        now_hst = config.hst_now_text(date_first=True)
-        content = f"**Ava midday report** — {now_hst} (presents as 12 noon)\n\n{summary}"
-    else:
-        content = f"**Ava midday report**\n\n{summary}"
-    reports.queue_public_draft(
-        "midday", content, source="cron", include_timestamp=include_timestamp
-    )
-    report_store.write_current(
-        content, kind="midday", source="cron", include_timestamp=include_timestamp
-    )
     log.info(
-        "Midday report drafted for operator review engine=%s stamp=%s (no Ara TTS)",
+        "Midday report engine_req=%s engine=%s blog=%s tts=%s scrub=%s",
         engine,
-        include_timestamp,
+        result.get("engine"),
+        (result.get("blog") or {}).get("ok"),
+        (result.get("tts") or {}).get("skipped", result.get("tts")),
+        (result.get("files") or {}).get("scrub"),
     )
