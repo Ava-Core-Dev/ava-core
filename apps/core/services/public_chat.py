@@ -88,9 +88,7 @@ TOPICS: list[tuple[str, tuple[str, ...], str]] = [
         "solar",
         ("solar", "battery", "panel", "power", "ecoflow", "host", "uptime", "offline", "night"),
         "I run on the HI Pacific Solar Root Server — panels and a battery bank on the Big Island. "
-        "At night I may go quiet if the bank is thin; the public pages still tell you that honestly. "
-        f"Live volts, battery, and host CPU: {LINKS['record']} · my status card: {LINKS['status']}. "
-        "I won't invent a kWh number — those dashboards are the source.",
+        "At night I may go quiet if the bank is thin. I won't invent a kWh number.",
     ),
     (
         "kilauea",
@@ -189,9 +187,9 @@ def match_public_reply(message: str) -> dict | None:
 
     q = _norm(raw)
     if not q:
-        return None
+        return {"reply": GREETING, "brain": "canned", "topic": "greet"}
     if q in _GREET_ONLY:
-        return None
+        return {"reply": GREETING, "brain": "canned", "topic": "greet"}
 
     best: tuple[int, str, str] | None = None
     for tid, keys, reply in TOPICS:
