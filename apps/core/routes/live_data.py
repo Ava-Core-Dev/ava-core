@@ -114,21 +114,23 @@ async def report_links(request: Request, type: str = "morning", format: str | No
 async def report_gen_config(request: Request, format: str | None = None):
     """Public-safe view of per-type engine toggles (no secrets)."""
     want = _want_format(request, format)
-    cfg = report_generation.load()
+    st = report_generation.status()
     safe = {
-        "schema": cfg.get("schema"),
-        "updated_at": cfg.get("updated_at"),
-        "note": cfg.get("note"),
-        "defaults": cfg.get("defaults"),
-        "types": {
+        "week_of_grok": st.get("week_of_grok"),
+        "week_note": st.get("week_note"),
+        "updated_at": st.get("updated_at"),
+        "grok_halted": st.get("grok_halted"),
+        "live_data_hub": st.get("live_data_hub"),
+        "reports": {
             k: {
                 "engine": v.get("engine"),
-                "auto_blog": v.get("auto_blog"),
+                "blog": v.get("blog"),
                 "tts": v.get("tts"),
-                "include_timestamp": v.get("include_timestamp"),
+                "blog_brands": v.get("blog_brands"),
             }
-            for k, v in (cfg.get("types") or {}).items()
+            for k, v in (st.get("reports") or {}).items()
         },
+        "context_url_count": len(st.get("context_urls") or []),
     }
     if want == "json":
         return JSONResponse(safe)
