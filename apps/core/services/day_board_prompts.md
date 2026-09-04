@@ -79,7 +79,7 @@ Each is one function and one clip. Morning 10:00, midday 13:00, evening 18:00 HS
 
 Optional longer takes (same file names, swap later):
 
-- `phrase_new_guest` — Aloha — someone new is talking with Ava on the public page.
+- `phrase_new_guest` — Someone new is talking with Ava on the public page.
 - `phrase_guest_limit` — That's three free replies for this guest today. They need an account to keep going.
 - `phrase_manual_drafts` — Public reports are sitting in the queue. They need your OK before they go out.
 

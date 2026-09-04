@@ -145,7 +145,7 @@ async def api_chat(req: ChatRequest, request: Request):
     raw = (req.message or "").strip()
     if not raw:
         return {
-            "reply": "Aloha — I'm Ava Ivy. Talk like you would in the group. You don't have to say my name.",
+            "reply": "I'm Ava Ivy. Ask about the host, weather, packs, Kīlauea, or RootMC.",
             "brain": "canned",
             "topic": "greet",
         }

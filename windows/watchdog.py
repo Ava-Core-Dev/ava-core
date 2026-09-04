@@ -42,6 +42,26 @@ def _health_ok() -> bool:
         return False
 
 
+def _origin_process_present() -> bool:
+    """True if a uvicorn origin is already running (even while :8787 is briefly unbound).
+
+    Agents that kill+respawn race the watchdog; spawning a second origin causes
+    kill storms and public holding. Presence alone means do not spawn.
+    """
+    try:
+        import psutil
+    except Exception:
+        return False
+    try:
+        for p in psutil.process_iter(["pid", "cmdline"]):
+            cmd = " ".join(p.info.get("cmdline") or []).lower()
+            if "apps.core.main" in cmd or ("uvicorn" in cmd and "apps.core" in cmd):
+                return True
+    except Exception:
+        return False
+    return False
+
+
 CF_EXES = (
     Path(r"C:\Program Files\cloudflared\cloudflared.exe"),
     Path(r"C:\Program Files (x86)\cloudflared\cloudflared.exe"),

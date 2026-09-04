@@ -28,7 +28,7 @@ LINKS = {
     "github": "https://github.com/Ava-Core-Dev",
 }
 
-GREETING = "Aloha — I'm Ava Ivy. What do you want to know?"
+GREETING = "I'm Ava Ivy. Ask about the host, weather, packs, Kīlauea, or RootMC."
 
 _GREET_ONLY = {
     "hi",
