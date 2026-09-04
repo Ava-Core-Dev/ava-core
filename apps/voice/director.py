@@ -1034,14 +1034,22 @@ class StreamDirector:
         blend_proc: asyncio.subprocess.Process | None = None
         blend_pid: int | None = None
         started = time.monotonic()
+        # Windows bed = winsound (sync full file). Overlap-blend + kill-at-wait_s
+        # cut mid-track when the wall clock disagrees with the player, and
+        # kill_stray races two AVA_MUSIC_BED PIDs. No blend on that path.
+        winsound_bed = bool(player_cmd and player_cmd[-1] == "_AVA_PLAY_MP3_")
+        if winsound_bed:
+            blend_into = None
         # Do not treat exit as "done" until the blend window — otherwise a slightly
         # early player exit skips blend and pays a cold-start gap on the next track.
         # Floor is 0.5s (not 5s) so short proof/force clips can still hand off.
         blend_at = max(0.5, wait_s - MUSIC_BLEND_S)
         if wait_s >= 10.0:
-            min_ok = max(5.0, blend_at)
+            min_ok = max(5.0, blend_at) if not winsound_bed else max(5.0, wait_s * 0.85)
         else:
             min_ok = max(0.5, wait_s * 0.9)
+        # Soft overtime: never kill a still-playing winsound at wait_s (halfway cut).
+        overtime_s = wait_s + max(90.0, wait_s * 0.2)
 
         async def _spawn(target: Path) -> asyncio.subprocess.Process:
             return await asyncio.create_subprocess_exec(
@@ -1122,12 +1130,29 @@ class StreamDirector:
                 if proc is None:
                     break
                 elapsed = time.monotonic() - started
+                # Measured end reached: for winsound, keep listening until the
+                # process exits — killing here was the mid-track cutout.
                 if elapsed >= wait_s:
-                    await _ensure_blend()
-                    break
+                    if proc.returncode is not None:
+                        await _ensure_blend()
+                        break
+                    if winsound_bed:
+                        if elapsed >= overtime_s:
+                            log.warning(
+                                "Music bed overtime kill %s after %.1fs (wait_s=%.1f)",
+                                path.name,
+                                elapsed,
+                                wait_s,
+                            )
+                            break
+                        # Still playing past header length — wait for natural end.
+                    else:
+                        await _ensure_blend()
+                        break
 
                 # Near end: start next track under the current one (short overlap).
-                if elapsed >= blend_at:
+                # Skipped on winsound_bed (blend_into forced None).
+                if (not winsound_bed) and elapsed >= blend_at:
                     await _ensure_blend()
 
                 if proc.returncode is not None:
@@ -1156,6 +1181,7 @@ class StreamDirector:
                         path.name,
                     )
                     await asyncio.sleep(0.15)
+                    # Keep nothing — current already dead; sweep orphans only.
                     await _kill_stray_music_players_async()
                     if self._music_bed_held() or not self._music_enabled:
                         aborted = True
