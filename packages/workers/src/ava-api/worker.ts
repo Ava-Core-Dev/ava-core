@@ -188,7 +188,11 @@ export default {
     }
 
     try {
-      return await fetchFrontend(request, VERCEL_FRONTEND);
+      const res = await fetchFrontend(request, VERCEL_FRONTEND);
+      // Prove which frontend URL answered (alias was stuck on an old build).
+      const headers = new Headers(res.headers);
+      headers.set("x-ava-frontend", VERCEL_FRONTEND);
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
     } catch {
       return holdingPage();
     }
