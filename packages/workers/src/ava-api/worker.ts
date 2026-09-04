@@ -132,14 +132,9 @@ export default {
       });
     }
 
-    if (path === "/" || path === "/chat" || path === "/chat/") {
-      return proxyToOrigin(request, {
-        originUrl: origin,
-        path: "/chat",
-        timeoutMs: 8000,
-        offlineFallback: holdingPage,
-      });
-    }
+    // GET / and /chat are the Pages frontend (wiki home + Talk with Ava).
+    // Do not map them to origin /chat — that made both URLs the same page
+    // and hid ChatWidget. POST /api/chat still proxies to origin above.
 
     if (path.startsWith("/ava/")) {
       return proxyToOrigin(request, {

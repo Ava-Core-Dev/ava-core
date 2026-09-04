@@ -242,7 +242,8 @@ AVA_DISCORD_HOME = (
 DISCORD_CHANNELS: dict[str, str] = {
     "general":           "1545284354157187083",
     "admins":            "1516121832493678612",
-    "proposals":         "1526664180491358419",
+    # Named only — not in DEFAULT_WATCH. Old 152666… and wrangler 153301… 404.
+    "proposals":         "1537333521389977600",
     "governance":        "1522406451413385317",
     "voting":            "1522413185364398090",
     "constitution":      "1522406019152478210",
@@ -279,7 +280,8 @@ NEVER_MENTION: set[str] = {
 
 # Default channels Ava watches for incoming messages
 DEFAULT_WATCH_CHANNELS: list[str] = [
-    # #proposals 1526664180491358419 404s — skip until the channel exists again
+    # #proposals skipped: 1526664180491358419 and 1533012499320934602 both 404.
+    # Live guild still has 1537333521389977600 — not added to watch.
     "1516121832493678612",  # admins
     "1545284354157187083",  # general
     "1522406451413385317",  # governance

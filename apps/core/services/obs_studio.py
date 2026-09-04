@@ -1126,7 +1126,18 @@ async def apply_current_scene_media() -> dict:
         cur_a / "system-performance-current.mp3",
     ]
     existing = [p for p in parts if p.is_file()]
-    if existing and (not desk.is_file() or desk.stat().st_mtime < max(p.stat().st_mtime for p in existing)):
+    concat_list = desk.with_suffix(".concat.txt")
+    linux_concat = False
+    if concat_list.is_file():
+        try:
+            linux_concat = "/home/ava-core" in concat_list.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            linux_concat = False
+    if existing and (
+        linux_concat
+        or not desk.is_file()
+        or desk.stat().st_mtime < max(p.stat().st_mtime for p in existing)
+    ):
         _concat_mp3(existing, desk)
 
     def spoken(path: Path) -> dict:
@@ -1175,7 +1186,11 @@ async def apply_current_scene_media() -> dict:
 def _concat_mp3(parts: list[Path], dest: Path) -> None:
     import subprocess
     lst = dest.with_suffix(".concat.txt")
-    lst.write_text("".join(f"file '{p}'\n" for p in parts))
+    lines = []
+    for p in parts:
+        loc = p.resolve().as_posix().replace("'", r"'\''")
+        lines.append(f"file '{loc}'\n")
+    lst.write_text("".join(lines), encoding="utf-8")
     dest.parent.mkdir(parents=True, exist_ok=True)
     cmd_copy = ["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", str(dest)]
     r = subprocess.run(cmd_copy, capture_output=True, text=True, timeout=60)
