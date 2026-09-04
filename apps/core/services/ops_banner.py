@@ -43,9 +43,14 @@ def write(patch: dict) -> dict:
     return stored
 
 
+# Match load_categories / desk roles: meaningful PV, not noise or E-Batt.
+PV_ACTIVE_W = 20.0
+
+
 def paint(
     *,
     hours_to_empty: float | None = None,
+    solar_in_w: float | None = None,
     host_battery_pct: float | None = None,
     host_plugged: bool | None = None,
     start_label: str = "",
@@ -57,7 +62,13 @@ def paint(
     sun = sun or {}
     hours = hours_to_empty
     low = hours is not None and hours <= 3
-    auto = bool(cfg["autoLowBank"] and low)
+    # True PV only (load_categories.solar_in_w). E-Batt on MPPT is not PV.
+    try:
+        pv = float(solar_in_w) if solar_in_w is not None else 0.0
+    except (TypeError, ValueError):
+        pv = 0.0
+    pv_in = pv >= PV_ACTIVE_W
+    auto = bool(cfg["autoLowBank"] and low and not pv_in)
     show = bool(cfg["enabled"] or auto)
     title = ""
     detail = ""
@@ -95,6 +106,8 @@ def paint(
         "title": title,
         "detail": detail,
         "hours_to_empty": hours,
+        "solar_in_w": round(pv, 1) if solar_in_w is not None else None,
+        "pv_suppress": pv_in,
         "host_battery_pct": host_battery_pct,
         "after_sunset": bool(after_sunset or sun.get("after_sunset")),
         "sunrise": (sun or {}).get("sunrise") or "",

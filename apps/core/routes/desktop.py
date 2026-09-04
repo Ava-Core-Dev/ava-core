@@ -343,6 +343,10 @@ async def _ops_paint_args() -> dict:
         hours = flow.get("hours_to_empty")
         tot = snap.get("totals") or {}
         cats = tot.get("categories") or {}
+        # Measured PV only — totals.solar_in_w already excludes E-Batt (input_kind).
+        solar_w = tot.get("solar_in_w")
+        if solar_w is None:
+            solar_w = snap.get("solar_in_w")
         site_w = (
             float(cats.get("server_mobile_w") or 0)
             + float(cats.get("starlink_lights_w") or 0)
@@ -355,6 +359,7 @@ async def _ops_paint_args() -> dict:
             hours = round(float(stored) / site_w, 1)
     except Exception:
         snap = {}
+        solar_w = None
     if hours is None:
         remains = []
         for d in (snap.get("devices") or []):
@@ -387,6 +392,7 @@ async def _ops_paint_args() -> dict:
         pass
     return ops_banner.paint(
         hours_to_empty=hours,
+        solar_in_w=solar_w,
         host_battery_pct=host_pct,
         host_plugged=plugged,
         start_label=start_label,
