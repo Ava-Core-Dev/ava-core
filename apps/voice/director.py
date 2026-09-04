@@ -250,18 +250,24 @@ class StreamDirector:
         log.info("Queued: %s  priority=%s", name or path.name, priority)
 
     async def queue_number(self, n: int, *, name: str = "", priority: int = Priority.REPORT) -> Path | None:
-        """Concatenate Ara number clips and queue them. No cloud TTS."""
+        """Speak an integer from Ara clips. Concatenate when ffmpeg exists; else queue each clip."""
         from apps.core import config as _cfg
-        from apps.voice.clips import speak_number
+        from apps.voice.clips import _find_clip, _number_to_clips, speak_number
 
         dest = Path(_cfg.GENERATED_DIR) / f"spoken-{int(n)}.mp3"
         dest.parent.mkdir(parents=True, exist_ok=True)
         got = speak_number(int(n), dest)
-        if not got:
+        if got:
+            await self.queue(got, name=name or f"number_{n}", priority=priority, scene=None)
+            return got
+        parts = [_find_clip(x) for x in _number_to_clips(int(n))]
+        parts = [p for p in parts if p]
+        if not parts:
             log.warning("No number clips for %s", n)
             return None
-        await self.queue(got, name=name or f"number_{n}", priority=priority, scene=None)
-        return got
+        for i, p in enumerate(parts):
+            await self.queue(p, name=f"{name or f'number_{n}'}_{i}", priority=priority, scene=None)
+        return parts[0]
 
     async def queue_report(self, path: Path, name: str, report_type: str = "") -> None:
         scene = SCENE_MAP.get(report_type.lower())

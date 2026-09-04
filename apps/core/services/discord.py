@@ -168,6 +168,9 @@ async def list_guild_channels(guild_id: str) -> list[dict]:
         return []
     data = r.json()
     return data if isinstance(data, list) else []
+
+
+async def get_me() -> dict | None:
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.get(f"{config.DISCORD_API}/users/@me", headers=_auth_headers())
     if r.status_code != 200:

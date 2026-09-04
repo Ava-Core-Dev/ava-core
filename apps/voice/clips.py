@@ -197,7 +197,17 @@ def speak_number(n: int, out_path: Path) -> Path | None:
             log.warning("No number clip: %s", name)
     if not clip_paths:
         return None
-    return concatenate_clips(clip_paths, Path(out_path))
+    dest = Path(out_path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if len(clip_paths) == 1:
+        import shutil
+        shutil.copy2(clip_paths[0], dest)
+        return dest
+    try:
+        return concatenate_clips(clip_paths, dest)
+    except FileNotFoundError:
+        log.warning("ffmpeg missing — queue clips one at a time from director")
+        return None
 
 
 def speak_time(hour: int, minute: int, out_path: Path) -> Path | None:
