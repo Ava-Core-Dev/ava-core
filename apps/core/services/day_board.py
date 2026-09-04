@@ -318,7 +318,7 @@ def remaining(*, lookahead_h: int = LOOKAHEAD_H, now: datetime | None = None) ->
 
     for job in CLOCK_JOBS:
         due = _due_dt(int(job["hour"]), int(job["minute"]), now)
-        if due < now or due > horizon:
+        if due > horizon or due < now - timedelta(minutes=2):
             continue
         if due.date() != now.date() and int(job["hour"]) >= 6:
             continue
@@ -337,30 +337,6 @@ def remaining(*, lookahead_h: int = LOOKAHEAD_H, now: datetime | None = None) ->
                 "note": job.get("note") or "",
             }
         )
-
-    for slot, hour in SLOT_HOUR.items():
-        due = _due_dt(hour, 0, now)
-        if due < now or due > horizon:
-            continue
-        if due.date() != now.date():
-            continue
-        for kind in REPORT_KINDS:
-            if fired_today(kind, slot):
-                continue
-            fn = slot_key(kind, slot)
-            items.append(
-                {
-                    "id": fn,
-                    "label": f"{slot} {kind}",
-                    "manual": False,
-                    "due": due.isoformat(),
-                    "hour": hour,
-                    "minute": 0,
-                    "phrase": fn,
-                    "function": fn,
-                    "note": "",
-                }
-            )
 
     overnight_hours = []
     for h in (22, 23, 0, 1, 2, 3, 4, 5):
