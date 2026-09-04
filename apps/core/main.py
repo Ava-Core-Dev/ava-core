@@ -198,17 +198,26 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.debug("boot api-ledger skipped: %s", e)
 
+    # Weather / Kīlauea / Boot Report BEFORE day-board slots. No Grok.
     try:
-        async def _boot_day_board():
-            await asyncio.sleep(55)
+        async def _boot_prelims_and_day_board():
+            await asyncio.sleep(20)
             from apps.core.crons.in_order_on_boot import day_board_boot
 
             result = await day_board_boot.run()
-            log.info("boot day-board skipped=%s", (result or {}).get("skipped"))
+            prelim = (result or {}).get("prelim") or {}
+            day = (result or {}).get("day_board") or result or {}
+            log.info(
+                "boot prelims ok=%s report=%s day-board skipped=%s",
+                prelim.get("ok"),
+                ((prelim.get("steps") or {}).get("boot_report") or {}).get("dated")
+                or (prelim.get("steps") or {}).get("boot_report"),
+                day.get("skipped"),
+            )
 
-        asyncio.create_task(_boot_day_board())
+        asyncio.create_task(_boot_prelims_and_day_board())
     except Exception as e:
-        log.debug("boot day-board skipped: %s", e)
+        log.debug("boot prelims/day-board skipped: %s", e)
 
     try:
         from apps.core.services import uptime_log, schedule_clock, sun_times

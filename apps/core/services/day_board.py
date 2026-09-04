@@ -196,7 +196,16 @@ BOOT_JOBS = (
     {"id": "account-import-boot", "manual": False, "note": "Identity import"},
     {"id": "governance-boot", "manual": False, "note": "Governance snapshot, no self-update"},
     {"id": "api-prices-boot", "manual": False, "note": "Price catalog at start"},
-    {"id": "day-board-boot", "manual": False, "note": "Morning slots if origin starts before noon"},
+    {
+        "id": "boot-prelims",
+        "manual": False,
+        "note": "NOAA + Kīlauea + morning Boot Report before day-board (no Grok)",
+    },
+    {
+        "id": "day-board-boot",
+        "manual": False,
+        "note": "Morning slots after prelims if origin starts before noon",
+    },
 )
 
 EVENT_PHRASES = (
