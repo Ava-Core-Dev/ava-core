@@ -299,6 +299,7 @@ for _route in (
     "public_site",
     "feedback",
     "context",
+    "live_data",
     "goals",
     "obs",
     "minecraft",

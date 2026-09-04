@@ -26,24 +26,25 @@ DEFAULT_TYPES = {
     "morning": {
         "engine": "grok",
         "auto_blog": True,
-        "tts": True,
-        "brands": ["ava"],
+        # Text first — Ara ~$0.10/success. Flip tts true only after copy is right.
+        "tts": False,
+        "brands": ["ava", "rootrecord"],
         "include_timestamp": True,
     },
     "midday": {
         "engine": "grok",
         "auto_blog": True,
-        "tts": True,
-        "brands": ["ava"],
+        "tts": False,
+        "brands": ["ava", "rootrecord"],
         "include_timestamp": True,
         "trigger_hst": "11:55",
         "presents_as": "12:00 noon",
     },
     "evening": {
-        "engine": "grok",
+        "engine": "local",
         "auto_blog": True,
         "tts": False,
-        "brands": ["ava"],
+        "brands": ["ava", "rootrecord"],
         "include_timestamp": True,
     },
     "hourly": {
