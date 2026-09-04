@@ -192,7 +192,14 @@ AVA_ENV  = _env_str("AVA_ENV", "production")
 
 # ── xAI / Grok ────────────────────────────────────────────────────────────────
 XAI_API_KEY  = _first_env("XAI_API_KEY", "AVA_XAI_API_KEY", "SEXI_XAI_API_KEY")
-GROK_MODEL   = _first_env("GROK_MODEL", "AVA_GROK_MODEL", default="grok-4.6")
+# Pin only. Empty = cheapest catalog chat model (grok-4.3 as of 2026-09-03).
+# Do not read GROK_MODEL from .env — that file still says grok-4.6.
+GROK_USE_MODEL = _first_env("AVA_GROK_USE_MODEL", "GROK_USE_MODEL")
+GROK_MODEL = GROK_USE_MODEL or "grok-4.3"
+OPENAI_USE_MODEL = _first_env("AVA_OPENAI_USE_MODEL", "OPENAI_USE_MODEL")
+GEMINI_USE_MODEL = _first_env("AVA_GEMINI_USE_MODEL", "GEMINI_USE_MODEL")
+CURSOR_USE_MODEL = _first_env("AVA_CURSOR_USE_MODEL", "CURSOR_USE_MODEL")
+ANTHROPIC_USE_MODEL = _first_env("AVA_ANTHROPIC_USE_MODEL", "ANTHROPIC_USE_MODEL")
 TTS_VOICE    = os.getenv("TTS_VOICE", "ara").strip()
 VOICE_MODE   = _env_str("VOICE_MODE", "local")
 MAX_SECONDS  = int(os.getenv("MAX_SECONDS", "55"))
