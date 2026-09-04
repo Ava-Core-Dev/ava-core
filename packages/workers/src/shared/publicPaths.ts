@@ -41,6 +41,7 @@ const PUBLIC_PREFIX = [
   "/api/mobile/",
   "/api/photos/file/",
   "/api/geography/",
+  "/api/media/public",
   "/earthquakes/",
   "/weather/",
   "/news/",
@@ -147,11 +148,11 @@ const PRIVATE_PREFIX = [
   "/api/crons",
   "/api/cron",
   "/api/brain",
-  "/api/media",
+  // /api/media except /api/media/public* (see isPrivatePath)
   "/api/reports",
   "/api/minecraft",
   "/identities",
-  "/media",
+  // /media is the Ava Pages public library — not private.
   "/system",
   "/host",
   "/ecoflow",
@@ -166,6 +167,20 @@ function hits(path: string, prefixes: string[]): boolean {
 }
 
 export function isPrivatePath(path: string): boolean {
+  if (
+    path === "/api/media/public" ||
+    path.startsWith("/api/media/public/") ||
+    path.startsWith("/api/media/public?")
+  ) {
+    return false;
+  }
+  if (
+    path === "/api/media" ||
+    path.startsWith("/api/media/") ||
+    path.startsWith("/api/media?")
+  ) {
+    return true;
+  }
   return hits(path, PRIVATE_PREFIX);
 }
 

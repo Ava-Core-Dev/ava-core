@@ -55,6 +55,14 @@ function isGoalsPath(path: string): boolean {
 export default {
   async fetch(request: Request, env: AvaEnv): Promise<Response> {
     const url = new URL(request.url);
+    // Phone browsers often hit www; apex is the only public door.
+    if (url.hostname.replace(/^www\./i, "").toLowerCase() === "avaivy.cloud" && /^www\./i.test(url.hostname)) {
+      const dest = new URL(request.url);
+      dest.protocol = "https:";
+      dest.hostname = "avaivy.cloud";
+      dest.port = "";
+      return Response.redirect(dest.toString(), 301);
+    }
     const path = url.pathname;
 
     if (isOpsPath(path) || path === "/ava/ops" || path.startsWith("/ava/ops") || isPrivatePath(path)) {

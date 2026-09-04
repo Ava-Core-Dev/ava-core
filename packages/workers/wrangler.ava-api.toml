@@ -5,8 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 account_id = "d2daf26398a805b29e12ddba2b2228cf"
 
 # Routes for avaivy.cloud
+# www must be listed; DNS alone returns empty CF 404 (see common-bugs redirects-before-workers).
 routes = [
   { pattern = "avaivy.cloud/*", zone_name = "avaivy.cloud" },
+  { pattern = "www.avaivy.cloud/*", zone_name = "avaivy.cloud" },
   { pattern = "api.avaivy.cloud/*", zone_name = "avaivy.cloud" },
 ]
 
