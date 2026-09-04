@@ -115,11 +115,14 @@ async def report_gen_config(request: Request, format: str | None = None):
     """Public-safe view of per-type engine toggles (no secrets)."""
     want = _want_format(request, format)
     st = report_generation.status()
+    window = st.get("midday_spend_window") or {}
     safe = {
         "week_of_grok": st.get("week_of_grok"),
         "week_note": st.get("week_note"),
         "updated_at": st.get("updated_at"),
         "grok_halted": st.get("grok_halted"),
+        "midday_spend_window_active": bool(window.get("active")),
+        "midday_spend_window_note": window.get("note"),
         "live_data_hub": st.get("live_data_hub"),
         "reports": {
             k: {
