@@ -9,7 +9,7 @@
  */
 
 import { maintenancePage } from "../shared/maintenancePage";
-import { proxyToOrigin } from "../shared/proxy";
+import { fetchFrontend, proxyToOrigin } from "../shared/proxy";
 import {
   isHiddenPath,
   isPrivatePath,
@@ -27,6 +27,8 @@ import { probeOrigin, readUptime } from "../shared/uptime";
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://origin.avaivy.cloud";
+/** Static GEO/context pack (same files as avaivy Pages). Holding must not own these. */
+const AVAIVY_PAGES = "https://avaivy-cloud.pages.dev";
 
 /** Landing page. Product home. Status desk is /status. */
 const HOME_PAGE = "/";
@@ -98,6 +100,49 @@ export default {
       const dest = new URL(request.url);
       dest.pathname = prettyHtml;
       return Response.redirect(dest.toString(), 301);
+    }
+
+    // Context / GEO stay on the static pack when origin flaps — not holding HTML.
+    const geoPath =
+      path === "/context" ||
+      path === "/context.md" ||
+      path === "/api/context" ||
+      path === "/llms.txt" ||
+      path === "/ai.txt" ||
+      path === "/robots.txt" ||
+      path.startsWith("/context/") ||
+      path.startsWith("/docs/geo/");
+    if (geoPath) {
+      return proxyToOrigin(request, {
+        originUrl: origin,
+        path,
+        timeoutMs: 15000,
+        offlineFallback: async () => {
+          if (path === "/api/context") {
+            return Response.json(
+              {
+                ok: false,
+                detail: "origin offline",
+                hub: "https://avaivy.cloud/context",
+              },
+              { status: 503 },
+            );
+          }
+          try {
+            const pages = await fetchFrontend(request, AVAIVY_PAGES);
+            if (pages.ok) return pages;
+          } catch {
+            /* miss */
+          }
+          if (path === "/context" || path.startsWith("/context/")) {
+            return Response.redirect("https://avaivy.cloud" + path, 302);
+          }
+          return new Response("Context temporarily unavailable.\n", {
+            status: 503,
+            headers: { "content-type": "text/plain; charset=utf-8" },
+          });
+        },
+      });
     }
 
     if (path === "/" || isPublicPage(path) || isPublicData(path)) {

@@ -151,7 +151,8 @@ export default {
       return Response.redirect(url.origin + "/#talk", 302);
     }
 
-    // GEO / context pickup — origin owns plain-text maps so Pages SPA cannot swallow them.
+    // GEO / context: try origin first. If the desk flaps, serve the static pack
+    // from Pages — never the RootRecord “desk is dark” holding page.
     const geoPath = path.replace(/\/+$/, "") || "/";
     if (
       geoPath === "/llms.txt" ||
@@ -167,7 +168,28 @@ export default {
         originUrl: origin,
         path: path,
         timeoutMs: 8000,
-        offlineFallback: holdingPage,
+        offlineFallback: async () => {
+          if (geoPath === "/api/context") {
+            return Response.json(
+              {
+                ok: false,
+                detail: "origin offline",
+                hub: "https://avaivy.cloud/context",
+              },
+              { status: 503 },
+            );
+          }
+          try {
+            const pages = await fetchFrontend(request, VERCEL_FRONTEND);
+            if (pages.ok) return pages;
+          } catch {
+            /* Pages miss — plain text, not holding HTML */
+          }
+          return new Response("Context temporarily unavailable.\n", {
+            status: 503,
+            headers: { "content-type": "text/plain; charset=utf-8" },
+          });
+        },
       });
     }
 

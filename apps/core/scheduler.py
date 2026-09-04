@@ -372,6 +372,40 @@ class Scheduler:
             )
         return out
 
+    def ensure_midday_job(self) -> dict:
+        """Hot path: register midday-report if missing without full recycle."""
+        if self._apscheduler.get_job("midday-report"):
+            job = self._apscheduler.get_job("midday-report")
+            return {
+                "ok": True,
+                "added": False,
+                "id": "midday-report",
+                "next_run": job.next_run_time.isoformat() if job and job.next_run_time else None,
+            }
+        need = _job_wave("midday-report")
+        if need > config.CRON_WAVE:
+            return {
+                "ok": False,
+                "added": False,
+                "id": "midday-report",
+                "detail": f"wave {need} > AVA_CRON_WAVE={config.CRON_WAVE}",
+            }
+        self._apscheduler.add_job(
+            self._run("midday_report"),
+            CronTrigger(hour=11, minute=55, timezone="Pacific/Honolulu"),
+            id="midday-report",
+            name="Midday status (11:55 → noon)",
+            misfire_grace_time=300,
+            replace_existing=True,
+        )
+        job = self._apscheduler.get_job("midday-report")
+        log.info("Hot-registered midday-report next=%s", job.next_run_time if job else None)
+        return {
+            "ok": True,
+            "added": True,
+            "id": "midday-report",
+            "next_run": job.next_run_time.isoformat() if job and job.next_run_time else None,
+        }
     async def run_job_now(self, job_id: str) -> dict:
         """Run a registered job immediately, out of band from its schedule.
 
