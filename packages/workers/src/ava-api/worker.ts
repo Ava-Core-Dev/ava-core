@@ -58,6 +58,14 @@ function isGoalsPath(path: string): boolean {
 export default {
   async fetch(request: Request, env: AvaEnv): Promise<Response> {
     const url = new URL(request.url);
+    // Early probe — must run before any proxy (proves this Worker revision).
+    if (url.pathname === "/__frontend_probe") {
+      return Response.json({
+        ok: true,
+        frontend: VERCEL_FRONTEND,
+        versionHint: "chat-scroll-fix-2026-09-04",
+      });
+    }
     // Phone browsers often hit www; apex is the only public door.
     if (url.hostname.toLowerCase() === "www.avaivy.cloud") {
       const dest = new URL(request.url);
@@ -187,19 +195,6 @@ export default {
       });
     }
 
-    // Probe: which Pages body does this Worker actually receive?
-    if (path === "/__frontend_probe") {
-      const target = VERCEL_FRONTEND.replace(/\/$/, "") + "/";
-      const upstream = await fetch(target, { redirect: "follow" });
-      const text = await upstream.text();
-      const chunk = text.match(/page-[a-f0-9]+\.js/)?.[0] ?? "";
-      return Response.json({
-        frontend: VERCEL_FRONTEND,
-        upstreamStatus: upstream.status,
-        chunk,
-        len: text.length,
-      });
-    }
 
     try {
       const res = await fetchFrontend(request, VERCEL_FRONTEND);
