@@ -1,8 +1,8 @@
 """Morning report cron (10:00 HST) + merged morning summary (10:05 HST).
 
 Prelims first. Engine from data/state/report-generation.json (grok|local).
-Grok path uses public context URLs. Ara TTS only when that type's tts toggle is on.
-Do not regenerate today's morning MP3 unless the toggle asks for TTS on this fire.
+Grok path uses public context + live data pages. Ara TTS only when type tts
+toggle is on AND spend is open (cron keeps allow_tts=False by default).
 """
 
 from __future__ import annotations
@@ -31,16 +31,11 @@ async def run():
     log.info("morning prelims ok=%s", prelim.get("ok"))
 
     engine = report_generation.engine_for("morning")
-    result = report_generation.generate("morning", dry_run=False, allow_tts=False)
-    content = ""
-    dated = (result.get("files") or {}).get("dated")
-    current = (result.get("files") or {}).get("current")
-    if current:
-        try:
-            content = Path(current).read_text(encoding="utf-8", errors="replace")
-        except Exception:
-            content = result.get("text_preview") or ""
-    if not content:
+    result = report_generation.generate_report(
+        "morning", dry_run=False, allow_tts=False
+    )
+    content = result.get("text") or ""
+    if not content.strip():
         written = boot_report.write_boot_report(source="morning_cron_fallback")
         content = written.get("text") or ""
         result = {"engine": written.get("engine"), "scrub": written.get("scrub")}
@@ -48,28 +43,25 @@ async def run():
     reports.queue_public_draft("morning", content, source=f"cron_{engine}")
     report_store.write_current(content, kind="morning", source=f"cron_{engine}")
     log.info(
-        "Morning report engine_req=%s engine=%s blog=%s tts=%s scrub=%s dated=%s",
+        "Morning report engine_req=%s engine=%s blog=%s tts=%s dated=%s",
         engine,
         result.get("engine"),
         (result.get("blog") or {}).get("ok"),
         (result.get("tts") or {}).get("skipped", result.get("tts")),
-        (result.get("files") or {}).get("scrub") or result.get("scrub"),
-        dated,
+        result.get("dated"),
     )
 
 
 async def run_merged():
     """Queue today's morning Boot Report as the merged summary draft — no second generate."""
     log.info("Merged morning summary  %s", datetime.now(timezone.utc).isoformat())
+    from apps.core import config
     from apps.core.services import boot_report, reports
 
     prelim = await _refresh_prelims()
     log.info("merged morning prelims ok=%s", prelim.get("ok"))
 
-    current = boot_report.CURRENT_NAME
-    from apps.core import config
-
-    path = config.REPORTS_DIR / current
+    path = config.REPORTS_DIR / boot_report.CURRENT_NAME
     if path.is_file():
         content = path.read_text(encoding="utf-8", errors="replace")
     else:
@@ -83,4 +75,8 @@ async def run_merged():
 
     reports.queue_public_draft("summary", content, source="cron_merged")
     reports.write_current(content, kind="summary", source="cron_merged")
-    log.info("Merged morning queued from %s bytes=%s", path.name if path.is_file() else "fresh", len(content))
+    log.info(
+        "Merged morning queued from %s bytes=%s",
+        path.name if path.is_file() else "fresh",
+        len(content),
+    )

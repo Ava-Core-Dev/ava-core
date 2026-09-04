@@ -90,8 +90,9 @@ def default_config() -> dict:
         "defaults": {
             "engine": "grok",
             "auto_blog": True,
-            "tts": True,
+            "tts": False,
         },
+        "week_of_grok": True,
         "types": {k: dict(v) for k, v in DEFAULT_TYPES.items()},
     }
 
@@ -340,20 +341,90 @@ def generate_via_local(
     }
 
 
+def status() -> dict:
+    cfg = load()
+    return {
+        "ok": True,
+        "path": str(config_path()),
+        "schema": cfg.get("schema"),
+        "week_of_grok": bool(cfg.get("week_of_grok", True)),
+        "note": cfg.get("note"),
+        "defaults": cfg.get("defaults"),
+        "types": cfg.get("types"),
+        "updated_at": cfg.get("updated_at"),
+        "grok_spend_ok": _grok_spend_ok(),
+        "posts_root": str(
+            (config.PUBLIC_MEDIA / "documents" / "reports" / "posts")
+        ),
+    }
+
+
+def patch_config(updates: dict) -> dict:
+    """Merge operator patch into report-generation.json (types/defaults/week)."""
+    cfg = load()
+    updates = updates or {}
+    if "defaults" in updates and isinstance(updates["defaults"], dict):
+        cfg["defaults"] = {**(cfg.get("defaults") or {}), **updates["defaults"]}
+    if "types" in updates and isinstance(updates["types"], dict):
+        types = cfg.setdefault("types", {})
+        for key, row in updates["types"].items():
+            if isinstance(row, dict):
+                types[key] = {**(types.get(key) or {}), **row}
+    if "week_of_grok" in updates:
+        cfg["week_of_grok"] = bool(updates["week_of_grok"])
+    if "note" in updates and updates["note"]:
+        cfg["note"] = str(updates["note"])
+    return save(cfg)
+
+
 def generate_report(
     report_type: str,
     *,
     offline: bool = False,
     dry_run: bool = False,
     force_engine: str | None = None,
+    allow_tts: bool = False,
+    publish: bool | None = None,
 ) -> dict:
     """Generate full text, optionally auto-blog + TTS per toggles.
 
-    dry_run: write nothing to blog / no TTS. Still returns text.
+    dry_run: build/return text only — no report files, blog, or TTS.
+    allow_tts: must be true AND type tts toggle AND spend open to burn Ara.
     """
     settings = type_settings(report_type)
     include_timestamp = bool(settings.get("include_timestamp", True)) and not offline
+    wanted = (force_engine or engine_for(report_type)).lower()
     engine = (force_engine or resolve_engine(report_type, offline=offline)).lower()
+
+    if dry_run:
+        bundle = None
+        facts_preview = ""
+        try:
+            from apps.core.services import live_data_pages
+
+            bundle = live_data_pages.link_bundle(report_type=report_type)
+            facts_preview = live_data_pages.facts_block_for_report(
+                report_type=report_type
+            )[:2000]
+        except Exception as e:
+            facts_preview = f"(facts unavailable: {type(e).__name__})"
+        return {
+            "ok": True,
+            "dry_run": True,
+            "report_type": report_type,
+            "engine_would": engine,
+            "wanted_engine": wanted,
+            "tts_would": bool(settings.get("tts")) and allow_tts and _grok_spend_ok(),
+            "blog_would": bool(settings.get("auto_blog"))
+            if publish is None
+            else bool(publish),
+            "include_timestamp": include_timestamp,
+            "settings": settings,
+            "link_bundle": bundle,
+            "facts_preview_chars": len(facts_preview),
+            "grok_spend_ok": _grok_spend_ok(),
+            "note": "No xAI chat/TTS/blog on dry_run",
+        }
 
     if engine == "grok":
         gen = generate_via_grok(report_type, include_timestamp=include_timestamp)
@@ -375,10 +446,10 @@ def generate_report(
         "ok": bool(text),
         "report_type": report_type,
         "engine": engine,
-        "wanted_engine": settings.get("engine"),
+        "wanted_engine": wanted,
         "include_timestamp": stamped,
         "text": text + ("\n" if text and not text.endswith("\n") else ""),
-        "dry_run": dry_run,
+        "dry_run": False,
         "settings": settings,
         "link_bundle": gen.get("link_bundle"),
     }
@@ -386,31 +457,39 @@ def generate_report(
         out["detail"] = "empty"
         return out
 
-    # Persist markdown into reports dir for morning/midday compatibility.
-    if not dry_run:
-        written = _write_report_files(report_type, out["text"], engine=engine, stamped=stamped)
-        out.update(written)
+    written = _write_report_files(report_type, out["text"], engine=engine, stamped=stamped)
+    out["files"] = written
+    out.update(written)
 
-        if settings.get("auto_blog"):
-            from apps.core.services import report_blog
+    do_blog = bool(settings.get("auto_blog")) if publish is None else bool(publish)
+    if do_blog:
+        from apps.core.services import report_blog
 
-            blog = report_blog.publish_report_post(
-                report_type=report_type,
-                text=out["text"],
-                engine=str(engine),
-                brands=list(settings.get("brands") or ["ava"]),
-                audio_rel=None,
-                sync=False,
-            )
-            out["blog"] = blog
+        blog = report_blog.publish_report_post(
+            report_type=report_type,
+            text=out["text"],
+            engine=str(engine),
+            brands=list(settings.get("brands") or ["ava", "rootrecord"]),
+            audio_rel=None,
+            sync=True,
+        )
+        out["blog"] = blog
 
-        if settings.get("tts") and engine == "grok" and _grok_spend_ok():
-            # TTS is opt-in via toggle; foundation records intent. Callers may
-            # synthesize separately to avoid double spend.
-            out["tts_wanted"] = True
-        else:
-            out["tts_wanted"] = False
+    tts_wanted = bool(settings.get("tts")) and allow_tts and _grok_spend_ok()
+    out["tts_wanted"] = tts_wanted
+    if tts_wanted:
+        out["tts"] = synthesize_mp3(report_type, out["text"])
+    else:
+        out["tts"] = {
+            "ok": True,
+            "skipped": True,
+            "reason": "tts_off_or_spend_or_not_allowed",
+        }
     return out
+
+
+# Alias used by some callers / routes.
+generate = generate_report
 
 
 def _write_report_files(
