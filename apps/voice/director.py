@@ -41,14 +41,33 @@ def _windows_hidden() -> dict:
     return {"creationflags": CREATE_NO_WINDOW, "startupinfo": si}
 
 
+def _ffplay_cmd() -> list[str] | None:
+    found = shutil.which("ffplay")
+    if found:
+        return [found, "-nodisp", "-autoexit", "-loglevel", "quiet"]
+    try:
+        from apps.voice.clips import ffmpeg_bin
+
+        ff = ffmpeg_bin()
+    except Exception:
+        ff = None
+    if not ff:
+        return None
+    sibling = Path(ff).parent / ("ffplay.exe" if os.name == "nt" else "ffplay")
+    if sibling.is_file():
+        return [str(sibling), "-nodisp", "-autoexit", "-loglevel", "quiet"]
+    return None
+
+
 def _find_audio_player() -> list[str] | None:
     """Return command prefix for the best available headless MP3 player."""
     if shutil.which("mpg123"):
         return ["mpg123", "-q"]
     if shutil.which("mpv"):
         return ["mpv", "--no-video", "--really-quiet", "--no-terminal"]
-    if shutil.which("ffplay"):
-        return ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
+    ffplay = _ffplay_cmd()
+    if ffplay:
+        return ffplay
     if shutil.which("cvlc"):
         return ["cvlc", "--play-and-exit", "--quiet"]
     # Windows: WPF MediaPlayer via PowerShell (no extra install).
@@ -61,8 +80,19 @@ def _find_audio_player() -> list[str] | None:
 
 def _windows_play_mp3(path: Path) -> list[str]:
     """Build a PowerShell one-shot that opens, plays, and waits for an MP3."""
-    # Escape for single-quoted PowerShell string
     p = str(path.resolve()).replace("'", "''")
+    dur = 20.0
+    try:
+        from apps.voice.clips import mp3_duration_s
+
+        got = mp3_duration_s(path)
+        if got and got > 0.5:
+            dur = min(120.0, max(3.0, got + 0.6))
+        else:
+            size = path.stat().st_size
+            dur = min(120.0, max(12.0, size / 8000.0))
+    except Exception:
+        pass
     script = (
         "Add-Type -AssemblyName PresentationCore; "
         "$m = New-Object System.Windows.Media.MediaPlayer; "
@@ -73,7 +103,7 @@ def _windows_play_mp3(path: Path) -> list[str]:
         "  Start-Sleep -Milliseconds 100; $guard++ }; "
         "if ($m.NaturalDuration.HasTimeSpan) { "
         "  while ($m.Position -lt $m.NaturalDuration.TimeSpan) { Start-Sleep -Milliseconds 200 } "
-        "} else { Start-Sleep -Seconds 8 }"
+        f"}} else {{ Start-Sleep -Seconds {dur:.1f} }}"
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
     return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
