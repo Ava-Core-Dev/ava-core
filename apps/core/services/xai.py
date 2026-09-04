@@ -191,8 +191,9 @@ def tts(text: str, out_path: Path, *, voice: str | None = None,
         language: str = "en", timeout: int = 90) -> Path:
     if _spend_blocked():
         raise XAIError("Grok spend off (halt or spend_master).")
+    spoken = text or ""
     payload = {
-        "text": text,
+        "text": spoken,
         "voice_id": voice or config.TTS_VOICE,
         "language": language,
         "output_format": {"codec": "mp3", "sample_rate": 44100, "bit_rate": 128000},
@@ -203,4 +204,15 @@ def tts(text: str, out_path: Path, *, voice: str | None = None,
     out_path = out_path.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_bytes(r.content)
+    try:
+        from apps.core.services import api_ledger
+
+        api_ledger.record_report_audio_clip(
+            surface="xai.tts",
+            voice=voice or config.TTS_VOICE,
+            chars=len(spoken),
+            path=str(out_path),
+        )
+    except Exception:
+        log.debug("api-ledger xai tts usage skip", exc_info=True)
     return out_path

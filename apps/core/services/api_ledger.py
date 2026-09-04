@@ -77,7 +77,7 @@ SEED_ROWS: tuple[dict[str, Any], ...] = (
     {"vendor": "xai", "model": "grok-4.5", "input": 2.0, "cached": 0.3, "output": 6.0, "notes": "<200k prompt"},
     {"vendor": "xai", "model": "grok-4.3", "input": 1.25, "cached": 0.2, "output": 2.5, "notes": "<200k prompt"},
     {"vendor": "xai", "model": "grok-imagine-image-2.0", "input": None, "cached": None, "output": 0.04, "unit": "image", "notes": "from $0.04 / image"},
-    {"vendor": "xai", "model": "grok-voice-tts", "input": None, "cached": None, "output": 15.0, "unit": "1M chars", "notes": "Text to Speech"},
+    {"vendor": "xai", "model": "grok-voice-tts", "input": None, "cached": None, "output": 15.0, "unit": "1M chars", "notes": "Text to Speech; Ava meters each report clip at $0.10 (operator round-up from ~$0.07)"},
     # OpenAI
     {"vendor": "openai", "model": "gpt-5.6-sol", "input": 4.0, "cached": 0.4, "output": 20.0, "notes": "short context; promo through 2026-11-21; long context 2x"},
     {"vendor": "openai", "model": "gpt-5.6-terra", "input": 2.0, "cached": 0.2, "output": 12.0, "notes": "short context"},
@@ -439,6 +439,83 @@ def record_usage(
         conn.commit()
     finally:
         conn.close()
+
+
+def record_report_audio_clip(
+    *,
+    surface: str = "xai.tts",
+    voice: str | None = None,
+    chars: int = 0,
+    path: str = "",
+    note: str = "",
+) -> float:
+    """Meter one successful Ara/report TTS at operator $0.10 (not raw ~$0.07).
+
+    Does not gate spend — call only after bytes land. Chat halt stays separate.
+    """
+    usd = float(REPORT_AUDIO_CLIP_USD)
+    voice_name = (voice or "").strip() or "ara"
+    detail = note.strip() or (
+        f"report audio clip metered ${usd:.2f} "
+        f"(actual ~${REPORT_AUDIO_CLIP_ACTUAL_USD:.2f}; operator round-up)"
+    )
+    record_usage(
+        "xai",
+        model="grok-voice-tts",
+        usd=usd,
+        surface=surface[:40],
+        note=detail[:240],
+    )
+    at = _now()
+    row = {
+        "at": at,
+        "vendor": "xai",
+        "model": "grok-voice-tts",
+        "voice": voice_name,
+        "chars": int(chars or 0),
+        "usd": usd,
+        "actual_usd_approx": REPORT_AUDIO_CLIP_ACTUAL_USD,
+        "surface": surface[:40],
+        "path": str(path)[:240],
+        "note": detail[:240],
+    }
+    try:
+        AUDIO_COST_JSONL.parent.mkdir(parents=True, exist_ok=True)
+        with AUDIO_COST_JSONL.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+        summary: dict[str, Any] = {
+            "clip_usd": REPORT_AUDIO_CLIP_USD,
+            "actual_usd_approx": REPORT_AUDIO_CLIP_ACTUAL_USD,
+            "clips": 0,
+            "tracked_usd": 0.0,
+            "note": (
+                "Each successful report Ara TTS records $0.10. "
+                "~3 clips/day → $0.30/day → ~$9/month. "
+                "Grok chat spend halt is separate; this only meters when TTS runs."
+            ),
+        }
+        if AUDIO_COST_SUMMARY.is_file():
+            try:
+                prior = json.loads(AUDIO_COST_SUMMARY.read_text(encoding="utf-8"))
+                if isinstance(prior, dict):
+                    summary.update(
+                        {
+                            "clips": int(prior.get("clips") or 0),
+                            "tracked_usd": float(prior.get("tracked_usd") or 0),
+                        }
+                    )
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
+        summary["clips"] = int(summary.get("clips") or 0) + 1
+        summary["tracked_usd"] = round(float(summary.get("tracked_usd") or 0) + usd, 2)
+        summary["last"] = row
+        summary["updated_at"] = at
+        AUDIO_COST_SUMMARY.write_text(
+            json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+        )
+    except Exception:
+        log.debug("audio-cost jsonl/summary skip", exc_info=True)
+    return usd
 
 
 def _insert_price(conn: sqlite3.Connection, source: str, row: dict, live: int) -> None:
