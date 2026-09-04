@@ -1238,7 +1238,25 @@ class StreamDirector:
                 env=env,
                 **_windows_hidden(),
             )
-            await proc.wait()
+            # Cap wait so a hung MediaPlayer cannot leave music held after the clip.
+            measured = _audio_file_duration_s(path)
+            timeout = max(8.0, (measured or self._estimate_duration(path)) + 8.0)
+            try:
+                await asyncio.wait_for(proc.wait(), timeout=timeout)
+            except asyncio.TimeoutError:
+                log.warning(
+                    "Local audio timeout (%.1fs) — killing player for %s",
+                    timeout,
+                    path.name,
+                )
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=3.0)
+                except Exception:
+                    pass
             log.debug("Local audio done: %s (exit %s)", path.name, proc.returncode)
         except Exception as e:
             log.warning("Local audio failed (%s): %s — falling back to sleep", cmd[0], e)
