@@ -48,6 +48,12 @@ async def lifespan(app: FastAPI):
 
     config.ensure_dirs()
     import asyncio
+    try:
+        from apps.core.services.startup_voice import capture_boot_gap
+
+        capture_boot_gap()
+    except Exception:
+        pass
     log.info("Ava Core starting  port=%s  env=%s", config.AVA_PORT, config.AVA_ENV)
     log.info("Config: %s", config.as_dict())
 

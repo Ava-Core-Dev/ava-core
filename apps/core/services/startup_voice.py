@@ -37,6 +37,29 @@ def _save(data: dict) -> None:
     STATE_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+def capture_boot_gap() -> float:
+    """Stamp last_seen_down from the previous process tick before origin_start overwrites it."""
+    st = _load()
+    if st.get("last_seen_down_at"):
+        return downtime_s()
+    marker = config.DATA_DIR / "state" / "uptime-marker.json"
+    ts = None
+    if marker.is_file():
+        try:
+            m = json.loads(marker.read_text(encoding="utf-8"))
+        except Exception:
+            m = {}
+        for key in ("last_stop_at", "last_tick_at"):
+            ts = _parse_iso(str(m.get(key) or ""))
+            if ts:
+                break
+    if ts:
+        st["last_seen_down_at"] = ts
+        st["last_seen_down_iso"] = datetime.fromtimestamp(ts, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        _save(st)
+    return downtime_s()
+
+
 def note_down() -> None:
     """Call when origin is going away so the next boot knows the gap."""
     st = _load()
@@ -54,29 +77,16 @@ def _parse_iso(raw: str) -> float | None:
 
 
 def downtime_s() -> float:
-    """Seconds since last healthy tick / recorded down. Huge if unknown (first boot)."""
+    """Seconds since last recorded down. Huge if unknown (first boot)."""
     now = time.time()
     st = _load()
-    candidates: list[float] = []
     down_at = st.get("last_seen_down_at")
     if down_at:
         try:
-            candidates.append(max(0.0, now - float(down_at)))
+            return max(0.0, now - float(down_at))
         except (TypeError, ValueError):
             pass
-    marker = config.DATA_DIR / "state" / "uptime-marker.json"
-    if marker.is_file():
-        try:
-            m = json.loads(marker.read_text(encoding="utf-8"))
-        except Exception:
-            m = {}
-        for key in ("last_stop_at", "last_tick_at"):
-            ts = _parse_iso(str(m.get(key) or ""))
-            if ts:
-                candidates.append(max(0.0, now - ts))
-    if not candidates:
-        return 10**9
-    return min(candidates)
+    return 10**9
 
 
 def should_announce(*, force: bool = False, min_interval_s: float = MIN_INTERVAL_S) -> bool:
