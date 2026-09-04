@@ -812,11 +812,11 @@ def _morning_boot_armed() -> dict:
     if not isinstance(data, dict) or not data:
         return {"armed": False, "detail": "no_state"}
     until_raw = str(data.get("until") or "").strip()
-    armed = bool(data.get("mp3") or data.get("path") or until_raw)
+    enabled = bool(data.get("enabled"))
     return {
-        "armed": armed,
+        "armed": enabled,
         "until": until_raw or None,
-        "mp3": data.get("mp3") or data.get("file") or None,
+        "mp3": data.get("mp3") or data.get("last_played") or data.get("current") or None,
         "day": data.get("day"),
     }
 
@@ -874,10 +874,16 @@ async def voice_music(body: VoiceMusicBody):
         return {"ok": False, "detail": str(e)}
 
 
-@router.post("/restart")
-async def api_restart():
+@router.post("/plugins/bump")
+@router.post("/plugins/build")
+@router.post("/plugins/release")
+@router.post("/apps/bump")
+@router.post("/apps/build")
+@router.post("/apps/release")
+async def release_action():
     return {
-        "ok": True,
-        "detail": "origin_stays_up",
-        "hint": "Desktop watchdog restarts Ava Core if /health dies. GUI close does not stop origin.",
+        "ok": False,
+        "accepted": False,
+        "detail": "release_pipeline_not_on_python_origin",
+        "hint": "Use the workstation plugin/app trees. Origin will not spawn JDK builds from HTTP.",
     }

@@ -13,7 +13,7 @@
     <div class="header-row">
       <div>
         <h1>Ava Ivy</h1>
-        <p class="sub">Terminal · Minecraft · core · weather GIFs · biz · finance · feedback · Slack · crons · reports · release · links · post as Ava</p>
+        <p class="sub">Terminal · Minecraft · stream · audio · core · weather GIFs · biz · finance · feedback · Slack · crons · reports · release · links · post as Ava</p>
       </div>
       <button type="button" id="conn-pill" class="conn-pill" title="Connection settings">…</button>
     </div>
@@ -21,6 +21,7 @@
       <button type="button" class="tab active" data-page="terminal">Terminal</button>
       <button type="button" class="tab" data-page="minecraft">Minecraft</button>
       <button type="button" class="tab" data-page="stream">Streaming Ops</button>
+      <button type="button" class="tab" data-page="audio">Audio</button>
       <button type="button" class="tab" data-page="core">Core</button>
       <button type="button" class="tab" data-page="discord">Discord</button>
       <button type="button" class="tab" data-page="slack">Slack</button>
@@ -202,6 +203,39 @@
       </div>
       <pre id="stream-status" class="status" style="margin-top:0.75rem;min-height:10rem"></pre>
       <p class="hint-inline">OBS overlays stay local browser sources (HUD / Quake / Reactions) · after kit repair: Scene Collection → Reload (don’t Save first)</p>
+    </section>
+
+    <section id="page-audio" class="page page-audio">
+      <div class="cron-head">
+        <div>
+          <h2 class="cron-title">Audio</h2>
+          <p id="audio-meta" class="hint-inline">Music bed + voice director from origin</p>
+        </div>
+        <div class="row wrap">
+          <button type="button" id="audio-refresh">Refresh</button>
+          <button type="button" id="audio-music-pause">Pause bed</button>
+          <button type="button" id="audio-music-resume" class="primary">Resume bed</button>
+          <button type="button" id="audio-music-start">Start bed</button>
+          <button type="button" id="audio-chime-now">Chime now</button>
+        </div>
+      </div>
+      <div class="audio-board">
+        <div class="stream-side">
+          <p class="stream-now-label">Currently playing</p>
+          <div id="audio-now" class="audio-block">—</div>
+          <p class="stream-now-label" style="margin-top:0.85rem">Up next</p>
+          <div id="audio-next" class="audio-block">—</div>
+        </div>
+        <div class="stream-side">
+          <p class="stream-now-label">Music bed</p>
+          <div id="audio-bed" class="audio-block">—</div>
+          <p class="hint-inline" style="margin-top:0.55rem">One track at a time. Pause holds the bed for reports too.</p>
+        </div>
+      </div>
+      <h3 class="cron-title" style="margin-top:1rem">Pending / scheduled</h3>
+      <p id="audio-pending-meta" class="hint-inline">Armed chimes, hourly reports, morning-boot replay, remaining-tasks</p>
+      <div id="audio-pending" class="cron-table"></div>
+      <pre id="audio-status" class="status"></pre>
     </section>
 
     <section id="page-core" class="page page-core">
