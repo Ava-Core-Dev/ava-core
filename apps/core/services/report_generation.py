@@ -1,15 +1,14 @@
-"""Long-form report generation: Grok-from-context-URLs or local, then blog + optional Ara.
+"""Report generation toggles + Grok/local orchestrator.
 
-Week-of-Grok foundation (2026-09-04): prefer public GEO/context links over ad-hoc
-local fact scraping. Text first; Ara TTS only when the per-type toggle allows it
-(~$0.10/success). Spend halt / spend_master still gate live xAI calls.
+Near-term default for full morning/midday: Grok fed a link bundle + live
+facts pages. After ~1 week of saved blog corpus, flip toggles to local.
+Hourly/slot stay local by default.
 """
 from __future__ import annotations
 
 import json
 import logging
 import re
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -19,598 +18,451 @@ from apps.core import config
 log = logging.getLogger("ava.report_generation")
 HST = ZoneInfo("Pacific/Honolulu")
 
-STATE_PATH = config.DATA_DIR / "state" / "report-generation.json"
-REPORT_TYPES = ("morning", "midday", "evening")
+CONFIG_NAME = "report-generation.json"
 
-# Live public URLs only (probed 2026-09-04 HST). status/solar 503 when origin dark.
-DEFAULT_CONTEXT_URLS = (
-    "https://avaivy.cloud/context",
-    "https://avaivy.cloud/context.md",
-    "https://avaivy.cloud/llms.txt",
-    "https://avaivy.cloud/ai.txt",
-    "https://avaivy.cloud/context/dev",
-    "https://rootrecord.cloud/context",
-    "https://rootrecord.cloud/context.md",
-    "https://rootrecord.cloud/llms.txt",
-    "https://rootrecord.cloud/ai.txt",
-    # Live when origin is up (do not invent numbers if these 503):
-    "https://rootrecord.cloud/status",
-    "https://rootrecord.cloud/solar",
-    "https://avaivy.cloud/status",
-    "https://avaivy.cloud/solar",
-)
-
-# Prefer markdown/agent maps for prompt packing (HTML hubs stay as citation links).
-FETCH_URLS = (
-    "https://avaivy.cloud/context.md",
-    "https://avaivy.cloud/llms.txt",
-    "https://rootrecord.cloud/context.md",
-)
-
-DEFAULTS = {
-    "version": 1,
-    "week_of_grok": True,
-    "week_note": (
-        "Accumulate published Grok reports + context so later local generation "
-        "has examples. Prefer engine=grok for morning/midday until local is ready. "
-        "Keep tts=false until text is right (~$0.10 Ara/success)."
-    ),
-    "context_urls": list(DEFAULT_CONTEXT_URLS),
-    "fetch_urls": list(FETCH_URLS),
-    "reports": {
-        "morning": {
-            "engine": "grok",
-            "tts": False,
-            "blog": True,
-            "blog_brands": ["ava", "rootrecord"],
-            "max_tokens": 1800,
-            "category": "runtime",
-        },
-        "midday": {
-            "engine": "grok",
-            "tts": False,
-            "blog": True,
-            "blog_brands": ["ava", "rootrecord"],
-            "max_tokens": 1800,
-            "category": "runtime",
-        },
-        "evening": {
-            "engine": "local",
-            "tts": False,
-            "blog": True,
-            "blog_brands": ["ava", "rootrecord"],
-            "max_tokens": 1800,
-            "category": "runtime",
-        },
+# Full long-form types default to grok for the corpus week.
+# Short/offline stubs always force local/factual (no clock stamp).
+DEFAULT_TYPES = {
+    "morning": {
+        "engine": "grok",
+        "auto_blog": True,
+        "tts": True,
+        "brands": ["ava"],
+        "include_timestamp": True,
+    },
+    "midday": {
+        "engine": "grok",
+        "auto_blog": True,
+        "tts": True,
+        "brands": ["ava"],
+        "include_timestamp": True,
+        "trigger_hst": "11:55",
+        "presents_as": "12:00 noon",
+    },
+    "evening": {
+        "engine": "grok",
+        "auto_blog": True,
+        "tts": False,
+        "brands": ["ava"],
+        "include_timestamp": True,
+    },
+    "hourly": {
+        "engine": "local",
+        "auto_blog": False,
+        "tts": False,
+        "brands": [],
+        "include_timestamp": False,
+    },
+    "slot": {
+        "engine": "local",
+        "auto_blog": False,
+        "tts": False,
+        "brands": [],
+        "include_timestamp": False,
     },
 }
 
-VOICE_LOCK = """Public voice lock (hard):
-- No "Aloha". Say Ava (ah-vah), never all-caps AVA as a standalone token.
-- Hawaii / Hawaiian Standard Time — never bare HI or HST.
-- Kīlauea advisory / not erupting is NOT an eruption.
-- Off-grid solar only — never advise wall power, wall outlet, or plug-in AC.
-- Never name OmniBook, HP, laptop brands, Cloudflare, Grok, Ollama, Cursor, xAI, Discord product pitches.
-- Say instead: on-device brain, paid cloud voice, public tunnel, Ava Desk, edge, public code host.
-- Never invent watts, percents, alert levels, or balances. If a source is missing or 503, say you do not have it live.
-- Short sentences. Blank lines between paragraphs. No markdown ## headings for the spoken body.
-- End with the exact line: End of status.
-"""
+
+def config_path() -> Path:
+    return config.DATA_DIR / "state" / CONFIG_NAME
 
 
-def _hst_now() -> datetime:
-    return datetime.now(HST)
-
-
-def _deep_merge(base: dict, overlay: dict) -> dict:
-    out = dict(base)
-    for k, v in (overlay or {}).items():
-        if isinstance(v, dict) and isinstance(out.get(k), dict):
-            out[k] = _deep_merge(out[k], v)
-        else:
-            out[k] = v
-    return out
-
-
-def load() -> dict:
-    """Read toggles; write defaults on first use."""
-    if not STATE_PATH.is_file():
-        return save(DEFAULTS)
+def _read_json(path: Path) -> dict:
+    if not path.is_file():
+        return {}
     try:
-        raw = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return save(DEFAULTS)
-    if not isinstance(raw, dict):
-        return save(DEFAULTS)
-    merged = _deep_merge(DEFAULTS, raw)
-    # Keep operator edits; ensure all report types exist.
-    reports = dict(merged.get("reports") or {})
-    for kind in REPORT_TYPES:
-        reports[kind] = _deep_merge(
-            DEFAULTS["reports"][kind], reports.get(kind) or {}
-        )
-    merged["reports"] = reports
-    return merged
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
-def save(data: dict) -> dict:
-    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    payload = dict(data)
-    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
-    STATE_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+def default_config() -> dict:
+    return {
+        "schema": "ava-report-generation/v1",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "note": (
+            "Per-type engine: grok | local. Grok is week-one default for full "
+            "morning/midday/evening. Spend halt still blocks paid calls. "
+            "Offline stubs always local with no clock stamp."
+        ),
+        "defaults": {
+            "engine": "grok",
+            "auto_blog": True,
+            "tts": True,
+        },
+        "types": {k: dict(v) for k, v in DEFAULT_TYPES.items()},
+    }
+
+
+def ensure_config() -> dict:
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing = _read_json(path)
+    if existing.get("schema") == "ava-report-generation/v1" and existing.get("types"):
+        # Fill any missing type keys without overwriting operator choices.
+        types = existing.setdefault("types", {})
+        changed = False
+        for key, row in DEFAULT_TYPES.items():
+            if key not in types:
+                types[key] = dict(row)
+                changed = True
+            else:
+                for field, val in row.items():
+                    if field not in types[key]:
+                        types[key][field] = val
+                        changed = True
+        if changed:
+            existing["updated_at"] = datetime.now(timezone.utc).isoformat()
+            path.write_text(json.dumps(existing, indent=2) + "\n", encoding="utf-8")
+        return existing
+    payload = default_config()
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return payload
 
 
-def patch(updates: dict) -> dict:
-    cur = load()
-    merged = _deep_merge(cur, updates or {})
-    return save(merged)
+def load() -> dict:
+    return ensure_config()
 
 
-def config_for(kind: str) -> dict:
-    kind = str(kind or "").strip().lower()
-    if kind not in REPORT_TYPES:
-        kind = "morning"
-    row = (load().get("reports") or {}).get(kind) or {}
-    return dict(row)
+def save(payload: dict) -> dict:
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = dict(payload)
+    payload["schema"] = "ava-report-generation/v1"
+    payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return payload
 
 
-def engine_for(kind: str) -> str:
-    eng = str(config_for(kind).get("engine") or "local").strip().lower()
-    return eng if eng in {"grok", "local"} else "local"
+def set_engine(report_type: str, engine: str) -> dict:
+    engine = (engine or "").strip().lower()
+    if engine not in {"grok", "local"}:
+        raise ValueError("engine must be grok or local")
+    cfg = load()
+    row = cfg.setdefault("types", {}).setdefault(report_type, {})
+    row["engine"] = engine
+    return save(cfg)
 
 
-def posts_dir() -> Path:
-    """Canonical blog markdown tree (sync-blogs + ops prefer public)."""
-    public = config.PUBLIC_MEDIA / "documents" / "reports" / "posts"
-    legacy = config.MEDIA_DIR / "documents" / "reports" / "posts"
-    if public.is_dir():
-        return public
-    return legacy
+def type_settings(report_type: str) -> dict:
+    cfg = load()
+    defaults = cfg.get("defaults") or {}
+    row = dict(defaults)
+    row.update((cfg.get("types") or {}).get(report_type) or {})
+    row["report_type"] = report_type
+    return row
 
 
-def _slug(title: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-")
-    return (s or "report")[:80]
+def engine_for(report_type: str) -> str:
+    return str(type_settings(report_type).get("engine") or "grok").lower()
 
 
-def _fetch_text(url: str, *, timeout: int = 20, limit: int = 14000) -> dict:
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "AvaIvy-report-generation/1.0"},
-            method="GET",
-        )
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            status = int(resp.status)
-            raw = resp.read(limit + 200)
-            text = raw[:limit].decode("utf-8", "replace")
-            return {
-                "url": url,
-                "ok": 200 <= status < 400,
-                "status": status,
-                "bytes": len(raw),
-                "text": text,
-            }
-    except Exception as e:
-        return {
-            "url": url,
-            "ok": False,
-            "status": 0,
-            "bytes": 0,
-            "text": "",
-            "error": f"{type(e).__name__}: {e}",
-        }
+def _grok_spend_ok() -> bool:
+    from apps.core.services import xai
+
+    return not xai.grok_is_down()
 
 
-def fetch_context_pack(*, cfg: dict | None = None) -> dict:
-    """Pull live markdown/agent maps. Keep HTML hubs as citation links only."""
-    cfg = cfg or load()
-    urls = list(cfg.get("fetch_urls") or FETCH_URLS)
-    cite = list(cfg.get("context_urls") or DEFAULT_CONTEXT_URLS)
-    parts: list[dict] = []
-    blob_bits: list[str] = []
-    for url in urls:
-        row = _fetch_text(url)
-        summary = {k: row[k] for k in ("url", "ok", "status", "bytes") if k in row}
-        if row.get("error"):
-            summary["error"] = row["error"]
-        parts.append(summary)
-        if row.get("ok") and row.get("text"):
-            blob_bits.append(f"### SOURCE {url}\n{row['text'].strip()}\n")
-    return {
-        "ok": any(p.get("ok") for p in parts),
-        "fetched": parts,
-        "cite_urls": cite,
-        "pack": "\n".join(blob_bits).strip(),
-    }
+def resolve_engine(report_type: str, *, offline: bool = False) -> str:
+    """Effective engine after toggles + spend halt + offline."""
+    if offline:
+        return "local"
+    wanted = engine_for(report_type)
+    if wanted == "grok" and not _grok_spend_ok():
+        log.info("%s: toggle=grok but spend halted — using local", report_type)
+        return "local"
+    return wanted
 
 
-def _persona_lock(kind: str) -> str:
-    from apps.core.services import boot_report, midday_report
+_GROK_SYSTEM = """You ARE Ava Ivy writing an Ava Core Root Record status for easy audio readout.
 
-    if kind == "midday":
-        return midday_report.load_midday_lock()
-    if kind == "evening":
-        return (
-            "You ARE Ava Ivy writing the Ava Core Root Record evening status "
-            "for easy audio readout.\n" + VOICE_LOCK + "\n"
-            "Open: This is the Ava Core Root Record evening status for "
-            "[weekday date], about [time] Hawaiian Standard Time.\n"
-            "Cover: day wrap, weather, Kīlauea, power/bank if measured, "
-            "what landed, what is broken, overnight priority.\n"
-            "OUTPUT ONLY the report text."
-        )
-    return boot_report.load_boot_lock()
+Hard rules:
+- No "Aloha". Never say HP, OmniBook, laptop brand, or any PC maker name.
+- Never name third parties or engines: no Cloudflare, Grok, Ollama, Electron, Vulkan, Radeon, Shockbyte, GitHub, Discord product pitches, llama, qwen, Cursor, xAI, ChatGPT.
+- Say instead: on-device brain, paid cloud voice, public tunnel, Ava Desk, edge, local graphics, public code host, player chat, dream state.
+- Never invent watts, percents, times, or alert levels. Use ONLY the FACTS / live data block. If a fact is missing, say you do not have it live.
+- Off-grid solar site only. Never advise wall power, plug in, AC power, wall outlet, or dock as power advice.
+- No repo paths, env vars, stack traces, or raw JSON dumps in the spoken report.
+- Short sentences. Numbers spoken naturally. Separate paragraphs with blank lines.
+- Do not use markdown ## headings. Use spoken lead-ins as plain sentences.
+- Pronunciation: Ava / Ava Core / Ava Ivy / Root Record. Never bare HI or HST — say Hawaii / Hawaiian Standard Time.
+- Kīlauea: advisory / not erupting is NOT an eruption.
+
+OUTPUT ONLY the report text. No preamble.
+"""
 
 
-def build_prompt(kind: str, *, pack: str, cite_urls: list[str]) -> list[dict]:
-    kind = str(kind or "morning").strip().lower()
-    now = _hst_now()
-    day = now.strftime("%A, %B ") + str(now.day) + now.strftime(", %Y")
-    if kind == "midday":
-        clock = "about 12 noon Hawaiian Standard Time"
-        title = "midday status"
-    elif kind == "evening":
-        clock = f"about {now.strftime('%H:%M')} Hawaiian Standard Time"
-        title = "evening status"
-    else:
-        clock = f"about {now.strftime('%H:%M')} Hawaiian Standard Time"
-        title = "morning Boot Report / morning status"
+def _persona_lock(report_type: str) -> str:
+    if report_type == "midday":
+        try:
+            from apps.core.services import midday_report
 
-    links = "\n".join(f"- {u}" for u in cite_urls)
-    system = _persona_lock(kind) + "\n\n" + VOICE_LOCK
-    user = (
-        f"Write today's full Ava Core Root Record {title} as spoken-ready prose.\n"
-        f"Weekday date: {day}. Opening clock stamp: {clock}.\n"
-        f"Timestamps are allowed on this full Grok path.\n\n"
-        "Primary sources are these public context pages (prefer them over inventing):\n"
-        f"{links}\n\n"
-        "Fetched live excerpts follow. Use measured numbers only from these "
-        "excerpts or clearly say a fact is not live. If status/solar pages were "
-        "unavailable, do not invent watts or desk metrics.\n\n"
-        f"{pack or '(no fetched pack — rely on link list and say what is not live)'}\n\n"
-        "OUTPUT ONLY the report text. No preamble."
+            return midday_report.load_midday_lock()
+        except Exception:
+            pass
+    if report_type == "morning":
+        try:
+            from apps.core.services import boot_report
+
+            return boot_report.load_boot_lock()
+        except Exception:
+            pass
+    return _GROK_SYSTEM
+
+
+def generate_via_grok(
+    report_type: str,
+    *,
+    include_timestamp: bool = True,
+    max_tokens: int = 1400,
+) -> dict:
+    """Full Grok path: link bundle + live facts pages → text. No TTS here."""
+    from apps.core.services import live_data_pages, xai
+
+    facts = live_data_pages.facts_block_for_report(report_type=report_type)
+    bundle = live_data_pages.link_bundle(report_type=report_type)
+    stamp_note = (
+        "Include a clear Hawaiian Standard Time clock stamp in the opening line."
+        if include_timestamp
+        else "Do not put any clock time in the opening — weekday date only."
     )
-    return [
+    if report_type == "midday" and include_timestamp:
+        stamp_note = (
+            'Open with noon clock: "about 12 noon Hawaiian Standard Time" '
+            "(even if built at 11:55)."
+        )
+
+    system = _persona_lock(report_type)
+    user = (
+        f"Write today's {report_type} Ava Core Root Record status from the live data below.\n"
+        f"{stamp_note}\n\n"
+        "Public URLs (cite mentally; do not invent):\n"
+        + "\n".join(
+            f"- {r['title']}: {r['md']}" for r in (bundle.get("resources") or [])
+        )
+        + "\n\n"
+        + facts
+    )
+    messages = [
         {"role": "system", "content": system},
         {"role": "user", "content": user},
     ]
-
-
-def _scrub(kind: str, text: str) -> str:
+    text = xai.try_chat(messages, max_tokens=max_tokens, timeout=120)
+    if not text or len(text.strip()) < 80:
+        return {
+            "ok": False,
+            "engine": "grok",
+            "detail": "thin_or_empty",
+            "include_timestamp": include_timestamp,
+            "link_bundle": bundle,
+            "facts": facts,
+        }
     from apps.core.services import boot_report
 
-    return boot_report.scrub_spoken(text or "")
+    cleaned = boot_report.scrub_spoken(text)
+    return {
+        "ok": True,
+        "engine": "grok",
+        "text": cleaned,
+        "include_timestamp": include_timestamp,
+        "link_bundle": bundle,
+        "facts": facts,
+        "tts": False,
+    }
 
 
-def write_report_files(kind: str, text: str, *, source: str, engine: str) -> dict:
-    """Dated + current markdown under REPORTS_DIR."""
-    from apps.core.services import boot_report, midday_report
+def generate_via_local(
+    report_type: str,
+    *,
+    include_timestamp: bool = True,
+    offline: bool = False,
+) -> dict:
+    """Delegate to existing morning/midday on-device paths."""
+    if report_type == "midday":
+        from apps.core.services import midday_report
 
-    kind = str(kind or "morning").strip().lower()
-    body = (text or "").strip()
-    if not body:
-        return {"ok": False, "detail": "empty"}
-    body = body if body.endswith("\n") else body + "\n"
-    now = _hst_now()
+        return midday_report.generate_spoken(
+            source="report_generation",
+            include_timestamp=include_timestamp and not offline,
+            offline=offline,
+        )
+    if report_type == "morning":
+        from apps.core.services import boot_report
+
+        return boot_report.generate_spoken(
+            source="report_generation",
+            include_timestamp=include_timestamp and not offline,
+            offline=offline,
+        )
+    # Generic local via Ollama using live facts.
+    from apps.core.services import live_data_pages, ollama as ollama_svc
+    from apps.core.services import boot_report
+
+    facts = live_data_pages.facts_block_for_report(report_type=report_type)
+    if offline:
+        return {
+            "ok": True,
+            "engine": "offline_stub",
+            "text": (
+                f"This is the Ava Core Root Record {report_type} status. "
+                "Live details are not in this short sample. End of status.\n"
+            ),
+            "include_timestamp": False,
+            "facts": facts,
+        }
+    messages = [
+        {"role": "system", "content": _persona_lock(report_type)},
+        {
+            "role": "user",
+            "content": f"Write today's {report_type} status from these FACTS only.\n\n{facts}",
+        },
+    ]
+    reply = ollama_svc.chat_sync(messages, timeout=180, num_predict=1200, keep_alive="10m")
+    if not reply or len(reply.strip()) < 80:
+        return {
+            "ok": True,
+            "engine": "offline_stub",
+            "text": (
+                f"This is the Ava Core Root Record {report_type} status. "
+                "The on-device brain was thin. End of status.\n"
+            ),
+            "include_timestamp": False,
+            "facts": facts,
+        }
+    return {
+        "ok": True,
+        "engine": "local",
+        "text": boot_report.scrub_spoken(reply),
+        "include_timestamp": include_timestamp,
+        "facts": facts,
+    }
+
+
+def generate_report(
+    report_type: str,
+    *,
+    offline: bool = False,
+    dry_run: bool = False,
+    force_engine: str | None = None,
+) -> dict:
+    """Generate full text, optionally auto-blog + TTS per toggles.
+
+    dry_run: write nothing to blog / no TTS. Still returns text.
+    """
+    settings = type_settings(report_type)
+    include_timestamp = bool(settings.get("include_timestamp", True)) and not offline
+    engine = (force_engine or resolve_engine(report_type, offline=offline)).lower()
+
+    if engine == "grok":
+        gen = generate_via_grok(report_type, include_timestamp=include_timestamp)
+        if not gen.get("ok"):
+            log.warning("%s Grok failed (%s) — falling back local", report_type, gen.get("detail"))
+            gen = generate_via_local(
+                report_type, include_timestamp=include_timestamp, offline=False
+            )
+            engine = gen.get("engine") or "local"
+    else:
+        gen = generate_via_local(
+            report_type, include_timestamp=include_timestamp, offline=offline
+        )
+        engine = gen.get("engine") or engine
+
+    text = str(gen.get("text") or "").strip()
+    stamped = bool(gen.get("include_timestamp"))
+    out: dict = {
+        "ok": bool(text),
+        "report_type": report_type,
+        "engine": engine,
+        "wanted_engine": settings.get("engine"),
+        "include_timestamp": stamped,
+        "text": text + ("\n" if text and not text.endswith("\n") else ""),
+        "dry_run": dry_run,
+        "settings": settings,
+        "link_bundle": gen.get("link_bundle"),
+    }
+    if not text:
+        out["detail"] = "empty"
+        return out
+
+    # Persist markdown into reports dir for morning/midday compatibility.
+    if not dry_run:
+        written = _write_report_files(report_type, out["text"], engine=engine, stamped=stamped)
+        out.update(written)
+
+        if settings.get("auto_blog"):
+            from apps.core.services import report_blog
+
+            blog = report_blog.publish_report_post(
+                report_type=report_type,
+                text=out["text"],
+                engine=str(engine),
+                brands=list(settings.get("brands") or ["ava"]),
+                audio_rel=None,
+                sync=False,
+            )
+            out["blog"] = blog
+
+        if settings.get("tts") and engine == "grok" and _grok_spend_ok():
+            # TTS is opt-in via toggle; foundation records intent. Callers may
+            # synthesize separately to avoid double spend.
+            out["tts_wanted"] = True
+        else:
+            out["tts_wanted"] = False
+    return out
+
+
+def _write_report_files(
+    report_type: str, text: str, *, engine: str, stamped: bool
+) -> dict:
+    now = datetime.now(HST)
     day = now.strftime("%Y-%m-%d")
     config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-
-    if kind == "midday":
+    body = text if text.endswith("\n") else text + "\n"
+    if report_type == "midday":
         dated = config.REPORTS_DIR / f"midday-boot-{day}.md"
-        current = config.REPORTS_DIR / midday_report.CURRENT_NAME
-    elif kind == "evening":
-        dated = config.REPORTS_DIR / f"evening-boot-{day}.md"
-        current = config.REPORTS_DIR / "evening-boot-current.md"
-    else:
+        current = config.REPORTS_DIR / "midday-boot-current.md"
+    elif report_type == "morning":
         dated = config.REPORTS_DIR / f"morning-boot-{day}.md"
-        current = config.REPORTS_DIR / boot_report.CURRENT_NAME
-
+        current = config.REPORTS_DIR / "morning-boot-current.md"
+        # Also keep morning-report-current for desk board.
+        (config.REPORTS_DIR / "morning-report-current.md").write_text(body, encoding="utf-8")
+    else:
+        dated = config.REPORTS_DIR / f"{report_type}-{day}.md"
+        current = config.REPORTS_DIR / f"{report_type}-current.md"
     dated.write_text(body, encoding="utf-8")
     current.write_text(body, encoding="utf-8")
-    meta = {
-        "ok": True,
-        "kind": kind,
-        "source": source,
-        "engine": engine,
+    return {
         "day": day,
-        "stamp": now.strftime("%Y-%m-%d %H:%M") + " Hawaiian Standard Time",
         "dated": str(dated),
         "current": str(current),
         "bytes": len(body.encode("utf-8")),
-        "scrub": boot_report.scrub_path_clean(body),
-        "text": body,
+        "stamp": now.strftime("%Y-%m-%d %H:%M") + " Hawaiian Standard Time" if stamped else None,
+        "engine_written": engine,
     }
-    meta_path = config.DATA_DIR / "state" / f"report-generation-last-{kind}.json"
-    meta_path.parent.mkdir(parents=True, exist_ok=True)
-    slim = {k: v for k, v in meta.items() if k != "text"}
-    slim["updated_at"] = datetime.now(timezone.utc).isoformat()
-    meta_path.write_text(json.dumps(slim, indent=2) + "\n", encoding="utf-8")
-    return meta
 
 
-def publish_blog(
-    kind: str,
-    text: str,
-    *,
-    brands: list[str] | None = None,
-    category: str = "runtime",
-    sync: bool = True,
-) -> dict:
-    """Write markdown posts matching sync-blogs /ops frontmatter conventions."""
-    kind = str(kind or "morning").strip().lower()
-    body = (text or "").strip()
-    if not body:
-        return {"ok": False, "detail": "empty"}
-    now = _hst_now()
-    day = now.strftime("%Y-%m-%d")
-    title_map = {
-        "morning": f"Morning status — {day}",
-        "midday": f"Midday status — {day}",
-        "evening": f"Evening status — {day}",
-    }
-    title = title_map.get(kind, f"Status — {day}")
-    slug = _slug(f"{kind}-status-{day}")
-    teaser = " ".join(body.split())[:180]
-    brands = brands or ["ava", "rootrecord"]
-    root = posts_dir()
-    saved: list[dict] = []
-    for brand in brands:
-        b = str(brand).strip().lower()
-        if b not in {"ava", "rootrecord", "rootmc", "alex"}:
-            continue
-        label = {
-            "ava": "Ava",
-            "rootrecord": "Root Record",
-            "rootmc": "RootMC",
-            "alex": "Alex",
-        }[b]
-        folder = root / b
-        folder.mkdir(parents=True, exist_ok=True)
-        path = folder / f"{slug}.md"
-        lines = [
-            "---",
-            f"slug: {slug}",
-            f"date: {day}",
-            f"published: {now.strftime('%Y-%m-%d %H:%M')} Hawaiian Standard Time",
-            f"title: {title}",
-            f"teaser: {teaser}",
-            f"brand: {label}",
-            f"categories: {category}",
-            "---",
-            "",
-            body,
-            "",
-        ]
-        path.write_text("\n".join(lines), encoding="utf-8")
-        saved.append({"brand": b, "path": str(path), "slug": slug})
-    sync_result = None
-    if sync and saved:
-        sync_result = _run_sync_blogs()
-    return {"ok": bool(saved), "saved": saved, "sync": sync_result, "slug": slug}
-
-
-def _run_sync_blogs() -> dict:
-    import subprocess
-    import sys
-
-    script = config.AVA_HOME / "scripts" / "sync-blogs.py"
-    if not script.is_file():
-        return {"ok": False, "detail": "sync-blogs.py missing"}
-    try:
-        r = subprocess.run(
-            [sys.executable, str(script)],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            cwd=str(config.AVA_HOME),
-        )
-        return {
-            "ok": r.returncode == 0,
-            "log": ((r.stdout or "") + "\n" + (r.stderr or ""))[-2500:],
-        }
-    except Exception as e:
-        return {"ok": False, "detail": str(e)}
-
-
-def maybe_tts(kind: str, text: str, *, force: bool = False) -> dict:
-    """Ara TTS via existing broadcast_render path. Default off; ~$0.10/success."""
-    cfg = config_for(kind)
-    if not force and not cfg.get("tts"):
-        return {"ok": True, "skipped": True, "reason": "tts_toggle_off"}
+def synthesize_mp3(report_type: str, text: str) -> dict:
+    """Paid Ara/xAI TTS for a full report. Metered — call sparingly."""
     from apps.core.services import xai
 
-    if xai.grok_is_down():
-        return {"ok": False, "skipped": True, "reason": "grok_halt_or_down"}
-    spoken = " ".join((text or "").split()).strip()
-    if not spoken:
-        return {"ok": False, "detail": "empty"}
+    if not _grok_spend_ok():
+        return {"ok": False, "detail": "spend_halted"}
+    now = datetime.now(HST)
+    stamp = now.strftime("%Y%m%d-%H%M")
+    dest = config.GENERATED_DIR / f"{report_type}-report-{stamp}.mp3"
+    current = config.GENERATED_DIR / f"{report_type}-report-current.mp3"
     try:
-        from apps.core.broadcast_render import spoken_script, synthesize
-
-        script = spoken_script(spoken)
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M")
-        dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.mp3"
-        out = synthesize(script or spoken, dest)
-        current = config.GENERATED_DIR / f"{kind}-report-current.mp3"
-        try:
-            current.write_bytes(out.read_bytes())
-        except OSError:
-            pass
-        library = Path(config.AUDIO_CURRENT_DIR) / f"{kind}-report-current.mp3"
-        try:
-            library.parent.mkdir(parents=True, exist_ok=True)
-            library.write_bytes(out.read_bytes())
-        except OSError:
-            pass
-        return {
-            "ok": True,
-            "mp3": str(out),
-            "current": str(current if current.exists() else out),
-            "library": str(library) if library.exists() else None,
-            "booked_usd": 0.10,
-        }
+        xai.tts(text, dest)
+        current.write_bytes(dest.read_bytes())
     except Exception as e:
-        log.exception("report TTS failed kind=%s", kind)
-        return {"ok": False, "detail": str(e)}
-
-
-def generate(
-    kind: str,
-    *,
-    dry_run: bool = False,
-    force_engine: str | None = None,
-    allow_tts: bool = False,
-    publish: bool | None = None,
-) -> dict:
-    """Run one report type. dry_run builds prompt + pack, never calls xAI/TTS/blog."""
-    from apps.core.services import boot_report, midday_report, xai
-
-    kind = str(kind or "morning").strip().lower()
-    if kind not in REPORT_TYPES:
-        return {"ok": False, "detail": "bad_kind", "kind": kind}
-
-    cfg = config_for(kind)
-    engine = (force_engine or cfg.get("engine") or "local").strip().lower()
-    if engine not in {"grok", "local"}:
-        engine = "local"
-
-    pack_info = fetch_context_pack()
-    messages = build_prompt(
-        kind, pack=pack_info.get("pack") or "", cite_urls=pack_info.get("cite_urls") or []
-    )
-
-    if dry_run:
-        return {
-            "ok": True,
-            "dry_run": True,
-            "kind": kind,
-            "engine_would": engine,
-            "tts_would": bool(cfg.get("tts")) and allow_tts,
-            "blog_would": bool(cfg.get("blog")) if publish is None else bool(publish),
-            "context": {
-                "ok": pack_info.get("ok"),
-                "fetched": pack_info.get("fetched"),
-                "cite_urls": pack_info.get("cite_urls"),
-                "pack_bytes": len((pack_info.get("pack") or "").encode("utf-8")),
-            },
-            "prompt_chars": sum(len(m.get("content") or "") for m in messages),
-            "spend": {
-                "grok_halt": xai.grok_is_down(),
-                "note": "No xAI/TTS/blog on dry_run",
-            },
-            "state_path": str(STATE_PATH),
-        }
-
-    used = engine
-    text = ""
-    grok_called = False
-
-    if engine == "grok":
-        if xai.grok_is_down():
-            log.info("report_generation kind=%s grok wanted but halted — local fallback", kind)
-            used = "local_fallback_halt"
-        else:
-            reply = xai.try_chat(
-                messages,
-                max_tokens=int(cfg.get("max_tokens") or 1800),
-                temperature=0.3,
-            )
-            grok_called = True
-            if reply and len(reply.strip()) > 80:
-                text = _scrub(kind, reply)
-                used = "grok"
-            else:
-                log.warning("report_generation grok thin/empty kind=%s — local fallback", kind)
-                used = "local_fallback_thin"
-
-    if not text:
-        if kind == "midday":
-            written = midday_report.write_midday_report(
-                source=f"report_generation_{used}",
-                include_timestamp=True,
-            )
-            text = written.get("text") or ""
-            used = written.get("engine") or used
-            files = {
-                "dated": written.get("dated"),
-                "current": written.get("current"),
-                "scrub": written.get("scrub"),
-            }
-        elif kind == "evening":
-            # No dedicated evening local writer yet — short stub from midday shape.
-            gen = midday_report.generate_spoken(
-                source="evening_local_stub",
-                include_timestamp=True,
-                offline=True,
-            )
-            text = _scrub(
-                kind,
-                (gen.get("text") or "").replace("midday status", "evening status"),
-            )
-            files = write_report_files(kind, text, source="report_generation", engine=used)
-        else:
-            written = boot_report.write_boot_report(source=f"report_generation_{used}")
-            text = written.get("text") or ""
-            used = written.get("engine") or used
-            files = {
-                "dated": written.get("dated"),
-                "current": written.get("current"),
-                "scrub": written.get("scrub"),
-            }
-    else:
-        files = write_report_files(kind, text, source="report_generation", engine=used)
-
-    do_blog = bool(cfg.get("blog")) if publish is None else bool(publish)
-    blog = None
-    if do_blog and text.strip():
-        blog = publish_blog(
-            kind,
-            text,
-            brands=list(cfg.get("blog_brands") or ["ava", "rootrecord"]),
-            category=str(cfg.get("category") or "runtime"),
-            sync=True,
-        )
-
-    tts = None
-    if allow_tts or cfg.get("tts"):
-        tts = maybe_tts(kind, text, force=bool(allow_tts))
-    else:
-        tts = {"ok": True, "skipped": True, "reason": "tts_toggle_off"}
-
-    return {
-        "ok": bool(text.strip()),
-        "kind": kind,
-        "engine": used,
-        "engine_requested": engine,
-        "grok_called": grok_called,
-        "include_timestamp": True if used == "grok" else None,
-        "files": files,
-        "blog": blog,
-        "tts": tts,
-        "context": {
-            "ok": pack_info.get("ok"),
-            "fetched": pack_info.get("fetched"),
-        },
-        "bytes": len(text.encode("utf-8")),
-        "text_preview": text[:400],
-    }
-
-
-def status() -> dict:
-    cfg = load()
-    from apps.core.services import xai
-
+        log.warning("report TTS failed: %s", e)
+        return {"ok": False, "detail": type(e).__name__}
+    rel = f"audio/voice/generated/{dest.name}"
     return {
         "ok": True,
-        "path": str(STATE_PATH),
-        "week_of_grok": bool(cfg.get("week_of_grok")),
-        "week_note": cfg.get("week_note"),
-        "reports": cfg.get("reports"),
-        "context_urls": cfg.get("context_urls"),
-        "fetch_urls": cfg.get("fetch_urls"),
-        "posts_dir": str(posts_dir()),
-        "grok_halt": xai.grok_is_down(),
-        "updated_at": cfg.get("updated_at"),
+        "mp3": str(dest),
+        "current": str(current),
+        "rel": rel,
+        "chars": len(text),
     }

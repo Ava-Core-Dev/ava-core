@@ -542,11 +542,19 @@ def write_midday_draft(
 
 
 def grok_full_scaffold_ok(*, include_timestamp: bool = True) -> dict:
-    """Wire-only: full Grok path may use timestamps. Does NOT call xAI / TTS."""
+    """Point at report_generation Grok-from-URL path. Does NOT call xAI / TTS."""
+    from apps.core.services import report_generation
+
+    eng = report_generation.engine_for("midday")
     return {
         "ok": True,
         "wired": True,
         "called": False,
+        "engine_toggle": eng,
         "include_timestamp": include_timestamp,
-        "note": "Full Grok midday may stamp noon; offline stub must not. Spend halted — no call.",
+        "state": str(report_generation.STATE_PATH),
+        "note": (
+            "Full Grok midday may stamp noon; offline stub must not. "
+            "Live call only when engine=grok and spend is open."
+        ),
     }
