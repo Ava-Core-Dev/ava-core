@@ -63,7 +63,7 @@ async def generate_drafts() -> dict[str, Any]:
     )
     raw = await ollama_svc.chat(
         [{"role": "user", "content": prompt}],
-        model="qwen3:8b",
+        model=config.OLLAMA_MODEL,
         timeout=120,
     )
     if not raw:

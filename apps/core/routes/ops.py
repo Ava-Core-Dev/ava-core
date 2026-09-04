@@ -282,7 +282,7 @@ async def ops_rewrite(body: RewriteIn, request: Request):
         "ok": True,
         "working": True,
         "text": text,
-        "model": "qwen3:8b",
+        "model": config.OLLAMA_MODEL,
         "ms": ms,
         "models": models,
         "facts_included": bool(facts),

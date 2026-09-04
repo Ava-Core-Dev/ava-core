@@ -29,7 +29,7 @@ def _payload(messages: list[dict], model: str | None) -> dict:
 
 
 def chat_sync(messages: list[dict], *, model: str | None = None, timeout: int = 90) -> str | None:
-    """Blocking Ollama chat for crons. Prefer qwen3:8b if rewriting long reports."""
+    """Blocking Ollama chat for crons. Default is AVA_OLLAMA_MODEL (llama3.2)."""
     try:
         r = httpx.post(
             f"{config.OLLAMA_URL}/api/chat",
