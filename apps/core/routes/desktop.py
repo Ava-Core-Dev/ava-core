@@ -331,6 +331,7 @@ async def _ops_paint_args() -> dict:
     from apps.core.services import ops_banner, sun_times
 
     hours = None
+    solar_w = None
     host_pct = None
     plugged = None
     start_label = ""
@@ -359,7 +360,6 @@ async def _ops_paint_args() -> dict:
             hours = round(float(stored) / site_w, 1)
     except Exception:
         snap = {}
-        solar_w = None
     if hours is None:
         remains = []
         for d in (snap.get("devices") or []):
