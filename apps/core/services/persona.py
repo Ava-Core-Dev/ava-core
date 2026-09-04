@@ -247,12 +247,23 @@ OUTPUT ONLY the reply text.
 """
 
 
+def morning_boot_lock() -> str:
+    """Spoken morning Boot Report format. Used by boot_report generation."""
+    from apps.core.services import boot_report
+
+    return boot_report.load_boot_lock()
+
+
 def system_prompt(*, surface: str = "desk") -> tuple[str, str]:
     """Return (prompt, source_label). Desk gets the 1:1 lock plus SYSTEM.txt head."""
     raw = load_system_txt()
     path = system_txt_path()
     source = str(path) if path else "builtin-desk-lock"
     head = _head_without_engines(raw)
+    if surface == "morning_boot":
+        return morning_boot_lock(), str(
+            config.PUBLIC_MEDIA / "documents" / "persona" / "MORNING_BOOT_REPORT.txt"
+        )
     lock = {
         "desk": DESK_LOCK,
         "public": PUBLIC_LOCK,
