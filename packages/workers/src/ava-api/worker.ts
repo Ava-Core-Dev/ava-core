@@ -22,10 +22,7 @@ import {
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://origin.avaivy.cloud";
-// Pin to a successful production deploy URL while avaivy-cloud.pages.dev
-// alias stays on an older build (queued stage never clears on the project).
-// Revert to https://avaivy-cloud.pages.dev when that alias catches up.
-const VERCEL_FRONTEND = "https://6899e1ba.avaivy-cloud.pages.dev";
+const VERCEL_FRONTEND = "https://avaivy-cloud.pages.dev";
 
 function isOpsPath(path: string): boolean {
   // Exact /api/ops and /api/ops/* only. Do not match /api/ops-schedule-banner.
@@ -58,14 +55,6 @@ function isGoalsPath(path: string): boolean {
 export default {
   async fetch(request: Request, env: AvaEnv): Promise<Response> {
     const url = new URL(request.url);
-    // Early probe — must run before any proxy (proves this Worker revision).
-    if (url.pathname === "/__frontend_probe") {
-      return Response.json({
-        ok: true,
-        frontend: VERCEL_FRONTEND,
-        versionHint: "chat-scroll-fix-2026-09-04",
-      });
-    }
     // Phone browsers often hit www; apex is the only public door.
     if (url.hostname.toLowerCase() === "www.avaivy.cloud") {
       const dest = new URL(request.url);
@@ -197,11 +186,7 @@ export default {
 
 
     try {
-      const res = await fetchFrontend(request, VERCEL_FRONTEND);
-      // Prove which frontend URL answered (alias was stuck on an old build).
-      const headers = new Headers(res.headers);
-      headers.set("x-ava-frontend", VERCEL_FRONTEND);
-      return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+      return await fetchFrontend(request, VERCEL_FRONTEND);
     } catch {
       return holdingPage();
     }
