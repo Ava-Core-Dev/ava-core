@@ -138,45 +138,42 @@ def _audio_file_duration_s(path: Path) -> float | None:
     return None
 
 
-def _windows_play_music(path: Path) -> list[str]:
-    """PowerShell MediaPlayer for long bed tracks (wav/mp3). Full track — no 60s cap."""
-    p = str(path.resolve()).replace("'", "''")
+def _music_wait_seconds(path: Path) -> float:
+    """How long the bed should keep one track before the playlist may advance."""
     measured = _audio_file_duration_s(path)
+    if measured and measured > 1.0:
+        return min(7200.0, measured + 1.0)
     try:
         size = path.stat().st_size
     except Exception:
         size = 0
-    if measured and measured > 1.0:
-        dur = measured + 2.0
-    elif path.suffix.lower() == ".wav":
-        # PCM stereo 16-bit 44.1kHz ≈ 176400 B/s — never use the mp3 16KB/s guess.
-        dur = max(30.0, (size / 176400.0) + 5.0) if size else 600.0
-    else:
-        dur = max(30.0, (size / 16000.0) + 5.0) if size else 600.0
-    dur = min(7200.0, dur)
-    ceiling = min(7200.0, dur + 30.0)
-    # AVA_MUSIC_BED marker must stay in the command line so kill_stray can find orphans
-    # even when Win32_Process truncates long paths.
+    if path.suffix.lower() == ".wav":
+        # PCM stereo 16-bit 48kHz ≈ 192000 B/s; 44.1kHz ≈ 176400 B/s.
+        return min(7200.0, max(30.0, (size / 176400.0) + 2.0) if size else 600.0)
+    return min(7200.0, max(30.0, (size / 16000.0) + 2.0) if size else 600.0)
+
+
+def _windows_play_music(path: Path) -> list[str]:
+    """PowerShell MediaPlayer for bed tracks.
+
+    Waits with Start-Sleep for the measured file length only — never exits early on
+    NaturalDuration/Position/MediaEnded (those falsely end many WAVs in seconds–~1min).
+    Playlist advance is also gated in Python (_play_music_track).
+    """
+    p = str(path.resolve()).replace("'", "''")
+    dur = _music_wait_seconds(path)
+    # AVA_MUSIC_BED marker must stay in the command line so kill_stray can find orphans.
     script = (
         "$ProgressPreference='SilentlyContinue'; "
         "# AVA_MUSIC_BED; "
         "Add-Type -AssemblyName PresentationCore; "
         "$m = New-Object System.Windows.Media.MediaPlayer; "
-        "$script:avaBedDone = $false; "
-        "$m.add_MediaEnded({ $script:avaBedDone = $true }); "
-        f"$m.Open([Uri]'{p}'); $m.Play(); "
-        "Start-Sleep -Milliseconds 500; "
+        f"$m.Open([Uri]'{p}'); "
         "$guard = 0; "
-        "while ($m.NaturalDuration.HasTimeSpan -eq $false -and $guard -lt 120 "
-        "-and -not $script:avaBedDone) { Start-Sleep -Milliseconds 100; $guard++ }; "
-        f"$ceiling = {ceiling:.1f}; "
-        "$sw = [Diagnostics.Stopwatch]::StartNew(); "
-        "while (-not $script:avaBedDone) { "
-        "  if ($m.NaturalDuration.HasTimeSpan -and "
-        "      $m.Position -ge $m.NaturalDuration.TimeSpan) { break }; "
-        "  if ($sw.Elapsed.TotalSeconds -ge $ceiling) { break }; "
-        "  Start-Sleep -Milliseconds 250 "
-        "}; "
+        "while ($m.DownloadProgress -lt 1.0 -and $guard -lt 50) { "
+        "  Start-Sleep -Milliseconds 100; $guard++ }; "
+        "$m.Play(); "
+        f"Start-Sleep -Seconds {dur:.2f}; "
         "$m.Stop(); $m.Close()"
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
