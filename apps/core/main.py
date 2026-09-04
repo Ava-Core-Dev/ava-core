@@ -6,6 +6,7 @@ Handles all HTTP routes, starts the scheduler on boot, and manages the voice pip
 from __future__ import annotations
 
 import logging
+import re
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -57,8 +58,6 @@ async def lifespan(app: FastAPI):
             except Exception:
                 pass
             return True
-
-    import re as _re_mod
 
     redact = _RedactSecrets()
     for h in logging.getLogger().handlers:
