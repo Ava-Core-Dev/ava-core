@@ -18,6 +18,10 @@ STARLINK_BAND_HI = 250.0
 CAR_W_MIN = 5.0
 NIGHT_IN_W = 20.0
 PV_FLAT_W = 15.0
+EBATT_MIN_W = 20.0
+EBATT_MAX_W = 225.0
+# Recycled Ninebot pack on the MPPT. Nameplate only — no SOC from EcoFlow.
+EBATT_WH = 220.0
 USB_KEYS = (
     "pd.usb1Watts",
     "pd.usb2Watts",
