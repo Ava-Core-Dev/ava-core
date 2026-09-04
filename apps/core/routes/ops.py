@@ -147,7 +147,7 @@ async def ops_ollama(request: Request):
         "working": up,
         "url": "http://127.0.0.1:11434",
         "models": models,
-        "rewrite_model": "qwen3:8b",
+        "rewrite_model": config.OLLAMA_MODEL,
         "ms": int((time.monotonic() - t0) * 1000),
         "hint": "Local Ava is answering." if up else "Ollama is down. Start it, then refresh.",
     }
@@ -264,7 +264,7 @@ async def ops_rewrite(body: RewriteIn, request: Request):
     raw = await asyncio.to_thread(
         ollama_svc.chat_sync,
         [{"role": "system", "content": system}, {"role": "user", "content": user}],
-        model="qwen3:8b",
+        model=config.OLLAMA_MODEL,
         timeout=120,
     )
     ms = int((time.monotonic() - t0) * 1000)
@@ -273,7 +273,7 @@ async def ops_rewrite(body: RewriteIn, request: Request):
         return {
             "ok": False,
             "working": True,
-            "model": "qwen3:8b",
+            "model": config.OLLAMA_MODEL,
             "ms": ms,
             "models": models,
             "detail": "Ollama answered empty. Try again.",
