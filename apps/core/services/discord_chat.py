@@ -34,7 +34,9 @@ def is_addressed(msg: dict, bot_id: str) -> bool:
     if any(str(m.get("id") or "") == bot_id for m in (msg.get("mentions") or [])):
         return True
     content = str(msg.get("content") or "")
-    return f"<@{bot_id}>" in content or f"<@!{bot_id}>" in content
+    if f"<@{bot_id}>" in content or f"<@!{bot_id}>" in content:
+        return True
+    return bool(re.search(r"\bava(?:\s+ivy)?\b", content, re.I))
 
 
 async def ava_reply(text: str, *, dm: bool = False) -> str:

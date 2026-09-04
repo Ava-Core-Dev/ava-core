@@ -154,7 +154,20 @@ async def send_dm(user_id: str, content: str) -> dict | None:
     return await post_message(ch["id"], content)
 
 
-async def get_me() -> dict | None:
+async def list_guild_channels(guild_id: str) -> list[dict]:
+    gid = str(guild_id or "")
+    if not gid:
+        return []
+    async with httpx.AsyncClient(timeout=20) as client:
+        r = await client.get(
+            f"{config.DISCORD_API}/guilds/{gid}/channels",
+            headers=_auth_headers(),
+        )
+    if r.status_code != 200:
+        log.warning("Discord guild channels failed guild=%s status=%s", gid, r.status_code)
+        return []
+    data = r.json()
+    return data if isinstance(data, list) else []
     async with httpx.AsyncClient(timeout=10) as client:
         r = await client.get(f"{config.DISCORD_API}/users/@me", headers=_auth_headers())
     if r.status_code != 200:

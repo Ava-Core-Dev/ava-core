@@ -105,12 +105,19 @@ async def telegram_loop() -> None:
                 if chat_id is None:
                     continue
                 cmd = _parse_cmd(text)
-                if not cmd:
-                    continue
                 from_user = msg.get("from") or {}
                 label = str(from_user.get("username") or from_user.get("first_name") or "")
-                reply = await _handle("telegram", str(chat_id), cmd, label=label)
-                await telegram.send_message(chat_id, reply)
+                if cmd:
+                    reply = await _handle("telegram", str(chat_id), cmd, label=label)
+                    await telegram.send_message(chat_id, reply)
+                    continue
+                asked = text.strip()
+                if asked:
+                    from apps.core.services import discord_chat
+
+                    reply = await discord_chat.ava_reply(asked, dm=True)
+                    if reply:
+                        await telegram.send_message(chat_id, reply)
             state = _load_state()
             state["telegram_offset"] = offset
             _save_state(state)
