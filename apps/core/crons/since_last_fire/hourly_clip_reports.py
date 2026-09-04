@@ -82,10 +82,11 @@ def weather_script(facts: str, now: datetime) -> str:
             line = row.lower()
             break
     for word in (
-        "sunny",
-        "cloudy",
         "partly_cloudy",
         "mostly_cloudy",
+        "partly_sunny",
+        "sunny",
+        "cloudy",
         "overcast",
         "rain",
         "showers",
