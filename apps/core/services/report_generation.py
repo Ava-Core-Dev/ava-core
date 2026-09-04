@@ -33,6 +33,12 @@ _DEFAULT_CONTEXT = [
     "https://rootrecord.cloud/ai.txt",
     "https://rootrecord.cloud/status",
     "https://origin.avaivy.cloud/data",
+    "https://origin.avaivy.cloud/data/power",
+    "https://origin.avaivy.cloud/data/weather",
+    "https://origin.avaivy.cloud/data/kilauea",
+    "https://origin.avaivy.cloud/data/origin",
+    "https://origin.avaivy.cloud/data/day-board",
+    # Kind is rewritten at package build time to morning|midday|evening.
     "https://origin.avaivy.cloud/data/report-links?type=morning&format=md",
 ]
 
@@ -132,6 +138,7 @@ def ensure_config() -> dict:
             "https://origin.avaivy.cloud/data/weather",
             "https://origin.avaivy.cloud/data/kilauea",
             "https://origin.avaivy.cloud/data/origin",
+            "https://origin.avaivy.cloud/data/day-board",
         ):
             if url not in cfg["context_urls"]:
                 cfg["context_urls"].append(url)
@@ -696,10 +703,14 @@ def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
     for lead in ("Broken / needs work", "Already landed", "Priority"):
         if lead.lower() not in low:
             missing.append(lead)
-    # Persona says "I do not have it live" when facts missing — after our package
-    # fix that phrase on Broken/Already landed means the model ignored FACTS.
-    if "i do not have it live" in low:
-        missing.append("still_says_not_live")
+    # Only fail when Broken / Already landed still claim "not live" (the noon bug).
+    for section in ("broken / needs work", "already landed"):
+        idx = low.find(section)
+        if idx < 0:
+            continue
+        window = low[idx : idx + 320]
+        if "i do not have it live" in window:
+            missing.append(f"{section}:still_not_live")
     if kind == "midday" and "12 noon" not in low and "noon" not in low:
         missing.append("noon_clock")
     return (not missing), missing

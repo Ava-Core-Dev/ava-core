@@ -97,6 +97,11 @@ def _gap_minutes(stopped_at: str | None, restored_at: str | None) -> int | None:
 
 
 def _origin_up() -> bool:
+    """True when local origin answers or is at least listening on :8787.
+
+    A slow /health during heavy midday package build used to false-flag
+    'origin DOWN' while the cron itself was running inside origin.
+    """
     try:
         import urllib.request
 
@@ -105,8 +110,16 @@ def _origin_up() -> bool:
             headers={"User-Agent": "AvaIvy-boot-report"},
             method="GET",
         )
-        with urllib.request.urlopen(req, timeout=3) as resp:
+        with urllib.request.urlopen(req, timeout=8) as resp:
             return 200 <= int(resp.status) < 500
+    except Exception:
+        pass
+    try:
+        import socket
+
+        with socket.create_connection(("127.0.0.1", 8787), timeout=2) as sock:
+            sock.close()
+        return True
     except Exception:
         return False
 

@@ -58,6 +58,20 @@ async def run():
     result = report_generation.generate(
         "midday", dry_run=False, allow_tts=True
     )
+    if result.get("blocked"):
+        log.error(
+            "Midday Grok BLOCKED incomplete package/output — no disarm/close/TTS fallback. detail=%s validation=%s",
+            result.get("detail"),
+            result.get("validation"),
+        )
+        return {
+            "ok": False,
+            "blocked": True,
+            "detail": result.get("detail"),
+            "validation": result.get("validation"),
+            "engine_req": engine,
+        }
+
     content = result.get("text") or ""
     if not content.strip():
         written = midday_report.write_midday_report(
@@ -73,17 +87,19 @@ async def run():
     reports.queue_public_draft("summary", content, source=f"cron_midday_{engine}")
     report_store.write_current(content, kind="summary", source=f"cron_midday_{engine}")
     after = None
-    if content.strip():
+    # Only disarm replay / close spend when we actually got full report text.
+    if content.strip() and result.get("ok", True) and not result.get("blocked"):
         after = _after_midday_success(
             engine=str(result.get("engine") or engine),
             content=content,
         )
     log.info(
-        "Midday report engine_req=%s engine=%s blog=%s tts=%s dated=%s after=%s",
+        "Midday report engine_req=%s engine=%s blog=%s tts=%s dated=%s after=%s blocked=%s",
         engine,
         result.get("engine"),
         (result.get("blog") or {}).get("ok"),
         (result.get("tts") or {}).get("skipped", result.get("tts")),
-        result.get("dated"),
+        result.get("dated") or (result.get("files") or {}).get("dated"),
         after,
+        result.get("blocked"),
     )

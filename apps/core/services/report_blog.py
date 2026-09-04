@@ -64,6 +64,7 @@ def publish_report_post(
     engine: str,
     brands: list[str] | None = None,
     audio_rel: str | None = None,
+    source_urls: list[str] | None = None,
     sync: bool = False,
 ) -> dict:
     """Write blog markdown for each brand. Does not invent facts."""
@@ -96,6 +97,24 @@ def publish_report_post(
             f"Audio: `{audio_rel}` (served via public media file API when deployed).\n"
         )
 
+    src_lines: list[str] = []
+    seen_src: set[str] = set()
+    for u in source_urls or []:
+        s = str(u or "").strip()
+        if not s or s in seen_src:
+            continue
+        seen_src.add(s)
+        src_lines.append(f"- {s}")
+        if len(src_lines) >= 40:
+            break
+    if not src_lines:
+        src_lines = [
+            "- https://origin.avaivy.cloud/data",
+            "- https://avaivy.cloud/context",
+            "- https://rootrecord.cloud/llms.txt",
+        ]
+    sources = "\n## Sources\n\n" + "\n".join(src_lines) + "\n"
+
     for brand in brands:
         brand = str(brand).strip().lower()
         if brand not in BRAND_LABEL:
@@ -116,12 +135,6 @@ def publish_report_post(
             f"report_type: {report_type}\n"
             f"{audio_fm}"
             "---\n\n"
-        )
-        sources = (
-            "\n## Sources\n\n"
-            "- https://origin.avaivy.cloud/data\n"
-            "- https://avaivy.cloud/context\n"
-            "- https://rootrecord.cloud/llms.txt\n"
         )
         path.write_text(fm + body + "\n" + audio_block + sources, encoding="utf-8")
         written.append({"brand": brand, "path": str(path), "slug": slug})
