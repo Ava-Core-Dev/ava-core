@@ -128,7 +128,7 @@ async def api_chat(req: ChatRequest, request: Request):
     except Exception:
         sid = ""
     try:
-        facts = await persona_svc.live_facts()
+        facts = await persona_svc.live_facts(asked=raw)
         if facts:
             system += "\n\n" + facts
     except Exception:

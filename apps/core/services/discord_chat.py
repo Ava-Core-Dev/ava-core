@@ -47,7 +47,7 @@ async def ava_reply(text: str, *, dm: bool = False, extra_lock: str = "", person
     if _BUSY.locked():
         return "One sec — finishing another thought."
     async with _BUSY:
-        facts = await persona_svc.live_facts()
+        facts = await persona_svc.live_facts(asked=asked)
         if extra_lock.strip():
             prompt = extra_lock.strip()
         elif dm:

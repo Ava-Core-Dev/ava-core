@@ -525,7 +525,7 @@ async def api_core_chat(body: CoreChatBody):
     except Exception:
         person_block = ""
     _, source = persona_svc.system_prompt(surface="desk")
-    facts = await persona_svc.live_facts()
+    facts = await persona_svc.live_facts(asked=str(last_user or ""))
     reply = await ollama_svc.chat(
         persona_svc.core_messages(history, facts=facts, person_block=person_block), timeout=120
     )
