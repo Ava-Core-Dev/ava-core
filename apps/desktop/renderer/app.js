@@ -2100,6 +2100,56 @@ function setOpsBusy(busy, label = "idle") {
   if ($("terminal-cancel")) $("terminal-cancel").disabled = !busy;
 }
 
+function termProcLabel(p) {
+  const comm = String(p.comm || "proc").replace(/\.exe$/i, "");
+  const args = String(p.args || "");
+  if (/uvicorn|apps\.core\.main/i.test(args)) return `origin · ${p.pid}`;
+  if (/ollama/i.test(comm) && /serve/i.test(args)) return `ollama serve · ${p.pid}`;
+  if (/ollama app/i.test(comm) || /ollama app/i.test(args)) return `ollama app · ${p.pid}`;
+  return `${comm} · ${p.pid}`;
+}
+
+function renderTerminalCpuBars(snap) {
+  const host = $("terminal-cpu");
+  if (!host) return;
+  const procs = Array.isArray(snap?.processes) ? snap.processes : [];
+  const shown = [];
+  let other = 0;
+  let otherN = 0;
+  for (const p of procs) {
+    const cpu = Number(p.cpu) || 0;
+    if (cpu >= 1) shown.push(p);
+    else {
+      other += cpu;
+      otherN += 1;
+    }
+  }
+  shown.sort((a, b) => (Number(b.cpu) || 0) - (Number(a.cpu) || 0));
+  const rows = shown.map((p) => {
+    const cpu = Number(p.cpu) || 0;
+    const kind = p.kind === "ollama" ? "ollama" : "ava";
+    const width = Math.max(0, Math.min(100, cpu));
+    return (
+      `<div class="term-cpu-row ${kind}" title="${escapeHtml(String(p.args || ""))}">` +
+      `<div class="term-cpu-meta"><span class="term-cpu-name">${escapeHtml(termProcLabel(p))}</span>` +
+      `<span class="term-cpu-pct">${cpu.toFixed(1)}%</span></div>` +
+      `<div class="term-cpu-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${cpu.toFixed(1)}">` +
+      `<div class="term-cpu-fill" style="width:${width}%"></div></div></div>`
+    );
+  });
+  if (otherN && other >= 1) {
+    const width = Math.max(0, Math.min(100, other));
+    rows.push(
+      `<div class="term-cpu-row other">` +
+        `<div class="term-cpu-meta"><span class="term-cpu-name">Other · ${otherN}</span>` +
+        `<span class="term-cpu-pct">${other.toFixed(1)}%</span></div>` +
+        `<div class="term-cpu-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${other.toFixed(1)}">` +
+        `<div class="term-cpu-fill" style="width:${width}%"></div></div></div>`,
+    );
+  }
+  host.innerHTML = rows.join("");
+}
+
 function renderTerminalProcs(snap) {
   const host = $("terminal-procs");
   if (!host) return;
@@ -2127,24 +2177,18 @@ function renderTerminalProcs(snap) {
   for (const id of snap?.runningCrons || []) {
     cards.push({ kind: "cron", title: `cron · ${id}`, hint: "running now" });
   }
-  for (const p of snap?.processes || []) {
-    cards.push({
-      kind: p.kind === "ollama" ? "ollama" : "ava",
-      title: `${p.comm} · ${p.pid}`,
-      hint: `${p.cpu}% cpu · ${p.etime} · ${String(p.args || "").slice(0, 64)}`,
-    });
-  }
   if (!cards.length) {
     host.innerHTML = `<div class="term-proc"><strong>No live processes</strong><div class="hint">Waiting for Ava / Ollama</div></div>`;
-    return;
+  } else {
+    host.innerHTML = cards
+      .slice(0, 18)
+      .map(
+        (c) =>
+          `<div class="term-proc ${escapeHtml(c.kind)}"><strong>${escapeHtml(c.title)}</strong><div class="hint">${escapeHtml(c.hint || "")}</div></div>`,
+      )
+      .join("");
   }
-  host.innerHTML = cards
-    .slice(0, 18)
-    .map(
-      (c) =>
-        `<div class="term-proc ${escapeHtml(c.kind)}"><strong>${escapeHtml(c.title)}</strong><div class="hint">${escapeHtml(c.hint || "")}</div></div>`,
-    )
-    .join("");
+  renderTerminalCpuBars(snap);
 }
 
 async function refreshTerminalLive() {
