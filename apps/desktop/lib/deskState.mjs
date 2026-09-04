@@ -9,12 +9,23 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export function deskAvaRoot() {
-  const env =
-    process.env.AVA_HANDOFF ||
-    process.env.AVA_HOME ||
-    "";
-  if (env && fs.existsSync(path.join(env, "data"))) return path.resolve(env);
-  return path.resolve(__dirname, "..", "..");
+  const candidates = [
+    process.env.AVA_HANDOFF,
+    process.env.AVA_HOME,
+    // lib/ → desktop/ → apps/ → ava/
+    path.resolve(__dirname, "..", "..", ".."),
+    path.join(process.env.USERPROFILE || "", "ava"),
+  ].filter(Boolean);
+  for (const c of candidates) {
+    const root = path.resolve(c);
+    if (
+      fs.existsSync(path.join(root, "data", "state")) ||
+      fs.existsSync(path.join(root, "apps", "desktop"))
+    ) {
+      return root;
+    }
+  }
+  return path.resolve(__dirname, "..", "..", "..");
 }
 
 export function deskUiStatePath(root = deskAvaRoot()) {

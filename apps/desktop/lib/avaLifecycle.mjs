@@ -14,7 +14,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const HOME = process.env.AVA_HOME || path.join(os.homedir(), "ava");
 const AVA_ROOT =
   process.env.AVA_HANDOFF ||
-  path.join(__dirname, "..", "..");
+  process.env.AVA_HOME ||
+  // lib/ → desktop/ → apps/ → ava/
+  path.join(__dirname, "..", "..", "..");
 const RUN_DIR = path.join(AVA_ROOT, "data", "run");
 const LOG_DIR = path.join(AVA_ROOT, "data", "logs");
 const isWin = process.platform === "win32";
