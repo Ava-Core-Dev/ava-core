@@ -731,6 +731,26 @@ async def api_governance(body: GovernanceBody | None = None):
     return governance.snapshot()
 
 
+@router.get("/ledger")
+@router.post("/ledger")
+async def api_ledger(body: LedgerBody | None = None):
+    from apps.core.services import api_ledger
+
+    if body is not None:
+        patch = {}
+        if body.capture_enabled is not None:
+            patch["capture_enabled"] = body.capture_enabled
+        if body.spend_master is not None:
+            patch["spend_master"] = body.spend_master
+        if body.accounts is not None:
+            patch["accounts"] = body.accounts
+        if patch:
+            api_ledger.write_flags(patch)
+        if body.refresh:
+            api_ledger.refresh(source="desk")
+    return api_ledger.snapshot()
+
+
 @router.post("/restart")
 async def api_restart():
     return {

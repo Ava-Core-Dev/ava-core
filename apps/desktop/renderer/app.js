@@ -63,6 +63,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
       refreshShutdownTimer();
       refreshOpsBanner();
       refreshGovernance();
+      refreshLedger();
     }
   });
 });
@@ -5476,6 +5477,116 @@ $("gov-refresh")?.addEventListener("click", () => refreshGovernance());
 $("gov-save")?.addEventListener("click", () => saveGovernance(false));
 $("gov-run")?.addEventListener("click", () => saveGovernance(true));
 
+function ledgerUsdField(id, value) {
+  const el = $(id);
+  if (!el || document.activeElement === el) return;
+  el.value = value == null || value === "" ? "" : String(value);
+}
+function ledgerLine(bal) {
+  if (!bal) return "";
+  const bits = [bal.label || "?"];
+  if (bal.kind === "percent_pool") {
+    bits.push(bal.used_pct == null ? "used unknown" : `${bal.used_pct}% used`);
+    bits.push(bal.remaining_pct == null ? "remaining unknown" : `${bal.remaining_pct}% left`);
+  } else {
+    bits.push(bal.starting_usd == null ? "no seed" : `seed $${Number(bal.starting_usd).toFixed(2)}`);
+    bits.push(bal.remaining_usd == null ? "remaining unknown" : `~$${Number(bal.remaining_usd).toFixed(2)} left`);
+  }
+  bits.push(bal.key_present ? "key on disk" : "no key");
+  bits.push(bal.spend_allowed ? "spend on" : "spend off");
+  return bits.join(" · ");
+}
+async function refreshLedger() {
+  const st = $("ledger-status");
+  const prices = $("ledger-prices");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/ledger`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      if (st) st.textContent = d?.detail || "unavailable";
+      return;
+    }
+    if ($("ledger-capture")) $("ledger-capture").checked = Boolean(d.capture_enabled);
+    if ($("ledger-spend-master")) $("ledger-spend-master").checked = Boolean(d.spend_master);
+    const acc = d.accounts || {};
+    const bal = d.balances || {};
+    if ($("ledger-cursor-spend")) $("ledger-cursor-spend").checked = Boolean(acc.cursor?.spend_allowed);
+    if ($("ledger-xai-spend")) $("ledger-xai-spend").checked = Boolean(acc.xai?.spend_allowed);
+    if ($("ledger-openai-spend")) $("ledger-openai-spend").checked = Boolean(acc.openai?.spend_allowed);
+    if ($("ledger-gemini-spend")) $("ledger-gemini-spend").checked = Boolean(acc.gemini?.spend_allowed);
+    ledgerUsdField("ledger-cursor-used", acc.cursor?.used_pct);
+    ledgerUsdField("ledger-xai-usd", acc.xai?.starting_usd);
+    ledgerUsdField("ledger-openai-usd", acc.openai?.starting_usd);
+    ledgerUsdField("ledger-gemini-usd", acc.gemini?.starting_usd);
+    const auto = d.auto || {};
+    const last = d.last || {};
+    if (st) {
+      st.textContent = [
+        d.capture_enabled ? "price capture on" : "price capture off",
+        d.spend_master ? "spend master on" : "spend master off",
+        ledgerLine(bal.cursor),
+        ledgerLine(bal.xai),
+        ledgerLine(bal.openai),
+        ledgerLine(bal.gemini),
+        auto.typical_range_usd
+          ? `Auto turn on Grok 4.6 ~$${auto.typical_range_usd[0]}–$${auto.typical_range_usd[1]}`
+          : "",
+        last.source ? `last ${last.source}` : "no fetch yet",
+      ].filter(Boolean).join("\n");
+    }
+    if (prices) {
+      const rows = Array.isArray(d.prices) ? d.prices.slice(0, 24) : [];
+      prices.textContent = rows
+        .map((r) => {
+          const inn = r.input_per_m == null ? "—" : `$${r.input_per_m}`;
+          const out = r.output_per_m == null ? "—" : `$${r.output_per_m}`;
+          return `${r.vendor} ${r.model}  in ${inn} / out ${out}  per 1M`;
+        })
+        .join("\n");
+    }
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function saveLedger(refreshNow) {
+  const st = $("ledger-status");
+  if (st) st.textContent = refreshNow ? "fetching prices…" : "saving…";
+  const numOrNull = (id) => {
+    const raw = String($(id)?.value || "").trim();
+    if (raw === "") return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+  const body = {
+    capture_enabled: Boolean($("ledger-capture")?.checked),
+    spend_master: Boolean($("ledger-spend-master")?.checked),
+    accounts: {
+      cursor: { spend_allowed: Boolean($("ledger-cursor-spend")?.checked), used_pct: numOrNull("ledger-cursor-used") },
+      xai: { spend_allowed: Boolean($("ledger-xai-spend")?.checked), starting_usd: numOrNull("ledger-xai-usd") },
+      openai: { spend_allowed: Boolean($("ledger-openai-spend")?.checked), starting_usd: numOrNull("ledger-openai-usd") },
+      gemini: { spend_allowed: Boolean($("ledger-gemini-spend")?.checked), starting_usd: numOrNull("ledger-gemini-usd") },
+    },
+    refresh: Boolean(refreshNow),
+  };
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/ledger`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify(body),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshLedger();
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+$("ledger-save")?.addEventListener("click", () => saveLedger(false));
+$("ledger-refresh")?.addEventListener("click", () => saveLedger(true));
+
 async function refreshDisruptionBanner() {
   const st = $("disrupt-status");
   try {
@@ -5632,4 +5743,5 @@ refreshStartTimer().catch(() => {});
 refreshDisruptionBanner().catch(() => {});
 refreshOpsBanner().catch(() => {});
 refreshGovernance().catch(() => {});
+refreshLedger().catch(() => {});
 refreshGfsOutlook().catch(() => {});

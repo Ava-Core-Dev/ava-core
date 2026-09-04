@@ -612,11 +612,6 @@ def refresh(*, source: str = "daily") -> dict:
             for row in parsed:
                 _insert_price(conn, source, row, live=1)
                 live_n += 1
-            if not parsed and source in {"boot", "manual"}:
-                # Re-stamp seed so boot always has a dated snapshot even if HTML shifted.
-                for row in SEED_ROWS:
-                    if row["vendor"] == src["vendor"]:
-                        _insert_price(conn, source + "-seed", row, live=0)
             out["fetches"].append(
                 {
                     "vendor": src["vendor"],
