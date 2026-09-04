@@ -2667,6 +2667,238 @@ async function bootStreamOps() {
   }, 4000);
 }
 
+function audioVoiceLabel(item) {
+  if (!item) return null;
+  const name = item.name || item.file || "clip";
+  const pri = item.priority_label || item.priority || "";
+  return { name, pri, file: item.file || "" };
+}
+
+function paintAudioNow(st) {
+  const host = $("audio-now");
+  if (!host) return;
+  const cp = st.currently_playing || {};
+  const voice = audioVoiceLabel(cp.voice);
+  const music = cp.music || {};
+  const lines = [];
+  if (voice) {
+    lines.push(
+      `<div class="audio-line"><span class="audio-name">${escapeHtml(voice.name)}</span>` +
+        (voice.pri ? `<span class="audio-pill on">${escapeHtml(String(voice.pri))}</span>` : "") +
+        `</div>` +
+        (voice.file ? `<div class="muted">${escapeHtml(voice.file)}</div>` : ""),
+    );
+  } else {
+    lines.push(`<div class="audio-line muted">Voice director idle</div>`);
+  }
+  if (music.track) {
+    const state = music.playing
+      ? "playing"
+      : music.held
+        ? "held"
+        : "listed";
+    lines.push(
+      `<div class="audio-line" style="margin-top:0.45rem">Bed · <span class="audio-name">${escapeHtml(music.track)}</span>` +
+        `<span class="audio-pill ${music.playing ? "on" : music.held ? "warn" : ""}">${state}</span></div>`,
+    );
+  } else {
+    lines.push(`<div class="audio-line muted" style="margin-top:0.35rem">No bed track</div>`);
+  }
+  if (st.paused_item) {
+    const p = audioVoiceLabel(st.paused_item);
+    if (p) {
+      lines.push(
+        `<div class="audio-line muted" style="margin-top:0.45rem">Paused under higher priority · ${escapeHtml(p.name)}</div>`,
+      );
+    }
+  }
+  host.innerHTML = lines.join("");
+}
+
+function paintAudioNext(st) {
+  const host = $("audio-next");
+  if (!host) return;
+  const up = st.up_next || {};
+  const voiceQ = Array.isArray(up.voice) ? up.voice : [];
+  const lines = [];
+  if (up.music) {
+    lines.push(
+      `<div class="audio-line">Bed · <span class="audio-name">${escapeHtml(String(up.music))}</span></div>`,
+    );
+  }
+  if (voiceQ.length) {
+    for (const item of voiceQ.slice(0, 8)) {
+      const v = audioVoiceLabel(item);
+      if (!v) continue;
+      lines.push(
+        `<div class="audio-line"><span class="audio-name">${escapeHtml(v.name)}</span>` +
+          (v.pri ? `<span class="audio-pill">${escapeHtml(String(v.pri))}</span>` : "") +
+          `</div>`,
+      );
+    }
+  } else if (!up.music) {
+    lines.push(`<div class="muted">Queue empty</div>`);
+  } else {
+    lines.push(`<div class="muted">No voice items queued</div>`);
+  }
+  host.innerHTML = lines.join("");
+}
+
+function paintAudioBed(st) {
+  const host = $("audio-bed");
+  if (!host) return;
+  const m = st.music || {};
+  const pills = [];
+  pills.push(
+    `<span class="audio-pill ${m.enabled ? "on" : ""}">${m.enabled ? "enabled" : "off"}</span>`,
+  );
+  if (m.loop_alive) pills.push(`<span class="audio-pill on">loop</span>`);
+  if (m.operator_paused) pills.push(`<span class="audio-pill warn">operator pause</span>`);
+  else if (m.hold) pills.push(`<span class="audio-pill warn">voice hold</span>`);
+  if (m.single_bed) pills.push(`<span class="audio-pill on">single bed</span>`);
+  const pid = m.player_pid != null ? `pid ${m.player_pid}` : "no player";
+  host.innerHTML = `
+    <div class="audio-line">${pills.join(" ")}</div>
+    <div class="audio-line">Now · <span class="audio-name">${escapeHtml(m.current || "—")}</span></div>
+    <div class="audio-line">Next · ${escapeHtml(m.next || "—")}</div>
+    <div class="muted">${escapeHtml(String(m.tracks ?? 0))} tracks · ${escapeHtml(pid)}</div>
+    <div class="muted">${escapeHtml(m.dir || "")}</div>
+  `;
+}
+
+function paintAudioPending(st) {
+  const host = $("audio-pending");
+  const meta = $("audio-pending-meta");
+  if (!host) return;
+  const rows = Array.isArray(st.pending) ? st.pending : [];
+  if (meta) {
+    meta.textContent = rows.length
+      ? `${rows.length} voice-related jobs · next fire times in HST countdown`
+      : "No voice-related jobs from scheduler";
+  }
+  host.innerHTML = "";
+  for (const job of rows) {
+    const row = document.createElement("div");
+    row.className = "cron-row";
+    const nextAt = Number(job.nextAt || 0);
+    const boot = job.morning_boot;
+    const bootNote =
+      boot && boot.armed
+        ? ` · morning-boot armed${boot.until ? ` until ${boot.until}` : ""}`
+        : boot && boot.armed === false
+          ? " · morning-boot idle"
+          : "";
+    row.innerHTML = `
+      <div>
+        <div class="id">${escapeHtml(job.id || "")}</div>
+        <div class="muted">${escapeHtml(job.name || job.cronHint || "")}${escapeHtml(bootNote)}</div>
+      </div>
+      <div class="cron-state">
+        <span class="cron-countdown" data-next-at="${nextAt || ""}">${countdownLabel(nextAt)}</span>
+      </div>
+      <div class="muted">${nextAt ? fmtHst(nextAt) : "—"}</div>
+      <div></div>
+      <div class="actions"></div>
+    `;
+    host.appendChild(row);
+  }
+  tickCountdowns(host);
+}
+
+async function refreshAudioPage() {
+  const meta = $("audio-meta");
+  if (!$("page-audio")) return;
+  if (meta) meta.textContent = "Loading audio status…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/voice/status`, {
+      cache: "no-store",
+      headers: operatorHeaders(),
+    });
+    const st = await res.json();
+    if (!st?.ok) {
+      if (meta) meta.textContent = st?.detail || "voice status unavailable";
+      $("audio-status").textContent = JSON.stringify(st, null, 2);
+      return;
+    }
+    const m = st.music || {};
+    if (meta) {
+      meta.textContent = [
+        st.running ? "director running" : "director idle",
+        m.enabled ? "bed on" : "bed off",
+        m.operator_paused ? "operator pause" : m.hold ? "voice hold" : null,
+        `queue ${st.queue_depth ?? 0}`,
+        m.single_bed ? "single bed" : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    paintAudioNow(st);
+    paintAudioNext(st);
+    paintAudioBed(st);
+    paintAudioPending(st);
+    $("audio-status").textContent = "";
+    ensureCronLive();
+    ensureAudioLive();
+  } catch (err) {
+    if (meta) meta.textContent = String(err.message || err);
+    if ($("audio-status")) {
+      $("audio-status").textContent =
+        `Origin must be up on ${lastBrainUrl || "127.0.0.1:8787"} — Settings → Connection`;
+    }
+  }
+}
+
+async function audioMusicAction(action) {
+  $("audio-status").textContent = `${action}…`;
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/voice/music`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({ action }),
+    });
+    const j = await res.json();
+    $("audio-status").textContent = j?.ok === false ? JSON.stringify(j, null, 2) : "";
+    await refreshAudioPage();
+  } catch (err) {
+    $("audio-status").textContent = String(err.message || err);
+  }
+}
+
+let audioRefreshTimer = null;
+function ensureAudioLive() {
+  if (audioRefreshTimer) return;
+  audioRefreshTimer = setInterval(() => {
+    if ($("page-audio")?.classList.contains("active")) {
+      refreshAudioPage().catch(() => {});
+    }
+  }, 5000);
+}
+
+function wireAudioPage() {
+  if (!$("page-audio")) return;
+  $("audio-refresh")?.addEventListener("click", () => refreshAudioPage());
+  $("audio-music-pause")?.addEventListener("click", () => audioMusicAction("pause"));
+  $("audio-music-resume")?.addEventListener("click", () => audioMusicAction("resume"));
+  $("audio-music-start")?.addEventListener("click", () => audioMusicAction("start"));
+  $("audio-chime-now")?.addEventListener("click", async () => {
+    $("audio-status").textContent = "chime…";
+    try {
+      const res = await fetch(`${brainBaseUrl()}/api/voice/chime`, {
+        method: "POST",
+        headers: operatorHeaders(),
+        body: "{}",
+      });
+      const j = await res.json();
+      $("audio-status").textContent = JSON.stringify(j, null, 2).slice(0, 1200);
+      await refreshAudioPage();
+    } catch (err) {
+      $("audio-status").textContent = String(err.message || err);
+    }
+  });
+}
+
+wireAudioPage();
+
 let streamLastSceneListKey = "";
 let streamLastHiddenKey = "";
 let streamRotationCfgKey = "";
