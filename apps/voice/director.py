@@ -902,7 +902,21 @@ class StreamDirector:
                             )
                         except Exception:
                             pass
-        kill_stray_music_players(keep_pid=keep_pid)
+        # Never run CIM/psutil sweep on the asyncio thread — it wedges /health.
+        try:
+            import threading
+
+            threading.Thread(
+                target=kill_stray_music_players,
+                kwargs={"keep_pid": keep_pid},
+                name="ava-music-kill-stray",
+                daemon=True,
+            ).start()
+        except Exception:
+            try:
+                kill_stray_music_players(keep_pid=keep_pid)
+            except Exception:
+                pass
 
     async def _music_loop(self) -> None:
         """Shuffle all recursive tracks, play through, reshuffle, repeat.
