@@ -203,6 +203,10 @@ class NWSWeatherPlugin(Plugin):
     # Voice report (≤ 30 s target)
     # ------------------------------------------------------------------
     def _make_voice_report(self, force: bool = False) -> Path | None:
+        from apps.core.services import xai
+        if xai.grok_is_down():
+            log.info("Grok down — skip NWS grok voice")
+            return None
         if config.VOICE_MODE == "disabled":
             log.info("VOICE_MODE=disabled – skipping NWS voice")
             return None

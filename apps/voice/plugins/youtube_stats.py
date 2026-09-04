@@ -203,6 +203,10 @@ class YouTubeStatsPlugin(Plugin):
     def _maybe_voice(self, force: bool = False) -> Path | None:
         if config.VOICE_MODE == "disabled":
             return None
+        from apps.core.services import xai
+        if xai.grok_is_down():
+            log.info("Grok down — skip YouTube grok voice")
+            return None
         if not self.api_key or not self.channel_ids:
             log.warning("YouTube plugin not configured (missing key or channel IDs)")
             return None

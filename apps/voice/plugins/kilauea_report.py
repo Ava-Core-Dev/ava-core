@@ -59,6 +59,10 @@ class KilaueaReportPlugin(Plugin):
         if config.VOICE_MODE == "disabled":
             log.info("VOICE_MODE=disabled – skipping Kilauea report")
             return None
+        from apps.core.services import xai
+        if xai.grok_is_down():
+            log.info("Grok down — skip Kilauea grok voice")
+            return None
 
         current_mp3 = config.GENERATED_DIR / "Kilauea_Current.mp3"
         state_file = config.GENERATED_DIR / ".kilauea_last_hash"

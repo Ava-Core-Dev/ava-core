@@ -78,6 +78,10 @@ class OpenMeteoPlugin(Plugin):
     def _make_voice(self, force: bool = False) -> Path | None:
         if config.VOICE_MODE == "disabled":
             return None
+        from apps.core.services import xai
+        if xai.grok_is_down():
+            log.info("Grok down — skip Open-Meteo grok voice")
+            return None
         lines = self._fetch()
         if not lines:
             return None
