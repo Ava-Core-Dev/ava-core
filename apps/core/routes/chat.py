@@ -1,8 +1,11 @@
-"""Wiki chat API — routes to Ollama (local) or xAI (fallback)."""
+"""Public Ava chat — local llama3.2 first. Canned free. Live turns in SQLite."""
 
 from __future__ import annotations
 
 import logging
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -16,8 +19,40 @@ from ..services.public_chat import directory_reply, match_public_reply
 router = APIRouter(prefix="/api")
 log = logging.getLogger("ava.chat")
 
-_ip_live_uses: dict[str, int] = {}
-_ip_resources: dict[str, int] = {}
+FREE_LIVE_PER_IP = 3
+LOGGED_IN_LIVE = 40
+_SURFACES = frozenset({"public", "rootmc", "kilauea"})
+
+
+def _db() -> Path:
+    path = config.DATA_DIR / "db" / "chat-usage.sqlite"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _day() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _bump(key: str) -> int:
+    path = _db()
+    con = sqlite3.connect(str(path))
+    try:
+        con.execute(
+            "CREATE TABLE IF NOT EXISTS chat_usage (day TEXT, key TEXT, n INTEGER, PRIMARY KEY (day, key))"
+        )
+        con.execute(
+            "INSERT INTO chat_usage(day, key, n) VALUES (?, ?, 1) "
+            "ON CONFLICT(day, key) DO UPDATE SET n = n + 1",
+            (_day(), key),
+        )
+        n = con.execute(
+            "SELECT n FROM chat_usage WHERE day=? AND key=?", (_day(), key)
+        ).fetchone()[0]
+        con.commit()
+        return int(n)
+    finally:
+        con.close()
 
 
 def _client_ip(request: Request) -> str:
@@ -29,14 +64,17 @@ def _client_ip(request: Request) -> str:
 
 
 def _has_session(request: Request) -> bool:
-    return bool(request.cookies.get("ava_session") or request.headers.get("x-ava-session"))
-
-# Live LLM turns load SYSTEM.txt from disk (compact head). Canned replies stay in public_chat.
+    return bool(
+        request.cookies.get("ava_session")
+        or request.cookies.get("rr_web_session")
+        or request.headers.get("x-ava-session")
+    )
 
 
 class ChatRequest(BaseModel):
     message: str
     context: str = ""
+    surface: str = "public"
     max_tokens: int = 512
 
 
@@ -44,18 +82,13 @@ class ChatRequest(BaseModel):
 async def api_session(request: Request):
     return {
         "loggedIn": _has_session(request),
-        "free": {"liveUsesPerIp": 1, "genericUnlimited": True, "resources": 3},
-        "login": "/login",
+        "free": {"liveUsesPerIp": FREE_LIVE_PER_IP, "genericUnlimited": True, "resources": 3},
+        "login": "https://rootrecord.cloud/account",
     }
 
 
 @router.post("/chat")
 async def api_chat(req: ChatRequest, request: Request):
-    """
-    Conversational endpoint for the public chat panel.
-    Known topics and greetings are always free. Live LLM needs a session
-    (one free live turn per IP).
-    """
     import httpx
 
     raw = (req.message or "").strip()
@@ -63,30 +96,25 @@ async def api_chat(req: ChatRequest, request: Request):
     if canned:
         return canned
 
-    if not _has_session(request):
+    logged = _has_session(request)
+    cap = LOGGED_IN_LIVE if logged else FREE_LIVE_PER_IP
+    used = _bump("ip:" + _client_ip(request))
+    if used > cap:
         return {
             "reply": directory_reply(),
-            "gated": False,
-            "login": "https://rootmc.net/login/",
-            "brain": "directory",
-        }
-
-    ip = _client_ip(request)
-    used = _ip_live_uses.get(ip, 0)
-    if used >= 1:
-        return {
-            "reply": (
-                "Free live turn for this IP is spent. Public answers stay unlimited — "
-                "try RootMC, solar, goals, or the index, or come back later. "
-                "https://avaivy.cloud/media · https://rootrecord.online · https://rootmc.net/login/"
-            ),
             "gated": True,
+            "login": "https://rootrecord.cloud/account",
             "brain": "free-limit",
         }
-    _ip_live_uses[ip] = used + 1
 
-    # Always inject Ava's identity from disk; caller can add extra context on top
-    system, _src = persona_svc.system_prompt(surface="public")
+    surface = req.surface if req.surface in _SURFACES else "public"
+    system, _src = persona_svc.system_prompt(surface=surface)
+    try:
+        facts = await persona_svc.live_facts()
+        if facts:
+            system += "\n\nLIVE FACTS\n" + facts
+    except Exception:
+        pass
     if req.context:
         system += f"\n\nAdditional context:\n{req.context}"
 
@@ -95,12 +123,10 @@ async def api_chat(req: ChatRequest, request: Request):
         {"role": "user", "content": req.message},
     ]
 
-    # Same num_ctx as Desk / Discord (ollama.py). Do not hit /api/chat raw.
-    reply = await ollama_svc.chat(messages, timeout=15)
+    reply = await ollama_svc.chat(messages, timeout=45)
     if reply:
-        return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL}
+        return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL, "surface": surface}
 
-    # Fall back to xAI
     if not config.XAI_API_KEY:
         return JSONResponse({"error": "no AI backend available"}, status_code=503)
 
@@ -116,7 +142,7 @@ async def api_chat(req: ChatRequest, request: Request):
         if r.status_code == 200:
             data = r.json()
             reply = data["choices"][0]["message"]["content"].strip()
-            return {"reply": reply, "brain": "xai", "model": config.GROK_MODEL}
+            return {"reply": reply, "brain": "xai", "model": config.GROK_MODEL, "surface": surface}
         return JSONResponse({"error": f"xAI {r.status_code}"}, status_code=502)
     except Exception as e:
         log.error("xAI chat failed: %s", e)

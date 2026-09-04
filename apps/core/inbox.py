@@ -156,6 +156,19 @@ async def _discord_tick() -> None:
             channels.append(cid)
             dm_ids.add(cid)
     seen_ch: set[str] = set()
+    # All public RootMC text channels (not RootRecord support guild).
+    try:
+        from apps.core.services import discord as discord_svc
+
+        gchs = await discord_svc.list_guild_channels(config.ROOTMC_GUILD_ID)
+        for ch in gchs:
+            kind = int(ch.get("type") or 0)
+            if kind in (0, 5, 15, 16):  # text, announce, forum, media
+                cid = str(ch.get("id") or "")
+                if cid:
+                    channels.append(cid)
+    except Exception:
+        pass
     for cid in channels:
         if not cid or cid in seen_ch:
             continue

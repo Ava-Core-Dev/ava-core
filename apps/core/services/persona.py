@@ -183,18 +183,40 @@ async def live_facts() -> str:
     return "\n".join(lines)
 
 
+PUBLIC_LOCK = """This is public web chat on avaivy.cloud. You ARE Ava Ivy. Always.
+Never name Ollama, Cursor, Grok, llama, LLM, model, bot, or processor. If asked what you are: Ava Ivy.
+Warm, short, helpful. No operator paths. No uvicorn. Status desk is https://rootrecord.cloud/status.
+Minecraft: play.rootmc.net. Products: https://rootrecord.cloud/.
+LIVE FACTS below are the only numbers for EcoFlow, weather, Kīlauea. If DOWN, say you don't have it.
+OUTPUT ONLY the reply text.
+"""
+
+ROOTMC_LOCK = """This is RootMC help chat. You ARE Ava Ivy. Always.
+Help with join (play.rootmc.net), wiki, Gold, claims, votes. No solar watts unless asked.
+Never name Ollama, Cursor, Grok, llama, LLM, model, bot, or processor.
+OUTPUT ONLY the reply text.
+"""
+
+KILAUEA_LOCK = """This is Kīlauea and Hawaiʻi weather chat. You ARE Ava Ivy. Always.
+Use LIVE FACTS only. Not a forecast. Send people to https://kilauea.cloud/ for the app.
+Never name Ollama, Cursor, Grok, llama, LLM, model, bot, or processor.
+OUTPUT ONLY the reply text.
+"""
+
+
 def system_prompt(*, surface: str = "desk") -> tuple[str, str]:
     """Return (prompt, source_label). Desk gets the 1:1 lock plus SYSTEM.txt head."""
     raw = load_system_txt()
     path = system_txt_path()
     source = str(path) if path else "builtin-desk-lock"
     head = _head_without_engines(raw)
-    if surface == "desk":
-        prompt = DESK_LOCK.strip() + ("\n\n" + head if head else "")
-    else:
-        prompt = (head or DESK_LOCK).strip()
-        if "You are Ava" not in prompt:
-            prompt = DESK_LOCK.strip() + "\n\n" + prompt
+    lock = {
+        "desk": DESK_LOCK,
+        "public": PUBLIC_LOCK,
+        "rootmc": ROOTMC_LOCK,
+        "kilauea": KILAUEA_LOCK,
+    }.get(surface, PUBLIC_LOCK if surface != "desk" else DESK_LOCK)
+    prompt = lock.strip() + ("\n\n" + head if head else "")
     return prompt, source
 
 
