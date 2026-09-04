@@ -166,6 +166,7 @@ def status() -> dict:
     cfg = load()
     from apps.core.services import xai
 
+    window = _read_midday_window()
     return {
         "ok": True,
         "path": str(STATE_PATH),
@@ -175,8 +176,169 @@ def status() -> dict:
         "context_urls": cfg.get("context_urls") or [],
         "fetch_urls": cfg.get("fetch_urls") or [],
         "grok_halted": bool(xai.grok_is_down()),
+        "midday_spend_window": window,
         "updated_at": cfg.get("updated_at"),
         "live_data_hub": "https://origin.avaivy.cloud/data",
+    }
+
+
+def _read_midday_window() -> dict:
+    if not MIDDAY_SPEND_WINDOW_PATH.is_file():
+        return {"active": False}
+    try:
+        data = json.loads(MIDDAY_SPEND_WINDOW_PATH.read_text(encoding="utf-8-sig"))
+        return data if isinstance(data, dict) else {"active": False}
+    except Exception:
+        return {"active": False}
+
+
+def open_midday_spend_window(*, note: str = "midday live Grok test") -> dict:
+    """Lift Grok halt + spend_master for midday text only (TTS stays gated by toggle).
+
+    Prior flags saved so close_midday_spend_window can restore. Idempotent.
+    """
+    from apps.core.services import api_ledger, xai
+
+    prior = _read_midday_window()
+    if prior.get("active") and prior.get("prior_grok") is not None:
+        # Already open — refresh note/timestamp only.
+        prior["note"] = str(note)[:200]
+        prior["refreshed_at"] = datetime.now(HST).isoformat()
+        MIDDAY_SPEND_WINDOW_PATH.write_text(
+            json.dumps(prior, indent=2) + "\n", encoding="utf-8"
+        )
+        return {"ok": True, "already_open": True, "window": prior}
+
+    grok_path = config.DATA_DIR / "state" / "grok-status.json"
+    prior_grok = grok_path.read_text(encoding="utf-8") if grok_path.is_file() else None
+    prior_flags = api_ledger.flags()
+    window = {
+        "active": True,
+        "opened_at": datetime.now(HST).isoformat(),
+        "note": str(note)[:200],
+        "restore_after_midday": True,
+        "tts_stays_off": True,
+        "prior_grok": prior_grok,
+        "prior_spend_master": bool(prior_flags.get("spend_master")),
+        "prior_xai_allowed": bool(
+            (prior_flags.get("accounts") or {}).get("xai", {}).get("spend_allowed")
+        ),
+        "prior_capture_enabled": bool(prior_flags.get("capture_enabled")),
+    }
+    MIDDAY_SPEND_WINDOW_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MIDDAY_SPEND_WINDOW_PATH.write_text(
+        json.dumps(window, indent=2) + "\n", encoding="utf-8"
+    )
+    grok_path.write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "halt": False,
+                "at": datetime.now(timezone.utc).isoformat(),
+                "note": str(note)[:200],
+                "midday_window": True,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    api_ledger.write_flags(
+        {
+            "spend_master": True,
+            "accounts": {"xai": {"spend_allowed": True}},
+        }
+    )
+    log.info("midday Grok spend window OPEN (%s) halted=%s", note, xai.grok_is_down())
+    return {
+        "ok": True,
+        "opened": True,
+        "grok_halted": bool(xai.grok_is_down()),
+        "may_spend": api_ledger.may_spend("xai"),
+        "window_path": str(MIDDAY_SPEND_WINDOW_PATH),
+    }
+
+
+def close_midday_spend_window(*, reason: str = "midday_done") -> dict:
+    """Restore operator halt / spend_master after midday live test."""
+    from apps.core.services import api_ledger
+
+    window = _read_midday_window()
+    if not window.get("active"):
+        return {"ok": True, "skipped": True, "reason": "no_active_window"}
+    if not window.get("restore_after_midday", True):
+        window["active"] = False
+        window["closed_at"] = datetime.now(HST).isoformat()
+        window["close_reason"] = str(reason)[:160]
+        MIDDAY_SPEND_WINDOW_PATH.write_text(
+            json.dumps(window, indent=2) + "\n", encoding="utf-8"
+        )
+        return {"ok": True, "skipped": True, "reason": "restore_disabled"}
+
+    grok_path = config.DATA_DIR / "state" / "grok-status.json"
+    prior_grok = window.get("prior_grok")
+    try:
+        if isinstance(prior_grok, str) and prior_grok.strip():
+            grok_path.write_text(prior_grok, encoding="utf-8")
+        else:
+            grok_path.write_text(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "halt": True,
+                        "reason": "operator spend halt",
+                        "at": datetime.now(timezone.utc).isoformat(),
+                        "restored_after": "midday_window",
+                    },
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+        api_ledger.write_flags(
+            {
+                "spend_master": bool(window.get("prior_spend_master")),
+                "capture_enabled": bool(window.get("prior_capture_enabled", True)),
+                "accounts": {
+                    "xai": {
+                        "spend_allowed": bool(window.get("prior_xai_allowed")),
+                    }
+                },
+            }
+        )
+        # Hard assert off if prior was off (common).
+        if not window.get("prior_spend_master"):
+            api_ledger.write_flags(
+                {
+                    "spend_master": False,
+                    "accounts": {"xai": {"spend_allowed": False}},
+                }
+            )
+    except Exception as e:
+        log.warning("close midday spend window failed: %s", e)
+        return {"ok": False, "detail": type(e).__name__}
+
+    window["active"] = False
+    window["closed_at"] = datetime.now(HST).isoformat()
+    window["close_reason"] = str(reason)[:160]
+    # Drop bulky prior_grok from closed record.
+    window.pop("prior_grok", None)
+    MIDDAY_SPEND_WINDOW_PATH.write_text(
+        json.dumps(window, indent=2) + "\n", encoding="utf-8"
+    )
+    from apps.core.services import xai
+
+    log.info(
+        "midday Grok spend window CLOSED (%s) halted=%s",
+        reason,
+        xai.grok_is_down(),
+    )
+    return {
+        "ok": True,
+        "closed": True,
+        "grok_halted": bool(xai.grok_is_down()),
+        "may_spend": api_ledger.may_spend("xai"),
+        "reason": reason,
     }
 
 
