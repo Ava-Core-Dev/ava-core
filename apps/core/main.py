@@ -166,6 +166,23 @@ async def lifespan(app: FastAPI):
         log.debug("boot account import skipped: %s", e)
 
     try:
+        async def _boot_governance():
+            await asyncio.sleep(40)
+            from apps.core.services import governance
+
+            result = governance.run_daily(source="boot")
+            log.info(
+                "boot governance people=%s passed=%s gate=%s",
+                (result.get("people")),
+                len(result.get("passed") or []),
+                (result.get("flags") or {}).get("cursor_gate"),
+            )
+
+        asyncio.create_task(_boot_governance())
+    except Exception as e:
+        log.debug("boot governance skipped: %s", e)
+
+    try:
         from apps.core.services import uptime_log, schedule_clock, sun_times
         sun_times.refresh_if_stale()
         uptime_log.record_origin_start()
