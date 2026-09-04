@@ -133,10 +133,22 @@ def _kilauea_line() -> str:
         st = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return "Kilauea: DOWN"
-    level = st.get("alert_level") or "unknown"
+    level = str(st.get("alert_level") or "unknown").strip().lower()
     head = str(st.get("headline") or "").strip()
     updated = str(st.get("updated_at") or "").strip()
-    bits = [f"Kilauea volcano alert level: {level}"]
+    erupting = bool(st.get("erupting"))
+    # Speak state explicitly so clip scripts never treat "not erupting" as eruption.
+    if erupting:
+        state = "is erupting"
+    elif level in {"advisory", "watch", "warning", "normal"}:
+        state = "not erupting"
+    else:
+        state = "eruption state unknown"
+    bits = [
+        f"Kilauea volcano alert level: {level}",
+        f"erupting={str(erupting).lower()}",
+        state,
+    ]
     if head:
         bits.append(head)
     else:
