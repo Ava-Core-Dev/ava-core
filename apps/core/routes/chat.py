@@ -113,7 +113,7 @@ async def api_chat(req: ChatRequest, request: Request):
     messages = [{"role": "system", "content": system}]
     if surface == "public":
         messages.extend(persona_svc.PUBLIC_FEWSHOT)
-    for turn in (req.history or [])[-10]:
+    for turn in (req.history or [])[-10:]:
         role = turn.get("role") if isinstance(turn, dict) else None
         content = str((turn.get("content") if isinstance(turn, dict) else "") or "").strip()[:1500]
         if role in {"user", "assistant"} and content:
