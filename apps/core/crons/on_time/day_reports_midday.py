@@ -1,0 +1,13 @@
+"""Midday slot reports — 13:00 HST. One function per kind via day_reports."""
+from __future__ import annotations
+
+import logging
+
+log = logging.getLogger("ava.cron.day_reports_midday")
+
+
+async def run():
+    from apps.core.services import day_reports
+
+    result = await day_reports.run_midday_slot()
+    log.info("midday slot kinds=%s", len(result.get("ran") or []))

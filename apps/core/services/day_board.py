@@ -341,7 +341,7 @@ def remaining(*, lookahead_h: int = LOOKAHEAD_H, now: datetime | None = None) ->
     overnight_hours = []
     for h in (22, 23, 0, 1, 2, 3, 4, 5):
         due = _due_dt(h, 0, now)
-        if now <= due <= horizon:
+        if now - timedelta(minutes=2) <= due <= horizon:
             overnight_hours.append(h)
     if overnight_hours:
         items.append(
