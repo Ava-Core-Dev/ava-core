@@ -21,6 +21,7 @@ import os
 import random
 import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -155,33 +156,24 @@ def _music_wait_seconds(path: Path) -> float:
 
 
 def _windows_play_music(path: Path) -> list[str]:
-    """PowerShell MediaPlayer for bed tracks.
+    """Play one bed track on Windows via winsound (WAV) — not WPF MediaPlayer.
 
-    Waits with Start-Sleep for the measured file length only — never exits early on
-    NaturalDuration/Position/MediaEnded (those falsely end many WAVs in seconds–~1min).
-    Playlist advance is also gated in Python (_play_music_track).
+    MediaPlayer + PowerShell -Command exited in ~1–2s on AVA-CORE (large WAVs),
+    which caused a respawn storm even with a duration gate. winsound.PlaySound
+    sync blocks until the file ends. Playlist advance stays gated in
+    `_play_music_track` on measured file length (>=95% before treating exit as done).
+
+    AVA_MUSIC_BED must appear on the command line for kill_stray.
     """
-    p = str(path.resolve()).replace("'", "''")
-    dur = _music_wait_seconds(path)
-    # AVA_MUSIC_BED marker must stay in the command line so kill_stray can find orphans.
-    # Always sleep the measured length even if Open/Play throws — early process exit
-    # used to look like a finished track and trigger a respawn storm.
-    script = (
-        "$ProgressPreference='SilentlyContinue'; "
-        "# AVA_MUSIC_BED; "
-        "$m = $null; "
-        "try { "
-        "  Add-Type -AssemblyName PresentationCore; "
-        "  $m = New-Object System.Windows.Media.MediaPlayer; "
-        f"  $m.Open([Uri]'{p}'); "
-        "  Start-Sleep -Milliseconds 400; "
-        "  $m.Play(); "
-        "} catch { } "
-        f"Start-Sleep -Seconds {dur:.2f}; "
-        "try { if ($m) { $m.Stop(); $m.Close() } } catch { }"
-    )
-    ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
-    return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
+    resolved = str(path.resolve())
+    py = sys.executable
+    # Prefer pythonw when origin is pythonw so no console flashes.
+    if py.lower().endswith("python.exe"):
+        candidate = Path(py).with_name("pythonw.exe")
+        if candidate.is_file():
+            py = str(candidate)
+    helper = str(Path(__file__).resolve().parent / "play_music_bed.py")
+    return [py, helper, "AVA_MUSIC_BED", resolved]
 
 
 def music_dir() -> Path:
@@ -244,6 +236,8 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
     player_names = {
         "powershell.exe",
         "pwsh.exe",
+        "python.exe",
+        "pythonw.exe",
         "ffplay.exe",
         "ffmpeg.exe",
         "mpg123.exe",
@@ -293,7 +287,7 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
         ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
         list_script = (
             "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
-            "Where-Object { $_.CommandLine -and $_.Name -match '^(powershell|pwsh|ffplay|ffmpeg)\\.exe$' "
+            "Where-Object { $_.CommandLine -and $_.Name -match '^(powershell|pwsh|python|pythonw|ffplay|ffmpeg)\\.exe$' "
             "-and $_.CommandLine -match 'AVA_MUSIC_BED' } | ForEach-Object { $_.ProcessId }"
         )
         try:
