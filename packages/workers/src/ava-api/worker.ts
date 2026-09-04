@@ -25,7 +25,13 @@ const ORIGIN = "https://origin.avaivy.cloud";
 const VERCEL_FRONTEND = "https://avaivy-cloud.pages.dev";
 
 function isOpsPath(path: string): boolean {
-  return path === "/ops" || path.startsWith("/ops/") || path.startsWith("/api/ops");
+  // Exact /api/ops and /api/ops/* only. Do not match /api/ops-schedule-banner.
+  return (
+    path === "/ops" ||
+    path.startsWith("/ops/") ||
+    path === "/api/ops" ||
+    path.startsWith("/api/ops/")
+  );
 }
 
 function isOriginApi(path: string): boolean {

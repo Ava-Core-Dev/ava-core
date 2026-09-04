@@ -117,6 +117,12 @@ class Scheduler:
         s.add_job(self._run("remaining_tasks"), CronTrigger(minute=30),
                   id="remaining-tasks", name="Remaining tasks (:30, 4h window)", misfire_grace_time=90)
 
+        # One-day morning-boot MP3 replay (:30 until noon HST). State file ends it.
+        s.add_job(self._run("morning_boot_replay"), CronTrigger(minute=30),
+                  id="morning-boot-replay",
+                  name="Morning boot MP3 replay (:30 until noon)",
+                  misfire_grace_time=90)
+
         s.add_job(self._run_clip_prebuild, CronTrigger(minute=55),
                   id="hourly-clip-prebuild", name="Prebuild hourly clip reports", misfire_grace_time=120)
 

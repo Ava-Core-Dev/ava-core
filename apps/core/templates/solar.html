@@ -785,6 +785,21 @@ async function paint(){
     document.getElementById("bankAvg").textContent = pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById("state").textContent = solar.state || "—";
     document.getElementById("hostK").textContent = "Root server · "+(host.host||"ava-core");
+    const srcRaw = String(solar.source||"ground PV");
+    const hostName = String(host.host||"");
+    const updated = solar.updated_at ? String(solar.updated_at) : "";
+    let srcAgeS = null;
+    if (updated) {
+      const t = Date.parse(updated);
+      if (Number.isFinite(t)) srcAgeS = Math.max(0, (Date.now() - t) / 1000);
+    }
+    const staleFallback = /cloudflare-fallback/i.test(hostName) || solar.fallback === true || /_stored$|_cf$|quota_stale/i.test(srcRaw);
+    const staleOld = srcAgeS != null && srcAgeS > 600;
+    let srcLabel = srcRaw + (updated ? (" · "+updated.slice(11,19)+"Z") : "");
+    if (staleFallback || staleOld) {
+      srcLabel = "STALE · " + srcLabel;
+    }
+    document.getElementById("src").textContent = srcLabel;
     document.getElementById("cpu").textContent = host.cpu_pct!=null ? host.cpu_pct.toFixed(0)+"%" : "—";
     document.getElementById("ram").textContent = host.mem_pct!=null ? host.mem_pct.toFixed(0)+"%" : "—";
     const igpuEl = document.getElementById("igpu");

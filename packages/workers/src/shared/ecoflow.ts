@@ -431,7 +431,20 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
 }
 
 export function solarDeskFromStored(stored: Record<string, unknown> | null): Response {
-  const solar = stored || { source: "ecoflow_cf", detail: "no_snapshot" };
+  const base = stored && typeof stored === "object" ? { ...stored } : { detail: "no_snapshot" };
+  // Never keep ecoflow_live on a Worker-served bank — that label means origin.
+  const ageHint =
+    typeof base.updated_at === "string"
+      ? base.updated_at
+      : typeof base.stored_at === "string"
+        ? base.stored_at
+        : null;
+  const solar = {
+    ...base,
+    source: "ecoflow_cf_stored",
+    fallback: true,
+    updated_at: ageHint || base.updated_at,
+  };
   return new Response(
     JSON.stringify({
       ok: true,

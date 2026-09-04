@@ -298,6 +298,16 @@ async def live_snapshot() -> dict:
     return live
 
 
+async def _refresh_live_snapshot() -> None:
+    """After a cold disk serve, pull EcoFlow without blocking the desk."""
+    try:
+        # Expire the 45s gate; keep snap so we skip the cold-disk short-circuit.
+        _LIVE_CACHE["at"] = time.time() - 100
+        await live_snapshot()
+    except Exception as e:
+        log.debug("ecoflow background refresh: %s", e)
+
+
 def _write_quota(sn: str, body: dict) -> None:
     if not ecoflow_sn_public(sn):
         return
