@@ -38,6 +38,16 @@ function gone(status: number): Response {
 export default {
   async fetch(request: Request, env: AvaEnv): Promise<Response> {
     const url = new URL(request.url);
+    const host = url.hostname.replace(/^www\./i, "").toLowerCase();
+    // One public door. .info is an alias, not a second site — never the holding page.
+    if (host === "rootrecord.info") {
+      const dest = new URL(request.url);
+      dest.protocol = "https:";
+      dest.hostname = "rootrecord.cloud";
+      dest.port = "";
+      return Response.redirect(dest.toString(), 301);
+    }
+
     const path = normalisePath(url.pathname);
     const origin = env.AVA_ORIGIN_URL || ORIGIN;
 

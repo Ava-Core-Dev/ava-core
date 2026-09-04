@@ -7,6 +7,9 @@ workers_dev = false
 routes = [
   { pattern = "rootrecord.cloud/*", zone_name = "rootrecord.cloud" },
   { pattern = "www.rootrecord.cloud/*", zone_name = "rootrecord.cloud" },
+  # Alias only — never serve holding here. /api and /v1 stay on rootrecord-api.
+  { pattern = "rootrecord.info/*", zone_name = "rootrecord.info" },
+  { pattern = "www.rootrecord.info/*", zone_name = "rootrecord.info" },
 ]
 
 # Last-seen time and the measured outage log behind the holding page.
