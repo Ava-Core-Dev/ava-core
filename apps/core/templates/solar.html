@@ -837,7 +837,6 @@ async function paint(){
     document.getElementById("flowIn").textContent = watts(pv);
     document.getElementById("flowBank").textContent = pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById("flowOut").textContent = watts(load);
-    document.getElementById("src").textContent = (solar.source||"ground PV")+(solar.updated_at?(" · "+String(solar.updated_at).slice(11,19)+"Z"):"");
 
     // Center stage mirrors
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
