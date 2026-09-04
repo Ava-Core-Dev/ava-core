@@ -53,14 +53,18 @@ def _period_line(p: dict) -> str:
 def _alert_line(alerts: list[dict]) -> str:
     if not alerts:
         return "HI alerts: none active"
-    names = []
-    for a in alerts[:6]:
+    grouped: dict[str, bool] = {}
+    order: list[str] = []
+    for a in alerts[:8]:
         ev = str(a.get("event") or "alert")
         areas = str(a.get("areas") or "")
-        tag = ev
-        if re.search(r"Big Island|Puna|Kona|Hilo|Kohala|Kaʻū|Kau", areas, re.I):
-            tag += " (Big Island in area)"
-        names.append(tag)
+        bi = bool(re.search(r"Big Island|Puna|Kona|Hilo|Kohala|Kaʻū|Kau", areas, re.I))
+        if ev not in grouped:
+            order.append(ev)
+            grouped[ev] = bi
+        else:
+            grouped[ev] = grouped[ev] or bi
+    names = [f"{ev} (Big Island in area)" if grouped[ev] else ev for ev in order]
     return "HI alerts: " + "; ".join(names)
 
 
@@ -171,7 +175,11 @@ def hurricane_line() -> str:
             dist = f"{int(round(float(hi['Hilo'])))} nm from Hilo"
         else:
             dist = f"{int(round(nmi))} nm from Hawaiʻi"
-        wind = f", {int(mph)} mph" if mph else ""
+        mph = s.get("mph")
+        try:
+            wind = f", {int(round(float(mph)))} mph" if mph is not None else ""
+        except (TypeError, ValueError):
+            wind = ""
         bits.append(f"{label} {name}, {dist}{wind}")
     return "Hurricanes: " + "; ".join(bits) + (f". Sample {ts}." if ts else ".")
 

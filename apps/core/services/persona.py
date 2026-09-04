@@ -10,8 +10,6 @@ import json
 import logging
 import re
 import socket
-import time
-from datetime import datetime
 from pathlib import Path
 
 from .. import config
@@ -124,31 +122,6 @@ def _mysql_up() -> bool:
         return False
 
 
-def _weather_line() -> str:
-    """NWS forecast plus how old it is. A stale period name is not current weather."""
-    try:
-        from apps.core.services.reports import latest_report
-
-        report = latest_report("nws-weather-*.md")
-        if not report or report.stat().st_size < 20:
-            return "Weather: DOWN"
-        text = report.read_text(encoding="utf-8", errors="replace")
-        period = re.search(r"^###\s+(.+)$", text, re.MULTILINE)
-        temp = re.search(r"(\d+)°[FC]", text)
-        p = period.group(1).strip() if period else "?"
-        t = f"{temp.group(1)}F" if temp else "?"
-        age_h = (time.time() - report.stat().st_mtime) / 3600.0
-        if age_h > 2:
-            written = datetime.fromtimestamp(report.stat().st_mtime).strftime("%H:%M")
-            return (
-                f"Weather: last NWS report {written}, {age_h:.0f} h old — "
-                f"it says '{p}, {t}'. Say it is the last report, not now."
-            )
-        return f"Weather: {p}, {t}"
-    except Exception:
-        return "Weather: DOWN"
-
-
 def _kilauea_line() -> str:
     path = config.DATA_DIR / "state" / "kilauea-alert.json"
     if not path.is_file():
@@ -202,7 +175,7 @@ Never print the words LIVE FACTS. Never print "Quote these or say DOWN". Never p
 No URLs unless they ask where to go. No operator paths. No uvicorn.
 Utilities first: solar packs, this host, Kīlauea, weather. Minecraft / RootMC only if they ask.
 If they ask stats, status, solar, look again, or current: say both packs (DELTA 2 and RIVER 2 Pro) with SOC, stored Wh, in W, out W, then the bank and this server's battery. Use only the numbers block. Do not invent. Night PV 0 W is normal.
-If they ask weather, wind, hazards, or alerts: use the Weather and HI alerts lines. If alerts are listed, those ARE hazards — do not say none. Pick the current period (Tonight after evening, not a leftover This Afternoon).
+If they ask weather, wind, hazards, or alerts: use the Weather and HI alerts lines. If alerts are listed, those ARE hazards — do not say none. Pick the current period (Tonight after evening, not a leftover This Afternoon). Kīlauea volcano advisory is not a weather hazard.
 If they ask hurricanes: use the Hurricanes line. A named storm near Hawaiʻi is not "none." If the line says none inside 1500 nm, say that, and you may mention the worldwide count. Do not invent tracks.
 If a line is DOWN, say you do not have that live.
 OUTPUT ONLY the reply text.
@@ -228,6 +201,16 @@ PUBLIC_FEWSHOT = [
     {
         "role": "assistant",
         "content": "That's the live sample I have. I won't fill in USGS text that isn't here.",
+    },
+    {"role": "user", "content": "no hazards?"},
+    {
+        "role": "assistant",
+        "content": "I'll use the HI alerts line. If it lists Wind or High Surf, those are hazards. Kīlauea is a separate volcano line.",
+    },
+    {"role": "user", "content": "any hurricanes?"},
+    {
+        "role": "assistant",
+        "content": "I'll use the Hurricanes line. If it names a storm near Hawaiʻi, that's the answer — I won't say none.",
     },
 ]
 

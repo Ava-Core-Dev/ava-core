@@ -100,6 +100,7 @@ async def run():
                 log.warning("NOAA: skip write (empty or no forecast periods)")
                 return
             # Hash the facts only — a clock stamp in the body used to republish every run.
+            # Still write a new hourly file so the latest report is this hour, not a leftover afternoon.
             fingerprint = json.dumps(
                 {
                     "alerts": [(a.get("event"), a.get("headline")) for a in alerts[:8]],
@@ -111,12 +112,12 @@ async def run():
                 sort_keys=True,
             )
             content_hash = hashlib.md5(fingerprint.encode()).hexdigest()
-            if content_hash == _last_hash:
+            report_path = config.REPORTS_DIR / f"nws-weather-{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H')}.md"
+            if content_hash == _last_hash and report_path.is_file():
                 log.debug("NOAA: no change since last run")
                 return
 
             _last_hash = content_hash
-            report_path = config.REPORTS_DIR / f"nws-weather-{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H')}.md"
             report_path.write_text(content, encoding="utf-8")
             log.info("NWS report written: %s  alerts=%d  periods=%d",
                      report_path.name, len(alerts), len(periods))
