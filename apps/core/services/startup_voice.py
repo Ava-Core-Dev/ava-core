@@ -1,7 +1,10 @@
-"""Startup voice: satellite reconnect vs full I'm-back.
+"""Startup voice: short reconnect vs device-up.
 
 Downtime under 60s → satellite_connection.mp3.
-Longer (and past the 30m spam gate, or first boot) → phrase_device_startup.
+Longer (and past the 30m spam gate, or first boot) → phrase_all_systems_running.
+
+phrase_device_startup.mp3 is the old "Root Record is online. I'm back." line.
+Do not use it for origin recycle — leftover house AC is Starlink, not this clip.
 """
 
 from __future__ import annotations
@@ -19,8 +22,9 @@ log = logging.getLogger("ava.startup_voice")
 STATE_PATH = config.DATA_DIR / "state" / "startup-voice.json"
 MIN_INTERVAL_S = 30 * 60
 SHORT_DOWN_S = 60
-CLIP_BACK = "phrase_device_startup"
+CLIP_BACK = "phrase_all_systems_running"
 CLIP_SAT = "satellite_connection"
+CLIP_ONLINE_BACK = "phrase_device_startup"
 
 
 def _load() -> dict:

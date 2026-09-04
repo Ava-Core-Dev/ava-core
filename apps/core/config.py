@@ -194,7 +194,7 @@ AVA_ENV  = _env_str("AVA_ENV", "production")
 XAI_API_KEY  = _first_env("XAI_API_KEY", "AVA_XAI_API_KEY", "SEXI_XAI_API_KEY")
 GROK_MODEL   = _first_env("GROK_MODEL", "AVA_GROK_MODEL", default="grok-4.6")
 TTS_VOICE    = os.getenv("TTS_VOICE", "ara").strip()
-VOICE_MODE   = _env_str("VOICE_MODE", "grok")
+VOICE_MODE   = _env_str("VOICE_MODE", "local")
 MAX_SECONDS  = int(os.getenv("MAX_SECONDS", "55"))
 CURSOR_API_KEY = _first_env("CURSOR_API_KEY")
 # Cursor ask-mode fallback when Grok credits are dead. Keep this rare.

@@ -1,7 +1,8 @@
 """
 Half-hourly time chime — :00 and :30 HST.
-Concatenates bell + time_HHMM + am/pm + Hawaiian Standard Time into one MP3,
-then plays windowless through the Stream Director.
+Concatenates bell + hour + am/pm + Hawaiian Standard Time into one MP3,
+then plays windowless through the Stream Director. No weekday, no calendar date.
+Does not use old time_HHMM.mp3 files (those already contain AM/PM/HST).
 """
 
 from __future__ import annotations

@@ -36,24 +36,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
         <nav class="site-nav">
           <a href="/">Home</a>
-          <a href="/products.html">Products</a>
-          <a href="/pricing.html">Pricing</a>
-          <a href="/about.html">About</a>
-          <a href="/faq.html">FAQ</a>
-          <a href="/contact.html">Contact</a>
+          <a href="/products">Products</a>
+          <a href="/pricing">Pricing</a>
+          <a href="/about">About</a>
+          <a href="/faq">FAQ</a>
+          <a href="/contact">Contact</a>
           <span class="nav-auth-guest">
-            <a href="/account-signup.html" class="nav-signup">Sign up</a>
-            <a href="/account.html" class="nav-cta">Account</a>
+            <a href="/account-signup" class="nav-signup">Sign up</a>
+            <a href="/account" class="nav-cta">Account</a>
           </span>
           <span class="nav-auth-user">
             <span class="nav-account-wrap">
               <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel" data-testid="nav-account-cta">Account</button>
               <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
-                <a href="/account.html" role="menuitem">Account</a>
+                <a href="/account" role="menuitem">Account</a>
                 <a href="/account/emails/" role="menuitem" aria-current="page">Email preferences</a>
-                <a href="/my-apps.html" role="menuitem">My Apps</a>
-                <a href="/development-notice.html" role="menuitem">Development notice</a>
-                <a href="/billing.html" role="menuitem">Billing</a>
+                <a href="/my-apps" role="menuitem">My Apps</a>
+                <a href="/development-notice" role="menuitem">Development notice</a>
+                <a href="/billing" role="menuitem">Billing</a>
               </div>
             </span>
           </span>
@@ -83,7 +83,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
             <section id="panel-emailprefs-guest" class="card-plain" hidden data-testid="email-prefs-guest-panel">
               <h2>Sign in required</h2>
-              <p class="note" style="margin-top:0">Open <a href="/account.html" style="color:var(--moss);text-decoration:underline;text-underline-offset:3px">Account</a> and sign in, then return here.</p>
+              <p class="note" style="margin-top:0">Open <a href="/account" style="color:var(--moss);text-decoration:underline;text-underline-offset:3px">Account</a> and sign in, then return here.</p>
             </section>
 
             <section id="panel-emailprefs-main" class="card-plain" hidden data-testid="email-prefs-main-panel">
@@ -95,7 +95,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <label><input type="checkbox" id="pref-simple-weather-newsletter"> Simple Weather newsletter and updates</label>
                 <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem">
                   <button type="submit" class="btn btn-primary">Save preferences</button>
-                  <a class="btn btn-secondary" href="/account.html">Back to account</a>
+                  <a class="btn btn-secondary" href="/account">Back to account</a>
                   <button type="button" class="btn btn-secondary" id="btn-emailprefs-logout">Sign out</button>
                 </div>
               </form>
@@ -112,12 +112,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
             <p>Multi-device solutions - your grounding roots for productivity.</p>
           </div>
-          <div class="footer-col"><h4>Products</h4><ul><li><a href="/rootrecord-business-manager.html">Business Manager</a></li><li><a href="/rootrecord-weather-manager.html">Weather Manager</a></li><li><a href="/kilauea-alerts.html">Kilauea Alerts</a></li><li><a href="/pricing.html">Pricing</a></li></ul></div>
-          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about.html">About</a></li><li><a href="/roadmap/">Roadmap</a></li><li><a href="/faq.html">FAQ</a></li><li><a href="/contact.html">Contact</a></li><li><a href="/account.html">Account</a></li><li><a href="/billing.html">Billing</a></li></ul></div>
-          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms.html">Terms</a></li><li><a href="/privacy.html">Privacy</a></li></ul></div>
+          <div class="footer-col"><h4>Products</h4><ul><li><a href="/rootrecord-business-manager">Business Manager</a></li><li><a href="/rootrecord-weather-manager">Weather Manager</a></li><li><a href="/kilauea-alerts">Kilauea Alerts</a></li><li><a href="/pricing">Pricing</a></li></ul></div>
+          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about">About</a></li><li><a href="/roadmap/">Roadmap</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact">Contact</a></li><li><a href="/account">Account</a></li><li><a href="/billing">Billing</a></li></ul></div>
+          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li></ul></div>
         </div>
         <div class="footer-bottom">
-          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.cloud/">rootrecord.info</a></span>
+          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.cloud/">rootrecord.cloud</a></span>
         </div>
       </div>
     </footer>

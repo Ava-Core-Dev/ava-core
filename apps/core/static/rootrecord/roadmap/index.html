@@ -51,24 +51,24 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
         <nav class="site-nav">
           <a href="/">Home</a>
-          <a href="/products.html">Products</a>
-          <a href="/pricing.html">Pricing</a>
-          <a href="/about.html">About</a>
+          <a href="/products">Products</a>
+          <a href="/pricing">Pricing</a>
+          <a href="/about">About</a>
           <a href="/roadmap/" aria-current="page">Roadmap</a>
-          <a href="/faq.html">FAQ</a>
-          <a href="/contact.html">Contact</a>
+          <a href="/faq">FAQ</a>
+          <a href="/contact">Contact</a>
           <span class="nav-auth-guest">
-            <a href="/account-signup.html" class="nav-signup">Sign up</a>
-            <a href="/account.html" class="nav-cta">Account</a>
+            <a href="/account-signup" class="nav-signup">Sign up</a>
+            <a href="/account" class="nav-cta">Account</a>
           </span>
           <span class="nav-auth-user">
             <span class="nav-account-wrap">
               <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel" data-testid="nav-account-cta">Account</button>
               <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
-                <a href="/account.html" role="menuitem">Account</a>
-                <a href="/my-apps.html" role="menuitem">My Apps</a>
-                <a href="/development-notice.html" role="menuitem">Development notice</a>
-                <a href="/billing.html" role="menuitem">Billing</a>
+                <a href="/account" role="menuitem">Account</a>
+                <a href="/my-apps" role="menuitem">My Apps</a>
+                <a href="/development-notice" role="menuitem">Development notice</a>
+                <a href="/billing" role="menuitem">Billing</a>
                 <a href="/root-units" role="menuitem">Roots</a>
               </div>
             </span>
@@ -81,7 +81,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <section class="page-header">
         <div class="container">
           <div class="page-header-inner">
-            <p class="breadcrumb"><a href="/about.html">About</a> / Roadmap</p>
+            <p class="breadcrumb"><a href="/about">About</a> / Roadmap</p>
             <h1 class="page-title">Product <em>roadmap</em>.</h1>
             <p class="page-lead">A living view of what RootRecord ships today, what we are building now, and what is queued next. Timelines shift as we learn from beta testers and production use.</p>
           </div>
@@ -126,7 +126,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Inactive-account cleanup cron</strong><p>Scheduled cleanup runs on the account API shard (<code>45 8 * * *</code>), not primary.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Root Record Global Updater</strong><p>Discord bot for per-product release feeds, <code>/root</code> channel setup, and verified Roots balance commands. <a href="https://discord.com/oauth2/authorize?client_id=1500289560343740566" target="_blank" rel="noopener">Add to Discord</a></p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-progress">In progress</span><div><strong>Retire <code>api.rootrecord.info</code> hostname</strong><p>Play Store Android builds still default to that URL, which terminates at legacy <code>rootrecord-primary</code> (weather paths forward to the weather shard). Delete the Worker only after re-binding the route and shipping APKs with shard URLs.</p></div></li>
-                <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Account verification &amp; recovery</strong><p>One-time proof by email or Discord; password reset with email codes; account status on <a href="/account.html">Account</a>.</p></div></li>
+                <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Account verification &amp; recovery</strong><p>One-time proof by email or Discord; password reset with email codes; account status on <a href="/account">Account</a>.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Sensitive-change confirmation</strong><p>15-minute email or Discord re-confirmation before password/email changes, Discord unlink, account deletion, wallet link/unlink, Roots transfers, custodial withdraw, and SOL swaps.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-explore">Exploring</span><div><strong>Shard-scoped Stripe &amp; push routes</strong><p>Trim duplicated cross-product routes so each worker only mounts what its app needs.</p></div></li>
               </ul>
@@ -136,7 +136,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <div class="roadmap-lane-head">
                 <div class="section-kicker">Operators</div>
                 <h2 class="section-title">Business <em>Manager</em></h2>
-                <p class="roadmap-lane-lead">Time, money, clients, inventory, and reports for small operations. <a href="/rootrecord-business-manager.html">Product page</a></p>
+                <p class="roadmap-lane-lead">Time, money, clients, inventory, and reports for small operations. <a href="/rootrecord-business-manager">Product page</a></p>
               </div>
               <ul class="roadmap-list">
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Full web workspace</strong><p>business.rootrecord.info for desktop and laptop use with a RootRecord account.</p></div></li>
@@ -150,7 +150,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <div class="roadmap-lane-head">
                 <div class="section-kicker">Hazards &amp; forecasts</div>
                 <h2 class="section-title">Weather <em>Manager</em></h2>
-                <p class="roadmap-lane-lead">Weather, alerts, earthquakes, and hazard context. <a href="/rootrecord-weather-manager.html">Product page</a></p>
+                <p class="roadmap-lane-lead">Weather, alerts, earthquakes, and hazard context. <a href="/rootrecord-weather-manager">Product page</a></p>
               </div>
               <ul class="roadmap-list">
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Public Android app on Google Play</strong><p>Install from Play; same account works on weather.rootrecord.info.</p></div></li>
@@ -164,7 +164,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <div class="roadmap-lane-head">
                 <div class="section-kicker">Hawaiʻi Island</div>
                 <h2 class="section-title">Kilauea <em>Alerts</em></h2>
-                <p class="roadmap-lane-lead">Kīlauea context, earthquakes, weather, live feeds, and official notices. <a href="/kilauea-alerts.html">Product page</a></p>
+                <p class="roadmap-lane-lead">Kīlauea context, earthquakes, weather, live feeds, and official notices. <a href="/kilauea-alerts">Product page</a></p>
               </div>
               <ul class="roadmap-list">
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Android app on Google Play</strong><p>Free public install for volcano, quake, weather, and alert surfaces.</p></div></li>
@@ -186,7 +186,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Root economy chart</strong><p>Public circulation view at <a href="/charts/root-economy/">charts/root-economy</a>.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-progress">In progress</span><div><strong>Custodial SOL deposits &amp; swaps</strong><p>Account API support for custodial flows and on-chain buy monitoring.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-progress">In progress</span><div><strong>Transaction history in apps</strong><p>Unified Roots transaction surfaces for account and farms experiences.</p></div></li>
-                <li class="roadmap-item"><span class="roadmap-status roadmap-status-planned">Planned</span><div><strong>Lifetime plan comparison table</strong><p>Clearer what-is-included matrix on <a href="/pricing.html">Pricing</a>.</p></div></li>
+                <li class="roadmap-item"><span class="roadmap-status roadmap-status-planned">Planned</span><div><strong>Lifetime plan comparison table</strong><p>Clearer what-is-included matrix on <a href="/pricing">Pricing</a>.</p></div></li>
               </ul>
             </section>
 
@@ -208,7 +208,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <div class="roadmap-lane-head">
                 <div class="section-kicker">Personal growth</div>
                 <h2 class="section-title">Root <em>Goals</em></h2>
-                <p class="roadmap-lane-lead">Guest-first goal onboarding, Grok AI plans, and optional public sharing. <a href="/root-goals.html">Product page</a> &middot; <a href="https://goals.rootrecord.info/" target="_blank" rel="noopener">Web app</a></p>
+                <p class="roadmap-lane-lead">Guest-first goal onboarding, Grok AI plans, and optional public sharing. <a href="/root-goals">Product page</a> &middot; <a href="https://goals.rootrecord.info/" target="_blank" rel="noopener">Web app</a></p>
               </div>
               <ul class="roadmap-list">
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Release 0 foundation</strong><p>11-step guest onboarding, draft persistence, Grok plan generation, Actions &amp; Suggestions, and goal workspace.</p></div></li>
@@ -225,7 +225,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               <div class="roadmap-lane-head">
                 <div class="section-kicker">Travel</div>
                 <h2 class="section-title">Visiting <em>Hawaiʻi</em></h2>
-                <p class="roadmap-lane-lead">Offline-first travel guide for all six visitor islands. <a href="/visiting-hawaii.html">Product page &amp; waitlist</a></p>
+                <p class="roadmap-lane-lead">Offline-first travel guide for all six visitor islands. <a href="/visiting-hawaii">Product page &amp; waitlist</a></p>
               </div>
               <ul class="roadmap-list">
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Marketing page &amp; waitlist</strong><p>Island overview, cultural context, and email waitlist intake on rootrecord.info.</p></div></li>
@@ -245,7 +245,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
               </div>
               <ul class="roadmap-list">
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Public charts hub</strong><p>Big Island earthquakes, Root economy, Discord activity, and weekly work log charts.</p></div></li>
-                <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Partnership signup</strong><p>Creator and operator intake at <a href="/partnership-signup.html">partnership-signup</a>.</p></div></li>
+                <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>Partnership signup</strong><p>Creator and operator intake at <a href="/partnership-signup">partnership-signup</a>.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-shipped">Shipped</span><div><strong>This roadmap page</strong><p>Organized public priorities at <a href="/roadmap/">/roadmap</a>.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-planned">Planned</span><div><strong>Changelog / news section</strong><p>Release notes linked from product pages and Discord.</p></div></li>
                 <li class="roadmap-item"><span class="roadmap-status roadmap-status-planned">Planned</span><div><strong>Schema.org product markup</strong><p>Richer search results for app listings.</p></div></li>
@@ -256,10 +256,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
           <div class="callout" style="margin-top:3rem" data-testid="roadmap-feedback">
             <h2 style="font-family:var(--font-display);font-weight:400;font-size:1.35rem;margin:0 0 0.65rem">Shape what ships next</h2>
-            <p style="margin:0">Beta feedback on <a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a>, <a href="/contact.html">Contact</a> for email, or <a href="/partnership-signup.html">Partnerships</a> for creator and operator collaborations. Nothing here is a commitment or delivery date.</p>
+            <p style="margin:0">Beta feedback on <a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a>, <a href="/contact">Contact</a> for email, or <a href="/partnership-signup">Partnerships</a> for creator and operator collaborations. Nothing here is a commitment or delivery date.</p>
           </div>
 
-          <p class="note" style="margin-top:2rem"><a href="/about.html">&larr; About</a> &middot; <a href="/products.html">Products</a> &middot; <a href="/development-notice.html">Development notice</a></p>
+          <p class="note" style="margin-top:2rem"><a href="/about">&larr; About</a> &middot; <a href="/products">Products</a> &middot; <a href="/development-notice">Development notice</a></p>
         </div>
       </section>
     </main>
@@ -271,12 +271,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
             <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
             <p>Multi-device solutions - your grounding roots for productivity.</p>
           </div>
-          <div class="footer-col"><h4>Products</h4><ul><li><a href="/visiting-hawaii.html">Visiting Hawaiʻi</a></li><li><a href="/root-goals.html">Root Goals</a></li><li><a href="/rootrecord-business-manager.html">Business Manager</a></li><li><a href="/rootrecord-weather-manager.html">Weather Manager</a></li><li><a href="/kilauea-alerts.html">Kilauea Alerts</a></li><li><a href="/pricing.html">Pricing</a></li></ul></div>
-          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about.html">About</a></li><li><a href="/roadmap/" aria-current="page">Roadmap</a></li><li><a href="/faq.html">FAQ</a></li><li><a href="/contact.html">Contact</a></li><li><a href="/account.html">Account</a></li><li><a href="/billing.html">Billing</a></li><li><a href="/root-units">Roots</a></li></ul></div>
-          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms.html">Terms</a></li><li><a href="/privacy.html">Privacy</a></li><li><a href="https://github.com/RootRecord/Doc-Repo" target="_blank" rel="noopener">Developer Documentation</a></li></ul></div>
+          <div class="footer-col"><h4>Products</h4><ul><li><a href="/visiting-hawaii">Visiting Hawaiʻi</a></li><li><a href="/root-goals">Root Goals</a></li><li><a href="/rootrecord-business-manager">Business Manager</a></li><li><a href="/rootrecord-weather-manager">Weather Manager</a></li><li><a href="/kilauea-alerts">Kilauea Alerts</a></li><li><a href="/pricing">Pricing</a></li></ul></div>
+          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about">About</a></li><li><a href="/roadmap/" aria-current="page">Roadmap</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact">Contact</a></li><li><a href="/account">Account</a></li><li><a href="/billing">Billing</a></li><li><a href="/root-units">Roots</a></li></ul></div>
+          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms">Terms</a></li><li><a href="/privacy">Privacy</a></li><li><a href="https://github.com/RootRecord/Doc-Repo" target="_blank" rel="noopener">Developer Documentation</a></li></ul></div>
         </div>
         <div class="footer-bottom">
-          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.cloud/">rootrecord.info</a></span>
+          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.cloud/">rootrecord.cloud</a></span>
         </div>
       </div>
     </footer>

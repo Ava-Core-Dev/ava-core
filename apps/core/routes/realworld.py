@@ -157,7 +157,7 @@ async def api_weather():
 
 
 class VoicePlayRequest(BaseModel):
-    clip: str = "phrase_device_startup"
+    clip: str = "startup"
     priority: str = "critical"
     force: bool = False  # bypass cooldown for intentional ops triggers
 
@@ -187,14 +187,14 @@ async def api_voice_speak_number(req: VoiceNumberRequest):
 async def api_voice_play(req: VoicePlayRequest):
     """Trigger a named voice clip through the Stream Director.
     Looks in words/, time_clips/, and sounds/ under assets.
-    phrase_device_startup respects a 30m cooldown unless force=true.
+    Recycle/startup uses phrase_all_systems_running (or satellite_connection
+    under 60s). The old I'm-back clip is only played when named explicitly.
     """
     try:
         from apps.voice.director import get_director, Priority
         from apps.voice.clips import WORDS_DIR, TIME_DIR, SOUNDS_DIR, ASSETS_DIR
 
-        # "I'm back" — never spam on brief reconnects / GUI reloads
-        if req.clip in ("phrase_device_startup", "startup"):
+        if req.clip in ("startup", "phrase_all_systems_running"):
             from apps.core.services.startup_voice import queue_if_allowed
 
             result = await queue_if_allowed(force=req.force, name=req.clip)
@@ -229,7 +229,7 @@ async def api_voice_play(req: VoicePlayRequest):
 
 @router.post("/voice/chime")
 async def api_voice_chime():
-    """Fire the half-hourly chime now (bell + current time_HHMM slot)."""
+    """Fire the half-hourly chime now (bell + hour + am/pm + HST)."""
     try:
         from apps.core.crons.since_last_fire.hourly_chime import run
         await run()

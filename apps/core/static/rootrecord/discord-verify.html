@@ -71,7 +71,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               <p class="note" id="verify-success-detail" style="margin-top:0.5rem"></p>
               <p class="account-discord-actions" style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.5rem">
                 <a class="btn btn-primary" id="btn-return-discord" href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener" data-testid="btn-return-discord">Return to Discord</a>
-                <a class="btn btn-secondary" href="/account.html" data-testid="btn-view-account">View account</a>
+                <a class="btn btn-secondary" href="/account" data-testid="btn-view-account">View account</a>
                 <button type="button" class="btn btn-secondary" id="btn-discord-reverify" data-testid="btn-discord-reverify">Re-verify with Discord</button>
               </p>
               <p style="margin-top:1rem;margin-bottom:0">
@@ -81,7 +81,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
             <section id="panel-verify-forms" class="card-plain" hidden data-testid="discord-verify-forms">
               <h2 style="margin-top:0">Step 1 &mdash; RootRecord account</h2>
-              <p class="note">New here? <a href="/account-signup.html?return=/discord-verify" style="color:var(--moss)">Create an account</a>, then return here.</p>
+              <p class="note">New here? <a href="/account-signup?return=/discord-verify" style="color:var(--moss)">Create an account</a>, then return here.</p>
               <form id="form-login" class="stack-form" data-testid="discord-verify-login-form">
                 <label>Email <input type="email" id="login-email" name="email" autocomplete="username" required></label>
                 <label>Password <input type="password" id="login-password" name="password" autocomplete="current-password" required></label>

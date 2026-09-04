@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from apps.core import config
-from apps.voice.local_tts import GENERATED, clock_tokens, date_tokens, speak_script
+from apps.voice.local_tts import GENERATED, clock_tokens, speak_script
 
 log = logging.getLogger("ava.cron.hourly_clip_reports")
 HST = ZoneInfo("Pacific/Honolulu")
@@ -20,7 +20,42 @@ def _int(tok: str) -> str | None:
 
 
 def _stamp_prefix(now: datetime) -> list[str]:
-    return date_tokens(now) + clock_tokens(now.hour, 0 if now.minute < 15 else 30 if now.minute < 45 else 0)
+    """Clock only. Hourly packs do not lead with weekday or calendar date."""
+    minute = 0 if now.minute < 15 else 30 if now.minute < 45 else 0
+    hour = now.hour
+    if now.minute >= 45:
+        hour = (hour + 1) % 24
+    if now.minute in (0, 30):
+        hour, minute = now.hour, now.minute
+    return clock_tokens(hour, minute)
+
+
+def _ac_role_tokens() -> list[str]:
+    """Leftover house AC → starlink. Other leftover AC → emergency. Transfer separate.
+
+    Do not scan live_facts for the word Starlink — energy.facts_lines always
+    mentions Starlink on the host-battery disclaimer.
+    """
+    bits: list[str] = []
+    try:
+        from apps.core.crons.since_last_fire.solar_weather import _quota_snapshot
+        from apps.core.services import load_categories
+
+        snap = _quota_snapshot() or {}
+        devices = list(snap.get("devices") or [])
+        if not devices:
+            return bits
+        load_categories.apply_roles(devices)
+        cats = load_categories.categories(devices)
+    except Exception:
+        return bits
+    if float(cats.get("transfer_w") or 0) >= 20:
+        bits.append("transfer")
+    if float(cats.get("starlink_lights_w") or 0) >= 20:
+        bits.append("starlink")
+    if float(cats.get("emergency_pack_w") or 0) >= 20:
+        bits.append("emergency")
+    return bits
 
 
 def solar_script(facts: str, now: datetime) -> str:
@@ -46,14 +81,7 @@ def solar_script(facts: str, now: datetime) -> str:
     if m:
         hours = m.group(1).split(".")[0]
         bits += ["hours_remaining", hours, "hours"]
-    if "transfer" in low:
-        bits.append("transfer")
-    if "starlink" in low:
-        bits.append("starlink")
-    if "leftover" in low:
-        bits.append("leftover")
-    if "emergency" in low:
-        bits.append("emergency")
+    bits += _ac_role_tokens()
     if "DOWN" in facts and "EcoFlow" in facts:
         bits = _stamp_prefix(now) + ["solar", "status", "offline"]
     return " ".join(bits)
@@ -167,6 +195,7 @@ def build_all() -> dict[str, dict]:
     current_names = {
         "solar": "solar-weather-current.mp3",
         "system": "system-performance-current.mp3",
+        "weather": "nws-hawaii-current.mp3",
         "kilauea": "Kilauea_Current.mp3",
     }
     for cat, script in jobs.items():

@@ -113,7 +113,7 @@ function render(hb: Heartbeat | null, degraded: boolean): string {
     <a href="https://avaivy.cloud/solar">Solar</a>
     <a href="/ava/status.json">Status JSON</a>
     <a href="https://rootmc.net">RootMC</a>
-    <a href="https://rootrecord.online">Root Record</a>
+    <a href="https://rootrecord.cloud">Root Record</a>
     <a href="https://alexrs94.site">alexrs94</a>
   </div>
 </div></body></html>`;

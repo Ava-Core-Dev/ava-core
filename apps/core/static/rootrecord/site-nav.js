@@ -110,7 +110,7 @@
     clearWebSessionHint();
     window.dispatchEvent(new CustomEvent("rootrecord-portal-auth-change"));
     const page = document.body && document.body.getAttribute("data-account-page");
-    window.location.href = page === "discord-verify" ? "/discord-verify" : "/account.html";
+    window.location.href = page === "discord-verify" ? "/discord-verify" : "/account";
   }
 
   function ensureNavSignOut() {
@@ -137,7 +137,7 @@
     if (!footer) return;
 
     // Avoid duplicates if any page already includes it.
-    const existing = footer.querySelector('a[href="/root-units"], a[href="/root-units.html"], a[href="/beta-tester-rewards.html"], a[href="https://rootrecord.cloud/root-units"], a[href="https://rootrecord.cloud/beta-tester-rewards"], a[href="https://rootrecord.cloud/beta-tester-rewards.html"]');
+    const existing = footer.querySelector('a[href="/root-units"], a[href="/root-units"], a[href="/beta-tester-rewards"], a[href="https://rootrecord.cloud/root-units"], a[href="https://rootrecord.cloud/beta-tester-rewards"], a[href="https://rootrecord.cloud/beta-tester-rewards"]');
     if (existing) return;
 
     const cols = Array.from(footer.querySelectorAll(".footer-col"));

@@ -490,7 +490,7 @@
       if (access.pro) return escapeHtml(planLabelFromMe(data));
       return (
         escapeHtml("Free") +
-        ' — <a href="/billing.html" style="color:var(--moss);text-decoration:underline;text-underline-offset:3px">View membership options</a>'
+        ' — <a href="/billing" style="color:var(--moss);text-decoration:underline;text-underline-offset:3px">View membership options</a>'
       );
     }
     return escapeHtml(planLabelFromMe(data));
@@ -914,8 +914,8 @@
     rootrecord_business_manager_android: {
       title: "RootRecord Business Manager",
       platform: "Android / web",
-      href: "/rootrecord-business-manager.html",
-      webAppUrl: "https://rootrecord.cloud/rootrecord-business-manager.html",
+      href: "/rootrecord-business-manager",
+      webAppUrl: "https://rootrecord.cloud/rootrecord-business-manager",
       playStoreUrl:
         "https://play.google.com/store/apps/details?id=com.rootrecord.businessmanager",
       note: "Cloud business workspace or Roots activity on this account.",
@@ -923,14 +923,14 @@
     rootrecord_weather_manager_windows: {
       title: "Root Record Weather Manager",
       platform: "Windows / web",
-      href: "/rootrecord-weather-manager.html",
+      href: "/rootrecord-weather-manager",
       webAppUrl: "https://rootrecord.cloud/weather",
       note: "Saved locations, synced weather, or earn activity for this account.",
     },
     rootrecord_weather_manager_android: {
       title: "Root Record Weather Manager",
       platform: "Android / web",
-      href: "/rootrecord-weather-manager.html",
+      href: "/rootrecord-weather-manager",
       webAppUrl: "https://rootrecord.cloud/weather",
       playStoreUrl:
         "https://play.google.com/store/apps/details?id=com.rootrecord.weathermanager",
@@ -939,7 +939,7 @@
     rootrecord_kilauea_alerts_android: {
       title: "Kilauea Alerts",
       platform: "Android / web",
-      href: "/kilauea-alerts.html",
+      href: "/kilauea-alerts",
       webAppUrl: "https://kilauea.cloud/",
       playStoreUrl: "https://play.google.com/store/apps/details?id=com.rootrecord.kilauea",
       note: "Signed-in Kīlauea dashboard or earn activity on this account.",
@@ -947,14 +947,14 @@
     rootrecord_token_manager_android: {
       title: "RootRecord Token Manager",
       platform: "Android / web",
-      href: "/products.html",
-      webAppUrl: "https://rootrecord.cloud/products.html",
+      href: "/products",
+      webAppUrl: "https://rootrecord.cloud/products",
       note: "Signed-in token manager or earn activity on this account.",
     },
     rootrecord_account_hub_android: {
       title: "RootRecord Account Hub",
       platform: "Android",
-      href: "/products.html",
+      href: "/products",
       note: "Account Hub app session or earn activity on this account.",
     },
     root_farms: {
@@ -1036,7 +1036,7 @@
     if (rows.length === 0) {
       box.innerHTML =
         '<p class="note" style="margin:0">No linked apps yet. When you sign in inside a RootRecord app and we see saved data, notifications, or synced weather for this account, it will appear here.</p>' +
-        '<p style="margin-top:1rem"><a class="btn btn-secondary" href="/products.html">Browse products</a></p>' +
+        '<p style="margin-top:1rem"><a class="btn btn-secondary" href="/products">Browse products</a></p>' +
         '<p class="note" style="margin-top:1rem">Google Play: <a href="https://play.google.com/store/apps/details?id=com.rootrecord.businessmanager" target="_blank" rel="noopener">Business Manager</a> &middot; <a href="https://play.google.com/store/apps/details?id=com.rootrecord.weathermanager" target="_blank" rel="noopener">Weather Manager</a> &middot; <a href="https://play.google.com/store/apps/details?id=com.rootrecord.kilauea" target="_blank" rel="noopener">Kilauea Alerts</a></p>';
       return;
     }
@@ -1661,7 +1661,7 @@
       }
       if (document.body && document.body.getAttribute("data-account-page") === "signup") {
         const ret = new URLSearchParams(window.location.search).get("return");
-        const dest = ret && String(ret).startsWith("/") ? String(ret) : "/account.html";
+        const dest = ret && String(ret).startsWith("/") ? String(ret) : "/account";
         window.location.href = dest;
         return;
       }
