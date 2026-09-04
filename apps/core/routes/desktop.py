@@ -420,6 +420,24 @@ async def weather_gifs():
     }
 
 
+@legacy_router.get("/weather/gifs")
+@legacy_router.get("/weather/gifs/")
+async def weather_gifs_board():
+    return HTMLResponse(
+        weather_gifs_board_html(),
+        headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"},
+    )
+
+
+@legacy_router.get("/weather/gifs/{path:path}")
+async def weather_gifs_file(path: str):
+    parts = [p for p in str(path or "").split("/") if p]
+    abs_path = resolve_weather_gif_file(parts)
+    if abs_path is None:
+        return PlainTextResponse("not found", status_code=404)
+    return FileResponse(abs_path, headers={"Cache-Control": "no-store"})
+
+
 # ── Projected shutdown / start / disruption / GFS ─────────────────────────────
 
 @router.get("/projected-shutdown")

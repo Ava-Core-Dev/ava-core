@@ -218,7 +218,37 @@ async def charts_pages(rest: str):
     return _file_or_none(p) or HTMLResponse("<p>Not on this server.</p>", status_code=404)
 
 
+@router.get("/weather/gifs")
+@router.get("/weather/gifs/")
+async def weather_gifs_leftover_board():
+    """Desk Open leftover board — Media public images/weather/gifs (not geography)."""
+    from apps.core.routes.desktop import weather_gifs_board_html
+
+    return HTMLResponse(
+        weather_gifs_board_html(),
+        headers={"Cache-Control": "no-store", "X-Robots-Tag": "noindex"},
+    )
+
+
+@router.get("/weather/gifs/{path:path}")
+async def weather_gifs_leftover_file(path: str):
+    from fastapi.responses import PlainTextResponse
+
+    from apps.core.routes.desktop import resolve_weather_gif_file
+
+    parts = [p for p in str(path or "").split("/") if p]
+    abs_path = resolve_weather_gif_file(parts)
+    if abs_path is None:
+        return PlainTextResponse("not found", status_code=404)
+    return FileResponse(abs_path, headers={"Cache-Control": "no-store"})
+
+
 @router.get("/weather/{rest:path}")
 async def weather_geo_pages(rest: str):
+    if rest == "gifs" or rest.startswith("gifs/"):
+        # Defensive: explicit /weather/gifs routes above should win; never treat as geography.
+        if rest in {"gifs", "gifs/"}:
+            return await weather_gifs_leftover_board()
+        return await weather_gifs_leftover_file(rest[5:].lstrip("/"))
     found = _geo_file("weather", rest)
     return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
