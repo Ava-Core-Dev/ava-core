@@ -488,6 +488,7 @@ class StreamDirector:
                 env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
             env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
 
+        proc: asyncio.subprocess.Process | None = None
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -509,7 +510,7 @@ class StreamDirector:
         except Exception as e:
             log.warning("Music bed play failed (%s): %s", path.name, e)
         finally:
-            if self._music_proc is proc:  # type: ignore[name-defined]
+            if proc is not None and self._music_proc is proc:
                 self._music_proc = None
             self._music_current = None
 
@@ -635,6 +636,10 @@ class StreamDirector:
                 log.exception("Stream Director loop error")
 
     async def _play(self, item: AudioItem) -> None:
+        # Reports / chimes / alerts pause the music bed until the director is idle.
+        if item.priority > Priority.AMBIENT:
+            self._hold_music()
+
         if self._current and item.priority > self._current.priority:
             self._paused = self._current
             log.info("Pausing %s for %s (higher priority)", self._current.name, item.name)
@@ -659,6 +664,8 @@ class StreamDirector:
             resumed = self._paused
             self._paused = None
             await self._play(resumed)
+        else:
+            self._release_music_if_idle()
 
     async def _play_obs_voice_bus(self, path: Path | None) -> None:
         """Point the shared OBS ffmpeg source at this clip and restart playback."""
@@ -751,6 +758,15 @@ class StreamDirector:
 
     async def stop(self) -> None:
         self._running = False
+        self._music_enabled = False
+        self._kill_music_proc()
+        if self._music_task and not self._music_task.done():
+            self._music_task.cancel()
+            try:
+                await self._music_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        self._music_task = None
         if self._obs_ws:
             await self._obs_ws.close()
 
@@ -781,6 +797,23 @@ def ensure_running() -> asyncio.Task:
         _director_task = asyncio.create_task(get_director().run())
         log.info("Stream Director loop started in-process")
     return _director_task
+
+
+def ensure_music_bed() -> asyncio.Task | None:
+    """Start the shuffled music bed once the director loop is up."""
+    ensure_running()
+    d = get_director()
+    # Mark running early so the bed loop does not exit before run() sets it.
+    d._running = True
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return None
+
+    async def _start():
+        await d.start_music_bed()
+
+    return loop.create_task(_start())
 
 
 def cli():
