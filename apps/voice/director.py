@@ -776,13 +776,20 @@ class StreamDirector:
         """Shuffle all recursive tracks, play through, reshuffle, repeat."""
         while self._music_enabled and self._running:
             tracks = list_music_tracks()
+            force = (os.getenv("AVA_MUSIC_FORCE") or "").strip()
+            if force:
+                fp = Path(force)
+                if fp.is_file():
+                    tracks = [fp]
+                    log.info("Music bed FORCE single track  %s", fp.name)
             self._music_tracks_n = len(tracks)
             if not tracks:
                 self._music_playlist = []
                 self._music_index = -1
                 await asyncio.sleep(30)
                 continue
-            random.shuffle(tracks)
+            if not force:
+                random.shuffle(tracks)
             self._music_playlist = list(tracks)
             log.info("Music bed shuffle  n=%s", len(tracks))
             for i, path in enumerate(tracks):
