@@ -777,11 +777,20 @@ class StreamDirector:
         while self._music_enabled and self._running:
             tracks = list_music_tracks()
             force = (os.getenv("AVA_MUSIC_FORCE") or "").strip()
+            if not force:
+                try:
+                    from apps.core import config
+
+                    fp = Path(config.DATA_DIR) / "state" / "music-bed-force.txt"
+                    if fp.is_file():
+                        force = fp.read_text(encoding="utf-8").strip()
+                except Exception:
+                    force = ""
             if force:
-                fp = Path(force)
-                if fp.is_file():
-                    tracks = [fp]
-                    log.info("Music bed FORCE single track  %s", fp.name)
+                fpath = Path(force)
+                if fpath.is_file():
+                    tracks = [fpath]
+                    log.info("Music bed FORCE single track  %s", fpath.name)
             self._music_tracks_n = len(tracks)
             if not tracks:
                 self._music_playlist = []
