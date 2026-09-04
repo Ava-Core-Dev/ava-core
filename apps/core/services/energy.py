@@ -228,9 +228,9 @@ def facts_lines(
     ]
     if f.get("ebatt_w"):
         combined.append(f"E-Batt in {int(round(f['ebatt_w']))} W")
-    if f.get("pv_w") and not (f.get("ebatt_w") and abs(f["pv_w"] or 0) < 1):
+    if f.get("pv_w") is not None and not f.get("ebatt_w"):
         combined.append(f"PV in {int(round(f['pv_w']))} W")
-    elif f.get("pv_w") is not None and not f.get("ebatt_w"):
+    elif f.get("pv_w") and abs(float(f.get("pv_w") or 0)) >= 1:
         combined.append(f"PV in {int(round(f['pv_w']))} W")
     if f.get("load_w") is not None:
         combined.append(f"load out {int(round(f['load_w']))} W")

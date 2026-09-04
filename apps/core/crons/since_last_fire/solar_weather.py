@@ -977,9 +977,13 @@ def _attach_rollups(snap: dict) -> dict:
     load_categories.append_history(cats)
     sun = sun_times.facts()
     night = load_categories.night_charge_callout(devices, sun=sun)
-    snap["solar_in_w"] = round(pv, 1)
+    solar_w = load_categories.solar_in_w(devices)
+    ebatt_w = load_categories.ebatt_in_w(devices)
+    in_w = round(solar_w + ebatt_w, 1)
+    snap["solar_in_w"] = solar_w
+    snap["ebatt_in_w"] = ebatt_w
     snap["load_w"] = round(dc, 1)
-    snap["power_w"] = round(pv, 1)
+    snap["power_w"] = solar_w
     snap["state"] = snap.get("state") or _bank_state(devices)
     snap["sun"] = {
         "sunrise": sun.get("sunrise"),
@@ -989,8 +993,15 @@ def _attach_rollups(snap: dict) -> dict:
     }
     if night:
         snap["night_charge"] = night
+    if ebatt_w >= 20:
+        snap["ebatt"] = {
+            "in_w": ebatt_w,
+            "nameplate_wh": load_categories.EBATT_WH,
+            "label": "E-Batt input",
+        }
     snap["totals"] = {
-        "solar_in_w": round(pv, 1),
+        "solar_in_w": solar_w,
+        "ebatt_in_w": ebatt_w,
         "load_w": round(dc, 1),
         "dc_load_w": round(dc, 1),
         "ac_in_w": round(ac_in, 1),
@@ -1002,7 +1013,7 @@ def _attach_rollups(snap: dict) -> dict:
         "emergency_pack_w": cats["emergency_pack_w"],
         "server_mobile_w": cats["server_mobile_w"],
         "hard_drives_12v_w": cats["hard_drives_12v_w"],
-        "net_w": round(pv - dc, 1),
+        "net_w": round(in_w - dc, 1),
         "bank_avg_pct": round(sum(socs) / len(socs), 1) if socs else snap.get("battery_pct"),
         "packs": len(devices),
         "categories": cats,
@@ -1020,7 +1031,9 @@ def _attach_rollups(snap: dict) -> dict:
         except Exception:
             host_pct = None
 
-        summary = energy.summary(devices, pv_w=pv, load_w=dc, host_battery_pct=host_pct)
+        summary = energy.summary(
+            devices, pv_w=solar_w, load_w=dc, ebatt_w=ebatt_w, host_battery_pct=host_pct
+        )
         if summary.get("ok"):
             # Prefer combined packs+host when host SOC is known; keep EcoFlow-only as site_bank.
             weighted = summary.get("total_pct")
