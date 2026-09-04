@@ -87,3 +87,4 @@ Optional longer takes (same file names, swap later):
 
 Do not say IP addresses, wallet keys, tokens, or Discord ids.
 Do not say "uvicorn", cron ids, or folder paths out loud.
+Do not advise wall power, plug in, AC power, wall outlet, or dock for this Root Server — off-grid solar only. Power talk is Starlink / site bank on solar packs, sun, and load management.
