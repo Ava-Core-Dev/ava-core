@@ -312,6 +312,13 @@ class StreamDirector:
         self._obs_ws: Any | None = None
         self._obs_lock = asyncio.Lock()
         self._sse_listeners: list[asyncio.Queue] = []
+        # Shuffled recursive music bed (P0 ambient) — paused by REPORT+
+        self._music_enabled = False
+        self._music_hold = False
+        self._music_task: asyncio.Task | None = None
+        self._music_proc: asyncio.subprocess.Process | None = None
+        self._music_current: Path | None = None
+        self._music_tracks_n = 0
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -371,7 +378,140 @@ class StreamDirector:
             "paused": self._paused.name if self._paused else None,
             "queue_depth": self._queue.qsize(),
             "obs_connected": self._obs_ws is not None,
+            "music": {
+                "enabled": self._music_enabled,
+                "hold": self._music_hold,
+                "tracks": self._music_tracks_n,
+                "current": self._music_current.name if self._music_current else None,
+                "dir": str(music_dir()),
+            },
         }
+
+    async def start_music_bed(self) -> dict:
+        """Start shuffled recursive playlist under public/audio/music. Loop forever."""
+        tracks = list_music_tracks()
+        self._music_tracks_n = len(tracks)
+        if not tracks:
+            log.warning("Music bed: no audio under %s", music_dir())
+            return {"ok": False, "detail": "no_tracks", "dir": str(music_dir())}
+        if self._music_task is not None and not self._music_task.done():
+            return {
+                "ok": True,
+                "detail": "already_running",
+                "tracks": len(tracks),
+                "dir": str(music_dir()),
+            }
+        self._music_enabled = True
+        self._music_hold = False
+        self._music_task = asyncio.create_task(self._music_loop(), name="ava-music-bed")
+        log.info("Music bed started  tracks=%s  dir=%s", len(tracks), music_dir())
+        return {"ok": True, "tracks": len(tracks), "dir": str(music_dir())}
+
+    def _hold_music(self) -> None:
+        """Pause bed for reports / chimes / alerts (kill current track process)."""
+        if not self._music_hold:
+            log.info(
+                "Music bed hold for voice  was=%s",
+                self._music_current.name if self._music_current else None,
+            )
+        self._music_hold = True
+        self._kill_music_proc()
+
+    def _release_music_if_idle(self) -> None:
+        if not self._queue.empty() or self._current is not None:
+            return
+        if self._music_hold:
+            log.info("Music bed resume")
+        self._music_hold = False
+
+    def _kill_music_proc(self) -> None:
+        proc = self._music_proc
+        self._music_proc = None
+        if proc is None:
+            return
+        try:
+            if proc.returncode is None:
+                proc.kill()
+        except Exception:
+            pass
+
+    async def _music_loop(self) -> None:
+        """Shuffle all recursive tracks, play through, reshuffle, repeat."""
+        while self._music_enabled and self._running:
+            tracks = list_music_tracks()
+            self._music_tracks_n = len(tracks)
+            if not tracks:
+                await asyncio.sleep(30)
+                continue
+            random.shuffle(tracks)
+            log.info("Music bed shuffle  n=%s", len(tracks))
+            for path in tracks:
+                if not self._music_enabled or not self._running:
+                    return
+                while self._music_hold:
+                    await asyncio.sleep(0.25)
+                    if not self._music_enabled or not self._running:
+                        return
+                if not path.is_file():
+                    continue
+                await self._play_music_track(path)
+
+    async def _play_music_track(self, path: Path) -> None:
+        """Play one bed track; abort if voice hold rises mid-track."""
+        self._music_current = path
+        player_cmd = _find_audio_player()
+        if not player_cmd:
+            log.warning("Music bed: no audio player — skipping %s", path.name)
+            await asyncio.sleep(2.0)
+            self._music_current = None
+            return
+
+        if player_cmd[-1] == "_AVA_PLAY_MP3_":
+            cmd = _windows_play_music(path)
+        else:
+            # ffplay/mpg123/mpv: keep going until kill or natural end
+            cmd = list(player_cmd) + [str(path)]
+            if cmd[0].endswith("ffplay") or Path(cmd[0]).name.lower().startswith("ffplay"):
+                # already has -autoexit from _ffplay_cmd
+                pass
+
+        env = dict(os.environ)
+        if os.name != "nt":
+            import pwd
+
+            try:
+                uid = pwd.getpwnam("ava-core").pw_uid
+            except KeyError:
+                uid = os.getuid()
+            pulse_sock = f"/run/user/{uid}/pulse/native"
+            if os.path.exists(pulse_sock):
+                env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
+            env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env=env,
+                **_windows_hidden(),
+            )
+            self._music_proc = proc
+            log.info("Music bed playing: %s", path.name)
+            while proc.returncode is None:
+                if self._music_hold or not self._music_enabled:
+                    self._kill_music_proc()
+                    break
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=0.4)
+                except asyncio.TimeoutError:
+                    continue
+        except Exception as e:
+            log.warning("Music bed play failed (%s): %s", path.name, e)
+        finally:
+            if self._music_proc is proc:  # type: ignore[name-defined]
+                self._music_proc = None
+            self._music_current = None
 
     # ── OBS WebSocket ─────────────────────────────────────────────────────────
 
