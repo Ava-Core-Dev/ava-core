@@ -58,7 +58,97 @@ def _ac_role_tokens() -> list[str]:
     return bits
 
 
+def _clip_or(name: str, fallback: list[str]) -> list[str]:
+    from apps.voice.clips import _find_clip
+
+    if _find_clip(name):
+        return [name]
+    return list(fallback)
+
+
 def solar_script(facts: str, now: datetime) -> str:
+    bits = _stamp_prefix(now) + _clip_or(
+        "phrase_hourly_solar",
+        ["solar", "report"],
+    )
+    low = facts.lower()
+    if "delta" in low:
+        bits += ["delta"]
+        m = re.search(r"DELTA[^%\d]{0,40}(\d{1,3})\s*%", facts, re.I)
+        if m:
+            bits += [m.group(1), "percent"]
+    if "river" in low:
+        bits += ["river"]
+        m = re.search(r"RIVER[^%\d]{0,40}(\d{1,3})\s*%", facts, re.I)
+        if m:
+            bits += [m.group(1), "percent"]
+    m = re.search(r"PV in\s+(\d+)\s*W", facts, re.I)
+    if m:
+        bits += ["solar", "in", m.group(1), "watts"]
+    m = re.search(r"load out\s+(\d+)\s*W", facts, re.I)
+    if m:
+        bits += ["load", "out", m.group(1), "watts"]
+    m = re.search(r"~(\d+(?:\.\d+)?)\s*h left", facts, re.I)
+    if m:
+        hours = m.group(1).split(".")[0]
+        bits += ["hours_remaining", hours, "hours"]
+    bits += _ac_role_tokens()
+    if "DOWN" in facts and "EcoFlow" in facts:
+        bits = _stamp_prefix(now) + ["solar", "status", "offline"]
+    return " ".join(bits)
+
+
+def system_script(facts: str, now: datetime) -> str:
+    bits = _stamp_prefix(now) + _clip_or("phrase_hourly_system", ["system", "report"])
+    m = re.search(r"CPU\s+(\d+)\s*%", facts, re.I)
+    if m:
+        bits += ["cpu", m.group(1), "percent"]
+    m = re.search(r"RAM\s+(\d+)\s*%", facts, re.I)
+    if m:
+        bits += ["memory", m.group(1), "percent"]
+    if re.search(r"\bnpu\b", facts.lower()):
+        bits += ["npu", "load"]
+    if "840m" in facts.lower() or "igpu" in facts.lower() or "i_gpu" in facts.lower() or "radeon" in facts.lower():
+        bits += ["i_gpu", "load"]
+    return " ".join(bits)
+
+
+def weather_script(facts: str, now: datetime) -> str:
+    bits = _stamp_prefix(now)
+    line = ""
+    for row in facts.splitlines():
+        low = row.lower()
+        if low.startswith("weather") or "nws" in low or "noaa" in low:
+            line = low
+            break
+    condition = ""
+    for word in (
+        "partly_cloudy",
+        "mostly_cloudy",
+        "partly_sunny",
+        "sunny",
+        "cloudy",
+        "overcast",
+        "rain",
+        "showers",
+        "windy",
+        "breezy",
+        "foggy",
+        "stormy",
+        "clear",
+        "humid",
+        "hot",
+        "cold",
+    ):
+        if word.replace("_", " ") in line or word in line:
+            condition = word
+            break
+    # Never lead with “…as of” unless a condition clip follows — that hung mid-sentence.
+    if condition:
+        bits += _clip_or("phrase_hourly_weather", ["weather"]) + [condition]
+    else:
+        bits += _clip_or("phrase_hourly_weather", ["weather", "report"])
+    return " ".join(bits)
     bits = _stamp_prefix(now) + ["here_are_the_local_solar_and_system_statistics"]
     low = facts.lower()
     if "delta" in low:

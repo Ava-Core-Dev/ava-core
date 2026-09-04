@@ -174,6 +174,26 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     return out_path
 
 
+_DURATION_RE = re.compile(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)")
+
+
+def mp3_duration_s(path: Path) -> float | None:
+    """Seconds from ffmpeg -i. None if ffmpeg missing or no Duration line."""
+    ff = ffmpeg_bin()
+    if not ff or not path or not Path(path).is_file():
+        return None
+    result = _run(
+        [ff, "-i", str(path)],
+        capture_output=True,
+        text=True,
+    )
+    blob = (result.stderr or "") + (result.stdout or "")
+    m = _DURATION_RE.search(blob)
+    if not m:
+        return None
+    return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+
+
 def speak_text(text: str, out_path: Path) -> Path | None:
     """
     Attempt to build an MP3 from pre-recorded clips for the given text.
