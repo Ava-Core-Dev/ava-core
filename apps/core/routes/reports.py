@@ -114,12 +114,12 @@ async def test_report_dm():
 
 
 class ReportGenPatchIn(BaseModel):
-    """Partial update for data/state/report-generation.json."""
+    """Partial update for data/state/report-generation.json (v1 types schema)."""
 
-    reports: dict | None = None
+    types: dict | None = None
+    defaults: dict | None = None
     week_of_grok: bool | None = None
-    context_urls: list[str] | None = None
-    fetch_urls: list[str] | None = None
+    note: str | None = None
 
 
 class ReportGenRunIn(BaseModel):
@@ -128,6 +128,7 @@ class ReportGenRunIn(BaseModel):
     allow_tts: bool = False
     publish: bool | None = None
     force_engine: str | None = None
+    offline: bool = False
 
 
 @router.get("/generation")
@@ -144,15 +145,15 @@ async def report_generation_patch(body: ReportGenPatchIn, request: Request):
     from apps.core.services import report_generation
 
     patch: dict = {}
-    if body.reports is not None:
-        patch["reports"] = body.reports
+    if body.types is not None:
+        patch["types"] = body.types
+    if body.defaults is not None:
+        patch["defaults"] = body.defaults
     if body.week_of_grok is not None:
         patch["week_of_grok"] = body.week_of_grok
-    if body.context_urls is not None:
-        patch["context_urls"] = body.context_urls
-    if body.fetch_urls is not None:
-        patch["fetch_urls"] = body.fetch_urls
-    return {"ok": True, "config": report_generation.patch(patch)}
+    if body.note is not None:
+        patch["note"] = body.note
+    return {"ok": True, "config": report_generation.patch_config(patch)}
 
 
 @router.post("/generation/run")
@@ -162,10 +163,11 @@ async def report_generation_run(body: ReportGenRunIn, request: Request):
         return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
     from apps.core.services import report_generation
 
-    return report_generation.generate(
+    return report_generation.generate_report(
         body.kind,
         dry_run=bool(body.dry_run),
         force_engine=body.force_engine,
         allow_tts=bool(body.allow_tts),
         publish=body.publish,
+        offline=bool(body.offline),
     )
