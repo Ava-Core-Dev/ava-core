@@ -93,10 +93,11 @@ def _windows_play_mp3(path: Path) -> list[str]:
 
         got = mp3_duration_s(path)
         if got and got > 0.5:
-            dur = min(120.0, max(3.0, got + 0.6))
+            # Morning boot / long reports exceed 2 min — do not clamp to 120s.
+            dur = min(1800.0, max(3.0, got + 0.6))
         else:
             size = path.stat().st_size
-            dur = min(120.0, max(12.0, size / 8000.0))
+            dur = min(1800.0, max(12.0, size / 8000.0))
     except Exception:
         pass
     script = (
