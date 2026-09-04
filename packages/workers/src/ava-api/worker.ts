@@ -155,9 +155,13 @@ export default {
     }
 
     if (isOriginApi(path)) {
+      const slowDesk =
+        path.startsWith("/api/obs/solar-desk") ||
+        path.startsWith("/api/obs/solar") ||
+        path === "/api/solar";
       return proxyToOrigin(request, {
         originUrl: origin,
-        timeoutMs: 8000,
+        timeoutMs: slowDesk ? 20000 : 8000,
         offlineFallback: async () => {
           if (path.startsWith("/api/obs/solar-desk") || path.startsWith("/api/obs/solar")) {
             const stored = await readStoredEcoflow(env);
