@@ -1,7 +1,8 @@
-"""Morning Boot Report — spoken AVA Core Root Record status.
+"""Morning Boot Report — spoken Ava Core Root Record status.
 
 Prelims refresh first (caller). Prose comes from the on-device brain with a
 fixed format lock. Never Grok. Never paid cloud voice. Never secrets.
+Never emit all-caps AVA as a standalone TTS token (Ara spells A-V-A).
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ CURRENT_NAME = "morning-boot-current.md"
 PROMPT_NAME = "MORNING_BOOT_REPORT.txt"
 
 # Spoken format lock — also mirrored under Media/public/documents/persona/
-BOOT_LOCK = """You ARE Ava Ivy writing the AVA Core Root Record morning Boot Report for easy audio readout.
+BOOT_LOCK = """You ARE Ava Ivy writing the Ava Core Root Record morning Boot Report for easy audio readout.
 
 Hard rules:
 - No "Aloha". Never say HP, OmniBook, laptop brand, or any PC maker name.
@@ -31,10 +32,11 @@ Hard rules:
 - No repo paths, env vars, stack traces, ports as "colon numbers" jargon, or raw JSON.
 - Short sentences. Numbers spoken naturally (seven fifty-four, not 07:54). Separate paragraphs with blank lines.
 - Do not use markdown ## headings. Use spoken lead-ins as plain sentences.
+- Pronunciation: never write all-caps AVA as a standalone token. TTS spells A-V-A. Prefer “Ava”, “Ava Core”, “Ava Ivy”, or “Root Record”. Say host name as “Ava Core”, not AVA-CORE.
 
 Required shape:
-1. Open exactly in this spirit: "This is the AVA Core Root Record morning status for [weekday date], about [time] Hawaiian Standard Time."
-2. Then Root Server / host AVA-CORE / C-only / public doors / public tunnel → origin — plain spoken sentences.
+1. Open exactly in this spirit: "This is the Ava Core Root Record morning status for [weekday date], about [time] Hawaiian Standard Time."
+2. Then Root Server / host Ava Core / C-only / public doors / public tunnel → origin — plain spoken sentences.
 3. Then these paragraphs, each with a clear spoken lead-in:
    - Boot Summary (overnight downtime, restore/boot time, net-gate stop/restore, desk restore issues if any)
    - System Summary (origin, tunnel, on-device brain, Desk, watchdog tasks, voice mode local, public chat path when warm)
@@ -147,7 +149,7 @@ def build_facts(*, source: str = "boot") -> str:
     lines = [
         f"FACTS for morning Boot Report (source {source}). Use only these. Do not invent.",
         f"Now: {now.strftime('%A, %B %d, %Y')}, about {now.strftime('%H:%M')} Hawaiian Standard Time.",
-        "Host name: AVA-CORE. Role: HI Pacific Solar Root Server. Live tree: C only.",
+        "Host name (spoken as Ava Core): AVA-CORE. Role: HI Pacific Solar Root Server. Live tree: C only.",
         "Public doors: rootrecord.cloud and avaivy.cloud. Public tunnel reaches local origin.",
     ]
 
@@ -244,11 +246,16 @@ _FORBIDDEN = re.compile(
 
 
 def scrub_spoken(text: str) -> str:
-    """Strip common third-party leaks after generation."""
+    """Strip common third-party leaks after generation; keep TTS pronunciation-safe."""
     out = (text or "").strip()
     out = _FORBIDDEN.sub("the local stack", out)
     out = re.sub(r"(?i)\baloha[,!]?\s*", "", out)
     out = re.sub(r"(?i)\bHP\b", "this host", out)
+    # Ara spells all-caps AVA letter-by-letter. Never leave it as a TTS token.
+    out = re.sub(r"\bAVA-CORE\b", "Ava Core", out)
+    out = re.sub(r"\bAVA Core\b", "Ava Core", out)
+    out = re.sub(r"\bAVA Ivy\b", "Ava Ivy", out)
+    out = re.sub(r"\bAVA\b", "Ava", out)
     if not out.rstrip().endswith("End of status."):
         if "End of status" not in out:
             out = out.rstrip() + "\n\nEnd of status."
@@ -295,9 +302,9 @@ def _fallback_spoken(facts: str, *, now: datetime | None = None) -> str:
     except Exception:
         pass
 
-    body = f"""This is the AVA Core Root Record morning status for {weekday}, about {about} Hawaiian Standard Time.
+    body = f"""This is the Ava Core Root Record morning status for {weekday}, about {about} Hawaiian Standard Time.
 
-You are listening on the HI Pacific Solar Root Server. Host name AVA-CORE. The live tree is on C only. Public doors are rootrecord.cloud and avaivy.cloud. The public tunnel reaches the local origin.
+You are listening on the HI Pacific Solar Root Server. Host name Ava Core. The live tree is on C only. Public doors are rootrecord.cloud and avaivy.cloud. The public tunnel reaches the local origin.
 
 Boot Summary. Net-gate stopped overnight and restored this morning. Gap on file is {gap_txt}. Restore stamp is {_iso_spoken(str(net.get('restored_at') or ''))}. Desk should be visible after restore. If Desk ever opens as a blank shell, use the start-desk path.
 
