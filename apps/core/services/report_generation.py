@@ -438,28 +438,31 @@ def _context_urls_for_kind(kind: str, cfg: dict | None = None) -> list[str]:
         _add(u)
 
     live = live_data_pages.link_bundle(report_type=kind)
+    ctx = live.get("context") or {}
     for key in (
         "data_hub",
-        "report_links",
         "hub",
         "hub_rootrecord",
         "llms",
+        "llms_ava",
         "context_md",
+        "context_md_ava",
         "status_desk",
+        "status_ava",
         "solar",
+        "solar_ava",
     ):
-        val = (live.get("context") or {}).get(key)
+        val = ctx.get(key)
         if val:
-            _add(str(val) if "format=" in str(val) or not str(val).endswith("/data/report-links") else f"{val}?format=md")
-    # report_links without format — add md form explicitly
-    rl = (live.get("context") or {}).get("report_links")
+            _add(str(val))
+    rl = ctx.get("report_links")
     if rl:
-        _add(f"{rl}&format=md" if "?" in str(rl) else f"{rl}?format=md")
+        rl_s = str(rl)
+        _add(f"{rl_s}&format=md" if "?" in rl_s else f"{rl_s}?format=md")
     for row in live.get("resources") or []:
         md = row.get("md")
         if md:
             _add(str(md))
-    # Hard requirements for noon/morning packages
     for must in (
         f"https://origin.avaivy.cloud/data/report-links?type={kind}&format=md",
         "https://origin.avaivy.cloud/data/power?format=md",
@@ -683,10 +686,45 @@ def _persona_lock(kind: str) -> str:
     )
 
 
+def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
+    """Reject Grok output that still claims required sections are not live."""
+    t = text or ""
+    low = t.lower()
+    missing: list[str] = []
+    if "end of status" not in low:
+        missing.append("End of status")
+    for lead in ("Broken / needs work", "Already landed", "Priority"):
+        if lead.lower() not in low:
+            missing.append(lead)
+    # Persona says "I do not have it live" when facts missing — after our package
+    # fix that phrase on Broken/Already landed means the model ignored FACTS.
+    if "i do not have it live" in low:
+        missing.append("still_says_not_live")
+    if kind == "midday" and "12 noon" not in low and "noon" not in low:
+        missing.append("noon_clock")
+    return (not missing), missing
+
+
 def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     from apps.core.services import boot_report, xai
 
     pkg = build_prompt_package(kind)
+    val = pkg.get("validation") or validate_prompt_package(pkg, kind=kind)
+    if not val.get("ok"):
+        log.error(
+            "%s Grok blocked — incomplete package: %s",
+            kind,
+            val.get("detail"),
+        )
+        return {
+            "ok": False,
+            "engine": "grok",
+            "detail": val.get("detail") or "incomplete_package",
+            "package": pkg,
+            "validation": val,
+            "blocked": True,
+        }
+
     bundle = pkg["bundle"]
     stamp_note = "Include a Hawaiian Standard Time clock stamp in the opening line."
     if kind == "midday":
@@ -694,20 +732,28 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
             'Open with noon clock: "about 12 noon Hawaiian Standard Time" '
             "(even if built at 11:55)."
         )
-    urls = "\n".join(f"- {u}" for u in (bundle.get("context_urls") or [])[:24])
+    # Full link list (not capped so hard that day-board / report-links drop off).
+    url_list = list(bundle.get("context_urls") or [])
+    urls = "\n".join(f"- {u}" for u in url_list[:48])
     live_urls = ""
     live = bundle.get("live_data") or {}
     for row in live.get("resources") or []:
         live_urls += f"- {row.get('title')}: {row.get('md')}\n"
+    ctx_ptrs = ""
+    for k, v in (live.get("context") or {}).items():
+        ctx_ptrs += f"- {k}: {v}\n"
 
     user = (
         f"Write today's {kind} Ava Core Root Record full status.\n"
         f"{stamp_note}\n\n"
-        "Use ONLY measured facts from the pages/blocks below. Do not invent.\n\n"
+        "Use ONLY measured facts from the pages/blocks below. Do not invent.\n"
+        "Broken / needs work, Already landed, and Priority ARE in the FACTS — "
+        "do not say you do not have them live.\n\n"
         f"Context / discovery URLs:\n{urls}\n\n"
-        f"Live data pages:\n{live_urls}\n\n"
-        f"Fetched context:\n{pkg['fetched_markdown'][:20000]}\n\n"
-        f"Origin live facts:\n{pkg['local_live_facts'][:20000]}\n"
+        f"Live data pages:\n{live_urls}\n"
+        f"Link bundle pointers:\n{ctx_ptrs}\n"
+        f"Fetched context:\n{pkg['fetched_markdown'][:24000]}\n\n"
+        f"Origin live facts + kind operator FACTS:\n{pkg['local_live_facts'][:28000]}\n"
     )
     messages = [
         {"role": "system", "content": _persona_lock(kind)},
@@ -715,13 +761,38 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     ]
     text = xai.try_chat(messages, max_tokens=max_tokens, timeout=120)
     if not text or len(text.strip()) < 80:
-        return {"ok": False, "engine": "grok", "detail": "thin_or_empty", "package": pkg}
+        return {
+            "ok": False,
+            "engine": "grok",
+            "detail": "thin_or_empty",
+            "package": pkg,
+            "validation": val,
+        }
+    scrubbed = boot_report.scrub_spoken(text)
+    sections_ok, section_missing = _text_has_required_sections(kind, scrubbed)
+    if not sections_ok:
+        log.error(
+            "%s Grok output rejected — missing sections %s",
+            kind,
+            section_missing,
+        )
+        return {
+            "ok": False,
+            "engine": "grok",
+            "detail": "incomplete_output:" + ",".join(section_missing),
+            "package": pkg,
+            "validation": val,
+            "text_rejected": scrubbed[:500],
+            "blocked": True,
+        }
     return {
         "ok": True,
         "engine": "grok",
-        "text": boot_report.scrub_spoken(text),
+        "text": scrubbed,
         "include_timestamp": True,
         "package": pkg,
+        "validation": val,
+        "source_urls": url_list,
     }
 
 
@@ -836,6 +907,7 @@ def generate(
         fetched_n = 0
         if isinstance(pkg, dict) and pkg.get("fetched_markdown"):
             fetched_n = len(str(pkg.get("fetched_markdown")))
+        val = (pkg or {}).get("validation") if isinstance(pkg, dict) else None
         # Optional offline stub preview (no Ollama/Grok) so operators can see shape.
         preview = ""
         preview_engine = None
@@ -844,7 +916,7 @@ def generate(
             preview = str(stub.get("text") or "")
             preview_engine = stub.get("engine") or "offline_stub"
         return {
-            "ok": True,
+            "ok": bool((val or {}).get("ok", True)),
             "dry_run": True,
             "kind": kind,
             "engine": preview_engine or engine,
@@ -865,9 +937,11 @@ def generate(
             else bool(publish),
             "package_chars": fetched_n,
             "local_facts_chars": len(str((pkg or {}).get("local_live_facts") or "")),
+            "operator_facts_chars": len(str((pkg or {}).get("operator_facts") or "")),
             "context_urls": (pkg or {}).get("bundle", {}).get("context_urls")
             if isinstance(pkg, dict)
             else None,
+            "validation": val,
             "note": (
                 "dry_run — no Media write, no blog, no TTS"
                 + ("; offline stub text included" if offline else "; no model call")
@@ -878,6 +952,29 @@ def generate(
     if engine == "grok":
         gen = _generate_grok(kind, max_tokens=max_tokens)
         if not gen.get("ok"):
+            # Incomplete package / rejected output: fail loud — do not publish thin garbage
+            # or burn TTS. Local fallback only when Grok was thin_or_empty (API miss),
+            # not when the package itself was incomplete.
+            if gen.get("blocked"):
+                log.error(
+                    "%s Grok blocked — no publish/TTS (%s)",
+                    kind,
+                    gen.get("detail"),
+                )
+                return {
+                    "ok": False,
+                    "kind": kind,
+                    "engine": "grok",
+                    "wanted_engine": settings.get("engine"),
+                    "dry_run": False,
+                    "detail": gen.get("detail"),
+                    "validation": gen.get("validation"),
+                    "blocked": True,
+                    "files": {},
+                    "blog": {"ok": False, "skipped": True, "detail": "blocked_incomplete"},
+                    "tts": {"ok": False, "skipped": True, "detail": "blocked_incomplete"},
+                    "text_preview": gen.get("text_rejected"),
+                }
             log.warning("%s Grok thin — local fallback", kind)
             gen = _generate_local(kind, offline=False)
             engine = str(gen.get("engine") or "local")
@@ -888,6 +985,11 @@ def generate(
     text = str(gen.get("text") or "").strip()
     stamped = bool(gen.get("include_timestamp"))
     preview = text[:500] + ("…" if len(text) > 500 else "")
+    source_urls = list(gen.get("source_urls") or [])
+    if not source_urls and isinstance(gen.get("package"), dict):
+        source_urls = list(
+            ((gen.get("package") or {}).get("bundle") or {}).get("context_urls") or []
+        )
     out: dict[str, Any] = {
         "ok": bool(text),
         "kind": kind,
@@ -896,6 +998,7 @@ def generate(
         "include_timestamp": stamped,
         "dry_run": False,
         "text_preview": preview,
+        "validation": gen.get("validation"),
         "settings": {
             "engine": settings.get("engine"),
             "tts": settings.get("tts"),
@@ -924,6 +1027,7 @@ def generate(
             engine=engine,
             brands=list(settings.get("blog_brands") or ["ava", "rootrecord"]),
             audio_rel=None,
+            source_urls=source_urls or None,
             sync=True,
         )
         out["blog"] = blog
@@ -941,6 +1045,7 @@ def generate(
                 engine=engine,
                 brands=list(settings.get("blog_brands") or ["ava", "rootrecord"]),
                 audio_rel=tts.get("rel"),
+                source_urls=source_urls or None,
                 sync=True,
             )
     elif allow_tts and tts_toggle:
