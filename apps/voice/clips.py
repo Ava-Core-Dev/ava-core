@@ -130,7 +130,7 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
                 check=True,
             )
 
-        result = subprocess.run(
+        result = _run(
             [
                 "ffmpeg", "-y",
                 "-f", "concat", "-safe", "0",
