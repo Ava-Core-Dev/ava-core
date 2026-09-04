@@ -188,12 +188,27 @@ def kilauea_script(facts: str, now: datetime) -> str:
             line = row.lower()
             break
     low = line
-    if "erupting" in low or "eruption" in low:
-        return _join(_clip_or("phrase_kilauea_eruption", ["kilauea", "eruption"]))
+    # Order matters: headline "not erupting" contains the substring "erupting".
+    # Advisory / paused / not-erupting must win over the eruption phrase.
+    if (
+        "not erupting" in low
+        or "erupting=false" in low
+        or "erupting: false" in low
+        or re.search(r"\bpaused\b", low)
+    ):
+        if "advisory" in low or "yellow" in low:
+            return _join(_clip_or("phrase_kilauea_advisory", ["kilauea", "advisory"]))
+        if "normal" in low or "green" in low:
+            return _join(_clip_or("phrase_kilauea_normal", ["kilauea", "normal"]))
+        return _join(_clip_or("phrase_kilauea_advisory", ["kilauea", "advisory"]))
+    if "advisory" in low or "yellow" in low:
+        return _join(_clip_or("phrase_kilauea_advisory", ["kilauea", "advisory"]))
     if "watch" in low:
         return _join(_clip_or("phrase_kilauea_watch", ["kilauea", "watch"]))
-    if "advisory" in low:
-        return _join(_clip_or("phrase_kilauea_advisory", ["kilauea", "advisory"]))
+    if re.search(r"\bis erupting\b", low) or (
+        "eruption" in low and "paused" not in low and "not erupting" not in low
+    ):
+        return _join(_clip_or("phrase_kilauea_eruption", ["kilauea", "eruption"]))
     if "normal" in low or "green" in low:
         return _join(_clip_or("phrase_kilauea_normal", ["kilauea", "normal"]))
     return _join(["kilauea", "status", "report"])

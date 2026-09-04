@@ -786,30 +786,30 @@ class StreamDirector:
         return int(priority) > Priority.AMBIENT
 
     def _voice_busy_for_music(self) -> bool:
-        """True when current/paused/queued voice still needs the bed held (REPORT+).
+        """True when any director voice is current, paused, or still queued.
 
-        Ambient queue items must not keep the bed silent after a chime/report.
+        Every queued clip holds the bed. Release only when the queue is empty
+        and nothing is playing (after phrase_all_systems_running, chimes, reports).
         """
-        cur = self._current
-        if cur is not None and self._priority_holds_music(cur.priority):
+        if self._current is not None:
             return True
-        paused = self._paused
-        if paused is not None and self._priority_holds_music(paused.priority):
+        if self._paused is not None:
             return True
         try:
-            for item in list(getattr(self._queue, "_queue", [])):
-                if not isinstance(item, AudioItem):
-                    continue
-                # Queue stores negated priority for heap ordering.
-                if self._priority_holds_music(-int(item.priority)):
-                    return True
-        except Exception:
             if not self._queue.empty():
                 return True
+        except Exception:
+            return True
+        try:
+            pending = list(getattr(self._queue, "_queue", []))
+            if pending:
+                return True
+        except Exception:
+            pass
         return False
 
     def _release_music_if_idle(self) -> None:
-        """Clear voice hold when no REPORT+ item is current, paused, or queued."""
+        """Clear voice hold when no voice item is current, paused, or queued."""
         if self._voice_busy_for_music():
             return
         if self._music_hold:
@@ -1122,14 +1122,17 @@ class StreamDirector:
                 item.priority = -item.priority  # restore natural priority
                 await self._play(item)
             except asyncio.TimeoutError:
+                # Safety net: clear a stuck voice hold when nothing is queued.
+                self._release_music_if_idle()
                 continue
             except Exception:
                 log.exception("Stream Director loop error")
+                self._current = None
+                self._release_music_if_idle()
 
     async def _play(self, item: AudioItem) -> None:
-        # Reports / chimes / alerts pause the music bed until no REPORT+ remains.
-        if item.priority > Priority.AMBIENT:
-            self._hold_music()
+        # ANY director voice clip holds the bed (startup phrase, chime, report, ambient).
+        self._hold_music()
 
         if self._current and item.priority > self._current.priority:
             self._paused = self._current
@@ -1156,6 +1159,9 @@ class StreamDirector:
             # Always clear — exceptions used to leave hold stuck forever.
             if self._current is item:
                 self._current = None
+            # Release as soon as this item is done if nothing else is waiting.
+            if self._paused is None:
+                self._release_music_if_idle()
 
         if self._paused:
             log.info("Resuming %s", self._paused.name)
