@@ -132,9 +132,12 @@ export default {
       });
     }
 
-    // GET / and /chat are the Pages frontend (wiki home + Talk with Ava).
-    // Do not map them to origin /chat — that made both URLs the same page
-    // and hid ChatWidget. POST /api/chat still proxies to origin above.
+    // Chat lives on the home screen only.
+    if (path === "/chat" || path === "/chat/") {
+      return Response.redirect(url.origin + "/#talk", 302);
+    }
+
+    // GET / is the Pages frontend. POST /api/chat still proxies to origin above.
 
     if (path.startsWith("/ava/")) {
       return proxyToOrigin(request, {
