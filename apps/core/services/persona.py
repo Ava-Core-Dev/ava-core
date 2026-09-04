@@ -217,7 +217,9 @@ def system_prompt(*, surface: str = "desk") -> tuple[str, str]:
         "rootmc": ROOTMC_LOCK,
         "kilauea": KILAUEA_LOCK,
     }.get(surface, PUBLIC_LOCK if surface != "desk" else DESK_LOCK)
-    prompt = lock.strip() + ("\n\n" + head if head else "")
+    prompt = lock.strip()
+    if surface in {"desk", "rootmc"} and head:
+        prompt += "\n\n" + head
     return prompt, source
 
 
