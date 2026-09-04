@@ -187,6 +187,20 @@ export default {
       });
     }
 
+    // Probe: which Pages body does this Worker actually receive?
+    if (path === "/__frontend_probe") {
+      const target = VERCEL_FRONTEND.replace(/\/$/, "") + "/";
+      const upstream = await fetch(target, { redirect: "follow" });
+      const text = await upstream.text();
+      const chunk = text.match(/page-[a-f0-9]+\.js/)?.[0] ?? "";
+      return Response.json({
+        frontend: VERCEL_FRONTEND,
+        upstreamStatus: upstream.status,
+        chunk,
+        len: text.length,
+      });
+    }
+
     try {
       const res = await fetchFrontend(request, VERCEL_FRONTEND);
       // Prove which frontend URL answered (alias was stuck on an old build).
