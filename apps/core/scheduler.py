@@ -163,6 +163,9 @@ class Scheduler:
         s.add_job(self._run("api_prices"), CronTrigger(hour=10, minute=10),
                   id="api-prices", name="Public API price catalog", misfire_grace_time=300)
 
+        s.add_job(self._run("code_review"), CronTrigger(hour="11,17", minute=20),
+                  id="code-review", name="Write review pack (no apply)", misfire_grace_time=600)
+
         s.add_job(self._run("governance_self_update"), IntervalTrigger(
                       hours=1,
                       start_date=datetime.now() + timedelta(hours=1),

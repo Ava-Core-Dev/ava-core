@@ -38,8 +38,6 @@ def _script(items: list[dict], now: datetime) -> str:
         if _find_clip(phrase):
             bits.append(phrase)
             spoken += 1
-            continue
-        spoken += 1
     return " ".join(bits)
 
 

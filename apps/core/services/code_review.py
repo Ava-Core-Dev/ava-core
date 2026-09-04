@@ -9,7 +9,7 @@ import json
 import logging
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
