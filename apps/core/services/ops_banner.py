@@ -146,6 +146,8 @@ def paint(
     title = ""
     detail = ""
     kicker = "Schedule"
+    start_mode = ""
+    start_source = ""
     if auto:
         kicker = "Power"
         title = "Site power is running low"
@@ -176,9 +178,6 @@ def paint(
             kicker = "After sunset"
         start_label = shown_start
         start_mode = "actual" if actual_start else "projected"
-    else:
-        actual_start, start_source = "", ""
-        start_mode = "projected"
     return {
         "ok": True,
         **cfg,
@@ -197,6 +196,6 @@ def paint(
         "sunset": (sun or {}).get("sunset") or "",
         "startLabel": start_label,
         "shutdownLabel": shutdown_label,
-        "startMode": start_mode if cfg["enabled"] and not auto else "",
-        "startSource": start_source if cfg["enabled"] and not auto else "",
+        "startMode": start_mode,
+        "startSource": start_source,
     }
