@@ -266,7 +266,7 @@
     <header class="top">
       <a class="logo" href="https://rootrecord.cloud/" target="_top"><span class="mark">◈</span> RootRecord</a>
       <nav class="nav" aria-label="Sites and desk">
-        <a href="https://rootrecord.cloud/" target="_top" data-match="/">Home</a>
+        <a href="/" target="_top" data-match="/">Home</a>
         <a href="https://avaivy.cloud/" target="_top">Ava</a>
         <a href="https://rootrecord.cloud/status" target="_top" data-match="/status">Status</a>
         <a href="https://rootrecord.cloud/kilauea" target="_top" data-match="/kilauea">Kīlauea</a>
@@ -424,8 +424,18 @@
 <script>
 const HOST = location.hostname;
 const ON_AVA = HOST === "rootrecord.cloud" || HOST.endsWith(".rootrecord.cloud") || HOST === "avaivy.cloud" || HOST.endsWith(".avaivy.cloud") || HOST === "localhost" || HOST === "127.0.0.1";
+const ON_AVA_SITE = HOST === "avaivy.cloud" || HOST.endsWith(".avaivy.cloud");
 const API = ON_AVA ? "" : "https://rootrecord.cloud";
 const path = location.pathname.replace(/\/$/, "") || "/";
+(function setHome() {
+  const home = document.querySelector('.nav a[data-match="/"]');
+  if (!home) return;
+  if (HOST === "localhost" || HOST === "127.0.0.1") home.setAttribute("href", "/");
+  else if (ON_AVA_SITE) home.setAttribute("href", "https://avaivy.cloud/");
+  else home.setAttribute("href", "https://rootrecord.cloud/");
+  const status = document.querySelector('.nav a[data-match="/status"]');
+  if (status && ON_AVA_SITE) status.setAttribute("href", "https://avaivy.cloud/status");
+})();
 document.querySelectorAll(".nav a[data-match]").forEach((a) => {
   const m = a.getAttribute("data-match");
   if (m === "/" && (path === "/" || path === "")) a.classList.add("on");
