@@ -1,7 +1,6 @@
-"""Public Ava Ivy replies — free, natural, always with real links.
+"""Public Ava Ivy replies — short talk first. Links only when they ask where to go.
 
-Used by the origin /api/chat so guests are never stuck in a login loop for
-greetings, how-to-login, or known topics.
+Greetings are not canned — they go to the local model on this host.
 """
 
 from __future__ import annotations
@@ -24,35 +23,37 @@ LINKS = {
     "mc_login": "https://rootmc.net/login/",
     "discord": "https://discord.gg/rFFQYrNaqS",
     "play": "play.rootmc.net",
-    "record": "https://rootrecord.online",
-    "g": "https://g.rootrecord.info",
+    "record": "https://rootrecord.cloud",
+    "g": "https://rootrecord.cloud",
     "github": "https://github.com/Ava-Core-Dev",
 }
 
-GREETING = (
-    "Aloha — I'm Ava Ivy. I live on the HI Pacific Solar Root Server on the Big Island. "
-    f"This site is me: {LINKS['home']}. Minecraft is RootMC at {LINKS['play']} "
-    f"({LINKS['rootmc']}). Real-world solar, Kīlauea, and weather live on "
-    f"{LINKS['record']}. Ask whatever you want — I'll send you the right door."
-)
+GREETING = "Aloha — I'm Ava Ivy. What do you want to know?"
+
+_GREET_ONLY = {
+    "hi",
+    "hey",
+    "hello",
+    "aloha",
+    "yo",
+    "gm",
+    "good morning",
+    "good night",
+    "howdy",
+    "sup",
+}
 
 TOPICS: list[tuple[str, tuple[str, ...], str]] = [
     (
-        "greet",
-        ("hi", "hey", "hello", "aloha", "yo", "gm", "good morning", "good night", "howdy", "sup"),
-        GREETING,
-    ),
-    (
         "thanks",
         ("thanks", "thank you", "mahalo", "ty"),
-        f"Anytime. If you want the live board it's {LINKS['record']}; to join the world it's {LINKS['play']}.",
+        "Anytime.",
     ),
     (
         "who",
         ("who are you", "what are you", "who is ava", "ava ivy", "your name", "introduce"),
-        "I'm Ava Ivy — lead-dev runtime for RootMC and Root Record, not a chatbot bolted on later. "
-        f"I run on solar on the Big Island. Identity lives here ({LINKS['home']}), ops context at "
-        f"{LINKS['context']}, host pulse at {LINKS['status']}. The Minecraft world is separate: {LINKS['rootmc']}.",
+        "I'm Ava Ivy. I run the solar host, Kīlauea, and weather on the Big Island. "
+        "RootMC is the Minecraft world when you want that.",
     ),
     (
         "login",
@@ -183,12 +184,14 @@ def match_public_reply(message: str) -> dict | None:
         for tid, _keys, reply in TOPICS:
             if tid == want:
                 return {"reply": reply, "brain": "canned", "topic": tid, "generic": True}
-        fallback = next(r for tid, _k, r in TOPICS if tid == "rootmc")
-        return {"reply": fallback, "brain": "canned", "topic": "rootmc", "generic": True}
+        fallback = next(r for tid, _k, r in TOPICS if tid == "solar")
+        return {"reply": fallback, "brain": "canned", "topic": "solar", "generic": True}
 
     q = _norm(raw)
     if not q:
-        return {"reply": GREETING, "brain": "canned", "topic": "greet"}
+        return None
+    if q in _GREET_ONLY:
+        return None
 
     best: tuple[int, str, str] | None = None
     for tid, keys, reply in TOPICS:
@@ -198,8 +201,6 @@ def match_public_reply(message: str) -> dict | None:
                 score += 3 if len(k) > 4 else 2
             elif k in q:
                 score += 2 if len(k) > 3 else 1
-        if tid == "greet" and q in {"hi", "hey", "hello", "aloha", "yo", "gm", "sup"}:
-            score += 5
         if score > 0 and (best is None or score > best[0]):
             best = (score, tid, reply)
 
