@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from apps.core import config
-from apps.voice.local_tts import GENERATED, speak_script
+from apps.voice.local_tts import GENERATED, clock_tokens, date_tokens, speak_script
 
 log = logging.getLogger("ava.cron.hourly_clip_reports")
 HST = ZoneInfo("Pacific/Honolulu")
@@ -19,9 +19,12 @@ def _int(tok: str) -> str | None:
     return m.group(0) if m else None
 
 
-def solar_script(facts: str) -> str:
-    # Prefer whole-phrase opener from the new kit.
-    bits = ["here_are_the_local_solar_and_system_statistics"]
+def _stamp_prefix(now: datetime) -> list[str]:
+    return date_tokens(now) + clock_tokens(now.hour, 0 if now.minute < 15 else 30 if now.minute < 45 else 0)
+
+
+def solar_script(facts: str, now: datetime) -> str:
+    bits = _stamp_prefix(now) + ["here_are_the_local_solar_and_system_statistics"]
     low = facts.lower()
     if "delta" in low:
         bits += ["delta"]
@@ -33,24 +36,46 @@ def solar_script(facts: str) -> str:
         m = re.search(r"RIVER[^%\d]{0,40}(\d{1,3})\s*%", facts, re.I)
         if m:
             bits += [m.group(1), "percent"]
+    m = re.search(r"PV in\s+(\d+)\s*W", facts, re.I)
+    if m:
+        bits += ["solar", "in", m.group(1), "watts"]
+    m = re.search(r"load out\s+(\d+)\s*W", facts, re.I)
+    if m:
+        bits += ["load", "out", m.group(1), "watts"]
+    m = re.search(r"~(\d+(?:\.\d+)?)\s*h left", facts, re.I)
+    if m:
+        hours = m.group(1).split(".")[0]
+        bits += ["hours_remaining", hours, "hours"]
+    if "transfer" in low:
+        bits.append("transfer")
+    if "starlink" in low:
+        bits.append("starlink")
+    if "leftover" in low:
+        bits.append("leftover")
+    if "emergency" in low:
+        bits.append("emergency")
     if "DOWN" in facts and "EcoFlow" in facts:
-        bits = ["solar", "status", "offline"]
+        bits = _stamp_prefix(now) + ["solar", "status", "offline"]
     return " ".join(bits)
 
 
-def system_script(facts: str) -> str:
-    bits = ["system", "performance"]
+def system_script(facts: str, now: datetime) -> str:
+    bits = _stamp_prefix(now) + ["system", "performance"]
     m = re.search(r"CPU\s+(\d+)\s*%", facts, re.I)
     if m:
         bits += ["cpu", m.group(1), "percent"]
     m = re.search(r"RAM\s+(\d+)\s*%", facts, re.I)
     if m:
         bits += ["memory", m.group(1), "percent"]
+    if re.search(r"\bnpu\b", low := facts.lower()):
+        bits += ["npu", "load"]
+    if "840m" in low or "igpu" in low or "i_gpu" in low or "radeon" in low:
+        bits += ["i_gpu", "load"]
     return " ".join(bits)
 
 
-def weather_script(facts: str) -> str:
-    bits = ["weather_details_as_of"]
+def weather_script(facts: str, now: datetime) -> str:
+    bits = _stamp_prefix(now) + ["weather_details_as_of"]
     line = ""
     for row in facts.splitlines():
         if "weather" in row.lower() or "nws" in row.lower() or "NOAA" in row:
@@ -79,17 +104,18 @@ def weather_script(facts: str) -> str:
     return " ".join(bits)
 
 
-def kilauea_script(facts: str) -> str:
+def kilauea_script(facts: str, now: datetime) -> str:
     low = facts.lower()
+    prefix = " ".join(_stamp_prefix(now))
     if "erupting" in low or "eruption" in low:
-        return "phrase_kilauea_eruption"
+        return f"{prefix} phrase_kilauea_eruption"
     if "watch" in low:
-        return "phrase_kilauea_watch"
+        return f"{prefix} phrase_kilauea_watch"
     if "advisory" in low:
-        return "phrase_kilauea_advisory"
+        return f"{prefix} phrase_kilauea_advisory"
     if "normal" in low or "green" in low:
-        return "phrase_kilauea_normal"
-    return "kilauea status report"
+        return f"{prefix} phrase_kilauea_normal"
+    return f"{prefix} kilauea status report"
 
 
 def _facts_sync() -> str:
