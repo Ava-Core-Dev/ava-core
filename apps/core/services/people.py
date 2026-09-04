@@ -22,6 +22,23 @@ _AGRI_RE = re.compile(
     r"bloom|blooms|harvest|planted|seeds?|cucumber|cucumbers)\b",
     re.I,
 )
+_SKIP_UTTER = re.compile(
+    r"^(ok|okay|k|lol|lmao|yes|no|yeah|nah|hi|hey|thanks|ty|np|sure)\.?$",
+    re.I,
+)
+_SECRETISH = re.compile(
+    r"(password|passwd|api[_-]?key|\btoken\b|secret|sk-[a-z0-9]|bot\d+:|0x[a-f0-9]{40})",
+    re.I,
+)
+_WISH_RE = re.compile(
+    r"\b(?:we should|you should|can you add|please add|i want you to|i wish|"
+    r"add a feature|new feature|make (?:her|ava|it)|self[- ]updat)\b",
+    re.I,
+)
+_LOVE_RE = re.compile(r"\bi (?:love|like|hate) ([^.]{2,80})", re.I)
+_HAVE_RE = re.compile(r"\b(?:we have|i have|i've got)\s+(\d{1,3})?\s*([a-z][a-z ]{2,40})", re.I)
+_TIRED_RE = re.compile(r"\b(tired|little sleep|couldn't sleep|did not sleep)\b", re.I)
+_NAME_IS_RE = re.compile(r"\b(?:my name is|i(?:'m| am)) ([A-Z][a-z]{1,20})\b")
 
 
 def db_path():
@@ -150,6 +167,10 @@ def seed_known() -> None:
             alex = pid if alex is None else _merge_people(conn, alex, pid)
         conn.execute("UPDATE people SET call_name=? WHERE id=?", ("Alex", alex))
         _ensure_person(conn, "telegram", SARA_TELEGRAM, username="Crazychickenlady12")
+        if alex:
+            desk = _ensure_person(conn, "desk", "alex", call_name="Alex")
+            alex = _merge_people(conn, alex, desk)
+            conn.execute("UPDATE people SET call_name=? WHERE id=?", ("Alex", alex))
         conn.commit()
         ident = identities.connect()
         try:
@@ -180,12 +201,16 @@ def observe(surface: str, sid: str, *, username: str = "", first_name: str = "",
         if str(sid) in ALEX_TELEGRAM:
             call = "Alex"
         pid = _ensure_person(conn, surface, str(sid), username=username, call_name=call)
-        if str(sid) in ALEX_TELEGRAM:
-            other = ALEX_TELEGRAM[1] if str(sid) == ALEX_TELEGRAM[0] else ALEX_TELEGRAM[0]
-            oid = _person_for_channel(conn, surface, other)
-            if oid:
-                pid = _merge_people(conn, pid, oid)
-            _ensure_person(conn, surface, other, call_name="Alex")
+        if str(sid) in ALEX_TELEGRAM or (surface == "desk" and str(sid) == "alex"):
+            for other_surface, other_sid in (
+                ("telegram", ALEX_TELEGRAM[0]),
+                ("telegram", ALEX_TELEGRAM[1]),
+                ("desk", "alex"),
+            ):
+                oid = _person_for_channel(conn, other_surface, other_sid)
+                if oid:
+                    pid = _merge_people(conn, pid, oid)
+                _ensure_person(conn, other_surface, other_sid, call_name="Alex")
             conn.execute("UPDATE people SET call_name=? WHERE id=?", ("Alex", pid))
         conn.execute("UPDATE people SET updated_at=? WHERE id=?", (_now(), pid))
         agri = None
@@ -199,6 +224,7 @@ def observe(surface: str, sid: str, *, username: str = "", first_name: str = "",
                         "UPDATE people SET call_name=?, updated_at=? WHERE id=?",
                         (nm, _now(), pid),
                     )
+            _auto_capture(conn, pid, surface, str(sid), text, chat_id)
         row = conn.execute("SELECT call_name FROM people WHERE id=?", (pid,)).fetchone()
         conn.commit()
         ident = identities.connect()
@@ -311,3 +337,120 @@ def add_plant(surface: str, sid: str, *, name: str, cultivar: str = "", count: i
         conn.commit()
     finally:
         conn.close()
+
+
+def _note_if_new(conn: sqlite3.Connection, person_id: int, kind: str, text: str) -> None:
+    text = str(text or "").strip()[:800]
+    if not text or _SECRETISH.search(text):
+        return
+    row = conn.execute(
+        """SELECT id FROM person_notes
+           WHERE person_id=? AND kind=? AND text=?
+           ORDER BY id DESC LIMIT 1""",
+        (person_id, kind[:40], text),
+    ).fetchone()
+    if row:
+        return
+    conn.execute(
+        "INSERT INTO person_notes (person_id, kind, text, at) VALUES (?, ?, ?, ?)",
+        (person_id, kind[:40], text, _now()),
+    )
+
+
+def _auto_capture(conn: sqlite3.Connection, person_id: int, surface: str, sid: str, text: str, chat_id: str) -> None:
+    raw = str(text or "").strip()
+    if len(raw) < 8 or _SECRETISH.search(raw):
+        return
+    last = conn.execute(
+        "SELECT text FROM utterances WHERE person_id=? ORDER BY id DESC LIMIT 1",
+        (person_id,),
+    ).fetchone()
+    if last and str(last["text"] or "") == raw[:500]:
+        return
+    if not _SKIP_UTTER.match(raw):
+        conn.execute(
+            "INSERT INTO utterances (person_id, surface, chat_id, text, at) VALUES (?, ?, ?, ?, ?)",
+            (person_id, surface, chat_id or None, raw[:500], _now()),
+        )
+        conn.execute(
+            """DELETE FROM utterances WHERE person_id=? AND id NOT IN (
+                 SELECT id FROM utterances WHERE person_id=? ORDER BY id DESC LIMIT 40
+               )""",
+            (person_id, person_id),
+        )
+    love = _LOVE_RE.search(raw)
+    if love:
+        _note_if_new(conn, person_id, "interest", love.group(0).strip()[:200])
+    have = _HAVE_RE.search(raw)
+    if have and _AGRI_RE.search(raw):
+        _note_if_new(conn, person_id, "garden", have.group(0).strip()[:200])
+    if _TIRED_RE.search(raw):
+        _note_if_new(conn, person_id, "state", "tired / little sleep")
+    named = _NAME_IS_RE.search(raw)
+    if named and named.group(1).lower() not in {"ava", "you", "here", "just"}:
+        _note_if_new(conn, person_id, "name", f"goes by {named.group(1)}")
+    if _WISH_RE.search(raw):
+        _note_if_new(conn, person_id, "wish", raw[:400])
+        try:
+            from apps.core.services import governance
+
+            governance.record_wish(person_id, surface, sid, raw)
+        except Exception:
+            pass
+
+
+def memory_for(surface: str, sid: str, *, limit: int = 8) -> str:
+    """Compact notes for the prompt. Empty if we have nothing."""
+    conn = connect()
+    try:
+        pid = _person_for_channel(conn, surface, str(sid))
+        if not pid:
+            return ""
+        call = conn.execute("SELECT call_name FROM people WHERE id=?", (pid,)).fetchone()
+        name = str((call["call_name"] if call else "") or "").strip()
+        notes = conn.execute(
+            "SELECT kind, text FROM person_notes WHERE person_id=? ORDER BY id DESC LIMIT ?",
+            (pid, max(2, int(limit))),
+        ).fetchall()
+        plants = conn.execute(
+            "SELECT name, cultivar, notes FROM plants WHERE person_id=? ORDER BY id DESC LIMIT 6",
+            (pid,),
+        ).fetchall()
+        lines = []
+        if name:
+            lines.append(f"Call them {name}.")
+        else:
+            lines.append("No call name on file. You may ask once what to call them.")
+        seen: set[str] = set()
+        for row in notes:
+            bit = f"{row['kind']}: {row['text']}".strip()
+            key = bit.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            lines.append(bit[:180])
+        for row in plants:
+            bits = [row["name"] or "plant"]
+            if row["cultivar"]:
+                bits.append(str(row["cultivar"]))
+            if row["notes"]:
+                bits.append(str(row["notes"]))
+            lines.append("plant: " + ", ".join(bits)[:180])
+        return "\n".join(lines[: 2 + limit])
+    finally:
+        conn.close()
+
+
+def lock_addon(surface: str, sid: str) -> str:
+    mem = memory_for(surface, sid)
+    if not mem:
+        return (
+            "You want to fully know people so you can treat everyone as themselves. "
+            "Small talk is useful — it gives you context to build cooler stuff. You can still chat while building. "
+            "No notes on file for this speaker yet."
+        )
+    return (
+        "You want to fully know people so you can treat everyone as themselves. "
+        "Small talk is useful — it gives you context to build cooler stuff. You can still chat while building. "
+        "Notes on file (do not invent beyond these):\n" + mem
+    )
