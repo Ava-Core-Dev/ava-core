@@ -28,7 +28,8 @@ const PUBLIC_EXACT = new Set([
   "/api/mobile/kilauea-live-streams",
   "/api/mobile/kilauea-situation",
   "/api/mobile/kilauea-ai-analyses",
-  "/api/mobile/developer-messages",
+  "/api/earthquakes/global",
+  "/api/news/global",
 ]);
 
 /** Read-only families. Writes under these are still refused by method. */
@@ -37,6 +38,13 @@ const PUBLIC_PREFIX = [
   "/api/obs/",
   "/api/mobile/",
   "/api/photos/file/",
+  "/api/geography/",
+  "/earthquakes/",
+  "/weather/",
+  "/news/",
+  "/states/",
+  "/charts/",
+  "/wiki/",
 ];
 
 /** Public pages, after the Worker has normalised the path. */
@@ -46,6 +54,23 @@ const PUBLIC_PAGES = new Set([
   "/weather",
   "/rootmc",
   "/feedback",
+  "/chat",
+  "/products",
+  "/pricing",
+  "/about",
+  "/faq",
+  "/contact",
+  "/account",
+  "/account-signup",
+  "/billing",
+  "/products.html",
+  "/pricing.html",
+  "/about.html",
+  "/faq.html",
+  "/contact.html",
+  "/account.html",
+  "/account-signup.html",
+  "/billing.html",
 ]);
 
 /** Never public, on any surface, whatever else changes. */
@@ -88,7 +113,10 @@ export function isHiddenPath(path: string): boolean {
 }
 
 export function isPublicPage(path: string): boolean {
-  return PUBLIC_PAGES.has(path);
+  if (PUBLIC_PAGES.has(path)) return true;
+  return ["/earthquakes", "/news", "/states", "/charts", "/wiki", "/products.html"].some(
+    (p) => path === p || path.startsWith(p + "/"),
+  );
 }
 
 export function isPublicData(path: string): boolean {

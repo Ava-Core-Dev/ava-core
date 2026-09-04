@@ -21,19 +21,6 @@ router = APIRouter()
 _start_time = time.time()
 
 
-@router.get("/")
-async def root(request: Request):
-    try:
-        from apps.core.routes.local_site import home_response
-
-        page = home_response(request)
-        if page is not None:
-            return page
-    except Exception:
-        pass
-    return JSONResponse({"redirect": "https://rootrecord.cloud/status", "ava": "online"})
-
-
 def _solar_html() -> str:
     path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
     return path.read_text(encoding="utf-8") if path.is_file() else "<p>status desk missing</p>"
