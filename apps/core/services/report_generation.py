@@ -449,13 +449,49 @@ def generate(
 ) -> dict:
     """Main entry used by crons + /api/reports/generation/run.
 
-    dry_run=True (default for API): produce text, no blog / no file replace / no TTS.
-    Cron passes dry_run=False.
+    dry_run=True (default for API): package + resolved engine only — no model,
+    no Media write, no blog, no TTS. Cron passes dry_run=False.
     """
     kind = (kind or "morning").strip().lower()
     settings = type_settings(kind)
+    wanted = force_engine or engine_for(kind)
     engine = resolve_engine(kind, offline=offline, force=force_engine)
     max_tokens = int(settings.get("max_tokens") or 1800)
+
+    if dry_run:
+        pkg = None
+        try:
+            pkg = build_prompt_package(kind)
+        except Exception as e:
+            pkg = {"error": type(e).__name__}
+        fetched_n = 0
+        if isinstance(pkg, dict) and pkg.get("fetched_markdown"):
+            fetched_n = len(str(pkg.get("fetched_markdown")))
+        return {
+            "ok": True,
+            "dry_run": True,
+            "kind": kind,
+            "engine_would": engine,
+            "wanted_engine": wanted,
+            "include_timestamp": not offline,
+            "settings": {
+                "engine": settings.get("engine"),
+                "tts": settings.get("tts"),
+                "blog": settings.get("blog"),
+                "blog_brands": settings.get("blog_brands"),
+            },
+            "tts_would": bool(settings.get("tts")) and allow_tts and _spend_ok(),
+            "blog_would": bool(settings.get("blog"))
+            if publish is None
+            else bool(publish),
+            "package_chars": fetched_n,
+            "local_facts_chars": len(str((pkg or {}).get("local_live_facts") or "")),
+            "context_urls": (pkg or {}).get("bundle", {}).get("context_urls")
+            if isinstance(pkg, dict)
+            else None,
+            "note": "dry_run — no model call, no Media write, no blog, no TTS",
+            "grok_spend_ok": _spend_ok(),
+        }
 
     if engine == "grok":
         gen = _generate_grok(kind, max_tokens=max_tokens)
@@ -476,7 +512,7 @@ def generate(
         "engine": engine,
         "wanted_engine": settings.get("engine"),
         "include_timestamp": stamped,
-        "dry_run": dry_run,
+        "dry_run": False,
         "text_preview": preview,
         "settings": {
             "engine": settings.get("engine"),
@@ -490,11 +526,6 @@ def generate(
     }
     if not text:
         out["detail"] = "empty"
-        return out
-
-    if dry_run:
-        out["text"] = text
-        out["note"] = "dry_run — no Media write, no blog, no TTS"
         return out
 
     files = _write_files(kind, text, stamped=stamped)
@@ -516,22 +547,19 @@ def generate(
         out["blog"] = blog
 
     tts_toggle = bool(settings.get("tts"))
-    if allow_tts and tts_toggle and engine == "grok" and _spend_ok():
-        from apps.core.services import report_generation as self_mod
-
-        tts = self_mod.synthesize_mp3(kind, text)
+    if allow_tts and tts_toggle and _spend_ok():
+        tts = synthesize_mp3(kind, text)
         out["tts"] = tts
         if tts.get("ok") and out.get("blog", {}).get("ok"):
-            # Re-publish with audio path when TTS succeeded.
             from apps.core.services import report_blog
 
             out["blog"] = report_blog.publish_report_post(
                 report_type=kind,
                 text=text,
                 engine=engine,
-                brands=list(settings.get("blog_brands") or ["ava"]),
+                brands=list(settings.get("blog_brands") or ["ava", "rootrecord"]),
                 audio_rel=tts.get("rel"),
-                sync=False,
+                sync=True,
             )
     elif allow_tts and tts_toggle:
         out["tts"] = {"ok": False, "skipped": True, "detail": "spend_or_engine"}
