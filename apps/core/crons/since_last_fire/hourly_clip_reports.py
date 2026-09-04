@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from apps.core import config
-from apps.voice.local_tts import GENERATED, clock_tokens, speak_script
+from apps.voice.local_tts import GENERATED, speak_script
 
 log = logging.getLogger("ava.cron.hourly_clip_reports")
 HST = ZoneInfo("Pacific/Honolulu")
@@ -19,15 +19,29 @@ def _int(tok: str) -> str | None:
     return m.group(0) if m else None
 
 
-def _stamp_prefix(now: datetime) -> list[str]:
-    """Clock only. Hourly packs do not lead with weekday or calendar date."""
-    minute = 0 if now.minute < 15 else 30 if now.minute < 45 else 0
-    hour = now.hour
-    if now.minute >= 45:
-        hour = (hour + 1) % 24
-    if now.minute in (0, 30):
-        hour, minute = now.hour, now.minute
-    return clock_tokens(hour, minute)
+def _has_clip(name: str) -> bool:
+    from apps.voice.clips import _find_clip
+
+    if re.fullmatch(r"-?\d+", name or ""):
+        return bool(_find_clip(name))
+    return bool(_find_clip(name))
+
+
+def _join(bits: list[str]) -> str:
+    """Drop tokens with no clip so the pack does not skip mid-sentence."""
+    out: list[str] = []
+    for tok in bits:
+        raw = (tok or "").strip()
+        if not raw:
+            continue
+        if re.fullmatch(r"-?\d+", raw) or _has_clip(raw):
+            out.append(raw)
+            continue
+        if raw.count("_") == 1:
+            a, b = raw.split("_", 1)
+            if _has_clip(a) and _has_clip(b):
+                out.append(raw)
+    return " ".join(out)
 
 
 def _ac_role_tokens() -> list[str]:
@@ -55,7 +69,7 @@ def _ac_role_tokens() -> list[str]:
         bits.append("starlink")
     if float(cats.get("emergency_pack_w") or 0) >= 20:
         bits.append("emergency")
-    return bits
+    return [t for t in bits if _has_clip(t)]
 
 
 def _clip_or(name: str, fallback: list[str]) -> list[str]:
@@ -63,47 +77,57 @@ def _clip_or(name: str, fallback: list[str]) -> list[str]:
 
     if _find_clip(name):
         return [name]
-    return list(fallback)
+    return [t for t in fallback if _has_clip(t) or re.fullmatch(r"-?\d+", t)]
+
+
+def _pack_soc(facts: str, label: str) -> str | None:
+    m = re.search(rf"{re.escape(label)}:\s*(\d+(?:\.\d+)?)\s*%", facts, re.I)
+    if m:
+        return m.group(1).split(".")[0]
+    m = re.search(rf"{re.escape(label)}[^\n]{{0,80}}?(\d+(?:\.\d+)?)\s*%\s*SOC", facts, re.I)
+    return m.group(1).split(".")[0] if m else None
 
 
 def solar_script(facts: str, now: datetime) -> str:
-    bits = _stamp_prefix(now) + _clip_or(
+    bits = _clip_or(
         "phrase_hourly_solar",
         ["solar", "report"],
     )
     low = facts.lower()
-    if "delta" in low:
+    delta_pct = _pack_soc(facts, "DELTA 2")
+    if delta_pct:
+        bits += ["delta", delta_pct, "percent"]
+    elif "delta" in low:
         bits += ["delta"]
-        m = re.search(r"DELTA[^%\d]{0,40}(\d{1,3})\s*%", facts, re.I)
-        if m:
-            bits += [m.group(1), "percent"]
-    if "river" in low:
+    river_pct = _pack_soc(facts, "RIVER 2 Pro")
+    if river_pct:
+        bits += ["river", river_pct, "percent"]
+    elif "river" in low:
         bits += ["river"]
-        m = re.search(r"RIVER[^%\d]{0,40}(\d{1,3})\s*%", facts, re.I)
-        if m:
-            bits += [m.group(1), "percent"]
     m = re.search(r"E-Batt in\s+(\d+)\s*W", facts, re.I)
     if m:
         bits += ["emergency", "in", m.group(1), "watts"]
     else:
-        m = re.search(r"PV in\s+(\d+)\s*W", facts, re.I)
+        m = re.search(r"Bank combined[^\n]*PV in\s+(\d+)\s*W", facts, re.I) or re.search(
+            r"PV in\s+(\d+)\s*W", facts, re.I
+        )
         if m:
             bits += ["solar", "in", m.group(1), "watts"]
     m = re.search(r"load out\s+(\d+)\s*W", facts, re.I)
     if m:
         bits += ["load", "out", m.group(1), "watts"]
-    m = re.search(r"~(\d+(?:\.\d+)?)\s*h left", facts, re.I)
+    m = re.search(r"~(\d+(?:\.\d+)?)\s*h (?:left|to full)", facts, re.I)
     if m:
         hours = m.group(1).split(".")[0]
-        bits += ["hours_remaining", hours, "hours"]
+        bits += [hours, "hours"]
     bits += _ac_role_tokens()
     if "DOWN" in facts and "EcoFlow" in facts:
-        bits = _stamp_prefix(now) + ["solar", "status", "offline"]
-    return " ".join(bits)
+        bits = _clip_or("phrase_hourly_solar", ["solar", "status", "offline"])
+    return _join(bits)
 
 
 def system_script(facts: str, now: datetime) -> str:
-    bits = _stamp_prefix(now) + _clip_or("phrase_hourly_system", ["system", "report"])
+    bits = _clip_or("phrase_hourly_system", ["system", "report"])
     m = re.search(r"CPU\s+(\d+)\s*%", facts, re.I)
     if m:
         bits += ["cpu", m.group(1), "percent"]
@@ -114,11 +138,11 @@ def system_script(facts: str, now: datetime) -> str:
         bits += ["npu", "load"]
     if "840m" in facts.lower() or "igpu" in facts.lower() or "i_gpu" in facts.lower() or "radeon" in facts.lower():
         bits += ["i_gpu", "load"]
-    return " ".join(bits)
+    return _join(bits)
 
 
 def weather_script(facts: str, now: datetime) -> str:
-    bits = _stamp_prefix(now)
+    bits = _clip_or("phrase_hourly_weather", ["weather", "report"])
     line = ""
     for row in facts.splitlines():
         low = row.lower()
@@ -147,26 +171,27 @@ def weather_script(facts: str, now: datetime) -> str:
         if word.replace("_", " ") in line or word in line:
             condition = word
             break
-    # Never lead with “…as of” unless a condition clip follows — that hung mid-sentence.
     if condition:
-        bits += _clip_or("phrase_hourly_weather", ["weather"]) + [condition]
-    else:
-        bits += _clip_or("phrase_hourly_weather", ["weather", "report"])
-    return " ".join(bits)
+        bits.append(condition)
+    m = re.search(r"(\d+)\s*°?\s*f\b", line, re.I)
+    if not m:
+        m = re.search(r"(\d+)\s*f\b", line, re.I)
+    if m:
+        bits += [m.group(1), "degrees", "fahrenheit"]
+    return _join(bits)
 
 
 def kilauea_script(facts: str, now: datetime) -> str:
     low = facts.lower()
-    prefix = " ".join(_stamp_prefix(now))
     if "erupting" in low or "eruption" in low:
-        return f"{prefix} phrase_kilauea_eruption"
+        return _join(_clip_or("phrase_kilauea_eruption", ["kilauea", "eruption"]))
     if "watch" in low:
-        return f"{prefix} phrase_kilauea_watch"
+        return _join(_clip_or("phrase_kilauea_watch", ["kilauea", "watch"]))
     if "advisory" in low:
-        return f"{prefix} phrase_kilauea_advisory"
+        return _join(_clip_or("phrase_kilauea_advisory", ["kilauea", "advisory"]))
     if "normal" in low or "green" in low:
-        return f"{prefix} phrase_kilauea_normal"
-    return f"{prefix} kilauea status report"
+        return _join(_clip_or("phrase_kilauea_normal", ["kilauea", "normal"]))
+    return _join(["kilauea", "status", "report"])
 
 
 def _facts_sync() -> str:

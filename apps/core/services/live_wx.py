@@ -184,6 +184,17 @@ def hurricane_line() -> str:
     return "Hurricanes: " + "; ".join(bits) + (f". Sample {ts}." if ts else ".")
 
 
+def weather_lines_sync() -> list[str]:
+    """No HTTP. Fresh cache if origin already fetched NWS; else the markdown on disk."""
+    if _cache and (time.monotonic() - _cache[0]) < _CACHE_S:
+        return _cache[1]
+    hour = datetime.now(HST).hour
+    periods, alerts, stamp = _from_md()
+    period = _pick_period(periods, hour)
+    wx = f"Weather ({stamp}): " + (_period_line(period) if period else "DOWN")
+    return [wx, _alert_line(alerts), hurricane_line()]
+
+
 async def weather_lines() -> list[str]:
     global _cache
     now = time.monotonic()
