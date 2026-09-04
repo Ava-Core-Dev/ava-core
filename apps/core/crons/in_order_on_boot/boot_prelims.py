@@ -50,6 +50,8 @@ async def run(*, write_report: bool = True) -> dict:
         try:
             from apps.core.services import boot_report
 
+            # Local on-device Boot Report path. Automation flag is advisory for ops;
+            # boot prelims always write the file when write_report=True (no Grok/TTS).
             written = boot_report.write_boot_report(source="boot_prelims")
             out["steps"]["boot_report"] = {
                 "ok": written.get("ok"),
@@ -57,7 +59,10 @@ async def run(*, write_report: bool = True) -> dict:
                 "current": written.get("current"),
                 "bytes": written.get("bytes"),
                 "engine": written.get("engine"),
+                "scrub": written.get("scrub"),
+                "automation": boot_report.morning_automation_enabled(),
                 "grok": False,
+                "tts": False,
             }
         except Exception as e:
             log.exception("boot prelims report write failed")

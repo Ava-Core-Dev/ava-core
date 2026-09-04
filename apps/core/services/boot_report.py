@@ -44,8 +44,9 @@ Required shape:
    - Boot Summary (overnight downtime, restore/boot time, net-gate stop/restore, desk restore issues if any)
    - System Summary (origin, tunnel, on-device brain, Desk, watchdog tasks, voice mode local, public chat path when warm)
    - Weather Summary (use the weather facts; say how fresh if age is given)
-   - Kīlauea Summary
+   - Kīlauea Summary (advisory / not erupting is NOT an eruption; use erupting=false when present)
    - Power / bank if measured numbers exist
+   - Change vs previous morning Boot Report when DIFFERENTIALS are in FACTS (bank %, pack SOC, host charge, hours — measured only)
    - Broken / needs work
    - Already landed (recent)
    - Priority (keep paid cloud voice off; keep Starlink and site bank on solar packs / sun / load management)
@@ -707,6 +708,48 @@ def write_boot_report(*, source: str = "boot", text: str | None = None) -> dict:
         "bytes": len(body.encode("utf-8")),
         "text": body,
         "grok": False,
+        "scrub": scrub_path_clean(body),
+    }
+
+
+def write_boot_draft(*, source: str = "simulate_boot", text: str | None = None) -> dict:
+    """Operator-review draft only — does not replace morning-boot-current.md / dated."""
+    if text is None:
+        gen = generate_spoken(source=source)
+        text = gen["text"]
+        engine = gen.get("engine")
+        facts = gen.get("facts")
+    else:
+        engine = "provided"
+        facts = None
+        gen = {"ok": True, "engine": engine, "grok": False}
+    now = datetime.now(HST)
+    stamp = now.strftime("%Y%m%d-%H%M%S")
+    config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    draft = config.REPORTS_DIR / f"morning-boot-draft-{stamp}.md"
+    state_draft = config.DATA_DIR / "state" / f"morning-boot-draft-{stamp}.md"
+    body = text if text.endswith("\n") else text + "\n"
+    header = (
+        f"# Morning Boot Report DRAFT (text only — no Ara / no TTS)\n"
+        f"source={source} engine={engine} stamp={now.strftime('%Y-%m-%d %H:%M')} Hawaiian Standard Time\n\n"
+    )
+    full = header + body
+    draft.write_text(full, encoding="utf-8")
+    state_draft.parent.mkdir(parents=True, exist_ok=True)
+    state_draft.write_text(full, encoding="utf-8")
+    return {
+        "ok": True,
+        "source": source,
+        "engine": engine,
+        "draft": str(draft),
+        "state_draft": str(state_draft),
+        "bytes": len(full.encode("utf-8")),
+        "text": body,
+        "full": full,
+        "grok": False,
+        "tts": False,
+        "scrub": scrub_path_clean(body),
+        "facts": facts,
     }
 
 
