@@ -9,6 +9,12 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+_DIR = Path(__file__).resolve().parent
+if str(_DIR) not in sys.path:
+    sys.path.insert(0, str(_DIR))
+import net_gate  # noqa: E402
+
+
 CREATE_NO_WINDOW = 0x08000000
 REPO = Path(__file__).resolve().parents[1]
 HOME = Path(os.environ.get("AVA_HOME", str(Path.home() / "ava")))
@@ -83,9 +89,17 @@ def _ensure_tunnel() -> None:
         )
 
 
+online = net_gate.internet_up()
+origin_up = _health_ok() or _port_open()
+decision = net_gate.tick(online=online, origin_up=origin_up)
+if not decision.get("allow_origin"):
+    sys.exit(0)
+
 _ensure_tunnel()
 
 if _health_ok() or _port_open():
+    if decision.get("restart_desk"):
+        net_gate.start_desk()
     sys.exit(0)
 
 
