@@ -128,6 +128,8 @@ async def telegram_loop() -> None:
                 label = str(from_user.get("username") or from_user.get("first_name") or "")
                 telegram_rooms.append_log(str(chat_id), "ingest" if text else "group_update", text, from_id)
                 if cmd:
+                    if is_group:
+                        continue
                     reply = await _handle("telegram", str(chat_id), cmd, label=label)
                     await telegram.send_message(chat_id, reply)
                     continue
