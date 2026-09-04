@@ -143,7 +143,10 @@ class Scheduler:
         s.add_job(self._run("governance_daily"), CronTrigger(hour=10, minute=8),
                   id="governance-daily", name="RootRecord governance daily", misfire_grace_time=300)
 
-        s.add_job(self._run("governance_self_update"), IntervalTrigger(hours=1),
+        s.add_job(self._run("governance_self_update"), IntervalTrigger(
+                      hours=1,
+                      start_date=datetime.now() + timedelta(hours=1),
+                  ),
                   id="governance-self-update", name="Governance self-update after boot grace", misfire_grace_time=300)
 
         # ── Economy brief (15:00 HST daily) ──────────────────────────────────
