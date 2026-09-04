@@ -102,6 +102,8 @@ function wattsOf(data: Record<string, unknown>, ...keys: string[]): number {
 }
 
 const APPLIANCE_AC_W = 1000;
+const STARLINK_BAND_LO = 40;
+const STARLINK_BAND_HI = 250;
 
 function packPower(data: Record<string, unknown>) {
   const pv = wattsOf(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts");
@@ -154,39 +156,67 @@ function applyAcRoles(devices: Array<Record<string, unknown>>): void {
   for (const d of devices) {
     d.ac_role = null;
     d.transfer_sure = false;
+    delete d.transfer_w;
+    delete d.appliance_w;
+    delete d.starlink_w;
+    delete d.emergency_w;
   }
   const delta = devices.find(isDelta);
   const river = devices.find(isRiver);
-  const pair = (src: Record<string, unknown>, dst: Record<string, unknown>): boolean => {
-    const srcOut = Math.max(Number(src.ac_out_w || 0), Number(src.discharge_w || 0));
-    const dstIn = Math.max(Number(dst.ac_in_w || 0), Number(dst.ac_charge_w || 0));
-    if (!sameWatts(srcOut, dstIn)) return false;
-    src.ac_role = "transfer_out";
-    dst.ac_role = "transfer_in";
-    src.transfer_sure = true;
-    dst.transfer_sure = true;
-    src.transfer_w = Math.round(srcOut * 10) / 10;
-    dst.transfer_w = Math.round(dstIn * 10) / 10;
-    return true;
-  };
-  if (delta && river && (pair(delta, river) || pair(river, delta))) return;
-  let extra = 0;
-  if (delta && river) extra = Math.max(0, Number(delta.ac_out_w || 0) - Number(river.ac_in_w || 0));
-  const kettle = extra >= APPLIANCE_AC_W || extra >= 800;
+  let src: Record<string, unknown> | undefined;
+  let dst: Record<string, unknown> | undefined;
+  let transfer = 0;
+  if (delta && river) {
+    const dOut = Number(delta.ac_out_w || 0);
+    const rOut = Number(river.ac_out_w || 0);
+    const dIn = Math.max(Number(delta.ac_in_w || 0), Number(delta.ac_charge_w || 0));
+    const rIn = Math.max(Number(river.ac_in_w || 0), Number(river.ac_charge_w || 0));
+    if (dOut >= 20 && rIn >= 20) {
+      src = delta;
+      dst = river;
+      transfer = Math.min(dOut, rIn);
+    } else if (rOut >= 20 && dIn >= 20) {
+      src = river;
+      dst = delta;
+      transfer = Math.min(rOut, dIn);
+    }
+    if (src && dst) {
+      src.ac_role = "transfer_out";
+      dst.ac_role = "transfer_in";
+      src.transfer_sure = true;
+      dst.transfer_sure = true;
+      src.transfer_w = Math.round(transfer * 10) / 10;
+      dst.transfer_w = Math.round(transfer * 10) / 10;
+    }
+  }
+  const leftover: Array<{ d: Record<string, unknown>; w: number }> = [];
   for (const d of devices) {
     const aco = Number(d.ac_out_w || 0);
-    if (aco < 20) continue;
-    if (aco >= APPLIANCE_AC_W || (isDelta(d) && kettle && extra >= APPLIANCE_AC_W)) {
-      d.ac_role = "appliances";
-      d.appliance_w = Math.round((aco >= APPLIANCE_AC_W ? aco : extra) * 10) / 10;
-    } else if (isDelta(d)) {
-      d.ac_role = "starlink_lights";
-      d.starlink_w = Math.round(aco * 10) / 10;
-    } else if (isRiver(d)) {
-      d.ac_role = "emergency";
-      d.emergency_w = Math.round(aco * 10) / 10;
+    const house = d === src ? Math.max(0, aco - transfer) : aco;
+    if (house < 20) continue;
+    leftover.push({ d, w: house });
+  }
+  const kettle = leftover.filter((x) => x.w >= APPLIANCE_AC_W);
+  const house = leftover.filter((x) => x.w < APPLIANCE_AC_W);
+  for (const x of kettle) {
+    x.d.ac_role = "appliances";
+    x.d.appliance_w = Math.round(x.w * 10) / 10;
+  }
+  const inBand = house.filter((x) => x.w >= STARLINK_BAND_LO && x.w <= STARLINK_BAND_HI);
+  let starlinkPick: Record<string, unknown> | undefined;
+  if (inBand.length === 1) starlinkPick = inBand[0].d;
+  else if (house.length) starlinkPick = house.reduce((a, b) => (a.w >= b.w ? a : b)).d;
+  for (const x of house) {
+    if (x.d === starlinkPick) {
+      x.d.starlink_w = Math.round(x.w * 10) / 10;
+      if (x.d.ac_role !== "transfer_out" && x.d.ac_role !== "transfer_in") {
+        x.d.ac_role = "starlink_lights";
+      }
     } else {
-      d.ac_role = "ac_out";
+      x.d.emergency_w = Math.round(x.w * 10) / 10;
+      if (x.d.ac_role !== "transfer_out" && x.d.ac_role !== "transfer_in") {
+        x.d.ac_role = "emergency";
+      }
     }
   }
 }
@@ -194,11 +224,10 @@ function applyAcRoles(devices: Array<Record<string, unknown>>): void {
 function loadCategories(devices: Array<Record<string, unknown>>) {
   let transfer = 0, appliances = 0, starlink = 0, emergency = 0, server = 0, drives = 0;
   for (const d of devices) {
-    const role = d.ac_role;
-    if (role === "transfer_out") transfer += Number(d.transfer_w || d.ac_out_w || 0);
-    else if (role === "appliances") appliances += Number(d.appliance_w || d.ac_out_w || 0);
-    else if (role === "starlink_lights") starlink += Number(d.starlink_w || d.ac_out_w || 0);
-    else if (role === "emergency") emergency += Number(d.emergency_w || d.ac_out_w || 0);
+    if (d.ac_role === "transfer_out") transfer += Number(d.transfer_w || 0);
+    appliances += Number(d.appliance_w || 0);
+    starlink += Number(d.starlink_w || 0);
+    emergency += Number(d.emergency_w || 0);
     const car = Number(d.car_w || 0);
     if (car >= 5) drives += car;
     server += Math.max(0, Number(d.dc_out_w || 0));
