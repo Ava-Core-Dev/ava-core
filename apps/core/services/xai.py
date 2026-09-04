@@ -49,6 +49,8 @@ def _save_status(data: dict[str, Any]) -> None:
 
 def grok_is_down() -> bool:
     st = _load_status()
+    if st.get("halt"):
+        return True
     if st.get("ok", True):
         return False
     until = st.get("until")
@@ -57,6 +59,19 @@ def grok_is_down() -> bool:
     try:
         return datetime.now(timezone.utc) < datetime.fromisoformat(until)
     except ValueError:
+        return True
+
+
+def _spend_blocked() -> bool:
+    """Operator spend_master / circuit. Fail closed."""
+    if grok_is_down():
+        return True
+    try:
+        from apps.core.services import api_ledger
+
+        ok, _why = api_ledger.may_spend("xai")
+        return not ok
+    except Exception:
         return True
 
 
