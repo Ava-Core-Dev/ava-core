@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import psutil
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from .. import config
 from ..heartbeat import last_success_age_s
@@ -22,19 +22,28 @@ _start_time = time.time()
 
 
 @router.get("/")
-async def root():
-    return JSONResponse({"redirect": "https://avaivy.cloud/solar", "ava": "online"})
+async def root(request: Request):
+    try:
+        from apps.core.routes.local_site import home_response
+
+        page = home_response(request)
+        if page is not None:
+            return page
+    except Exception:
+        pass
+    return JSONResponse({"redirect": "https://rootrecord.cloud/status", "ava": "online"})
 
 
 def _solar_html() -> str:
     path = Path(__file__).resolve().parent.parent / "templates" / "solar.html"
-    return path.read_text(encoding="utf-8") if path.is_file() else "<p>solar desk missing</p>"
+    return path.read_text(encoding="utf-8") if path.is_file() else "<p>status desk missing</p>"
 
 
 @router.get("/solar")
 @router.get("/solar/")
-async def solar_page():
-    return HTMLResponse(_solar_html())
+async def solar_page_moved():
+    """The solar board and the status board were the same page. /status is the one."""
+    return RedirectResponse("/status", status_code=301)
 
 
 @router.get("/health")
@@ -51,9 +60,11 @@ async def api_status():
     from apps.core.services.broadcast import live_payload
     from apps.core.host_metrics import (
         gpu_name,
+        gpu_pct,
         host_battery,
         host_disk_pct,
         host_temp_c,
+        npu_pct,
         npu_present,
     )
 
@@ -65,12 +76,30 @@ async def api_status():
         record_host_sample()
     except Exception:
         pass
+    try:
+        from apps.core.services import sun_times, uptime_log, schedule_clock
+        sun_times.refresh_if_stale()
+        uptime_log.tick()
+        schedule_clock.sample_day_start()
+        sun = sun_times.facts()
+        up = uptime_log.facts(process_uptime_s=uptime)
+    except Exception:
+        sun, up = {}, {}
 
     out = {
         "version": "2.0.0",
         "ts": datetime.now(timezone.utc).isoformat(),
         "uptime_s": uptime,
         "boot_uptime_s": int(time.time() - psutil.boot_time()),
+        "desk_uptime_s": up.get("desk_uptime_s") or uptime,
+        "last_return_at": up.get("last_return_at"),
+        "origin_started_at": up.get("origin_started_at"),
+        "sun": {
+            "sunrise": sun.get("sunrise"),
+            "sunset": sun.get("sunset"),
+            "after_sunset": sun.get("after_sunset"),
+            "before_sunrise": sun.get("before_sunrise"),
+        },
         "host": platform.node(),
         "cpu_pct": cpu,
         "mem_pct": round(mem.percent, 1),
@@ -99,6 +128,12 @@ async def api_status():
     gname = gpu_name()
     if gname:
         out["gpu_name"] = gname
+    igpu = gpu_pct()
+    if igpu is not None:
+        out["gpu_pct"] = igpu
+    npu = npu_pct()
+    if npu is not None:
+        out["npu_pct"] = npu
     out["npu_present"] = npu_present()
     out["npu_watts"] = None
     return out
@@ -214,6 +249,21 @@ async def api_desk_notifications(limit: int = 40):
                     "untilLabel": ban.get("untilLabel"),
                     "untilMs": ban.get("untilMs"),
                 },
+            })
+    except Exception:
+        pass
+
+    try:
+        from apps.core.routes.desktop import ops_schedule_banner
+        ops = await ops_schedule_banner(None)
+        if isinstance(ops, dict) and ops.get("show"):
+            items.append({
+                "id": "ops-schedule",
+                "level": "warning" if ops.get("auto") else "info",
+                "source": "schedule",
+                "title": ops.get("title") or "Desk hours",
+                "detail": ops.get("detail") or "",
+                "at": now.isoformat().replace("+00:00", "Z"),
             })
     except Exception:
         pass

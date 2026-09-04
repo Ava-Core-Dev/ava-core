@@ -158,7 +158,7 @@ async function paint(){
     document.getElementById('ac').textContent=watts(ac);
     document.getElementById('appl').textContent=watts(appl);
     document.getElementById('net').textContent=watts(net);
-    document.getElementById('bankAvg').textContent=pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById('bankAvg').textContent=pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById('state').textContent=solar.state||'—';
     document.getElementById('avgLoad').textContent=watts(avg.load_1h_w);
     document.getElementById('avgPv').textContent=watts(avg.solar_1h_w);
@@ -178,8 +178,9 @@ async function paint(){
     if(tempEl) tempEl.textContent=host.temp_c!=null?Number(host.temp_c).toFixed(1)+'°C':'—';
     const chargeEl=document.getElementById('charge');
     if(chargeEl){
-      chargeEl.textContent=host.host_battery_pct!=null
-        ? host.host_battery_pct.toFixed(0)+'%'+(host.host_battery_plugged?' AC':'')
+      chargeEl.innerHTML=host.host_battery_pct!=null
+        ? host.host_battery_pct.toFixed(0)+'% · '+(host.host_battery_plugged
+            ? '<span style="color:#3ee0c6">Charging</span>' : 'On battery')
         : '—';
     }
     const diskEl=document.getElementById('disk');
@@ -194,7 +195,7 @@ async function paint(){
     document.getElementById('kila').textContent=lvl+' · '+head;
     document.getElementById('off').textContent=(s.shutdown&&s.shutdown.timeHst)||'22:00';
     document.getElementById('flowIn').textContent=watts(pv);
-    document.getElementById('flowBank').textContent=pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById('flowBank').textContent=pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById('flowOut').textContent=watts(load);
     document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV')+(solar.updated_at?(' · '+String(solar.updated_at).slice(11,19)+'Z'):'');
   }catch(e){}

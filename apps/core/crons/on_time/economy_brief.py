@@ -74,7 +74,7 @@ async def run():
             f"{datetime.utcnow().isoformat()}Z\tcron · economy-brief · {status} · {out.name}\n"
         )
 
-    now_hst = now.strftime("%H:%M HST — %a, %b %-d")
+    now_hst = config.hst_now_text()
     mult_line = ""
     if float(mult) != 1.0:
         mult_line = f"\n🌋 **Kīlauea {str(alert).title()}** — multiplier **×{float(mult):.1f}**"

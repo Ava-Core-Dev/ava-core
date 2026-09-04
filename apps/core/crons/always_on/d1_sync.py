@@ -11,8 +11,8 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .. import config
-from ..services import d1
+from apps.core import config
+from apps.core.services import d1
 
 log = logging.getLogger("ava.cron.d1_sync")
 
@@ -125,7 +125,7 @@ async def run() -> None:
     now = datetime.now(timezone.utc).isoformat()
 
     # Server status from the Python core's own probe
-    from ..routes import minecraft as mc_routes
+    from apps.core.routes import minecraft as mc_routes
 
     status = await mc_routes.minecraft_status()
     test_on = 1 if status.get("test", {}).get("online") else 0

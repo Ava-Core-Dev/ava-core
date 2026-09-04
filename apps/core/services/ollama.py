@@ -22,6 +22,9 @@ def _payload(messages: list[dict], model: str | None) -> dict:
         "messages": messages,
         "stream": False,
         "think": False,
+        "options": {
+            "num_ctx": int(config.OLLAMA_NUM_CTX),
+        },
     }
 
 

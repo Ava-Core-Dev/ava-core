@@ -27,9 +27,9 @@ _RR_D1_FALLBACK = "0b49c598-1f91-4a09-84a8-6ba8241c6df3"
 _ROOTMC_D1_FALLBACK = "6cf71128-67e3-47b2-a802-d6c23d6489e0"
 
 USERCACHE_PATHS = [
-    Path(r"E:\ava\workstations\shockbyte\usercache.json"),
-    Path(r"E:\ava\workstations\minecraft-plugins\server\usercache.json"),
-    Path(r"E:\ava\workstations\minecraft-test\usercache.json"),
+    config.AVA_HOME / "workstations" / "shockbyte" / "usercache.json",
+    config.AVA_HOME / "workstations" / "minecraft-plugins" / "server" / "usercache.json",
+    config.AVA_HOME / "workstations" / "minecraft-test" / "usercache.json",
     Path.home() / "Ava" / "Workstations" / "minecraft-test" / "usercache.json",
     Path.home() / "ava" / "Workstations" / "minecraft-test" / "usercache.json",
 ]
@@ -43,7 +43,6 @@ def _load_credentials() -> list[str]:
     loaded = []
     for p in (
         config.AVA_HOME / "credentials.env",
-        Path(r"E:\ava\credentials.env"),
         Path.home() / "Ava" / "credentials.env",
         config.AVA_HOME / ".env",
     ):
@@ -64,7 +63,6 @@ def _scan_user_qr(conn, summary: dict) -> None:
     roots = [
         config.MEDIA_DIR / "private" / "users",
         config.AVA_HOME / "Media" / "private" / "users",
-        Path(r"E:\ava\media\private\users"),
     ]
     seen: set[Path] = set()
     n = 0
@@ -107,8 +105,6 @@ def _scan_user_qr(conn, summary: dict) -> None:
 def _scan_players(conn, summary: dict) -> None:
     roots = [
         config.DATA_DIR / "players",
-        Path(r"E:\ava\data\players"),
-        Path(r"D:\db backup\Database\players"),
     ]
     seen: set[str] = set()
     n_discord = 0
@@ -153,7 +149,8 @@ def _scan_players(conn, summary: dict) -> None:
 
 
 def _scan_sessions(conn, summary: dict) -> None:
-    root = Path(r"D:\db backup\Database\sessions")
+    # Sessions lived on D: archive only. Live tree does not scan external drives.
+    root = config.DATA_DIR / "sessions"
     if not root.is_dir():
         summary["sources"]["sessions"] = {"ok": False, "reason": "missing"}
         return
@@ -163,7 +160,7 @@ def _scan_sessions(conn, summary: dict) -> None:
             identities.upsert(
                 conn,
                 identifiers={"email": p.name},
-                source="db_backup_sessions",
+                source="local_sessions",
                 path=str(p),
             )
             n += 1
@@ -250,7 +247,6 @@ def _scan_subscribers(conn, summary: dict) -> None:
 def _scan_membership_log(conn, summary: dict) -> None:
     paths = [
         config.DATA_DIR / "membership" / "core-sync.jsonl",
-        Path(r"E:\ava\data\membership\core-sync.jsonl"),
     ]
     n_lines = 0
     n_discord = 0
@@ -500,41 +496,38 @@ async def _scan_discord(conn, summary: dict) -> None:
 
 
 def _copy_sqlite(summary: dict) -> None:
+    """Live SQLite stays under DATA_DIR. External D:/E: trees are cold archive only."""
     copies = []
     skipped = []
-    mapping = [
-        (Path(r"D:\db backup\ecoflow-10s.db"), config.DATA_DIR / "ecoflow" / "ecoflow-10s.db"),
-        (Path(r"D:\db backup\ecoflow-1min.db"), config.DATA_DIR / "ecoflow" / "ecoflow-1min.db"),
-        (Path(r"D:\db backup\ecoflow-state.db"), config.DATA_DIR / "ecoflow" / "ecoflow-state.db"),
-        (Path(r"D:\db backup\system.db"), config.DATA_DIR / "system" / "system.db"),
-        (Path(r"D:\db backup\weather.db"), config.DATA_DIR / "weather" / "weather.db"),
-    ]
-    large = [
-        (Path(r"D:\db backup\quakes.db"), 438_000_000),
-        (Path(r"D:\db backup\system-1min.db"), 330_000_000),
-    ]
-    for src, dest in mapping:
-        if not src.is_file():
-            skipped.append({"path": str(src), "reason": "missing"})
-            continue
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        if dest.is_file() and dest.stat().st_size >= src.stat().st_size:
-            skipped.append({"path": str(dest), "reason": "already_present", "bytes": dest.stat().st_size})
-            continue
-        shutil.copy2(src, dest)
-        copies.append({"dest": str(dest), "bytes": dest.stat().st_size})
+    # Prefer already-local weather/quakes; do not pull old EcoFlow/system charts from D:.
+    local_ok = []
+    for rel in (
+        Path("ecoflow") / "ecoflow-10s.db",
+        Path("ecoflow") / "ecoflow-1min.db",
+        Path("ecoflow") / "ecoflow-state.db",
+        Path("weather") / "weather.db",
+        Path("weather") / "quakes.db",
+    ):
+        dest = config.DATA_DIR / rel
+        if dest.is_file():
+            local_ok.append({"path": str(dest), "bytes": dest.stat().st_size})
+            if "ecoflow" in dest.parts:
+                from apps.core.services.data_layout import purge_hidden_ecoflow
+                purge_hidden_ecoflow(dest.parent)
+        else:
+            skipped.append({"path": str(dest), "reason": "missing_local"})
     summary["sqlite_copied"] = copies
     summary["sqlite_skipped"] = skipped
-    summary["sqlite_left_on_d"] = [
-        {"path": str(p), "bytes": p.stat().st_size if p.is_file() else 0, "reason": "large_leave_on_D"}
-        for p, _lim in large
-        if p.is_file()
+    summary["sqlite_local"] = local_ok
+    summary["sqlite_left_on_archive"] = [
+        "D:\\db backup\\system-1min.db (do not import)",
+        "D:\\db backup\\ecoflow-*.db old charts (do not import)",
     ]
 
 
 def _merge_finance(summary: dict) -> None:
     live = config.DATA_DIR / "finance" / "ops-ledger.json"
-    archive = Path(r"E:\ava\data\finance\ops-ledger.json")
+    archive = config.DATA_DIR / "finance" / "ops-ledger.archive.json"
     if not live.is_file():
         summary["finance"] = {"ok": False, "reason": "live_ledger_missing"}
         return

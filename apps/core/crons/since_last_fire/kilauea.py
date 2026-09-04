@@ -85,7 +85,7 @@ async def run():
             if fp == _last_hash:
                 log.debug("Kīlauea: no change since last run")
                 alert_level = _infer_alert_level(features, hvo_text)
-                _write_alert_state(config, alert_level, hvo_text)
+                _write_alert_state(config, alert_level, hvo_text, features)
                 return
             _last_hash = fp
 
@@ -120,11 +120,11 @@ async def run():
             if not body.strip():
                 log.warning("Kīlauea: skip empty report")
                 alert_level = _infer_alert_level(features, hvo_text)
-                _write_alert_state(config, alert_level, hvo_text)
+                _write_alert_state(config, alert_level, hvo_text, features)
                 return
 
             alert_level = _infer_alert_level(features, hvo_text)
-            _write_alert_state(config, alert_level, hvo_text)
+            _write_alert_state(config, alert_level, hvo_text, features)
 
             report_path = config.REPORTS_DIR / f"kilauea-{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H')}.md"
             report_path.write_text(body, encoding="utf-8")
@@ -190,7 +190,9 @@ def _headline(hvo_text: str, alert_level: str) -> str:
     return "quiet"
 
 
-def _write_alert_state(config, alert_level: str, hvo_text: str = "") -> None:
+def _write_alert_state(
+    config, alert_level: str, hvo_text: str = "", features: list | None = None
+) -> None:
     try:
         state_dir = config.DATA_DIR / "state"
         state_dir.mkdir(parents=True, exist_ok=True)
@@ -199,14 +201,91 @@ def _write_alert_state(config, alert_level: str, hvo_text: str = "") -> None:
             re.search(r"\bis erupting\b", (hvo_text or "").lower())
             and not re.search(r"not erupting|is paused", (hvo_text or "").lower())
         )
-        state_path.write_text(
+        now = datetime.now(timezone.utc).isoformat()
+        headline = _headline(hvo_text, alert_level)
+        alert = {
+            "alert_level": alert_level,
+            "multiplier": get_multiplier(alert_level),
+            "erupting": erupting,
+            "headline": headline,
+            "updated_at": now,
+        }
+        state_path.write_text(json.dumps(alert, ensure_ascii=False) + "\n", encoding="utf-8")
+
+        (state_dir / "kilauea-situation.json").write_text(
             json.dumps(
                 {
-                    "alert_level": alert_level,
-                    "multiplier": get_multiplier(alert_level),
-                    "erupting": erupting,
-                    "headline": _headline(hvo_text, alert_level),
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "situation": {
+                        "id": "current",
+                        "name": headline[:80],
+                        "enabled": alert_level not in {"", "normal"} or erupting,
+                        "body": (hvo_text or headline)[:2000],
+                        "updated_at": now,
+                    }
+                },
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        from apps.core.services.kilauea_cams import DEFAULT_CAMS
+
+        streams = []
+        for cam in DEFAULT_CAMS:
+            vid = cam.get("youtube_video_id") or ""
+            streams.append(
+                {
+                    "id": cam["id"],
+                    "title": cam.get("title") or cam["id"],
+                    "description": "USGS official cam",
+                    "youtube_video_id": vid,
+                    "watch_url": f"https://www.youtube.com/watch?v={vid}",
+                    "embed_url": (
+                        f"https://www.youtube.com/embed/{vid}"
+                        "?autoplay=1&playsinline=1&rel=0&modestbranding=1"
+                    ),
+                }
+            )
+        (state_dir / "kilauea-live-streams.json").write_text(
+            json.dumps(
+                {"streams": streams, "updated_at": now, "source": "cron"},
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        quakes = []
+        for f in (features or [])[:20]:
+            props = f.get("properties") or {}
+            geom = f.get("geometry") or {}
+            coords = geom.get("coordinates") or [None, None, None]
+            quakes.append(
+                {
+                    "id": f.get("id"),
+                    "mag": props.get("mag"),
+                    "place": props.get("place"),
+                    "time": props.get("time"),
+                    "lon": coords[0],
+                    "lat": coords[1],
+                    "depth_km": coords[2],
+                }
+            )
+        (state_dir / "kilauea-quakes.json").write_text(
+            json.dumps(
+                {"quakes": quakes, "updated_at": now, "source": "usgs"},
+                ensure_ascii=False,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (state_dir / "kilauea-dashboard.json").write_text(
+            json.dumps(
+                {
+                    "ok": True,
+                    "kilauea": alert,
+                    "quakes_n": len(quakes),
+                    "updated_at": now,
+                    "source": "cron",
                 },
                 ensure_ascii=False,
             )

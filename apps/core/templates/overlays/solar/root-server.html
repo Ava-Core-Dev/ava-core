@@ -37,8 +37,9 @@ async function paint(){
     if(tempEl) tempEl.textContent=host.temp_c!=null?Number(host.temp_c).toFixed(1)+'°C':'—';
     const chargeEl=document.getElementById('charge');
     if(chargeEl){
-      chargeEl.textContent=host.host_battery_pct!=null
-        ? host.host_battery_pct.toFixed(0)+'%'+(host.host_battery_plugged?' AC':'')
+      chargeEl.innerHTML=host.host_battery_pct!=null
+        ? host.host_battery_pct.toFixed(0)+'% · '+(host.host_battery_plugged
+            ? '<span style="color:#3ee0c6">Charging</span>' : 'On battery')
         : '—';
     }
     const diskEl=document.getElementById('disk');

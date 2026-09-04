@@ -1,4 +1,4 @@
-"""Keep origin up. No console. Called by pythonw from Task Scheduler."""
+"""Keep origin and the tunnel up. No console. Called by pythonw from Task Scheduler."""
 from __future__ import annotations
 
 import os
@@ -6,6 +6,7 @@ import socket
 import subprocess
 import sys
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 CREATE_NO_WINDOW = 0x08000000
@@ -30,6 +31,59 @@ def _health_ok() -> bool:
     except Exception:
         return False
 
+
+CF_EXES = (
+    Path(r"C:\Program Files\cloudflared\cloudflared.exe"),
+    Path(r"C:\Program Files (x86)\cloudflared\cloudflared.exe"),
+)
+CF_TOKEN = Path.home() / ".cloudflared" / "origin.token"
+
+
+def _quiet_startupinfo() -> subprocess.STARTUPINFO:
+    info = subprocess.STARTUPINFO()
+    info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    info.wShowWindow = 0
+    return info
+
+
+def _tunnel_running() -> bool:
+    """A live cloudflared reconnects on its own, so presence is the only check."""
+    try:
+        out = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq cloudflared.exe", "/NH"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            creationflags=CREATE_NO_WINDOW,
+            startupinfo=_quiet_startupinfo(),
+        )
+        return "cloudflared.exe" in out.stdout
+    except Exception:
+        return True  # Cannot tell — never spawn a second connector on a guess.
+
+
+def _ensure_tunnel() -> None:
+    """origin.avaivy.cloud only answers while this connector is up."""
+    if _tunnel_running() or not CF_TOKEN.is_file():
+        return
+    exe = next((p for p in CF_EXES if p.is_file()), None)
+    if exe is None:
+        return
+    log = REPO / "data" / "logs" / "cloudflared.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "a", encoding="utf-8", buffering=1) as fh:
+        fh.write(f"\n---- {datetime.now(timezone.utc).isoformat()} watchdog spawn tunnel ----\n")
+        subprocess.Popen(
+            [str(exe), "tunnel", "run", "--token-file", str(CF_TOKEN)],
+            creationflags=CREATE_NO_WINDOW,
+            startupinfo=_quiet_startupinfo(),
+            stdout=fh,
+            stderr=fh,
+            stdin=subprocess.DEVNULL,
+        )
+
+
+_ensure_tunnel()
 
 if _health_ok() or _port_open():
     sys.exit(0)
@@ -65,7 +119,14 @@ si = subprocess.STARTUPINFO()
 si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 si.wShowWindow = 0
 
+log_path = REPO / "data" / "logs" / "origin-uvicorn.log"
+log_path.parent.mkdir(parents=True, exist_ok=True)
+log_f = open(log_path, "a", encoding="utf-8", buffering=1)
+log_f.write(f"\n---- {datetime.now(timezone.utc).isoformat()} watchdog spawn origin ----\n")
+log_f.flush()
+
 # pythonw -m uvicorn, never uvicorn.exe (console wrapper flashes a window).
+# stdout/stderr must be a file — DEVNULL hid every origin line after the 2:30 spawn.
 subprocess.Popen(
     [
         str(pythonw),
@@ -84,8 +145,8 @@ subprocess.Popen(
     env=_with_jdk(os.environ.copy()),
     creationflags=CREATE_NO_WINDOW,
     startupinfo=si,
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL,
+    stdout=log_f,
+    stderr=log_f,
     stdin=subprocess.DEVNULL,
 )
 sys.exit(0)

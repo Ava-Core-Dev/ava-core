@@ -37,7 +37,7 @@ def _job_wave(job_id: str) -> int:
     wave2 = {"kilauea-cams", "nhc-media", "hurricane-tracker", "hourly-solar-weather", "system-performance"}
     wave3 = {
         "minecraft-live", "d1-sync", "player-economy-report", "user-qrcodes",
-        "vercel-builds", "account-import",
+        "vercel-builds", "account-import", "stripe-poll", "inbox-drain",
     }
     wave4 = {
         "morning-report", "merged-morning-summary", "cursor-fallback",
@@ -186,6 +186,12 @@ class Scheduler:
         s.add_job(self._run("d1_sync"), IntervalTrigger(minutes=5),
                   id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=120)
 
+        s.add_job(self._run("inbox_drain"), IntervalTrigger(minutes=5),
+                  id="inbox-drain", name="CF offline inbox → local", misfire_grace_time=120)
+
+        s.add_job(self._run("stripe_poll"), IntervalTrigger(minutes=30),
+                  id="stripe-poll", name="Stripe finance snapshot", misfire_grace_time=180)
+
         s.add_job(self._run("vercel_builds"), IntervalTrigger(minutes=5),
                   id="vercel-builds", name="Vercel build logs → docs", misfire_grace_time=120)
 
@@ -199,6 +205,13 @@ class Scheduler:
             record_host_sample()
         except Exception as e:
             log.debug("host sample skipped: %s", e)
+        try:
+            from apps.core.services import sun_times, uptime_log, schedule_clock
+            sun_times.refresh_if_stale()
+            uptime_log.tick()
+            schedule_clock.sample_day_start()
+        except Exception as e:
+            log.debug("sun/uptime sample skipped: %s", e)
 
     @staticmethod
     async def _run_adsense_eod():

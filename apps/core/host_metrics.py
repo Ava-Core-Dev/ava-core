@@ -221,6 +221,167 @@ def npu_present() -> bool:
         return False
 
 
+# GPU Engine PDH is slow the first time. Keep the last good sample for a few seconds.
+_gpu_cache: tuple[float, float | None] = (0.0, None)
+_npu_cache: tuple[float, float | None] = (0.0, None)
+_GPU_CACHE_S = 8.0
+_NPU_MISS_RETRY_S = 300.0
+_GPU_ENGINE_TYPES = frozenset(
+    {"3d", "compute", "compute 0", "video codec engine", "video jpeg 0"}
+)
+
+
+def _pdh_counter_array(counter_path: str, *, wait_s: float = 0.25) -> list[tuple[str, float]]:
+    """One PDH wildcard collect. Returns (instance_name, value) pairs."""
+    if os.name != "nt":
+        return []
+    import ctypes
+    from ctypes import wintypes
+
+    pdh = ctypes.windll.pdh
+    PDH_FMT_DOUBLE = 0x00000200
+    PDH_MORE_DATA = 0x800007D2
+
+    class PDH_FMT_COUNTERVALUE(ctypes.Structure):
+        _fields_ = [
+            ("CStatus", wintypes.DWORD),
+            ("_pad", wintypes.DWORD),
+            ("doubleValue", ctypes.c_double),
+        ]
+
+    class PDH_FMT_COUNTERVALUE_ITEM(ctypes.Structure):
+        _fields_ = [
+            ("szName", wintypes.LPWSTR),
+            ("FmtValue", PDH_FMT_COUNTERVALUE),
+        ]
+
+    h_query = wintypes.HANDLE()
+    if pdh.PdhOpenQueryW(None, None, ctypes.byref(h_query)) != 0:
+        return []
+    try:
+        h_counter = wintypes.HANDLE()
+        if pdh.PdhAddEnglishCounterW(h_query, counter_path, None, ctypes.byref(h_counter)) != 0:
+            return []
+        pdh.PdhCollectQueryData(h_query)
+        time.sleep(max(0.05, wait_s))
+        pdh.PdhCollectQueryData(h_query)
+        buf_size = wintypes.DWORD(0)
+        item_count = wintypes.DWORD(0)
+        st = pdh.PdhGetFormattedCounterArrayW(
+            h_counter, PDH_FMT_DOUBLE, ctypes.byref(buf_size), ctypes.byref(item_count), None
+        )
+        # PDH_MORE_DATA comes back as a signed DWORD on this box.
+        if (st & 0xFFFFFFFF) != PDH_MORE_DATA or buf_size.value <= 0:
+            return []
+        buf = (ctypes.c_byte * buf_size.value)()
+        st = pdh.PdhGetFormattedCounterArrayW(
+            h_counter, PDH_FMT_DOUBLE, ctypes.byref(buf_size), ctypes.byref(item_count), buf
+        )
+        if (st & 0xFFFFFFFF) != 0 or item_count.value <= 0:
+            return []
+        items = ctypes.cast(buf, ctypes.POINTER(PDH_FMT_COUNTERVALUE_ITEM))
+        out: list[tuple[str, float]] = []
+        for i in range(item_count.value):
+            item = items[i]
+            if item.FmtValue.CStatus != 0 or not item.szName:
+                continue
+            out.append((str(item.szName), float(item.FmtValue.doubleValue)))
+        return out
+    except Exception:
+        return []
+    finally:
+        pdh.PdhCloseQuery(h_query)
+
+
+def _parse_gpu_instance(name: str) -> tuple[str, str] | None:
+    """pid_…_luid_HI_LO_phys_N_eng_N_engtype_TYPE → (luid, engtype)."""
+    low = name.lower()
+    if "luid_" not in low or "engtype_" not in low:
+        return None
+    try:
+        after = low.split("luid_", 1)[1]
+        parts = after.split("_")
+        # luid_0x00000000_0x0001157F_phys_…
+        luid = f"{parts[0]}_{parts[1]}"
+        eng = low.split("engtype_", 1)[1].strip()
+    except (IndexError, ValueError):
+        return None
+    return luid, eng
+
+
+def gpu_pct() -> float | None:
+    """Radeon 840M utilization from GPU Engine counters. None if not sampled.
+
+    Per-process engine percents are summed per engine type, then the highest
+    of 3D / Compute / video is kept — same shape Task Manager uses. Cached.
+    """
+    global _gpu_cache
+    now = time.time()
+    ts, cached = _gpu_cache
+    if now - ts < _GPU_CACHE_S:
+        return cached
+    rows = _pdh_counter_array(r"\GPU Engine(*)\Utilization Percentage")
+    if not rows:
+        _gpu_cache = (now, cached)
+        return cached
+    by_luid_eng: dict[tuple[str, str], float] = {}
+    engines_by_luid: dict[str, set[str]] = {}
+    for name, val in rows:
+        parsed = _parse_gpu_instance(name)
+        if parsed is None:
+            continue
+        luid, eng = parsed
+        engines_by_luid.setdefault(luid, set()).add(eng)
+        key = (luid, eng)
+        by_luid_eng[key] = by_luid_eng.get(key, 0.0) + max(0.0, val)
+
+    def score(luid: str) -> int:
+        names = engines_by_luid.get(luid) or set()
+        return sum(1 for n in names if n in _GPU_ENGINE_TYPES or n.startswith("compute"))
+
+    if not engines_by_luid:
+        _gpu_cache = (now, cached)
+        return cached
+    luid = max(engines_by_luid, key=score)
+    useful = [
+        v
+        for (lu, eng), v in by_luid_eng.items()
+        if lu == luid and (eng in _GPU_ENGINE_TYPES or eng.startswith("compute"))
+    ]
+    if not useful:
+        _gpu_cache = (now, cached)
+        return cached
+    pct = round(min(100.0, max(useful)), 1)
+    _gpu_cache = (now, pct)
+    return pct
+
+
+def npu_pct() -> float | None:
+    """NPU utilization if Windows exposes a PDH object. None on this PC today.
+
+    Task Manager can show NPU 0. typeperf has no NPU counter set here — do not
+    invent 0% from presence. Cached misses retry slowly.
+    """
+    global _npu_cache
+    now = time.time()
+    ts, cached = _npu_cache
+    if cached is not None and now - ts < _GPU_CACHE_S:
+        return cached
+    if cached is None and now - ts < _NPU_MISS_RETRY_S and ts > 0:
+        return None
+    rows = _pdh_counter_array(r"\NPU Engine(*)\Utilization Percentage", wait_s=0.15)
+    if not rows:
+        _npu_cache = (now, None)
+        return None
+    vals = [max(0.0, v) for _n, v in rows]
+    if not vals:
+        _npu_cache = (now, None)
+        return None
+    pct = round(min(100.0, max(vals)), 1)
+    _npu_cache = (now, pct)
+    return pct
+
+
 def snapshot(*, home: Path | None = None) -> dict[str, Any]:
     """One live host sample. Safe to persist as jsonl."""
     cpu = float(psutil.cpu_percent(interval=0.1))
@@ -252,4 +413,11 @@ def snapshot(*, home: Path | None = None) -> dict[str, Any]:
     name = gpu_name()
     if name:
         row["gpu_name"] = name
+    igpu = gpu_pct()
+    if igpu is not None:
+        row["gpu_pct"] = igpu
+    npu = npu_pct()
+    if npu is not None:
+        row["npu_pct"] = npu
+    row["npu_present"] = npu_present()
     return row

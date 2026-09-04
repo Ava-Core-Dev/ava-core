@@ -39,7 +39,32 @@ def _find_audio_player() -> list[str] | None:
         return ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
     if shutil.which("cvlc"):
         return ["cvlc", "--play-and-exit", "--quiet"]
+    # Windows: WPF MediaPlayer via PowerShell (no extra install).
+    if os.name == "nt":
+        ps = shutil.which("powershell") or shutil.which("pwsh")
+        if ps:
+            return [ps, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "_AVA_PLAY_MP3_"]
     return None
+
+
+def _windows_play_mp3(path: Path) -> list[str]:
+    """Build a PowerShell one-shot that opens, plays, and waits for an MP3."""
+    # Escape for single-quoted PowerShell string
+    p = str(path.resolve()).replace("'", "''")
+    script = (
+        "Add-Type -AssemblyName PresentationCore; "
+        "$m = New-Object System.Windows.Media.MediaPlayer; "
+        f"$m.Open([Uri]'{p}'); $m.Play(); "
+        "Start-Sleep -Milliseconds 400; "
+        "$guard = 0; "
+        "while ($m.NaturalDuration.HasTimeSpan -eq $false -and $guard -lt 50) { "
+        "  Start-Sleep -Milliseconds 100; $guard++ }; "
+        "if ($m.NaturalDuration.HasTimeSpan) { "
+        "  while ($m.Position -lt $m.NaturalDuration.TimeSpan) { Start-Sleep -Milliseconds 200 } "
+        "} else { Start-Sleep -Seconds 8 }"
+    )
+    ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
+    return [ps, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script]
 
 log = logging.getLogger("ava.director")
 
@@ -243,6 +268,8 @@ class StreamDirector:
             log.debug("OBS auto-switch disabled — skipping connect")
             return False
         from apps.core import config
+        if not config.ENABLE_OBS:
+            return False
         if not config.OBS_WS_URL:
             return False
         async with self._obs_lock:
@@ -431,7 +458,10 @@ class StreamDirector:
             await asyncio.sleep(duration)
             return
 
-        cmd = player_cmd + [str(path)]
+        if player_cmd[-1] == "_AVA_PLAY_MP3_":
+            cmd = _windows_play_mp3(path)
+        else:
+            cmd = player_cmd + [str(path)]
         env = dict(os.environ)
         if os.name != "nt":
             import pwd

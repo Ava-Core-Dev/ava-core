@@ -28,9 +28,7 @@ def _time_clip(hour: int, minute: int) -> Path | None:
 
 
 async def run() -> None:
-    if not config.ENABLE_OBS:
-        log.info("hourly_chime skipped (AVA_ENABLE_OBS=0)")
-        return
+    # Local speakers always. OBS is optional — director skips WS when AVA_ENABLE_OBS=0.
     from apps.voice.director import get_director, Priority
 
     now = datetime.now(HST)

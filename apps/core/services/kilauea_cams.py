@@ -25,8 +25,7 @@ KILAUEA_COLLECTION = "Ava Kilauea Watch"
 KILAUEA_DWELL_S = 32
 UA = "AvaIvy/2.0 (https://avaivy.cloud; kilauea-cams)"
 CATALOG_URLS = (
-    "https://api.rootrecord.online/api/mobile/kilauea-live-streams",
-    "https://rootrecord-api-kilauea.root-337.workers.dev/api/mobile/kilauea-live-streams",
+    f"http://127.0.0.1:{config.AVA_PORT}/api/mobile/kilauea-live-streams",
 )
 STATE_PATH = config.DATA_DIR / "state" / "kilauea-cams.json"
 YOUTUBE_Q = "autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1"

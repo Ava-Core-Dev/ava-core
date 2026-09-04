@@ -20,6 +20,8 @@ _HEARTBEAT_TABLE = "ava_heartbeat"
 _last_success: float = 0.0
 _warned_unconfigured = False
 _table_ready = False
+_fail_until: float = 0.0
+_FAIL_QUIET_S = 600.0
 
 # Must match initHeartbeatTable() in packages/workers/src/shared/heartbeat.ts
 _CREATE_TABLE_SQL = f"""
@@ -74,7 +76,10 @@ async def _d1_query(client: httpx.AsyncClient, sql: str,
 
 async def write_heartbeat() -> bool:
     """POST a heartbeat row to Cloudflare D1. Returns True on success."""
-    global _last_success, _warned_unconfigured
+    global _last_success, _warned_unconfigured, _fail_until
+
+    if _fail_until and time.monotonic() < _fail_until:
+        return False
 
     modes = _auth_modes()
     if not modes or not config.CF_ACCOUNT_ID or not config.CF_D1_HEARTBEAT_DB_ID:
@@ -134,11 +139,19 @@ async def write_heartbeat() -> bool:
 
         if r.status_code == 200:
             _table_ready = True
+            _fail_until = 0.0
             _last_success = time.monotonic()
             log.info("Heartbeat written  auth=%s", used)
             return True
 
-        log.warning("Heartbeat failed  status=%s  body=%s", r.status_code, r.text[:300])
+        if r.status_code in {401, 403}:
+            _fail_until = time.monotonic() + _FAIL_QUIET_S
+            log.warning(
+                "Heartbeat failed  status=%s  body=%s — quiet %ss (credential pair, not .env rewrite)",
+                r.status_code, r.text[:300], int(_FAIL_QUIET_S),
+            )
+        else:
+            log.warning("Heartbeat failed  status=%s  body=%s", r.status_code, r.text[:300])
         return False
     except Exception as e:
         log.warning("Heartbeat exception: %s", e)

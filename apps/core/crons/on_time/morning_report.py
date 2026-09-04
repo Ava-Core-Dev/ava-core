@@ -32,7 +32,7 @@ async def run():
         "Use only the provided data. Do not invent numbers."
     )
     summary = synth.polish("morning", system, f"Morning data:\n{raw[:3000]}", factual=factual)
-    now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
+    now_hst = config.hst_now_text(date_first=True)
     content = f"**Ava morning report** — {now_hst}\n\n{summary}"
     from apps.core.services import reports as report_store
     reports.queue_public_draft("morning", content, source="cron")
@@ -72,6 +72,7 @@ async def run():
 async def run_merged():
     """Merged morning summary — drafts for operator approval."""
     log.info("Merged morning summary  %s", datetime.now(timezone.utc).isoformat())
+    from apps.core import config
     from apps.core.services import reports, synth
 
     all_data = _datapoints(15, 400)
@@ -84,7 +85,7 @@ async def run_merged():
     summary = synth.polish(
         "summary", system, all_data[:4000], factual=factual, channel="ava_home"
     )
-    now_hst = datetime.now().strftime("%a, %b %-d, %H:%M HST")
+    now_hst = config.hst_now_text(date_first=True)
     content = f"**Merged Morning Summary** — {now_hst}\n\n{summary}"
     reports.queue_public_draft("summary", content, source="cron")
     reports.write_current(content, kind="summary", source="cron")

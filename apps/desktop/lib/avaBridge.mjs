@@ -160,6 +160,13 @@ export async function loadDesktopEnv() {
       300000,
     ollamaNumThread:
       Number(firstEnv(fileEnv, ["AVA_OLLAMA_NUM_THREAD", "OLLAMA_NUM_THREAD"])) || 6,
+    ollamaNumCtx: Math.min(
+      8192,
+      Math.max(
+        2048,
+        Number(firstEnv(fileEnv, ["AVA_OLLAMA_NUM_CTX", "OLLAMA_NUM_CTX"])) || 4096,
+      ),
+    ),
     apiBase:
       conn.apiBase ||
       firstEnv(fileEnv, ["AVA_API_BASE", "ROOTMC_API_BASE"]) ||
@@ -1853,7 +1860,7 @@ export async function coreChat(env, opts = {}) {
         options: {
           temperature: 0.35,
           num_predict: Number(opts.numPredict) || 500,
-          num_ctx: Number(opts.numCtx) || 2048,
+          num_ctx: Number(opts.numCtx) || Number(env.ollamaNumCtx) || 4096,
           num_thread: numThread,
         },
         messages: apiMessages,

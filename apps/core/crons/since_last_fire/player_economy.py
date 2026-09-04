@@ -84,11 +84,12 @@ def _apply_multiplier_rcon(multiplier: float) -> bool:
 async def run():
     global _last_multiplier, _last_alert
 
+    from apps.core import config
     from apps.core.crons.since_last_fire.kilauea import get_multiplier
     from apps.core.services import discord
     from apps.core.services import rootmc_economy as eco
 
-    now_hst = datetime.now().strftime("%H:%M HST — %a, %b %-d")
+    now_hst = config.hst_now_text()
 
     alert_level = _read_alert_level()
     multiplier = get_multiplier(alert_level)

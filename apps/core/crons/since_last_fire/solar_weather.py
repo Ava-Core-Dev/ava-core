@@ -21,31 +21,20 @@ import httpx
 
 log = logging.getLogger("ava.cron.solar_weather")
 
-# Physical labels (2026-08-02 rename). Do not use EcoFlow productName — it is swapped.
-# R331 = Delta 2 (cucumbers). R621 = River 2 Pro (shackas).
-SN_LABELS = {
-    "R331ZAB5SG6S2858": "DELTA 2",
-    "R621ZA16XH6K1155": "RIVER 2 Pro",
-}
+from apps.core.services.data_layout import (
+    device_role as _device_role,
+    ecoflow_dir,
+    ecoflow_sn_hidden,
+    ecoflow_sn_public,
+    ensure_data_layout,
+    host_history_path,
+    label_for_sn as _label_for_sn,
+    public_serials,
+)
+
 ECO_STALE_S = 3 * 60
-APPLIANCE_AC_W = 1100
+APPLIANCE_AC_W = 1000
 _LIVE_CACHE: dict[str, Any] = {}
-
-
-def _label_for_sn(sn: str, listed: str | None = None) -> str:
-    return SN_LABELS.get(str(sn).strip()) or listed or str(sn)[-6:]
-
-
-def _device_role(sn_or_label: str) -> str:
-    """Map SN / label → delta | river | other (for history series)."""
-    key = str(sn_or_label or "").strip()
-    lab = SN_LABELS.get(key) or key
-    upper = lab.upper()
-    if key.startswith("R331") or "DELTA" in upper:
-        return "delta"
-    if key.startswith("R621") or "RIVER" in upper:
-        return "river"
-    return "other"
 
 
 def _sort_devices(devices: list[dict]) -> list[dict]:
@@ -170,117 +159,32 @@ def _watts(raw) -> float:
 
 
 def _pack_power(data: dict | None) -> dict:
-    """Split PV vs AC. AC is never counted as solar.
-
-    AC in  = generator, unless it matches the other pack's discharge (transfer).
-    Matched Delta discharge ≈ River charge is always pack-to-pack transfer.
-    Unmatched AC out ≥ 1.1 kW = appliances. DC out = USB / car leftover.
-    """
-    data = data or {}
-    pv = _watts(_num(data, "mppt.inWatts", "mppt.pv1InWatts", "mppt.pv2InWatts"))
-    ac_in = _watts(_num(data, "inv.inputWatts", "inv.acInWatts"))
-    ac_out = _watts(_num(data, "inv.outputWatts", "inv.outWatts"))
-    pd_in = _watts(_num(data, "pd.wattsInSum", "pd.inputWatts"))
-    pd_out = _watts(_num(data, "pd.wattsOutSum", "pd.outputWatts"))
-    usb = 0.0
-    for k in (
-        "pd.usb1Watts", "pd.usb2Watts", "pd.qcUsb1Watts",
-        "pd.typec1Watts", "pd.typec2Watts", "pd.carWatts",
-    ):
-        usb += _watts(_num(data, k))
-    dc_out = max(usb, max(0.0, pd_out - ac_out))
-    # AC charge into the pack (PV already counted separately).
-    ac_charge = max(ac_in, max(0.0, pd_in - pv))
-    discharge = max(ac_out, pd_out)
-    return {
-        "pv_w": pv,
-        "ac_in_w": ac_in,
-        "ac_out_w": ac_out,
-        "ac_charge_w": round(ac_charge, 1),
-        "discharge_w": round(discharge, 1),
-        "dc_out_w": round(dc_out, 1),
-        "watts_in": pv,
-        "watts_out": round(dc_out, 1),
-    }
+    """Split PV, AC, USB, and 12V. AC is never counted as solar."""
+    from apps.core.services.load_categories import pack_power
+    return pack_power(data)
 
 
 def _is_delta(d: dict) -> bool:
-    sn = str(d.get("sn") or "")
-    lab = str(d.get("label") or "").upper()
-    return sn.startswith("R331") or "DELTA" in lab
+    return _device_role(str(d.get("sn") or d.get("label") or "")) == "delta"
 
 
 def _is_river(d: dict) -> bool:
-    sn = str(d.get("sn") or "")
-    lab = str(d.get("label") or "").upper()
-    return sn.startswith("R621") or "RIVER" in lab
+    return _device_role(str(d.get("sn") or d.get("label") or "")) == "river"
 
 
 def _same_watts(a: float, b: float) -> bool:
-    """Inverter loss is a few percent; matching discharge vs charge is a transfer."""
-    a, b = float(a or 0), float(b or 0)
-    if a < 20 or b < 20:
-        return False
-    slack = max(40.0, 0.12 * max(a, b))
-    return abs(a - b) <= slack
+    from apps.core.services.load_categories import same_watts
+    return same_watts(a, b)
 
 
 def _apply_ac_roles(devices: list[dict]) -> None:
-    for d in devices:
-        d["ac_role"] = None
-        d["transfer_sure"] = False
-    delta = next((d for d in devices if _is_delta(d)), None)
-    river = next((d for d in devices if _is_river(d)), None)
-
-    def _pair(src: dict, dst: dict) -> bool:
-        src_out = max(float(src.get("ac_out_w") or 0), float(src.get("discharge_w") or 0))
-        dst_in = max(float(dst.get("ac_in_w") or 0), float(dst.get("ac_charge_w") or 0))
-        if not _same_watts(src_out, dst_in):
-            return False
-        src["ac_role"] = "transfer_out"
-        dst["ac_role"] = "transfer_in"
-        src["transfer_sure"] = True
-        dst["transfer_sure"] = True
-        src["transfer_w"] = round(src_out, 1)
-        dst["transfer_w"] = round(dst_in, 1)
-        return True
-
-    matched = False
-    if delta and river:
-        matched = _pair(delta, river) or _pair(river, delta)
-
-    if matched:
-        return
-    # No matched pair — leftover AC is generator (in) or appliances (out ≥ 1.1 kW).
-    for d in devices:
-        aco = float(d.get("ac_out_w") or 0)
-        aci = float(d.get("ac_in_w") or 0)
-        if aco >= APPLIANCE_AC_W:
-            d["ac_role"] = "appliances"
-        elif aci > 20:
-            d["ac_role"] = "generator"
-        elif aco > 20:
-            d["ac_role"] = "ac_out"
+    from apps.core.services.load_categories import apply_roles
+    apply_roles(devices)
 
 
 def _bank_state(devices: list[dict]) -> str:
-    bits: list[str] = []
-    roles = {d.get("ac_role") for d in devices}
-    if "appliances" in roles:
-        bits.append("appliances")
-    src = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_out"), None)
-    dst = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_in"), None)
-    if src and dst:
-        bits.append(f"transfer {src} → {dst}")
-    elif "transfer_out" in roles or "transfer_in" in roles:
-        bits.append("AC transfer")
-    if "generator" in roles:
-        bits.append("generator")
-    if sum(float(d.get("pv_w") or 0) for d in devices) > 20:
-        bits.append("PV charging")
-    if sum(float(d.get("dc_out_w") or 0) for d in devices) > 20:
-        bits.append("DC load")
-    return " · ".join(bits) or "idle"
+    from apps.core.services.load_categories import bank_state
+    return bank_state(devices)
 
 
 async def live_snapshot() -> dict:
@@ -294,7 +198,7 @@ async def live_snapshot() -> dict:
     access_key = os.getenv("AVA_ECOFLOW_ACCESS_KEY", "")
     secret_key = os.getenv("AVA_ECOFLOW_SECRET_KEY", "")
     base_url = os.getenv("AVA_ECOFLOW_BASE_URL", "https://api-a.ecoflow.com")
-    serial_nos = [s.strip() for s in os.getenv("AVA_ECOFLOW_SN", "").split(",") if s.strip()]
+    serial_nos = public_serials(os.getenv("AVA_ECOFLOW_SN", "").split(","))
     if not (access_key and secret_key and serial_nos):
         snap = _quota_snapshot()
         _LIVE_CACHE.update({"snap": snap, "at": now})
@@ -317,6 +221,8 @@ async def live_snapshot() -> dict:
             if not isinstance(row, dict):
                 continue
             sn = str(row.get("sn") or "")
+            if ecoflow_sn_hidden(sn) or not ecoflow_sn_public(sn):
+                continue
             flag = row.get("online", row.get("status"))
             if flag in (0, False, "0", "offline"):
                 online_map[sn] = False
@@ -339,8 +245,6 @@ async def live_snapshot() -> dict:
                 "online": live,
                 **pwr,
             })
-            if data:
-                _append_ecoflow_history(sn, soc=soc, pwr=pwr, online=live)
     devices = _sort_devices(devices)
 
     if not any_live:
@@ -373,9 +277,11 @@ async def live_snapshot() -> dict:
 
 
 def _write_quota(sn: str, body: dict) -> None:
-    from apps.core import config
-
-    root = config.DATA_DIR / "ecoflow" / "quota"
+    if not ecoflow_sn_public(sn):
+        return
+    ensure_data_layout()
+    root = ecoflow_dir() / "quota"
+    data = body.get("data") if isinstance(body.get("data"), dict) else {}
     try:
         root.mkdir(parents=True, exist_ok=True)
         (root / f"{sn}.json").write_text(
@@ -383,7 +289,12 @@ def _write_quota(sn: str, body: dict) -> None:
             encoding="utf-8",
         )
     except OSError as e:
-        log.warning("quota write %s: %s", sn, e)
+        log.warning("quota write failed: %s", e)
+        return
+    if data:
+        pwr = _pack_power(data)
+        soc = _soc_from_quota(data)
+        _append_ecoflow_history(sn, soc=soc, pwr=pwr, online=True)
 
 
 async def _push_ecoflow_d1(snap: dict) -> None:
@@ -427,9 +338,11 @@ def _quota_snapshot() -> dict:
     listing = root / "devices" / "list.json"
     if listing.is_file():
         try:
-            payload = json_loads(listing.read_text())
+            payload = json_loads(listing.read_text(encoding="utf-8"))
             for d in payload.get("devices") or []:
                 sn = str(d.get("sn") or "")
+                if not ecoflow_sn_public(sn):
+                    continue
                 names[sn] = _label_for_sn(sn, d.get("productName") or sn)
         except Exception:
             pass
@@ -438,7 +351,7 @@ def _quota_snapshot() -> dict:
     newest = 0
     for qf in sorted((root / "quota").glob("*.json")):
         try:
-            raw = json_loads(qf.read_text())
+            raw = json_loads(qf.read_text(encoding="utf-8"))
         except Exception:
             continue
         newest = max(newest, int(raw.get("at") or 0))
@@ -446,6 +359,8 @@ def _quota_snapshot() -> dict:
         if not isinstance(data, dict):
             continue
         sn = qf.stem
+        if not ecoflow_sn_public(sn):
+            continue
         at = int(raw.get("at") or 0)
         at_s = at / 1000.0 if at > 1_000_000_000_000 else float(at)
         age_s = time.time() - at_s if at_s else 10**9
@@ -493,27 +408,68 @@ def json_loads(text: str):
     return json.loads(text)
 
 
+def _append_ecoflow_sqlite(sn: str, row: dict) -> None:
+    """Keep the Linux 10s snapshots db current. jsonl remains the live chart store."""
+    import sqlite3
+
+    if not ecoflow_sn_public(sn):
+        return
+    db = ecoflow_dir() / "ecoflow-10s.db"
+    if not db.is_file():
+        return
+    now_iso = datetime.now(timezone.utc).isoformat()
+    try:
+        con = sqlite3.connect(str(db), timeout=5)
+        try:
+            con.execute(
+                "INSERT INTO snapshots "
+                "(ts, sn, online, soc, in_w, out_w, solar_w, raw_json, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    now_iso,
+                    sn,
+                    1 if row.get("deviceOnline") else 0,
+                    row.get("soc"),
+                    row.get("inW") or 0,
+                    row.get("outW") or 0,
+                    row.get("solarW") or 0,
+                    json.dumps(row, separators=(",", ":")),
+                    now_iso,
+                ),
+            )
+            con.commit()
+        finally:
+            con.close()
+    except Exception as e:
+        log.warning("ecoflow sqlite append skipped: %s", e)
+
+
 def _append_ecoflow_history(sn: str, *, soc, pwr: dict, online: bool) -> None:
     """Keep the jsonl charts current. Quota JSON alone is not a time series."""
-    from apps.core import config
-
-    hist = config.DATA_DIR / "ecoflow" / "history"
+    if not ecoflow_sn_public(sn):
+        return
+    ensure_data_layout()
+    hist = ecoflow_dir() / "history"
+    row = {
+        "at": int(time.time() * 1000),
+        "deviceOnline": bool(online),
+        "soc": soc,
+        "solarW": pwr.get("pv_w") or 0,
+        "inW": pwr.get("ac_in_w") or 0,
+        "outW": pwr.get("dc_out_w") or 0,
+        "offCircuit": not online,
+    }
     try:
         hist.mkdir(parents=True, exist_ok=True)
-        row = {
-            "at": int(time.time() * 1000),
-            "deviceOnline": bool(online),
-            "soc": soc,
-            "solarW": pwr.get("pv_w") or 0,
-            "inW": pwr.get("ac_in_w") or 0,
-            "outW": pwr.get("dc_out_w") or 0,
-            "offCircuit": not online,
-        }
         path = hist / f"{sn}.jsonl"
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(row, separators=(",", ":")) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
     except OSError as e:
-        log.debug("ecoflow history write skipped: %s", e)
+        log.warning("ecoflow history write skipped: %s", e)
+        return
+    _append_ecoflow_sqlite(sn, row)
 
 
 def _soc_from_quota(data: dict) -> float | None:
@@ -534,47 +490,14 @@ def _soc_from_quota(data: dict) -> float | None:
 
 
 def _ecoflow_roots() -> list[Path]:
-    """All EcoFlow data trees that have quota or history (newest first)."""
-    from apps.core import config
-    repo_data = Path(__file__).resolve().parents[3] / "data" / "ecoflow"
-    candidates = [
-        config.DATA_DIR / "ecoflow",
-        config.AVA_HOME / "Data" / "ecoflow",
-        repo_data,
-        Path.home() / "Ava" / "Data" / "ecoflow",
-        Path(config.AVA_HOME / "Data" / "ecoflow"),
-        Path(config.AVA_HOME / "Data" / "ecoflow"),
-    ]
-    scored: list[tuple[float, Path]] = []
-    seen: set[Path] = set()
-    for p in candidates:
-        try:
-            rp = p.resolve()
-        except OSError:
-            rp = p
-        if rp in seen or not p.exists():
-            continue
-        seen.add(rp)
-        mtimes: list[float] = []
-        q = p / "quota"
-        if q.is_dir():
-            mtimes.extend(f.stat().st_mtime for f in q.glob("*.json"))
-        h = p / "history"
-        if h.is_dir():
-            mtimes.extend(
-                f.stat().st_mtime
-                for f in h.glob("*.jsonl")
-                if not f.name.endswith("-minutes.jsonl")
-            )
-        if mtimes:
-            scored.append((max(mtimes), p))
-    scored.sort(reverse=True)
-    return [p for _m, p in scored]
+    """Live EcoFlow tree only. Leftovers on E: / D: are not read."""
+    ensure_data_layout()
+    return [ecoflow_dir()]
 
 
 def _ecoflow_root() -> Path | None:
-    roots = _ecoflow_roots()
-    return roots[0] if roots else None
+    ensure_data_layout()
+    return ecoflow_dir()
 
 
 def _mean(vals: list[float]) -> float | None:
@@ -602,6 +525,8 @@ def _iter_history_rows(hist: Path, *, tail: int = 800):
         except OSError:
             continue
         device = path.stem
+        if not ecoflow_sn_public(device):
+            continue
         for line in lines:
             line = line.strip().strip("\x00")
             if not line.startswith("{"):
@@ -618,29 +543,9 @@ _last_host_sample_at = 0.0
 
 
 def _host_history_paths() -> list[Path]:
-    """Canonical + legacy host CPU jsonl locations."""
-    from apps.core import config
-
-    paths: list[Path] = []
-    seen: set[Path] = set()
-    candidates = [
-        config.DATA_DIR / "host" / "history.jsonl",
-        config.DATA_DIR / "biz" / "cpu.jsonl",
-        config.AVA_HOME / "Data" / "host" / "history.jsonl",
-        config.AVA_HOME / "Data" / "biz" / "cpu.jsonl",
-        Path(config.AVA_HOME / "Data" / "host" / "history.jsonl"),
-        Path(config.AVA_HOME / "Data" / "biz" / "cpu.jsonl"),
-    ]
-    for p in candidates:
-        try:
-            rp = p.resolve()
-        except OSError:
-            rp = p
-        if rp in seen:
-            continue
-        seen.add(rp)
-        paths.append(p)
-    return paths
+    """Live host samples only. One file."""
+    ensure_data_layout()
+    return [host_history_path()]
 
 
 def record_host_sample(*, force: bool = False) -> dict | None:
@@ -657,7 +562,8 @@ def record_host_sample(*, force: bool = False) -> dict | None:
     except Exception as e:
         log.debug("host sample skipped: %s", e)
         return None
-    out = config.DATA_DIR / "host" / "history.jsonl"
+    ensure_data_layout()
+    out = host_history_path()
     try:
         out.parent.mkdir(parents=True, exist_ok=True)
         with out.open("a", encoding="utf-8") as fh:
@@ -735,8 +641,22 @@ def _battery_from_row(row: dict) -> float | None:
     return None
 
 
+def _pct_from_row(row: dict, *keys: str) -> float | None:
+    for key in keys:
+        v = row.get(key)
+        if v is None or v == "":
+            continue
+        try:
+            n = float(v)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= n <= 100:
+            return round(n, 2)
+    return None
+
+
 def _iter_host_metric_rows(*, tail: int = 2000):
-    """Yield (at_ms, cpu_pct, mem_pct, temp_c, battery_pct) from host history files."""
+    """Yield host samples from history files."""
     for path in _host_history_paths():
         if not path.is_file():
             continue
@@ -758,7 +678,9 @@ def _iter_host_metric_rows(*, tail: int = 2000):
             mem = _mem_from_row(row)
             temp = _temp_from_row(row)
             batt = _battery_from_row(row)
-            if cpu is None and mem is None and temp is None and batt is None:
+            gpu = _pct_from_row(row, "gpu_pct", "igpu_pct")
+            npu = _pct_from_row(row, "npu_pct")
+            if all(v is None for v in (cpu, mem, temp, batt, gpu, npu)):
                 continue
             at_ms = _parse_history_at_ms(row, int(time.time() * 1000))
             if at_ms is None:
@@ -769,25 +691,29 @@ def _iter_host_metric_rows(*, tail: int = 2000):
                         at_ms *= 1000
                 except (TypeError, ValueError):
                     continue
-            yield at_ms, cpu, mem, temp, batt
+            yield {
+                "at_ms": at_ms,
+                "cpu_pct": cpu,
+                "mem_pct": mem,
+                "temp_c": temp,
+                "battery_pct": batt,
+                "gpu_pct": gpu,
+                "npu_pct": npu,
+            }
 
 
 def _host_metrics_by_minute(hours: float, now_ms: int) -> dict[int, dict[str, float]]:
     window_ms = now_ms - int(hours * 3600_000)
     by_min: dict[int, dict[str, float]] = {}
-    for at_ms, cpu, mem, temp, batt in _iter_host_metric_rows(tail=max(400, int(hours * 60) + 120)):
+    for row in _iter_host_metric_rows(tail=max(400, int(hours * 60) + 120)):
+        at_ms = row["at_ms"]
         if at_ms < window_ms:
             continue
         minute = (at_ms // 60_000) * 60_000
         slot = by_min.setdefault(minute, {})
-        if cpu is not None:
-            slot["cpu_pct"] = cpu
-        if mem is not None:
-            slot["mem_pct"] = mem
-        if temp is not None:
-            slot["temp_c"] = temp
-        if batt is not None:
-            slot["battery_pct"] = batt
+        for key in ("cpu_pct", "mem_pct", "temp_c", "battery_pct", "gpu_pct", "npu_pct"):
+            if row.get(key) is not None:
+                slot[key] = row[key]
     return by_min
 
 
@@ -868,6 +794,8 @@ def history_points(hours: float = 12) -> dict:
             "mem_pct": host.get("mem_pct"),
             "temp_c": host.get("temp_c"),
             "host_battery_pct": host.get("battery_pct"),
+            "gpu_pct": host.get("gpu_pct"),
+            "npu_pct": host.get("npu_pct"),
         })
     return {"ok": True, "points": points, "hours": hours}
 
@@ -942,6 +870,8 @@ def history_rollups() -> dict:
             "mem_pct": _series_stats(subset, "mem_pct"),
             "temp_c": _series_stats(subset, "temp_c"),
             "host_battery_pct": _series_stats(subset, "host_battery_pct"),
+            "gpu_pct": _series_stats(subset, "gpu_pct"),
+            "npu_pct": _series_stats(subset, "npu_pct"),
             "solar_wh": _energy_wh(subset, "solar_w"),
             "load_wh": _energy_wh(subset, "load_w"),
         }
@@ -1042,10 +972,23 @@ def _attach_rollups(snap: dict) -> dict:
     transfer = sum(float(d.get("transfer_w") or d.get("ac_out_w") or 0) for d in devices if d.get("ac_role") == "transfer_out")
     generator = sum(float(d.get("ac_in_w") or 0) for d in devices if d.get("ac_role") == "generator")
     socs = [float(d["soc"]) for d in devices if d.get("soc") is not None and d.get("online") is not False]
+    from apps.core.services import load_categories, sun_times
+    cats = load_categories.categories(devices)
+    load_categories.append_history(cats)
+    sun = sun_times.facts()
+    night = load_categories.night_charge_callout(devices, sun=sun)
     snap["solar_in_w"] = round(pv, 1)
     snap["load_w"] = round(dc, 1)
     snap["power_w"] = round(pv, 1)
     snap["state"] = snap.get("state") or _bank_state(devices)
+    snap["sun"] = {
+        "sunrise": sun.get("sunrise"),
+        "sunset": sun.get("sunset"),
+        "after_sunset": sun.get("after_sunset"),
+        "before_sunrise": sun.get("before_sunrise"),
+    }
+    if night:
+        snap["night_charge"] = night
     snap["totals"] = {
         "solar_in_w": round(pv, 1),
         "load_w": round(dc, 1),
@@ -1055,11 +998,54 @@ def _attach_rollups(snap: dict) -> dict:
         "generator_w": round(generator, 1),
         "transfer_w": round(transfer, 1),
         "appliance_w": round(appliance, 1),
+        "starlink_lights_w": cats["starlink_lights_w"],
+        "emergency_pack_w": cats["emergency_pack_w"],
+        "server_mobile_w": cats["server_mobile_w"],
+        "hard_drives_12v_w": cats["hard_drives_12v_w"],
         "net_w": round(pv - dc, 1),
         "bank_avg_pct": round(sum(socs) / len(socs), 1) if socs else snap.get("battery_pct"),
         "packs": len(devices),
+        "categories": cats,
     }
+    # A plain mean of a 1024 Wh and a 768 Wh pack reports a level that does not
+    # exist. Weight by capacity and carry the stored kWh alongside it.
+    try:
+        from apps.core.services import energy
+        from apps.core.host_metrics import host_battery
+
+        host_pct = None
+        try:
+            hb = host_battery() or {}
+            host_pct = hb.get("pct")
+        except Exception:
+            host_pct = None
+
+        summary = energy.summary(devices, pv_w=pv, load_w=dc, host_battery_pct=host_pct)
+        if summary.get("ok"):
+            # Prefer combined packs+host when host SOC is known; keep EcoFlow-only as site_bank.
+            weighted = summary.get("total_pct")
+            if weighted is None:
+                weighted = summary["bank_pct"]
+            snap["totals"].update(
+                {
+                    "bank_pct_weighted": weighted,
+                    "site_bank_pct": summary.get("site_bank_pct", summary["bank_pct"]),
+                    "stored_wh": summary["stored_wh"],
+                    "stored_kwh": summary["stored_kwh"],
+                    "capacity_wh": summary["capacity_wh"],
+                    "capacity_kwh": summary["capacity_kwh"],
+                    "total_pct": summary.get("total_pct"),
+                    "total_stored_wh": summary.get("total_stored_wh"),
+                    "total_capacity_wh": summary.get("total_capacity_wh"),
+                }
+            )
+            snap["energy"] = summary
+    except Exception as e:
+        log.debug("energy rollup skipped: %s", e)
     snap["averages"] = _history_averages()
+    cat_avg = load_categories.history_averages(1)
+    if cat_avg:
+        snap["averages"] = {**(snap.get("averages") or {}), "categories_1h": cat_avg}
     return snap
 
 
@@ -1077,7 +1063,7 @@ async def run():
     access_key = os.getenv("AVA_ECOFLOW_ACCESS_KEY", "")
     secret_key = os.getenv("AVA_ECOFLOW_SECRET_KEY", "")
     base_url   = os.getenv("AVA_ECOFLOW_BASE_URL", "https://api-a.ecoflow.com")
-    serial_nos = [s.strip() for s in os.getenv("AVA_ECOFLOW_SN", "").split(",") if s.strip()]
+    serial_nos = public_serials(os.getenv("AVA_ECOFLOW_SN", "").split(","))
 
     now_utc  = datetime.now(timezone.utc)
     now_hst  = datetime.now()  # scheduler runs in Pacific/Honolulu tz

@@ -31,10 +31,19 @@ _scheduler: Scheduler | None = None  # exposed for /api/activity
 async def lifespan(app: FastAPI):
     global _scheduler
 
+    session_log = Path(config.AVA_HOME) / "data" / "logs" / "ava-core-session.log"
+    session_log.parent.mkdir(parents=True, exist_ok=True)
+    media_log = Path(config.LOG_DIR) / "ava-core.log"
+    media_log.parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s  %(name)-20s  %(levelname)s  %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)],
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(session_log, encoding="utf-8"),
+            logging.FileHandler(media_log, encoding="utf-8"),
+        ],
+        force=True,
     )
 
     config.ensure_dirs()
@@ -58,14 +67,17 @@ async def lifespan(app: FastAPI):
         import asyncio
 
         async def _startup_voice():
-            await asyncio.sleep(3)  # let the server finish binding
-            from apps.core.services.startup_voice import queue_if_allowed
+            try:
+                await asyncio.sleep(3)  # let the server finish binding
+                from apps.core.services.startup_voice import queue_if_allowed
 
-            result = await queue_if_allowed(force=False)
-            if result.get("played"):
-                log.info("Startup voice clip queued")
-            else:
-                log.info("Startup voice skipped: %s", result.get("detail"))
+                result = await queue_if_allowed(force=False)
+                if result.get("played"):
+                    log.info("Startup voice clip queued")
+                else:
+                    log.info("Startup voice skipped: %s", result.get("detail"))
+            except Exception as e:
+                log.warning("Startup voice failed: %s", e)
 
         asyncio.create_task(_startup_voice())
     except Exception as e:
@@ -130,9 +142,23 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.debug("boot account import skipped: %s", e)
 
+    try:
+        from apps.core.services import uptime_log, schedule_clock, sun_times
+        sun_times.refresh_if_stale()
+        uptime_log.record_origin_start()
+        schedule_clock.sample_day_start()
+    except Exception as e:
+        log.debug("uptime start skipped: %s", e)
+
     yield
 
     log.info("Ava Core shutting down")
+    try:
+        from apps.core.services import uptime_log, schedule_clock
+        schedule_clock.sample_day_stop()
+        uptime_log.record_origin_stop()
+    except Exception:
+        pass
     if _scheduler:
         await _scheduler.stop()
     try:
@@ -174,6 +200,8 @@ for _route in (
     "crons",
     "reports",
     "status",
+    "public_site",
+    "feedback",
     "context",
     "goals",
     "obs",
@@ -183,9 +211,11 @@ for _route in (
     "chat",
     "plugins",
     "realworld",
+    "kilauea_mobile",
     "media",
     "blog",
     "ops",
+    "local_site",
     "brain",
     "vercel_builds",
     "site_backgrounds",

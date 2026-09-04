@@ -59,6 +59,9 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "settings") {
       refreshConnectionForm();
       refreshGitSyncPrefs();
+      refreshStartTimer();
+      refreshShutdownTimer();
+      refreshOpsBanner();
     }
   });
 });
@@ -5227,7 +5230,9 @@ async function refreshShutdownTimer() {
       $("shutdown-time").value = d.timeHst || "";
     }
     paintShutdownCountdown();
-    if (st) st.textContent = `Target ${d.label} · next ${d.atIso}`;
+    if (st) st.textContent = `Target ${d.label} · next ${d.atIso}` +
+      (d.averageLabel ? ` · rolling avg ${d.averageLabel}` : "") +
+      (d.sampleDays ? ` · ${d.sampleDays} nights` : "");
   } catch (err) {
     if (st) st.textContent = String(err.message || err);
   }
@@ -5260,6 +5265,26 @@ async function saveShutdownTimer() {
 }
 $("shutdown-refresh")?.addEventListener("click", () => refreshShutdownTimer());
 $("shutdown-save")?.addEventListener("click", () => saveShutdownTimer());
+async function useAverageShutdown() {
+  const st = $("shutdown-status");
+  if (st) st.textContent = "switching to average…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/projected-shutdown`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({ useAverage: true, updatedBy: "desktop-panel" }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshShutdownTimer();
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+$("shutdown-use-avg")?.addEventListener("click", () => useAverageShutdown());
 setInterval(paintShutdownCountdown, 1000);
 
 async function refreshStartTimer() {
@@ -5337,6 +5362,55 @@ async function useAverageStart() {
 $("start-refresh")?.addEventListener("click", () => refreshStartTimer());
 $("start-save")?.addEventListener("click", () => saveStartTimer());
 $("start-use-avg")?.addEventListener("click", () => useAverageStart());
+
+async function refreshOpsBanner() {
+  const st = $("ops-banner-status");
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/ops-schedule-banner`, { cache: "no-store" });
+    const d = await res.json();
+    if (!d?.ok) {
+      if (st) st.textContent = d?.detail || "unavailable";
+      return;
+    }
+    if ($("ops-enabled")) $("ops-enabled").checked = Boolean(d.enabled);
+    if ($("ops-auto-low")) $("ops-auto-low").checked = d.autoLowBank !== false;
+    if ($("ops-show-start")) $("ops-show-start").checked = d.showStart !== false;
+    if ($("ops-show-stop")) $("ops-show-stop").checked = d.showShutdown !== false;
+    if (st) {
+      st.textContent = d.show
+        ? `${d.title || "showing"} · ${d.detail || ""}`
+        : "banner off";
+    }
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+async function saveOpsBanner() {
+  const st = $("ops-banner-status");
+  if (st) st.textContent = "saving…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/ops-schedule-banner`, {
+      method: "POST",
+      headers: operatorHeaders(),
+      body: JSON.stringify({
+        enabled: Boolean($("ops-enabled")?.checked),
+        autoLowBank: Boolean($("ops-auto-low")?.checked),
+        showStart: Boolean($("ops-show-start")?.checked),
+        showShutdown: Boolean($("ops-show-stop")?.checked),
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      if (st) st.textContent = d.detail || `HTTP ${res.status}`;
+      return;
+    }
+    await refreshOpsBanner();
+  } catch (err) {
+    if (st) st.textContent = String(err.message || err);
+  }
+}
+$("ops-banner-refresh")?.addEventListener("click", () => refreshOpsBanner());
+$("ops-banner-save")?.addEventListener("click", () => saveOpsBanner());
 
 async function refreshDisruptionBanner() {
   const st = $("disrupt-status");
@@ -5492,4 +5566,5 @@ boot().catch((err) => {
 refreshShutdownTimer().catch(() => {});
 refreshStartTimer().catch(() => {});
 refreshDisruptionBanner().catch(() => {});
+refreshOpsBanner().catch(() => {});
 refreshGfsOutlook().catch(() => {});

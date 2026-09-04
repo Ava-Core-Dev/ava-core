@@ -1,14 +1,11 @@
 """Git auto-push for AVA-CORE on Windows (Task Scheduler, pythonw).
 
-Pushes already-committed work to origin. Never --force. Never --no-verify.
-Never stages .env / tokens / credentials.
-
-Does not `git add -A` the whole dirty tree (parallel agents + cutover WIP).
-Optional website-path commit (holding HTML / Sites / worker source), matching
-the old Linux job’s site-sync intent. Set AVA_AUTO_COMMIT_ALL=1 to restore
-the Linux `git add -A` behavior.
+Every tick: if tracked files are dirty (except secrets / Media / large DBs /
+__pycache__), stage the safe paths, commit `auto: sync <timestamp>`, push
+HEAD and `dev`. Never --force. Never --no-verify.
 
 Quiet when there is nothing to do. Skips if AVA_AUTO_PUSH=0 or the off flag.
+Shares git-sync.lock with auto-pull.py.
 """
 from __future__ import annotations
 
@@ -24,6 +21,7 @@ from git_win import (
     git,
     git_exe,
     is_git_repo,
+    is_unsafe_auto_path,
     merge_in_progress,
     release_lock,
     skip_worktree_missing_tracked,
@@ -34,36 +32,10 @@ LOG = LOG_DIR / "auto-push.log"
 FLAG_WIN = Path.home() / ".ava" / "github-auto-push.off"
 FLAG_NIX = Path.home() / ".local" / "state" / "ava" / "github-auto-push.off"
 
-# Holding page + worker source only. Not desk, not .env, not apps/desktop.
-WEBSITE_PATHS = (
-    "apps/core/static/maintenance.html",
-    "Sites/Holding/index.html",
-    "packages/workers/src/shared/maintenancePage.ts",
-    "packages/workers/holding-worker.ts",
-    "packages/workers/wrangler.rootrecord-cloud.toml",
-    "packages/workers/wrangler.holding.toml",
-    "windows/sync_maintenance_html.py",
-)
-
 
 def log(msg: str) -> None:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     LOG.open("a", encoding="utf-8").write(f"{datetime.now(timezone.utc).isoformat()} {msg}\n")
-
-
-def _norm(text: str) -> str:
-    return text.replace("\r\n", "\n").replace("\r", "\n")
-
-
-def _website_changed(exe: str, rel: str) -> bool:
-    path = REPO / rel
-    if not path.is_file():
-        return False
-    shown = git(exe, "show", f"HEAD:{rel}")
-    working = path.read_text(encoding="utf-8")
-    if shown.returncode != 0:
-        return True
-    return _norm(working) != _norm(shown.stdout)
 
 
 def _ahead_count(exe: str) -> int | None:
@@ -75,6 +47,42 @@ def _ahead_count(exe: str) -> int | None:
         return int((n.stdout or "0").strip() or "0")
     except ValueError:
         return 0
+
+
+def _staged_names(exe: str) -> list[str]:
+    return [
+        f.strip().replace("\\", "/")
+        for f in git(exe, "diff", "--cached", "--name-only").stdout.splitlines()
+        if f.strip()
+    ]
+
+
+def _commit_safe(exe: str, dry: bool) -> bool:
+    """Stage tracked changes that are safe, commit if anything remains."""
+    git(exe, "add", "-u")
+    secrets = unstage_secrets(exe)
+    if secrets:
+        log("unstaged secrets: " + " ".join(secrets[:12]))
+    staged = _staged_names(exe)
+    unsafe = [f for f in staged if is_unsafe_auto_path(f)]
+    if unsafe:
+        git(exe, "restore", "--staged", "--", *unsafe)
+        log("unstaged unsafe: " + " ".join(unsafe[:12]))
+    dirty = git(exe, "diff", "--cached", "--quiet").returncode != 0
+    if not dirty:
+        return False
+    if dry:
+        log("dry-run: would commit " + " ".join(_staged_names(exe)[:16]))
+        git(exe, "restore", "--staged", ".")
+        return False
+    msg = f"auto: sync {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M %Z')}"
+    c = git(exe, "commit", "-m", msg)
+    if c.returncode != 0:
+        err = (c.stderr or c.stdout or "").strip().splitlines()
+        log("commit failed: " + " | ".join(err[-4:] or ["(no git stderr)"]))
+        return False
+    log("commit " + git(exe, "rev-parse", "--short", "HEAD").stdout.strip())
+    return True
 
 
 def main(argv: list[str]) -> int:
@@ -101,56 +109,7 @@ def main(argv: list[str]) -> int:
         marked = skip_worktree_missing_tracked(exe)
         if marked:
             log(f"skip-worktree missing tracked {marked}")
-        commit_all = os.environ.get("AVA_AUTO_COMMIT_ALL", "0").lower() in {"1", "true", "yes"}
-        did_commit = False
-        if commit_all:
-            if dry:
-                log("dry-run: would git add -A (AVA_AUTO_COMMIT_ALL)")
-            else:
-                git(exe, "add", "-A")
-                secrets = unstage_secrets(exe)
-                if secrets:
-                    log("unstaged secrets: " + " ".join(secrets))
-                dirty = git(exe, "diff", "--cached", "--quiet").returncode != 0
-                if dirty:
-                    msg = f"auto: sync {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M %Z')}"
-                    c = git(exe, "commit", "-m", msg)
-                    if c.returncode != 0:
-                        err = (c.stderr or c.stdout or "").strip().splitlines()
-                        log("commit failed: " + " | ".join(err[-4:] or ["(no git stderr)"]))
-                        return 1
-                    did_commit = True
-                    log("commit " + git(exe, "rev-parse", "--short", "HEAD").stdout.strip())
-        else:
-            changed = [p for p in WEBSITE_PATHS if _website_changed(exe, p)]
-            if changed:
-                if dry:
-                    log("dry-run: would commit website " + " ".join(changed))
-                else:
-                    git(exe, "add", "--", *changed)
-                    secrets = unstage_secrets(exe)
-                    if secrets:
-                        log("unstaged secrets: " + " ".join(secrets))
-                    staged = [
-                        f.strip().replace("\\", "/")
-                        for f in git(exe, "diff", "--cached", "--name-only").stdout.splitlines()
-                        if f.strip()
-                    ]
-                    extra = [f for f in staged if f not in WEBSITE_PATHS]
-                    if extra:
-                        git(exe, "restore", "--staged", "--", *extra)
-                        log("unstaged non-website: " + " ".join(extra[:12]))
-                    dirty = git(exe, "diff", "--cached", "--quiet").returncode != 0
-                    if dirty:
-                        msg = f"auto: holding {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M %Z')}"
-                        c = git(exe, "commit", "-m", msg)
-                        if c.returncode != 0:
-                            err = (c.stderr or c.stdout or "").strip().splitlines()
-                            log("commit failed: " + " | ".join(err[-4:] or ["(no git stderr)"]))
-                            return 1
-                        did_commit = True
-                        log("commit " + git(exe, "rev-parse", "--short", "HEAD").stdout.strip() + " " + " ".join(changed))
-
+        did_commit = _commit_safe(exe, dry)
         branch = git(exe, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
         ahead = _ahead_count(exe)
         if ahead is None:
@@ -168,7 +127,6 @@ def main(argv: list[str]) -> int:
             log("push failed: " + " | ".join(safe[-4:] or ["(no git stderr)"]))
             return 1
         log(f"pushed {branch} " + git(exe, "rev-parse", "--short", "HEAD").stdout.strip())
-        # Rolling dev pointer like Linux auto-push.sh. Never --force.
         d = git(exe, "push", "origin", "HEAD:dev", timeout=180)
         if d.returncode == 0:
             log("pushed dev")

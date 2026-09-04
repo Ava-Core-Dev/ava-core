@@ -135,7 +135,7 @@ async def discord_loop() -> None:
         return
     import asyncio
 
-    log.info("Discord report-subscribe inbox running")
+    log.info("Discord Ava replies + report-subscribe inbox running")
     while True:
         try:
             await _discord_tick()
@@ -149,10 +149,12 @@ async def _discord_tick() -> None:
     last: dict[str, str] = dict(state.get("discord_last") or {})
     bot_id = await _discord_bot_id()
     channels = list(config.DEFAULT_WATCH_CHANNELS)
+    dm_ids: set[str] = set()
     for ch in await discord.list_private_channels():
         cid = str(ch.get("id") or "")
         if cid:
             channels.append(cid)
+            dm_ids.add(cid)
     seen_ch: set[str] = set()
     for cid in channels:
         if not cid or cid in seen_ch:
@@ -180,15 +182,28 @@ async def _discord_tick() -> None:
             uid = str(author.get("id") or "")
             if not uid or uid == bot_id:
                 continue
-            cmd = _parse_cmd(str(msg.get("content") or ""))
-            if not cmd:
+            content = str(msg.get("content") or "")
+            cmd = _parse_cmd(content)
+            if cmd:
+                label = str(author.get("username") or "")
+                reply = await _handle("discord", uid, cmd, label=label)
+                sent = await discord.send_dm(uid, reply)
+                if not sent:
+                    await discord.post_message(cid, reply, ref_id=str(msg.get("id") or "") or None)
                 continue
-            label = str(author.get("username") or "")
-            reply = await _handle("discord", uid, cmd, label=label)
-            # Prefer a DM so a public channel doesn't get a subscribe receipt spam.
-            sent = await discord.send_dm(uid, reply)
-            if not sent:
-                await discord.post_message(cid, reply, ref_id=str(msg.get("id") or "") or None)
+            dm = cid in dm_ids
+            from apps.core.services import discord_chat
+
+            if dm or discord_chat.is_addressed(msg, bot_id):
+                asked = discord_chat._strip_mention(content, bot_id)
+                if not asked and dm:
+                    asked = content.strip() or "hey"
+                if asked:
+                    reply = await discord_chat.ava_reply(asked, dm=dm)
+                    if reply:
+                        await discord.post_message(
+                            cid, reply, ref_id=str(msg.get("id") or "") or None
+                        )
         last[cid] = newest
     state["discord_last"] = last
     _save_state(state)

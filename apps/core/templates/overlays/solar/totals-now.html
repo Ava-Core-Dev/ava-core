@@ -43,7 +43,7 @@ async function paint(){
     document.getElementById('ac').textContent=avaWatts(ac);
     document.getElementById('appl').textContent=avaWatts(tot.appliance_w);
     document.getElementById('net').textContent=avaWatts(tot.net_w??(Number(pv||0)-Number(load||0)));
-    document.getElementById('bankAvg').textContent=avaPct(tot.bank_avg_pct??solar.battery_pct);
+    document.getElementById('bankAvg').textContent=avaPct(tot.bank_pct_weighted??tot.bank_avg_pct??solar.battery_pct);
     document.getElementById('state').textContent=solar.state||'—';
   }catch(e){}
 }

@@ -11,7 +11,6 @@ from apps.core import config
 
 FINANCE_DIRS = [
     config.DATA_DIR / "finance",
-    Path(config.AVA_HOME / "Data" / "finance"),
 ]
 GOALS_JSON = (
     Path(__file__).resolve().parents[3]
@@ -109,20 +108,19 @@ def _collect_lines(ledger: dict) -> tuple[list[dict], list[dict], list[dict]]:
             for row in acct.get("income") or []:
                 add_inc(row, pname, aname)
 
-    # Top-level duplicates in some ledgers
+    # Top-level copies of the same ids (this ledger lists Starlink twice).
     for row in ledger.get("expenses") or []:
-        if not any(e.get("id") == row.get("id") and e.get("project") == "RootMC ops" for e in expenses):
+        if not any(e.get("id") == row.get("id") for e in expenses):
             add_exp(row, "RootMC ops")
     for row in ledger.get("otherIncome") or []:
         if not any(i.get("id") == row.get("id") for i in income):
             add_inc(row, "RootMC ops")
 
-    # Deduplicate by id+label+project
     def dedupe(rows: list[dict]) -> list[dict]:
         seen: set[str] = set()
         out: list[dict] = []
         for r in rows:
-            key = f"{r.get('id')}|{r.get('label')}|{r.get('project')}|{r.get('account')}"
+            key = str(r.get("id") or f"{r.get('label')}|{r.get('project')}")
             if key in seen:
                 continue
             seen.add(key)

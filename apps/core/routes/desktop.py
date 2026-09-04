@@ -10,7 +10,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import psutil
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 
 from .. import config
@@ -91,6 +91,13 @@ class BannerBody(BaseModel):
     detail: str | None = None
     untilDate: str | None = None
     untilTimeHst: str | None = None
+
+
+class OpsBannerBody(BaseModel):
+    enabled: bool | None = None
+    autoLowBank: bool | None = None
+    showStart: bool | None = None
+    showShutdown: bool | None = None
 
 
 class RewriteBody(BaseModel):
@@ -183,36 +190,66 @@ async def weather_gifs():
 @router.get("/projected-shutdown")
 @router.post("/projected-shutdown")
 async def projected_shutdown(body: TimeBody | None = None):
+    from apps.core.services import schedule_clock
+
     path = STATE / "projected-shutdown.json"
     stored = _read_json(path, {"timeHst": "22:00", "source": "default"})
-    if body and body.time:
-        stored = {"timeHst": body.time, "source": "manual", "updatedBy": body.updatedBy}
+    stats = schedule_clock.stop_stats()
+    avg = stats.get("average")
+    sample = stats.get("sampleDays") or 0
+    if body:
+        if body.useAverage and avg:
+            stored = {"timeHst": avg, "source": "average", "sampleDays": sample}
+        elif body.time:
+            stored = {"timeHst": body.time, "source": "manual", "updatedBy": body.updatedBy, "sampleDays": sample}
         _write_json(path, stored)
-    return _clock_payload("shutdown", stored.get("timeHst") or "22:00", source=stored.get("source") or "manual")
+    source = stored.get("source") or "default"
+    time_hst = stored.get("timeHst") or "22:00"
+    if source != "manual" and avg:
+        time_hst = avg
+        source = "average" if sample else source
+    extra = {
+        "sampleDays": sample,
+        "averageLabel": avg,
+        "note": source,
+    }
+    return _clock_payload("shutdown", time_hst, source=source, extra=extra)
 
 
 @router.get("/projected-start")
 @router.post("/projected-start")
 async def projected_start(body: TimeBody | None = None):
+    from apps.core.services import schedule_clock
+
     path = STATE / "projected-start.json"
     stored = _read_json(path, {"timeHst": "10:00", "source": "default"})
-    days = _read_json(STATE / "day-starts.json", {})
-    sample = len((days.get("days") or {})) if isinstance(days, dict) else 0
+    stats = schedule_clock.start_stats()
+    avg = stats.get("average")
+    sample = stats.get("sampleDays") or 0
     if body:
         if body.useAverage:
-            stored = {"timeHst": stored.get("timeHst") or "07:30", "source": "average", "sampleDays": sample}
+            stored = {
+                "timeHst": avg or stored.get("timeHst") or "07:30",
+                "source": "average",
+                "sampleDays": sample,
+            }
         elif body.time:
             stored = {"timeHst": body.time, "source": "manual", "updatedBy": body.updatedBy, "sampleDays": sample}
         _write_json(path, stored)
+    source = stored.get("source") or "default"
+    time_hst = stored.get("timeHst") or "10:00"
+    if source != "manual" and avg:
+        time_hst = avg
+        source = "average"
     extra = {
-        "sampleDays": stored.get("sampleDays") or sample,
-        "note": stored.get("source") or "default",
-        "averageLabel": "07:30" if sample else None,
+        "sampleDays": sample,
+        "note": source,
+        "averageLabel": avg,
     }
     return _clock_payload(
         "start",
-        stored.get("timeHst") or "10:00",
-        source=stored.get("source") or "default",
+        time_hst,
+        source=source,
         extra=extra,
     )
 
@@ -273,6 +310,87 @@ async def disruption_banner(body: BannerBody | None = None):
         stored.update(patch)
         _write_json(path, stored)
     return _banner_payload(stored)
+
+
+async def _ops_paint_args() -> dict:
+    from apps.core.services import ops_banner, sun_times
+
+    hours = None
+    host_pct = None
+    plugged = None
+    start_label = ""
+    shutdown_label = ""
+    try:
+        from apps.core.crons.since_last_fire.solar_weather import live_snapshot
+        snap = await live_snapshot() or {}
+        energy = snap.get("energy") or {}
+        flow = energy.get("flow") or {}
+        hours = flow.get("hours_to_empty")
+        tot = snap.get("totals") or {}
+        cats = tot.get("categories") or {}
+        site_w = (
+            float(cats.get("server_mobile_w") or 0)
+            + float(cats.get("starlink_lights_w") or 0)
+            + float(cats.get("appliances_w") or 0)
+            + float(cats.get("emergency_pack_w") or 0)
+            + float(cats.get("hard_drives_12v_w") or 0)
+        )
+        stored = energy.get("stored_wh")
+        if stored and site_w >= 20:
+            hours = round(float(stored) / site_w, 1)
+    except Exception:
+        snap = {}
+    if hours is None:
+        remains = []
+        for d in (snap.get("devices") or []):
+            m = d.get("remain_min")
+            try:
+                if m is not None and float(m) > 0:
+                    remains.append(float(m) / 60.0)
+            except (TypeError, ValueError):
+                pass
+        if remains:
+            hours = round(min(remains), 1)
+    try:
+        from apps.core.host_metrics import host_battery
+        hb = host_battery() or {}
+        host_pct = hb.get("pct")
+        plugged = hb.get("plugged")
+    except Exception:
+        pass
+    try:
+        start = await projected_start(None)
+        shutdown = await projected_shutdown(None)
+        start_label = start.get("label") or ""
+        shutdown_label = shutdown.get("label") or ""
+    except Exception:
+        pass
+    sun = {}
+    try:
+        sun = sun_times.facts()
+    except Exception:
+        pass
+    return ops_banner.paint(
+        hours_to_empty=hours,
+        host_battery_pct=host_pct,
+        host_plugged=plugged,
+        start_label=start_label,
+        shutdown_label=shutdown_label,
+        after_sunset=bool(sun.get("after_sunset")),
+        sun=sun,
+    )
+
+
+@router.get("/ops-schedule-banner")
+@router.post("/ops-schedule-banner")
+async def ops_schedule_banner(body: OpsBannerBody | None = None):
+    from apps.core.services import ops_banner
+
+    if body is not None and any(
+        getattr(body, f) is not None for f in ("enabled", "autoLowBank", "showStart", "showShutdown")
+    ):
+        ops_banner.write(body.model_dump(exclude_none=True))
+    return await _ops_paint_args()
 
 
 @router.get("/gfs")
@@ -383,7 +501,10 @@ async def api_core_chat(body: CoreChatBody):
         return {"ok": False, "detail": "empty_text"}
     started = time.time()
     _, source = persona_svc.system_prompt(surface="desk")
-    reply = await ollama_svc.chat(persona_svc.core_messages(history), timeout=120)
+    facts = await persona_svc.live_facts()
+    reply = await ollama_svc.chat(
+        persona_svc.core_messages(history, facts=facts), timeout=120
+    )
     ms = int((time.time() - started) * 1000)
     if not reply:
         return {"ok": False, "detail": "ollama_fail", "ms": ms, "persona": True}
@@ -451,49 +572,18 @@ async def early_login():
 
 # ── Finance / biz ─────────────────────────────────────────────────────────────
 
-def _finance_payload() -> dict:
-    stored = _read_json(STATE / "finance.json", {})
-    cats = stored.get("expenseCategories") or [
-        "hosting", "domains", "cloudflare", "software", "hardware",
-        "utilities", "ads", "travel", "ops", "other",
-    ]
-    return {
-        "ok": True,
-        "stripe": {"configured": False, "ok": False, "reason": "not_configured"},
-        "ops": {
-            "summary": {
-                "projectCount": len(stored.get("projects") or []),
-                "accountCount": len(stored.get("accounts") or []),
-                "expensesMonthlyUsd": 0,
-                "expenseCount": 0,
-                "otherIncomeMonthlyUsd": 0,
-                "incomeCount": 0,
-                "netOtherMonthlyUsd": 0,
-                "staleIds": [],
-            },
-            "expenseCategories": cats,
-            "projects": stored.get("projects") or [],
-            "accounts": stored.get("accounts") or [],
-            "lines": stored.get("lines") or [],
-        },
-        "wishlists": {
-            "summary": {"listCount": len(stored.get("wishlists") or []), "itemCount": 0, "wantedUsd": 0},
-            "lists": stored.get("wishlists") or [],
-        },
-        "review": {},
-        "optimal": {"summary": {"monthlyUsd": 0, "lineCount": 0}, "deltaMonthlyUsd": 0},
-        "venmo": {"configured": False, "ytd": {}, "contextYtd": {}},
-        "pnl": {"plain": "Stripe/Venmo ledgers are not wired on Python origin yet.", "totals": {}},
-    }
-
-
 @router.get("/finance")
 @router.post("/finance")
-async def api_finance(body: FinanceBody | None = None):
-    payload = _finance_payload()
+async def api_finance(request: Request, body: FinanceBody | None = None):
+    from apps.core.services import finance_desk, stripe_poll
+
+    force = str(request.query_params.get("refresh") or "").lower() in {"1", "true", "yes"}
+    if body and str(body.action or "").lower() in {"refresh", "stripe"}:
+        force = True
+    snap = await stripe_poll.ensure_snapshot(force=force)
+    payload = finance_desk.desk_payload(snap)
     if body and body.action:
         payload["lastAction"] = body.action
-        payload["detail"] = "finance_ledger_not_wired"
     return payload
 
 

@@ -29,7 +29,7 @@ async function paint(){
     const pv=tot.solar_in_w??solar.solar_in_w??solar.power_w;
     const load=tot.dc_load_w??tot.load_w??solar.load_w;
     document.getElementById('flowIn').textContent=avaWatts(pv);
-    document.getElementById('flowBank').textContent=avaPct(tot.bank_avg_pct??solar.battery_pct);
+    document.getElementById('flowBank').textContent=avaPct(tot.bank_pct_weighted??tot.bank_avg_pct??solar.battery_pct);
     document.getElementById('flowOut').textContent=avaWatts(load);
     document.getElementById('src').textContent=(solar.pv_mount_note||solar.source||'ground PV')+(solar.updated_at?(' · '+String(solar.updated_at).slice(11,19)+'Z'):'');
   }catch(e){}

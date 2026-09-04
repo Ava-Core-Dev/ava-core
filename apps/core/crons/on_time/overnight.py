@@ -9,7 +9,6 @@ all other crons (solar, NOAA, Kīlauea, economy) keep running unaffected.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 
 log = logging.getLogger("ava.cron.overnight")
 
@@ -18,8 +17,7 @@ async def run():
     from apps.core import config
     from apps.core.services import discord
 
-    now = datetime.now()
-    now_hst = now.strftime("%H:%M HST — %a, %b %-d")
+    now_hst = config.hst_now_text()
 
     # Read latest solar report for quick battery context
     solar_line = ""
@@ -30,7 +28,7 @@ async def run():
             reverse=True,
         )
         if reports:
-            first_line = reports[0].read_text(errors="replace").splitlines()[0]
+            first_line = reports[0].read_text(encoding="utf-8", errors="replace").splitlines()[0]
             solar_line = f"\n{first_line}"
     except Exception as e:
         log.debug("Could not read solar report for overnight: %s", e)

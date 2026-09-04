@@ -32,7 +32,6 @@ for _p in (
     AVA_HOME / "credentials.env",
     Path.home() / "Ava" / "credentials.env",
     Path(__file__).resolve().parent.parent.parent / "credentials.env",
-    Path(r"E:\ava\credentials.env"),
 ):
     if _p.exists():
         load_dotenv(_p, override=False)
@@ -40,7 +39,6 @@ for _p in (
     AVA_HOME / "credentials.env",
     Path.home() / "Ava" / "credentials.env",
     Path(__file__).resolve().parent.parent.parent / "credentials.env",
-    Path(r"E:\ava\credentials.env"),
 ):
     if _p.exists():
         load_dotenv(_p, override=False)
@@ -134,8 +132,17 @@ DAILY_BROADCAST_THUMB = next(
     (p for p in _DAILY_THUMB_CANDIDATES if p and Path(p).exists()),
     _DAILY_THUMB_CANDIDATES[0],
 )
-PORTRAIT_OPS   = PUBLIC_MEDIA / "images" / "character" / "ava-desk-ops.png"
-PORTRAIT_WAVE  = PUBLIC_MEDIA / "images" / "character" / "ava-hologram-wave.png"
+_PORTRAIT_OPS_CANDIDATES = [
+    PUBLIC_MEDIA / "images" / "character" / "ava-desk-ops.png",
+    PUBLIC_MEDIA / "images" / "character" / "ava-05-desk-root-server.png",
+]
+_PORTRAIT_WAVE_CANDIDATES = [
+    PUBLIC_MEDIA / "images" / "character" / "ava-hologram-wave.png",
+    PUBLIC_MEDIA / "images" / "thumbnails" / "thumb-main-hologram-wave.jpg",
+    PUBLIC_MEDIA / "images" / "emojis" / "discord" / "ava_wave.png",
+]
+PORTRAIT_OPS = next((p for p in _PORTRAIT_OPS_CANDIDATES if p.exists()), _PORTRAIT_OPS_CANDIDATES[0])
+PORTRAIT_WAVE = next((p for p in _PORTRAIT_WAVE_CANDIDATES if p.exists()), _PORTRAIT_WAVE_CANDIDATES[0])
 ICON_1024      = PUBLIC_MEDIA / "images" / "brand" / "ava-icon-1024.png"
 
 MEDIA_SUBDIRS = (
@@ -322,6 +329,8 @@ OLLAMA_URL   = os.getenv("AVA_OLLAMA_URL",   "http://127.0.0.1:11434").strip()
 OLLAMA_MODEL = os.getenv("AVA_OLLAMA_MODEL", "llama3.2:latest").strip()
 OLLAMA_EMBED_MODEL = os.getenv("AVA_OLLAMA_EMBED_MODEL", "nomic-embed-text").strip()
 OLLAMA_CODER_MODEL = os.getenv("AVA_OLLAMA_CODER_MODEL", "qwen2.5-coder:7b").strip()
+# llama3.2 defaulted to 2048 unless we send options.num_ctx. Cap 8192 on 16 GB.
+OLLAMA_NUM_CTX = min(8192, max(2048, _env_int("AVA_OLLAMA_NUM_CTX", 4096)))
 
 # Public fundraising / goals UI. Off until inventory is sorted.
 PUBLIC_GOALS = os.getenv("AVA_PUBLIC_GOALS", "0").lower() in {"1", "true", "yes", "on"}
@@ -442,6 +451,16 @@ CF_WORKERS_API_KEY = (
 POLL_INTERVAL    = int(os.getenv("POLL_INTERVAL", "30"))
 ENABLE_SCHEDULER = os.getenv("ENABLE_SCHEDULER", "true").lower() in {"1", "true", "yes", "on"}
 
+
+def hst_now_text(*, date_first: bool = False) -> str:
+    """Local HST-ish clock label. Windows strftime has no Linux ``%-d``."""
+    from datetime import datetime
+
+    now = datetime.now()
+    if date_first:
+        return f"{now:%a, %b }{now.day}, {now:%H:%M HST}"
+    return f"{now:%H:%M HST — %a, %b }{now.day}"
+
 # ── YouTube ───────────────────────────────────────────────────────────────────
 YOUTUBE_API_KEY     = os.getenv("YOUTUBE_API_KEY", "").strip()
 YOUTUBE_CHANNEL_ID  = (
@@ -460,6 +479,8 @@ def ensure_dirs() -> None:
         PUBLIC_MEDIA, PRIVATE_MEDIA,
     ):
         d.mkdir(parents=True, exist_ok=True)
+    from apps.core.services.data_layout import ensure_data_layout
+    ensure_data_layout()
     for sub in MEDIA_SUBDIRS:
         try:
             (MEDIA_DIR / sub).mkdir(parents=True, exist_ok=True)

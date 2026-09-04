@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from .. import config
+from ..services import ollama as ollama_svc
 from ..services import persona as persona_svc
 from ..services.public_chat import directory_reply, match_public_reply
 
@@ -94,20 +95,10 @@ async def api_chat(req: ChatRequest, request: Request):
         {"role": "user", "content": req.message},
     ]
 
-    # Try Ollama first
-    try:
-        async with httpx.AsyncClient(timeout=15) as client:
-            r = await client.post(
-                f"{config.OLLAMA_URL}/api/chat",
-                json={"model": config.OLLAMA_MODEL, "messages": messages, "stream": False},
-            )
-        if r.status_code == 200:
-            data = r.json()
-            reply = data.get("message", {}).get("content", "")
-            if reply:
-                return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL}
-    except Exception as e:
-        log.debug("Ollama unavailable: %s", e)
+    # Same num_ctx as Desk / Discord (ollama.py). Do not hit /api/chat raw.
+    reply = await ollama_svc.chat(messages, timeout=15)
+    if reply:
+        return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL}
 
     # Fall back to xAI
     if not config.XAI_API_KEY:

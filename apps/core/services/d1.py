@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import logging
+import time
 
 import httpx
 
 from .. import config
 
 log = logging.getLogger("ava.d1")
+
+_BACKOFF_MSG = "d1_backoff"
+_skip_until: dict[str, float] = {}
+_SKIP_S = 600.0
 
 
 def auth_headers() -> dict[str, str]:
@@ -80,6 +85,9 @@ async def query(db_id: str, sql: str, params: list | None = None) -> dict:
     account_id = _account_id_for(db_id)
     if not db_id or not account_id:
         return {"success": False, "errors": [{"message": "d1 not configured"}]}
+    until = _skip_until.get(db_id, 0.0)
+    if until and time.monotonic() < until:
+        return {"success": False, "errors": [{"message": _BACKOFF_MSG}]}
     payload: dict = {"sql": sql}
     if params:
         payload["params"] = params
@@ -93,13 +101,20 @@ async def query(db_id: str, sql: str, params: list | None = None) -> dict:
                 body = {"success": False, "errors": [{"message": res.text[:400]}]}
             last = body
             if res.status_code < 400 and body.get("success"):
+                _skip_until.pop(db_id, None)
                 return body
-            if res.status_code not in {401, 403}:
-                if res.status_code >= 400:
-                    log.warning("D1 %s HTTP %s: %s", db_id[:8], res.status_code, body)
+            if res.status_code in {401, 403, 404}:
+                _skip_until[db_id] = time.monotonic() + _SKIP_S
+                if res.status_code == 404:
+                    log.warning("D1 %s HTTP %s: %s — quiet %ss", db_id[:8], res.status_code, body, int(_SKIP_S))
+                    return body
+                continue
+            if res.status_code >= 400:
+                log.warning("D1 %s HTTP %s: %s", db_id[:8], res.status_code, body)
                 return body
         if last.get("errors"):
-            log.warning("D1 %s unauthorized on all auth modes", db_id[:8])
+            _skip_until[db_id] = time.monotonic() + _SKIP_S
+            log.warning("D1 %s unauthorized on all auth modes — quiet %ss", db_id[:8], int(_SKIP_S))
         return last
 
 
@@ -118,5 +133,8 @@ async def exec_script(db_id: str, statements: list[str]) -> bool:
         body = await query(db_id, sql)
         if not body.get("success"):
             ok = False
-            log.warning("D1 exec failed: %s", body.get("errors"))
+            errs = body.get("errors") or []
+            if any(isinstance(e, dict) and e.get("message") == _BACKOFF_MSG for e in errs):
+                return False
+            log.warning("D1 exec failed: %s", errs)
     return ok

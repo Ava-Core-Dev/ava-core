@@ -8,17 +8,81 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
 log = logging.getLogger("ava.mysql")
 
 _pool = None
+_retry_after = 0.0
+_RETRY_S = 600.0
+_shockbyte_ok: bool | None = None
+_shockbyte_checked = 0.0
+_SHOCKBYTE_TTL_S = 60.0
+
+
+def _shockbyte_cfg() -> dict[str, Any] | None:
+    host = os.getenv("ROOTMC_CORE_MYSQL_HOST", "").strip()
+    user = os.getenv("ROOTMC_CORE_MYSQL_USER", "").strip()
+    password = os.getenv("ROOTMC_CORE_MYSQL_PASSWORD", "")
+    db = os.getenv("ROOTMC_CORE_MYSQL_DATABASE", "").strip()
+    if not (host and user and db and password):
+        return None
+    return {
+        "host": host,
+        "port": int((os.getenv("ROOTMC_CORE_MYSQL_PORT") or "3306").split("#")[0].strip() or 3306),
+        "user": user,
+        "password": password,
+        "db": db,
+    }
+
+
+async def shockbyte_ping() -> bool:
+    """RootMC primary (Shockbyte). Not the missing local ava_core 3306."""
+    global _shockbyte_ok, _shockbyte_checked
+    now = time.monotonic()
+    if _shockbyte_ok is not None and now - _shockbyte_checked < _SHOCKBYTE_TTL_S:
+        return _shockbyte_ok
+    cfg = _shockbyte_cfg()
+    if not cfg:
+        _shockbyte_ok = False
+        _shockbyte_checked = now
+        return False
+    try:
+        import aiomysql
+        conn = await aiomysql.connect(
+            **cfg, autocommit=True, connect_timeout=8, charset="utf8mb4"
+        )
+        try:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT 1")
+                await cur.fetchone()
+        finally:
+            conn.close()
+        _shockbyte_ok = True
+    except Exception as e:
+        log.warning("Shockbyte MySQL ping failed: %s", e)
+        _shockbyte_ok = False
+    _shockbyte_checked = now
+    return bool(_shockbyte_ok)
+
+
+async def status() -> dict[str, Any]:
+    local = await _get_pool()
+    remote = await shockbyte_ping()
+    return {
+        "local_3306": local is not None,
+        "shockbyte": remote,
+        "live": bool(remote or local),
+    }
 
 
 async def _get_pool():
-    global _pool
+    global _pool, _retry_after
     if _pool is not None:
         return _pool
+    if time.monotonic() < _retry_after:
+        return None
     try:
         import aiomysql
         _pool = await aiomysql.create_pool(
@@ -32,12 +96,17 @@ async def _get_pool():
             maxsize=3,
             connect_timeout=5,
         )
+        _retry_after = 0.0
         log.info("MySQL pool connected → %s:%s/%s",
                  os.getenv("AVA_MYSQL_HOST"), os.getenv("AVA_MYSQL_PORT"),
                  os.getenv("AVA_MYSQL_DATABASE"))
         return _pool
     except Exception as e:
-        log.warning("MySQL pool unavailable: %s", e)
+        _retry_after = time.monotonic() + _RETRY_S
+        log.warning(
+            "MySQL pool unavailable: %s — skip retries for %ss (3306 down, not faked)",
+            e, int(_RETRY_S),
+        )
         return None
 
 

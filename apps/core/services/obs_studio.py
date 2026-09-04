@@ -7,6 +7,7 @@ import base64
 import hashlib
 import json
 import logging
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,9 @@ import websockets
 from apps.core import config
 
 log = logging.getLogger("ava.obs_studio")
+
+_quiet_until = 0.0
+_QUIET_S = 600.0
 
 COLLECTION = "Ava Daily Broadcast"
 HURRICANE_COLLECTION = "Ava Hurricane Tracker"
@@ -158,11 +162,16 @@ class ObsClient:
         self._ws: Any = None
 
     async def connect(self) -> bool:
+        global _quiet_until
         url = config.OBS_WS_URL
         if not url:
             return False
+        if not config.ENABLE_OBS:
+            return False
+        if _quiet_until and time.monotonic() < _quiet_until:
+            return False
         try:
-            self._ws = await websockets.connect(url, ping_interval=20)
+            self._ws = await websockets.connect(url, ping_interval=20, open_timeout=3)
             hello = json.loads(await self._ws.recv())
             auth = hello.get("d", {}).get("authentication")
             identify: dict = {"op": 1, "d": {"rpcVersion": 1}}
@@ -184,7 +193,8 @@ class ObsClient:
                     log.warning("OBS identify unexpected: %s", identified)
             return True
         except Exception as e:
-            log.warning("OBS connect failed: %s", e)
+            _quiet_until = time.monotonic() + _QUIET_S
+            log.warning("OBS connect failed: %s — quiet %ss", e, int(_QUIET_S))
             self._ws = None
             return False
 

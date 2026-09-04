@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ava Ivy — Solar Status</title>
+<title>Status — RootRecord</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
@@ -195,6 +195,11 @@
   .leg-b-bank { color: #22d3ee; }
   .leg-b-delta { color: #34d399; }
   .leg-b-river { color: #a78bfa; }
+  .leg-b-server { color: #fbbf24; }
+  .leg-h-cpu { color: #10b981; }
+  .leg-h-ram { color: #a78bfa; }
+  .leg-h-igpu { color: #38bdf8; }
+  .leg-h-npu { color: #f59e0b; }
   .notif-list { list-style: none; margin: 0; padding: 0; max-height: 220px; overflow: auto; }
   .notif-list li {
     border-top: 1px solid rgba(255,255,255,.06);
@@ -259,18 +264,14 @@
 
   <div class="lander" id="lander">
     <header class="top">
-      <a class="logo" href="https://avaivy.cloud/"><span class="mark">◈</span> Ava Ivy</a>
+      <a class="logo" href="https://rootrecord.cloud/" target="_top"><span class="mark">◈</span> RootRecord</a>
       <nav class="nav" aria-label="Sites and desk">
-        <a href="https://avaivy.cloud/" data-match="/">Home</a>
-        <a href="https://avaivy.cloud/status" data-match="/status">Status</a>
-        <a href="https://avaivy.cloud/solar" data-match="/solar">Solar</a>
-        <a href="https://avaivy.cloud/finance">Finance</a>
-        <a href="https://avaivy.cloud/goals">Goals</a>
-        <a href="https://avaivy.cloud/live">Live</a>
-        <a href="https://avaivy.cloud/blog">Blog</a>
-        <a href="https://avaivy.cloud/wiki/">Wiki</a>
-        <a href="https://rootrecord.online/">Root Record</a>
-        <a href="https://rootmc.net/">RootMC</a>
+        <a href="https://rootrecord.cloud/" target="_top" data-match="/">Home</a>
+        <a href="https://rootrecord.cloud/status" target="_top" data-match="/status">Status</a>
+        <a href="https://rootrecord.cloud/kilauea" target="_top" data-match="/kilauea">Kīlauea</a>
+        <a href="https://rootrecord.cloud/weather" target="_top" data-match="/weather">Weather</a>
+        <a href="https://rootmc.net/" target="_top" data-match="/rootmc">RootMC</a>
+        <a href="https://rootrecord.cloud/feedback" target="_top" data-match="/feedback">Feedback</a>
         <a href="#averages">Averages</a>
       </nav>
       <div class="clock"><div class="d" id="date"></div><div class="t" id="time"></div></div>
@@ -286,6 +287,25 @@
         <div class="wb-eta" id="wbEta"></div>
       </div>
     </div>
+    <div class="warn-banner cat-power" id="opsBanner" role="status" aria-live="polite" hidden>
+      <div class="wb-row">
+        <div>
+          <span class="wb-kicker" id="opsKicker">Schedule</span>
+          <div class="wb-title" id="opsTitle">—</div>
+          <p class="wb-detail" id="opsDetail"></p>
+        </div>
+      </div>
+    </div>
+    <div class="warn-banner" id="nightCharge" role="status" hidden>
+      <div class="wb-row">
+        <div>
+          <span class="wb-kicker">After sunset</span>
+          <div class="wb-title" id="nightTitle">Night charge</div>
+          <p class="wb-detail" id="nightDetail"></p>
+        </div>
+        <div class="wb-eta" id="nightWatts"></div>
+      </div>
+    </div>
 
     <div class="stage">
       <div class="rail left">
@@ -297,12 +317,10 @@
           <div class="k">History <span class="win" id="histWin">12h</span></div>
           <svg class="chart" id="chartSolar" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="Solar watts — total, Delta, River"></svg>
           <div class="chart-meta"><span>Solar W · <span class="leg leg-s-total">Total</span> · <span class="leg leg-s-delta">Delta</span> · <span class="leg leg-s-river">River</span></span><span id="histSolarMeta">—</span></div>
-          <svg class="chart" id="chartSoc" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="Battery percent — bank, Delta, River"></svg>
-          <div class="chart-meta"><span>Battery % · <span class="leg leg-b-bank">Bank</span> · <span class="leg leg-b-delta">Delta</span> · <span class="leg leg-b-river">River</span></span><span id="histSocMeta">—</span></div>
-          <svg class="chart" id="chartCpu" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="CPU percent"></svg>
-          <div class="chart-meta"><span>CPU %</span><span id="histCpuMeta">—</span></div>
-          <svg class="chart" id="chartRam" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="RAM percent"></svg>
-          <div class="chart-meta"><span>RAM %</span><span id="histRamMeta">—</span></div>
+          <svg class="chart" id="chartSoc" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="Battery percent — bank, Delta, River, server"></svg>
+          <div class="chart-meta"><span>Battery % · <span class="leg leg-b-bank">Bank</span> · <span class="leg leg-b-delta">Delta</span> · <span class="leg leg-b-river">River</span> · <span class="leg leg-b-server">Server</span></span><span id="histSocMeta">—</span></div>
+          <svg class="chart" id="chartHost" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="Host usage — CPU, RAM, iGPU, NPU"></svg>
+          <div class="chart-meta"><span>Usage % · <span class="leg leg-h-cpu">CPU</span> · <span class="leg leg-h-ram">RAM</span> · <span class="leg leg-h-igpu">iGPU</span> · <span class="leg leg-h-npu">NPU</span></span><span id="histHostMeta">—</span></div>
           <svg class="chart" id="chartTemp" viewBox="0 0 320 72" preserveAspectRatio="none" aria-label="CPU temperature"></svg>
           <div class="chart-meta"><span>CPU °C</span><span id="histTempMeta">—</span></div>
         </div>
@@ -310,10 +328,12 @@
           <div class="k">Totals now</div>
           <div class="split">
             <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
-            <div class="tile"><div class="n">DC load</div><div class="x" id="load">—</div></div>
-            <div class="tile"><div class="n">Transfer</div><div class="x cyan" id="xfer">—</div></div>
-            <div class="tile"><div class="n">Generator</div><div class="x cyan" id="gen">—</div></div>
-            <div class="tile"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
+            <div class="tile"><div class="n">Server + mobile</div><div class="x" id="load">—</div></div>
+            <div class="tile" id="tileStar"><div class="n">Starlink + lights</div><div class="x cyan" id="star">—</div></div>
+            <div class="tile" id="tileAppl"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
+            <div class="tile" id="tileEmer"><div class="n">Emergency pack</div><div class="x" id="emer">—</div></div>
+            <div class="tile" id="tileDrive"><div class="n">Hard drives 12V</div><div class="x" id="drive">—</div></div>
+            <div class="tile" id="tileXfer"><div class="n">Transfer</div><div class="x cyan" id="xfer">—</div></div>
             <div class="tile"><div class="n">Bank avg</div><div class="x" id="bankAvg">—</div></div>
           </div>
           <div class="row" style="margin-top:10px"><span>State</span><span class="v cyan" id="state" style="font-size:14px;text-align:right;max-width:250px">—</span></div>
@@ -324,7 +344,7 @@
         <div class="hero-card">
           <div class="eyebrow">HI Pacific Solar Root Server</div>
           <div class="hero-title">Live power desk</div>
-          <p class="hero-sub">Bank · packs · host — center stage while the art cycles behind.</p>
+          <p class="hero-sub">Bank · packs · this server (not Starlink). Charts below; averages further down.</p>
           <div class="hero-metrics">
             <div class="m"><div class="n">PV in</div><div class="x solar" id="heroPv">—</div></div>
             <div class="m"><div class="n">Bank</div><div class="x cyan" id="heroBank">—</div></div>
@@ -349,7 +369,8 @@
         <div class="card">
           <div class="k">Now</div>
           <div class="row"><span>Transfer</span><span class="v cyan" id="heroXfer">—</span></div>
-          <div class="row"><span>Generator</span><span class="v" id="heroGen">—</span></div>
+          <div class="row"><span>Starlink + lights</span><span class="v" id="heroStar">—</span></div>
+          <div class="row"><span>Emergency pack</span><span class="v" id="heroEmer">—</span></div>
           <div class="row"><span>State</span><span class="v cyan" id="heroState" style="font-size:13px;max-width:220px;text-align:right">—</span></div>
           <div class="row"><span>Weather</span><span class="v" id="heroWx" style="font-size:14px">—</span></div>
           <div class="row"><span>Kīlauea</span><span class="v warn" id="heroKila">—</span></div>
@@ -361,14 +382,20 @@
           <div class="k" id="hostK">Root server</div>
           <div class="row"><span>CPU</span><span class="v" id="cpu">—</span></div>
           <div class="row"><span>RAM</span><span class="v" id="ram">—</span></div>
+          <div class="row"><span>iGPU</span><span class="v" id="igpu">—</span></div>
+          <div class="row"><span>NPU</span><span class="v" id="npu">—</span></div>
           <div class="row"><span>Temp</span><span class="v" id="temp">—</span></div>
-          <div class="row"><span>Host charge</span><span class="v" id="charge">—</span></div>
+          <div class="row"><span>Server battery</span><span class="v" id="charge">—</span></div>
           <div class="row"><span>Disk</span><span class="v" id="disk">—</span></div>
           <div class="row"><span>Uptime</span><span class="v" id="up">—</span></div>
+          <div class="row"><span>Desk up</span><span class="v" id="deskUp">—</span></div>
+          <div class="row"><span>Last return</span><span class="v" id="lastReturn">—</span></div>
         </div>
         <div class="card">
           <div class="k">Site + volcano</div>
           <div class="row"><span>Weather</span><span class="v" id="wx" style="font-size:15px">—</span></div>
+          <div class="row"><span>Sunrise</span><span class="v" id="sunrise">—</span></div>
+          <div class="row"><span>Sunset</span><span class="v" id="sunset">—</span></div>
           <div class="row"><span>Kīlauea</span><span class="v warn" id="kila">—</span></div>
         </div>
         <div class="card">
@@ -395,8 +422,8 @@
 
 <script>
 const HOST = location.hostname;
-const ON_AVA = HOST === "avaivy.cloud" || HOST.endsWith(".avaivy.cloud") || HOST === "localhost" || HOST === "127.0.0.1";
-const API = ON_AVA ? "" : "https://avaivy.cloud";
+const ON_AVA = HOST === "rootrecord.cloud" || HOST.endsWith(".rootrecord.cloud") || HOST === "avaivy.cloud" || HOST.endsWith(".avaivy.cloud") || HOST === "localhost" || HOST === "127.0.0.1";
+const API = ON_AVA ? "" : "https://rootrecord.cloud";
 const path = location.pathname.replace(/\/$/, "") || "/";
 document.querySelectorAll(".nav a[data-match]").forEach((a) => {
   const m = a.getAttribute("data-match");
@@ -461,7 +488,9 @@ function ring(d){
     if (d.pv_w > 2) bits.push(Math.round(d.pv_w)+" W PV");
     const role = d.ac_role;
     if (role === "appliances") bits.push(Math.round(d.ac_out_w)+" W appliances");
-    else if (role === "generator") bits.push(Math.round(d.ac_in_w)+" W generator");
+    else if (role === "starlink_lights") bits.push(Math.round(d.ac_out_w)+" W Starlink + lights");
+    else if (role === "emergency") bits.push(Math.round(d.ac_out_w)+" W emergency pack");
+    else if (role === "transfer_out" || role === "transfer_in") bits.push("transfer");
     else if (role === "transfer_out") bits.push(Math.round(d.transfer_w||d.ac_out_w||d.discharge_w)+" W transfer out");
     else if (role === "transfer_in") bits.push(Math.round(d.transfer_w||d.ac_in_w||d.ac_charge_w)+" W transfer in");
     if (d.dc_out_w > 2) bits.push(Math.round(d.dc_out_w)+" W DC");
@@ -562,6 +591,9 @@ function renderWindows(rollups){
         ${row("River %", w.river_soc, "%")}
         ${row("CPU", w.cpu_pct, "%")}
         ${row("RAM", w.mem_pct, "%")}
+        ${row("iGPU", w.gpu_pct, "%")}
+        ${row("NPU", w.npu_pct, "%")}
+        ${row("Server battery", w.host_battery_pct, "%")}
         ${row("Temp", w.temp_c, "°C")}
         <tr><th>Energy in</th><td colspan="3">${fmtNum(w.solar_wh, "Wh")}</td></tr>
         <tr><th>Energy out</th><td colspan="3">${fmtNum(w.load_wh, "Wh")}</td></tr>
@@ -583,8 +615,11 @@ async function paintHistory(){
     const socBank = pts.map((p) => p.soc == null ? null : Number(p.soc));
     const socDelta = pts.map((p) => p.delta_soc == null ? null : Number(p.delta_soc));
     const socRiver = pts.map((p) => p.river_soc == null ? null : Number(p.river_soc));
+    const socServer = pts.map((p) => p.host_battery_pct == null ? null : Number(p.host_battery_pct));
     const cpuVals = pts.map((p) => p.cpu_pct == null ? null : Number(p.cpu_pct));
     const ramVals = pts.map((p) => p.mem_pct == null ? null : Number(p.mem_pct));
+    const gpuVals = pts.map((p) => p.gpu_pct == null ? null : Number(p.gpu_pct));
+    const npuVals = pts.map((p) => p.npu_pct == null ? null : Number(p.npu_pct));
     const tempVals = pts.map((p) => p.temp_c == null ? null : Number(p.temp_c));
     const sMeta = drawMultiChart(document.getElementById("chartSolar"), [
       { vals: solarTotal, color: "#f59e0b", width: 2.4 },
@@ -595,9 +630,14 @@ async function paintHistory(){
       { vals: socBank, color: "#22d3ee", width: 2.4 },
       { vals: socDelta, color: "#34d399", width: 1.8 },
       { vals: socRiver, color: "#a78bfa", width: 1.8 },
+      { vals: socServer, color: "#fbbf24", width: 1.8 },
     ], 0, 100);
-    const cMeta = drawChart(document.getElementById("chartCpu"), cpuVals, "#10b981", 0, 100);
-    const rMeta = drawChart(document.getElementById("chartRam"), ramVals, "#a78bfa", 0, 100);
+    const hMeta = drawMultiChart(document.getElementById("chartHost"), [
+      { vals: cpuVals, color: "#10b981", width: 2.2 },
+      { vals: ramVals, color: "#a78bfa", width: 1.8 },
+      { vals: gpuVals, color: "#38bdf8", width: 1.8 },
+      { vals: npuVals, color: "#f59e0b", width: 1.8 },
+    ], 0, 100);
     const tMeta = drawChart(document.getElementById("chartTemp"), tempVals, "#fb7185", null, null);
     const fmtLast = (v, unit) => v == null ? "—" : (unit === "%" ? Math.round(v) + "%" : Math.round(v) + " W");
     document.getElementById("histSolarMeta").innerHTML =
@@ -608,9 +648,13 @@ async function paintHistory(){
     document.getElementById("histSocMeta").innerHTML =
       `<b class="leg-b-bank">${fmtLast(bMeta.lasts[0], "%")}</b>` +
       ` · <span class="leg-b-delta">${fmtLast(bMeta.lasts[1], "%")}</span>` +
-      ` · <span class="leg-b-river">${fmtLast(bMeta.lasts[2], "%")}</span>`;
-    document.getElementById("histCpuMeta").innerHTML = cMeta.last != null ? `<b>${cMeta.last.toFixed(0)}%</b>` : "—";
-    document.getElementById("histRamMeta").innerHTML = rMeta.last != null ? `<b>${rMeta.last.toFixed(0)}%</b>` : "—";
+      ` · <span class="leg-b-river">${fmtLast(bMeta.lasts[2], "%")}</span>` +
+      ` · <span class="leg-b-server">${fmtLast(bMeta.lasts[3], "%")}</span>`;
+    document.getElementById("histHostMeta").innerHTML =
+      `<b class="leg-h-cpu">${fmtLast(hMeta.lasts[0], "%")}</b>` +
+      ` · <span class="leg-h-ram">${fmtLast(hMeta.lasts[1], "%")}</span>` +
+      ` · <span class="leg-h-igpu">${fmtLast(hMeta.lasts[2], "%")}</span>` +
+      ` · <span class="leg-h-npu">${fmtLast(hMeta.lasts[3], "%")}</span>`;
     document.getElementById("histTempMeta").innerHTML = tMeta.last != null ? `<b>${tMeta.last.toFixed(1)}°C</b>` : "—";
     if (j.rollups) renderWindows(j.rollups);
     else {
@@ -627,24 +671,40 @@ async function paintBanner(){
     if (!b || !b.show) {
       el.classList.remove("show");
       el.hidden = true;
+    } else {
+      el.hidden = false;
+      el.classList.add("show");
+      el.className = "warn-banner show cat-" + (b.category || "weather");
+      document.getElementById("wbKicker").textContent = (b.categoryLabel || "Notice") + " · desk toggle";
+      document.getElementById("wbTitle").textContent = b.title || "Service notice";
+      document.getElementById("wbDetail").textContent = b.detail || "";
+      let eta = "";
+      if (b.untilMs) {
+        const left = Number(b.untilMs) - Date.now();
+        if (left > 0) {
+          const h = Math.floor(left / 3600000);
+          const m = Math.floor((left % 3600000) / 60000);
+          eta = `Clears ${b.untilLabel || ""} · ${h}h ${m}m`;
+        } else eta = b.untilLabel || "";
+      }
+      document.getElementById("wbEta").textContent = eta;
+    }
+  } catch (_) {}
+  try {
+    const b = await (await fetch(API + "/api/ops-schedule-banner", { cache: "no-store" })).json();
+    const el = document.getElementById("opsBanner");
+    if (!el) return;
+    if (!b || !b.show) {
+      el.classList.remove("show");
+      el.hidden = true;
       return;
     }
     el.hidden = false;
     el.classList.add("show");
-    el.className = "warn-banner show cat-" + (b.category || "weather");
-    document.getElementById("wbKicker").textContent = (b.categoryLabel || "Notice") + " · desk toggle";
-    document.getElementById("wbTitle").textContent = b.title || "Service notice";
-    document.getElementById("wbDetail").textContent = b.detail || "";
-    let eta = "";
-    if (b.untilMs) {
-      const left = Number(b.untilMs) - Date.now();
-      if (left > 0) {
-        const h = Math.floor(left / 3600000);
-        const m = Math.floor((left % 3600000) / 60000);
-        eta = `Clears ${b.untilLabel || ""} · ${h}h ${m}m`;
-      } else eta = b.untilLabel || "";
-    }
-    document.getElementById("wbEta").textContent = eta;
+    el.className = "warn-banner show cat-" + (b.category || "power");
+    document.getElementById("opsKicker").textContent = b.categoryLabel || "Schedule";
+    document.getElementById("opsTitle").textContent = b.title || "Desk hours";
+    document.getElementById("opsDetail").textContent = b.detail || "";
   } catch (_) {}
 }
 
@@ -684,45 +744,76 @@ async function paint(){
     const pv = tot.solar_in_w ?? solar.solar_in_w ?? solar.power_w;
     const load = tot.dc_load_w ?? tot.load_w ?? solar.load_w;
     document.getElementById("solar").textContent = watts(pv);
-    document.getElementById("load").textContent = watts(load);
+    document.getElementById("load").textContent = watts(tot.server_mobile_w ?? load);
     document.getElementById("xfer").textContent = watts(tot.transfer_w);
-    document.getElementById("gen").textContent = watts(tot.generator_w);
+    document.getElementById("star").textContent = watts(tot.starlink_lights_w);
     document.getElementById("appl").textContent = watts(tot.appliance_w);
-    document.getElementById("bankAvg").textContent = pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById("emer").textContent = watts(tot.emergency_pack_w);
+    document.getElementById("drive").textContent = watts(tot.hard_drives_12v_w);
+    const hideZero = (id, w) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const n = Number(w);
+      el.style.display = (w == null || !Number.isFinite(n) || n <= 0) ? "none" : "";
+    };
+    hideZero("tileXfer", tot.transfer_w);
+    hideZero("tileStar", tot.starlink_lights_w);
+    hideZero("tileAppl", tot.appliance_w);
+    hideZero("tileEmer", tot.emergency_pack_w);
+    hideZero("tileDrive", tot.hard_drives_12v_w);
+    document.getElementById("bankAvg").textContent = pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById("state").textContent = solar.state || "—";
     document.getElementById("hostK").textContent = "Root server · "+(host.host||"ava-core");
     document.getElementById("cpu").textContent = host.cpu_pct!=null ? host.cpu_pct.toFixed(0)+"%" : "—";
     document.getElementById("ram").textContent = host.mem_pct!=null ? host.mem_pct.toFixed(0)+"%" : "—";
+    const igpuEl = document.getElementById("igpu");
+    if (igpuEl) igpuEl.textContent = host.gpu_pct!=null ? Number(host.gpu_pct).toFixed(0)+"%" : "—";
+    const npuEl = document.getElementById("npu");
+    if (npuEl) {
+      if (host.npu_pct != null) npuEl.textContent = Number(host.npu_pct).toFixed(0)+"%";
+      else npuEl.textContent = host.npu_present ? "not sampled" : "—";
+    }
     document.getElementById("temp").textContent = host.temp_c!=null ? Number(host.temp_c).toFixed(1)+"°C" : "—";
     const chargeEl = document.getElementById("charge");
     if (chargeEl) {
       if (host.host_battery_pct!=null) {
-        chargeEl.textContent = host.host_battery_pct.toFixed(0)+"%"+(host.host_battery_plugged?" AC":"");
+        const charge = host.host_battery_plugged
+          ? '<span style="color:#3ee0c6">Charging</span>'
+          : "On battery";
+        chargeEl.innerHTML = host.host_battery_pct.toFixed(0) + "% · " + charge;
       } else chargeEl.textContent = "—";
     }
     const diskEl = document.getElementById("disk");
     if (diskEl) diskEl.textContent = host.disk_pct!=null ? host.disk_pct.toFixed(0)+"%" : "—";
     document.getElementById("up").textContent = dur(host.boot_uptime_s||host.uptime_s);
+    const deskEl = document.getElementById("deskUp");
+    if (deskEl) deskEl.textContent = dur(host.desk_uptime_s || host.uptime_s);
+    const retEl = document.getElementById("lastReturn");
+    if (retEl) {
+      const raw = host.last_return_at || "";
+      retEl.textContent = raw ? String(raw).replace("T", " ").slice(0, 16) + " UTC" : "—";
+    }
     const temp = wx.temperature_f!=null ? wx.temperature_f+"°" : "";
     const fc = (wx.forecast||wx.conditions||"").replace(/\s+/g," ").trim().slice(0,32);
     document.getElementById("wx").textContent = [temp, fc].filter(Boolean).join(" · ") || "—";
     const lvl = (k.alert_level||"advisory").replace(/^./,c=>c.toUpperCase());
     document.getElementById("kila").textContent = lvl+" · "+(k.erupting?"erupting":"not erupting");
     document.getElementById("flowIn").textContent = watts(pv);
-    document.getElementById("flowBank").textContent = pct(tot.bank_avg_pct ?? solar.battery_pct);
+    document.getElementById("flowBank").textContent = pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct);
     document.getElementById("flowOut").textContent = watts(load);
     document.getElementById("src").textContent = (solar.source||"ground PV")+(solar.updated_at?(" · "+String(solar.updated_at).slice(11,19)+"Z"):"");
 
     // Center stage mirrors
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set("heroPv", watts(pv));
-    set("heroBank", pct(tot.bank_avg_pct ?? solar.battery_pct));
+    set("heroBank", pct(tot.bank_pct_weighted ?? tot.bank_avg_pct ?? solar.battery_pct));
     set("heroLoad", watts(load));
     set("heroCpu", host.cpu_pct!=null ? host.cpu_pct.toFixed(0)+"%" : "—");
     set("heroRam", host.mem_pct!=null ? host.mem_pct.toFixed(0)+"%" : "—");
     set("heroTemp", host.temp_c!=null ? Number(host.temp_c).toFixed(1)+"°C" : "—");
     set("heroXfer", watts(tot.transfer_w));
-    set("heroGen", watts(tot.generator_w));
+    set("heroStar", watts(tot.starlink_lights_w));
+    set("heroEmer", watts(tot.emergency_pack_w));
     set("heroState", solar.state || "—");
     set("heroWx", document.getElementById("wx").textContent);
     set("heroKila", document.getElementById("kila").textContent);
@@ -734,6 +825,23 @@ async function paint(){
     set("packRiverPv", watts(river && (river.pv_w ?? river.solar_w)));
     set("packDeltaState", delta ? (delta.online===false ? "offline" : "online") : "—");
     set("packRiverState", river ? (river.online===false ? "offline" : "online") : "—");
+    const sun = solar.sun || s.sun || {};
+    set("sunrise", sun.sunrise ? sun.sunrise + " HST" : "—");
+    set("sunset", sun.sunset ? sun.sunset + " HST" : "—");
+    const night = solar.night_charge || {};
+    const nc = document.getElementById("nightCharge");
+    if (nc) {
+      if (night.show && night.in_w > 0) {
+        nc.hidden = false;
+        nc.classList.add("show");
+        document.getElementById("nightTitle").textContent = night.title || "Night charge";
+        document.getElementById("nightDetail").textContent = night.detail || "";
+        document.getElementById("nightWatts").textContent = watts(night.in_w);
+      } else {
+        nc.hidden = true;
+        nc.classList.remove("show");
+      }
+    }
   } catch(e) {}
 }
 

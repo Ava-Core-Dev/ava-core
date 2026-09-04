@@ -113,6 +113,32 @@ def is_secret_path(rel: str) -> bool:
     return any(name.endswith(ext) or base.endswith(ext) for ext in SECRET_MARKERS)
 
 
+_UNSAFE_PREFIX = (
+    "media/",
+    "data/",
+    "node_modules/",
+    ".venv/",
+    "dist/",
+    "build/",
+    "apps/data/",
+)
+_UNSAFE_EXT = {".db", ".sqlite", ".sqlite3", ".pyc", ".mp4", ".wav", ".webm", ".zip", ".7z", ".gguf"}
+
+
+def is_unsafe_auto_path(rel: str) -> bool:
+    """Runtime blobs, secrets, and caches — never auto-committed."""
+    n = rel.replace("\\", "/").lstrip("./")
+    low = n.lower()
+    if is_secret_path(n):
+        return True
+    if any(part == "__pycache__" or part == "node_modules" for part in low.split("/")):
+        return True
+    if any(low.startswith(p) or low.startswith(p.lower()) for p in _UNSAFE_PREFIX):
+        return True
+    ext = Path(low).suffix
+    return ext in _UNSAFE_EXT
+
+
 def keep_visible_dirty(rel: str) -> bool:
     n = rel.replace("\\", "/").lstrip("./")
     if n in PRODUCT_DIRTY_FILES:

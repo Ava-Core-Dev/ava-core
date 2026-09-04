@@ -123,6 +123,13 @@ async def minecraft_status():
     }
 
 
+@router.get("")
+@router.get("/")
+async def minecraft_root():
+    """Same facts as /status — convenient for probes that hit the prefix."""
+    return await minecraft_status()
+
+
 @router.get("/log")
 async def minecraft_log(bytes: int = 200_000, lines: int = 220):
     """Tail the Paper server log. Reads only the last `bytes` of the file so a

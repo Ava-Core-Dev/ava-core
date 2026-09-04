@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import struct
+import time
 
 from .. import config
 
@@ -28,6 +29,9 @@ DESTRUCTIVE = (
     "stop", "restart", "ban", "ban-ip", "pardon", "op", "deop",
     "whitelist off", "kill @a", "gamerule", "difficulty", "save-off",
 )
+
+_quiet_until = 0.0
+_QUIET_S = 600.0
 
 
 class RconError(Exception):
@@ -83,6 +87,10 @@ async def execute(
     except RconError as e:
         return {"ok": False, "reason": "target", "detail": str(e)}
 
+    global _quiet_until
+    if _quiet_until and time.monotonic() < _quiet_until:
+        return {"ok": False, "reason": "error", "target": name, "detail": "rcon_backoff"}
+
     if is_destructive(cmd) and not allow:
         return {
             "ok": False,
@@ -96,10 +104,12 @@ async def execute(
             _run(cmd, name, host, port, password), timeout=timeout
         )
     except asyncio.TimeoutError:
+        _quiet_until = time.monotonic() + _QUIET_S
         return {"ok": False, "reason": "timeout", "target": name,
                 "detail": f"no response from {host}:{port} in {timeout}s"}
     except Exception as e:  # connection refused, auth failure, protocol error
-        log.warning("RCON %s failed: %s", name, e)
+        _quiet_until = time.monotonic() + _QUIET_S
+        log.warning("RCON %s failed: %s — quiet %ss", name, e, int(_QUIET_S))
         return {"ok": False, "reason": "error", "target": name, "detail": str(e)}
 
 
