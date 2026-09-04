@@ -709,7 +709,9 @@ class StreamDirector:
                 return {"ok": False, "detail": "no_tracks", "dir": str(music_dir())}
             if self._music_task is not None and not self._music_task.done():
                 # Already looping — sweep orphans but do not start a second loop.
-                swept = kill_stray_music_players(keep_pid=self._music_proc_pid)
+                swept = await _kill_stray_music_players_async(
+                    keep_pid=self._music_proc_pid
+                )
                 return {
                     "ok": True,
                     "detail": "already_running",
@@ -718,7 +720,7 @@ class StreamDirector:
                     "swept": swept,
                 }
             # Silence leftovers from dead uvicorn / double spawn before first track.
-            kill_stray_music_players()
+            await _kill_stray_music_players_async()
             self._music_enabled = True
             self._music_hold = False
             self._music_operator_hold = False
@@ -744,7 +746,7 @@ class StreamDirector:
         self._music_hold = False
 
     def _kill_music_proc(self) -> None:
-        """Stop the single bed player (process tree) and sweep any orphans."""
+        """Stop the single bed player and sweep AVA_MUSIC_BED orphans."""
         proc = self._music_proc
         self._music_proc = None
         pid = self._music_proc_pid
@@ -756,21 +758,18 @@ class StreamDirector:
                 pass
             try:
                 if proc.returncode is None:
-                    if os.name == "nt" and pid:
+                    proc.kill()
+            except Exception:
+                if os.name == "nt" and pid:
+                    try:
                         subprocess.run(
-                            ["taskkill", "/PID", str(pid), "/T", "/F"],
+                            ["taskkill", "/PID", str(pid), "/F"],
                             capture_output=True,
-                            timeout=10,
+                            timeout=5,
                             creationflags=CREATE_NO_WINDOW,
                         )
-                    else:
-                        proc.kill()
-            except Exception:
-                try:
-                    proc.kill()
-                except Exception:
-                    pass
-        # Always sweep: force-killed origins leave MediaPlayer powershell orphans.
+                    except Exception:
+                        pass
         kill_stray_music_players()
 
     async def _music_loop(self) -> None:
@@ -848,7 +847,7 @@ class StreamDirector:
         min_ok = max(5.0, wait_s * 0.95)
         try:
             # One stream only — clear orphans before first spawn of this track.
-            kill_stray_music_players()
+            await _kill_stray_music_players_async()
             while True:
                 if self._music_bed_held() or not self._music_enabled:
                     aborted = True
@@ -905,7 +904,7 @@ class StreamDirector:
                         path.name,
                     )
                     await asyncio.sleep(0.2)
-                    kill_stray_music_players()
+                    await _kill_stray_music_players_async()
                     continue
                 break
         except Exception as e:
