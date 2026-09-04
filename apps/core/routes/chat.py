@@ -111,6 +111,15 @@ def _chat_response(payload: dict, *, sid: str = "", set_sid: bool = False) -> JS
     return resp
 
 
+def _count_generation(ip: str, guest_hash: str, member: bool) -> None:
+    try:
+        _bump("ip:" + (guest_hash or ip))
+        if not guests_svc.is_local(ip):
+            guests_svc.bump(ip, member=member)
+    except Exception:
+        pass
+
+
 @router.get("/auth/session")
 async def api_session(request: Request):
     member = _has_session(request)
@@ -188,13 +197,6 @@ async def api_chat(req: ChatRequest, request: Request):
     except Exception:
         pass
 
-    try:
-        _bump("ip:" + (guest_hash or ip))
-        if not guests_svc.is_local(ip):
-            guests_svc.bump(ip, member=member)
-    except Exception:
-        pass
-
     system, _src = persona_svc.system_prompt(surface=surface)
     if surface == "public":
         system += (
@@ -236,6 +238,7 @@ async def api_chat(req: ChatRequest, request: Request):
     if reply:
         cleaned = persona_svc.scrub_reply(reply)
         if cleaned:
+            _count_generation(ip, guest_hash, member)
             return _chat_response(
                 {"reply": cleaned, "brain": "ollama", "model": config.OLLAMA_MODEL, "surface": surface},
                 sid=sid,
@@ -251,6 +254,7 @@ async def api_chat(req: ChatRequest, request: Request):
             )
             cleaned = persona_svc.scrub_reply(grok or "")
             if cleaned:
+                _count_generation(ip, guest_hash, member)
                 return _chat_response(
                     {
                         "reply": cleaned,
