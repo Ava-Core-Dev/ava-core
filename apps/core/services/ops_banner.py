@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from apps.core import config
 
 PATH = config.DATA_DIR / "state" / "ops-schedule-banner.json"
+HST = ZoneInfo("Pacific/Honolulu")
+NET_GATE = config.DATA_DIR / "state" / "net-gate.json"
+UPTIME_MARKER = config.DATA_DIR / "state" / "uptime-marker.json"
 
 DEFAULT = {
     "enabled": False,
@@ -15,6 +21,73 @@ DEFAULT = {
     "showStart": True,
     "showShutdown": True,
 }
+
+
+def _read_json(path: Path) -> dict:
+    if not path.is_file():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _hst_clock_label(at: datetime) -> str:
+    if os.name != "nt":
+        return at.strftime("%-I:%M %p HST")
+    return at.strftime("%I:%M %p HST")
+
+
+def _iso_today_hst(raw: object) -> datetime | None:
+    """Parse ISO stamp; return HST datetime only if it falls on today's HST calendar day."""
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=HST)
+    local = dt.astimezone(HST)
+    if local.date() != datetime.now(HST).date():
+        return None
+    return local
+
+
+def started_today_label() -> tuple[str, str]:
+    """Real 'went live today' clock for Desk hours.
+
+    Prefer net-gate restored_at (overnight / outage restore), else today's
+    day-start sample, else origin_started_at from the uptime marker.
+    Empty when Ava has not gone live today yet.
+    """
+    restored = _iso_today_hst(_read_json(NET_GATE).get("restored_at"))
+    if restored is not None:
+        return _hst_clock_label(restored), "net-gate"
+
+    try:
+        from apps.core.services import schedule_clock
+
+        day = datetime.now(HST).strftime("%Y-%m-%d")
+        hhmm = (schedule_clock.start_stats().get("days") or {}).get(day)
+        parsed = None
+        if hhmm:
+            from apps.core.services import sun_times
+
+            parsed = sun_times.parse_hhmm(str(hhmm))
+        if parsed:
+            at = datetime.now(HST).replace(
+                hour=parsed[0], minute=parsed[1], second=0, microsecond=0
+            )
+            return _hst_clock_label(at), "day-start"
+    except Exception:
+        pass
+
+    origin = _iso_today_hst(_read_json(UPTIME_MARKER).get("origin_started_at"))
+    if origin is not None:
+        return _hst_clock_label(origin), "origin"
+    return "", ""
 
 
 def read() -> dict:
@@ -88,14 +161,24 @@ def paint(
                 detail += f" After sunset ({sett} HST)."
     elif cfg["enabled"]:
         bits = []
-        if cfg["showStart"] and start_label:
-            bits.append(f"Projected start {start_label}.")
+        actual_start, start_source = started_today_label()
+        shown_start = actual_start or start_label
+        if cfg["showStart"] and shown_start:
+            if actual_start:
+                bits.append(f"Time started today {actual_start}.")
+            else:
+                bits.append(f"Projected start {start_label}.")
         if cfg["showShutdown"] and shutdown_label:
             bits.append(f"Projected shutdown {shutdown_label}.")
         title = "Desk hours"
         detail = " ".join(bits) or "Projected start and shutdown are on."
         if sun.get("after_sunset"):
             kicker = "After sunset"
+        start_label = shown_start
+        start_mode = "actual" if actual_start else "projected"
+    else:
+        actual_start, start_source = "", ""
+        start_mode = "projected"
     return {
         "ok": True,
         **cfg,
@@ -114,4 +197,6 @@ def paint(
         "sunset": (sun or {}).get("sunset") or "",
         "startLabel": start_label,
         "shutdownLabel": shutdown_label,
+        "startMode": start_mode if cfg["enabled"] and not auto else "",
+        "startSource": start_source if cfg["enabled"] and not auto else "",
     }

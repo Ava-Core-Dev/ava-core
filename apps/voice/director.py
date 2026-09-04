@@ -161,6 +161,94 @@ def list_music_tracks(root: Path | None = None) -> list[Path]:
     return out
 
 
+
+def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
+    """Kill OS players whose command line points at the music bed folder.
+
+    Origin force-kill orphans PowerShell MediaPlayer / ffplay children; without a
+    sweep, each recycle stacks another track until everything plays at once.
+    """
+    try:
+        root = music_dir().resolve()
+        _ = str(root)
+    except Exception:
+        return 0
+
+    killed = 0
+    if os.name == "nt":
+        ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
+        list_script = (
+            "$procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
+            "Where-Object { $_.CommandLine -and ("
+            "  $_.Name -match '^(powershell|pwsh|ffplay|ffmpeg|mpg123|mpv|vlc)' -or "
+            "  $_.CommandLine -match 'MediaPlayer'"
+            ") -and ("
+            "  $_.CommandLine -like '*Media*public*audio*music*' -or "
+            "  $_.CommandLine -like '*\\\\audio\\\\music\\\\*'"
+            ") }; "
+            "$procs | ForEach-Object { $_.ProcessId }"
+        )
+        try:
+            out = subprocess.run(
+                [
+                    ps,
+                    "-NoProfile",
+                    "-WindowStyle",
+                    "Hidden",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    list_script,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                creationflags=CREATE_NO_WINDOW,
+            )
+        except Exception:
+            out = None
+        pids: list[int] = []
+        if out and out.stdout:
+            for line in out.stdout.splitlines():
+                line = line.strip()
+                if line.isdigit():
+                    pids.append(int(line))
+        for pid in pids:
+            if keep_pid is not None and pid == keep_pid:
+                continue
+            try:
+                subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    capture_output=True,
+                    timeout=10,
+                    creationflags=CREATE_NO_WINDOW,
+                )
+                killed += 1
+            except Exception:
+                try:
+                    os.kill(pid, 9)
+                    killed += 1
+                except Exception:
+                    pass
+    else:
+        try:
+            marker = str(music_dir())
+            for pat in ("ffplay", "ffmpeg", "mpg123", "mpv", "cvlc"):
+                subprocess.run(
+                    ["pkill", "-f", f"{pat}.*{marker}"],
+                    capture_output=True,
+                    timeout=5,
+                )
+        except Exception:
+            pass
+    if killed:
+        logging.getLogger("ava.director").info(
+            "Music bed swept stray players  killed=%s", killed
+        )
+    return killed
+
+
+
 log = logging.getLogger("ava.director")
 
 # ── OBS auto-switch toggle (injected by obs_switcher_setup) ─────────────────
@@ -317,8 +405,10 @@ class StreamDirector:
         self._music_hold = False
         self._music_task: asyncio.Task | None = None
         self._music_proc: asyncio.subprocess.Process | None = None
+        self._music_proc_pid: int | None = None
         self._music_current: Path | None = None
         self._music_tracks_n = 0
+        self._music_start_lock = asyncio.Lock()
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -388,24 +478,31 @@ class StreamDirector:
         }
 
     async def start_music_bed(self) -> dict:
-        """Start shuffled recursive playlist under public/audio/music. Loop forever."""
-        tracks = list_music_tracks()
-        self._music_tracks_n = len(tracks)
-        if not tracks:
-            log.warning("Music bed: no audio under %s", music_dir())
-            return {"ok": False, "detail": "no_tracks", "dir": str(music_dir())}
-        if self._music_task is not None and not self._music_task.done():
-            return {
-                "ok": True,
-                "detail": "already_running",
-                "tracks": len(tracks),
-                "dir": str(music_dir()),
-            }
-        self._music_enabled = True
-        self._music_hold = False
-        self._music_task = asyncio.create_task(self._music_loop(), name="ava-music-bed")
-        log.info("Music bed started  tracks=%s  dir=%s", len(tracks), music_dir())
-        return {"ok": True, "tracks": len(tracks), "dir": str(music_dir())}
+        """Start shuffled recursive playlist under public/audio/music. Loop forever.
+
+        Only one bed loop and one OS player at a time. Sweeps orphan players left by
+        prior origin kills before starting.
+        """
+        async with self._music_start_lock:
+            tracks = list_music_tracks()
+            self._music_tracks_n = len(tracks)
+            if not tracks:
+                log.warning("Music bed: no audio under %s", music_dir())
+                return {"ok": False, "detail": "no_tracks", "dir": str(music_dir())}
+            if self._music_task is not None and not self._music_task.done():
+                return {
+                    "ok": True,
+                    "detail": "already_running",
+                    "tracks": len(tracks),
+                    "dir": str(music_dir()),
+                }
+            # Silence leftovers from dead uvicorn / double spawn before first track.
+            kill_stray_music_players()
+            self._music_enabled = True
+            self._music_hold = False
+            self._music_task = asyncio.create_task(self._music_loop(), name="ava-music-bed")
+            log.info("Music bed started  tracks=%s  dir=%s", len(tracks), music_dir())
+            return {"ok": True, "tracks": len(tracks), "dir": str(music_dir())}
 
     def _hold_music(self) -> None:
         """Pause bed for reports / chimes / alerts (kill current track process)."""
@@ -425,15 +522,34 @@ class StreamDirector:
         self._music_hold = False
 
     def _kill_music_proc(self) -> None:
+        """Stop the single bed player (process tree) and sweep any orphans."""
         proc = self._music_proc
         self._music_proc = None
-        if proc is None:
-            return
-        try:
-            if proc.returncode is None:
-                proc.kill()
-        except Exception:
-            pass
+        pid = self._music_proc_pid
+        self._music_proc_pid = None
+        if proc is not None:
+            try:
+                pid = pid or proc.pid
+            except Exception:
+                pass
+            try:
+                if proc.returncode is None:
+                    if os.name == "nt" and pid:
+                        subprocess.run(
+                            ["taskkill", "/PID", str(pid), "/T", "/F"],
+                            capture_output=True,
+                            timeout=10,
+                            creationflags=CREATE_NO_WINDOW,
+                        )
+                    else:
+                        proc.kill()
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        # Always sweep: force-killed origins leave MediaPlayer powershell orphans.
+        kill_stray_music_players()
 
     async def _music_loop(self) -> None:
         """Shuffle all recursive tracks, play through, reshuffle, repeat."""
@@ -495,6 +611,8 @@ class StreamDirector:
         proc: asyncio.subprocess.Process | None = None
         aborted = False
         try:
+            # One stream only — clear orphans before spawning this track.
+            kill_stray_music_players()
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=subprocess.DEVNULL,
@@ -503,6 +621,10 @@ class StreamDirector:
                 **_windows_hidden(),
             )
             self._music_proc = proc
+            try:
+                self._music_proc_pid = proc.pid
+            except Exception:
+                self._music_proc_pid = None
             log.info("Music bed playing: %s", path.name)
             while proc.returncode is None:
                 if self._music_hold or not self._music_enabled:
@@ -519,6 +641,7 @@ class StreamDirector:
         finally:
             if proc is not None and self._music_proc is proc:
                 self._music_proc = None
+                self._music_proc_pid = None
             self._music_current = None
         return not aborted
 
