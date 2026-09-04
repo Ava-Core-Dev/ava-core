@@ -144,11 +144,12 @@ def _kilauea_line() -> str:
     return " — ".join(bits)
 
 
-async def live_facts() -> str:
+async def live_facts(asked: str = "") -> str:
     """Compact live block for the system prompt. Never invent numbers.
 
     EcoFlow / host / identities come from read-only jsonl or sqlite last samples.
     Does not call live_snapshot() (that path appends history).
+    When asked wants a look, Moondream captions a still into LOOK notes.
     """
     from apps.core.services import db_facts, live_wx
 
@@ -166,6 +167,15 @@ async def live_facts() -> str:
         db_facts.identity_line(),
         "RootMC MySQL: " + ("UP" if _mysql_up() else "DOWN"),
     ]
+    if asked:
+        try:
+            from apps.core.services import look as look_svc
+
+            seen = await look_svc.notes(asked)
+            if seen:
+                lines.append(seen)
+        except Exception:
+            log.debug("look notes skipped", exc_info=True)
     return "\n".join(lines)
 
 

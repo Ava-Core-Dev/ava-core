@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from pathlib import Path
 
 import httpx
 
@@ -90,3 +91,57 @@ async def tags(force: bool = False) -> tuple[bool, list[str]]:
 async def is_available() -> bool:
     up, _ = await tags()
     return up
+
+
+def _b64_file(path: Path, *, max_bytes: int = 1_800_000) -> str | None:
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        return None
+    if not raw or len(raw) > max_bytes:
+        return None
+    import base64
+
+    return base64.b64encode(raw).decode("ascii")
+
+
+def look_sync(prompt: str, images: list[Path], *, timeout: int = 90) -> str | None:
+    """One-shot vision. Unloads after the reply so llama3.2 can talk."""
+    blobs = []
+    for p in images[:2]:
+        b = _b64_file(Path(p))
+        if b:
+            blobs.append(b)
+    if not blobs:
+        return None
+    payload = {
+        "model": config.OLLAMA_VISION_MODEL,
+        "messages": [
+            {
+                "role": "user",
+                "content": (prompt or "Describe this still in four short factual sentences.")[:800],
+                "images": blobs,
+            }
+        ],
+        "stream": False,
+        "think": False,
+        "keep_alive": 0,
+        "options": {"num_ctx": 2048, "temperature": 0.1},
+    }
+    try:
+        r = httpx.post(f"{config.OLLAMA_URL}/api/chat", json=payload, timeout=timeout)
+        if r.status_code != 200:
+            log.warning("Ollama look HTTP %s %s", r.status_code, (r.text or "")[:200])
+            return None
+        return (r.json().get("message") or {}).get("content") or None
+    except Exception as e:
+        log.warning("Ollama look failed: %s", e)
+        return None
+
+
+async def look(prompt: str, images: list, *, timeout: int = 90) -> str | None:
+    import asyncio
+    from pathlib import Path
+
+    paths = [Path(p) for p in images]
+    return await asyncio.to_thread(look_sync, prompt, paths, timeout=timeout)
