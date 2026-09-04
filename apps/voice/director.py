@@ -682,6 +682,26 @@ class StreamDirector:
             log.info("Music bed operator resume")
         return {"ok": True, "operator_paused": False, **self.get_status()}
 
+    def stop_music_bed(self) -> dict:
+        """Fully stop bed loop + kill every OS music player (silence)."""
+        self._music_enabled = False
+        self._music_operator_hold = True
+        self._music_hold = False
+        self._kill_music_proc()
+        task = self._music_task
+        self._music_task = None
+        if task is not None and not task.done():
+            task.cancel()
+        killed = kill_stray_music_players()
+        self._music_current = None
+        log.info("Music bed stopped  swept=%s", killed)
+        return {
+            "ok": True,
+            "stopped": True,
+            "swept": killed,
+            **self.get_status(),
+        }
+
     async def start_music_bed(self) -> dict:
         """Start shuffled recursive playlist under public/audio/music. Loop forever.
 
@@ -695,16 +715,20 @@ class StreamDirector:
                 log.warning("Music bed: no audio under %s", music_dir())
                 return {"ok": False, "detail": "no_tracks", "dir": str(music_dir())}
             if self._music_task is not None and not self._music_task.done():
+                # Already looping — sweep orphans but do not start a second loop.
+                swept = kill_stray_music_players(keep_pid=self._music_proc_pid)
                 return {
                     "ok": True,
                     "detail": "already_running",
                     "tracks": len(tracks),
                     "dir": str(music_dir()),
+                    "swept": swept,
                 }
             # Silence leftovers from dead uvicorn / double spawn before first track.
             kill_stray_music_players()
             self._music_enabled = True
             self._music_hold = False
+            self._music_operator_hold = False
             self._music_task = asyncio.create_task(self._music_loop(), name="ava-music-bed")
             log.info("Music bed started  tracks=%s  dir=%s", len(tracks), music_dir())
             return {"ok": True, "tracks": len(tracks), "dir": str(music_dir())}
@@ -834,7 +858,15 @@ class StreamDirector:
                 self._music_proc_pid = proc.pid
             except Exception:
                 self._music_proc_pid = None
-            log.info("Music bed playing: %s", path.name)
+            # Second sweep keeping our new pid — races with recycle/Desk can spawn twins.
+            await asyncio.sleep(0.15)
+            kill_stray_music_players(keep_pid=self._music_proc_pid)
+            log.info(
+                "Music bed playing: %s  pid=%s  dur_hint=%s",
+                path.name,
+                self._music_proc_pid,
+                _audio_file_duration_s(path),
+            )
             while proc.returncode is None:
                 if self._music_bed_held() or not self._music_enabled:
                     aborted = True
@@ -1137,6 +1169,12 @@ def ensure_running() -> asyncio.Task:
         _director_task = asyncio.create_task(get_director().run())
         log.info("Stream Director loop started in-process")
     return _director_task
+
+
+def music_bed_autostart_enabled() -> bool:
+    """Origin lifespan gate. Default off until operator starts bed (or sets AVA_MUSIC_BED=1)."""
+    raw = (os.getenv("AVA_MUSIC_BED") or "0").strip().lower()
+    return raw not in ("0", "false", "off", "no", "")
 
 
 def ensure_music_bed() -> asyncio.Task | None:

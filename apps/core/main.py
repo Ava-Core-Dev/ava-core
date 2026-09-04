@@ -80,11 +80,24 @@ async def lifespan(app: FastAPI):
 
     # Drain the audio queue in this process — crons and /api/voice/* enqueue here
     try:
-        from apps.voice.director import ensure_music_bed, ensure_running
+        from apps.voice.director import (
+            ensure_music_bed,
+            ensure_running,
+            kill_stray_music_players,
+            music_bed_autostart_enabled,
+        )
 
         ensure_running()
-        ensure_music_bed()
-        log.info("Stream Director + music bed started")
+        # Always sweep orphans from prior recycles — never leave stacked beds.
+        swept = kill_stray_music_players()
+        if music_bed_autostart_enabled():
+            ensure_music_bed()
+            log.info("Stream Director + music bed started  swept=%s", swept)
+        else:
+            log.info(
+                "Stream Director started; music bed OFF (AVA_MUSIC_BED)  swept=%s",
+                swept,
+            )
     except Exception as e:
         log.warning("Stream Director / music bed failed to start: %s", e)
 

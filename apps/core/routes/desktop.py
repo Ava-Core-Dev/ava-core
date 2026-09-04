@@ -850,14 +850,14 @@ def _audio_pending_jobs() -> list[dict]:
 
 
 class VoiceMusicBody(BaseModel):
-    action: str = Field(..., description="pause | resume | start")
+    action: str = Field(..., description="pause | resume | start | stop")
 
 
 @router.post("/voice/music")
 async def voice_music(body: VoiceMusicBody):
     """Operator music-bed controls (single bed only)."""
     try:
-        from apps.voice.director import ensure_music_bed, get_director
+        from apps.voice.director import ensure_music_bed, get_director, kill_stray_music_players
 
         action = str(body.action or "").strip().lower()
         d = get_director()
@@ -865,11 +865,14 @@ async def voice_music(body: VoiceMusicBody):
             return d.pause_music_bed()
         if action == "resume":
             return d.resume_music_bed()
+        if action == "stop":
+            return d.stop_music_bed()
         if action == "start":
+            kill_stray_music_players()
             ensure_music_bed()
             result = await d.start_music_bed()
             return {"ok": bool(result.get("ok")), **result, **d.get_status()}
-        return {"ok": False, "detail": "action must be pause, resume, or start"}
+        return {"ok": False, "detail": "action must be pause, resume, start, or stop"}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
 
