@@ -170,7 +170,7 @@ async def _discord_tick() -> None:
         gchs = await discord_svc.list_guild_channels(config.ROOTMC_GUILD_ID)
         for ch in gchs:
             kind = int(ch.get("type") or 0)
-            if kind in (0, 5, 15, 16):  # text, announce, forum, media
+            if kind in (0, 5, 11, 12, 15, 16):  # text, announce, threads, forum, media
                 cid = str(ch.get("id") or "")
                 if cid:
                     channels.append(cid)
