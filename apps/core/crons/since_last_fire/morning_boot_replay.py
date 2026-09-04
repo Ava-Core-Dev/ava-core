@@ -38,6 +38,22 @@ def _save(data: dict) -> None:
     p.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
+def disarm(*, reason: str = "operator") -> dict:
+    """Stop further morning-boot MP3 replays for the armed day."""
+    now = datetime.now(HST)
+    st = _load()
+    if not st:
+        return {"ok": True, "skipped": True, "reason": "no_state"}
+    was = bool(st.get("enabled"))
+    st["enabled"] = False
+    st["play_once"] = False
+    st["stopped_at"] = now.isoformat()
+    st["stop_reason"] = str(reason or "operator")[:160]
+    _save(st)
+    log.info("morning-boot replay disarmed (%s) was_enabled=%s", reason, was)
+    return {"ok": True, "disarmed": True, "was_enabled": was, "reason": st["stop_reason"]}
+
+
 async def run() -> dict:
     st = _load()
     if not st.get("enabled"):
