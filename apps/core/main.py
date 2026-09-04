@@ -183,6 +183,22 @@ async def lifespan(app: FastAPI):
         log.debug("boot governance skipped: %s", e)
 
     try:
+        async def _boot_api_prices():
+            await asyncio.sleep(48)
+            from apps.core.services import api_ledger
+
+            result = api_ledger.refresh(source="boot")
+            log.info(
+                "boot api-ledger fetches=%s live_rows=%s",
+                len(result.get("fetches") or []),
+                result.get("live_rows"),
+            )
+
+        asyncio.create_task(_boot_api_prices())
+    except Exception as e:
+        log.debug("boot api-ledger skipped: %s", e)
+
+    try:
         from apps.core.services import uptime_log, schedule_clock, sun_times
         sun_times.refresh_if_stale()
         uptime_log.record_origin_start()

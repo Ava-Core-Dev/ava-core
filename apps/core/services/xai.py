@@ -124,6 +124,23 @@ def chat(
     except (KeyError, IndexError, TypeError) as e:
         raise XAIError(f"Unexpected response: {data!r}") from e
     mark_grok_up()
+    try:
+        from apps.core.services import api_ledger
+
+        usage = data.get("usage") if isinstance(data, dict) else None
+        if isinstance(usage, dict):
+            api_ledger.record_usage(
+                "xai",
+                model=payload.get("model") or config.GROK_MODEL,
+                input_tokens=int(usage.get("prompt_tokens") or 0),
+                output_tokens=int(usage.get("completion_tokens") or 0),
+                cached_tokens=int((usage.get("prompt_tokens_details") or {}).get("cached_tokens") or 0)
+                if isinstance(usage.get("prompt_tokens_details"), dict)
+                else 0,
+                surface="xai.chat",
+            )
+    except Exception:
+        log.debug("api-ledger xai usage skip", exc_info=True)
     return text
 
 

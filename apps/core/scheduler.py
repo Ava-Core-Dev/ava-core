@@ -43,6 +43,7 @@ def _job_wave(job_id: str) -> int:
     wave4 = {
         "morning-report", "merged-morning-summary", "cursor-fallback",
         "economy-brief", "overnight-relay", "governance-daily", "governance-self-update",
+        "api-prices",
     }
     wave5 = {"adsense-eod", "admob-eod"}
     wave6 = {"time-chime", "broadcast-loop", "hourly-clip-prebuild", "hourly-clip-reports"}
@@ -142,6 +143,9 @@ class Scheduler:
 
         s.add_job(self._run("governance_daily"), CronTrigger(hour=10, minute=8),
                   id="governance-daily", name="RootRecord governance daily", misfire_grace_time=300)
+
+        s.add_job(self._run("api_prices"), CronTrigger(hour=10, minute=10),
+                  id="api-prices", name="Public API price catalog", misfire_grace_time=300)
 
         s.add_job(self._run("governance_self_update"), IntervalTrigger(
                       hours=1,

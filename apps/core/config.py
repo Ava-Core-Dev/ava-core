@@ -202,6 +202,14 @@ CURSOR_FALLBACK = _env_str("AVA_CURSOR_FALLBACK", "1") not in {"0", "false", "no
 CURSOR_MAX_PER_DAY = _env_int("AVA_CURSOR_MAX_PER_DAY", 2)
 CURSOR_MIN_HOURS = _env_int("AVA_CURSOR_MIN_HOURS", 6)
 GROK_DOWN_HOURS = _env_int("AVA_GROK_DOWN_HOURS", 12)
+# Linked inference APIs — presence only for the price/balance ledger. Never log values.
+OPENAI_API_KEY = _first_env("OPENAI_API_KEY", "AVA_OPENAI_API_KEY")
+GEMINI_API_KEY = _first_env(
+    "GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_AI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY"
+)
+ANTHROPIC_API_KEY = _first_env("ANTHROPIC_API_KEY", "AVA_ANTHROPIC_API_KEY")
+XAI_MGMT_KEY = _first_env("XAI_MGMT_KEY", "XAI_MANAGEMENT_KEY")
+XAI_TEAM_ID = _first_env("XAI_TEAM_ID")
 
 
 def vercel_token() -> str:

@@ -157,6 +157,13 @@ class GovernanceBody(BaseModel):
     run_now: bool = False
 
 
+class LedgerBody(BaseModel):
+    capture_enabled: bool | None = None
+    spend_master: bool | None = None
+    accounts: dict | None = None
+    refresh: bool = False
+
+
 # ── Weather GIFs ──────────────────────────────────────────────────────────────
 
 def _dir_info(kind: str, path: Path) -> dict:
