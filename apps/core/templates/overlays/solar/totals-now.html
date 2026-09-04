@@ -18,7 +18,7 @@
 <body>
 <div class="wrap card"><div class="k">Totals now</div>
   <div class="split">
-    <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
+    <div class="tile"><div class="n" id="solarInLab">PV in</div><div class="x solar" id="solar">—</div></div>
     <div class="tile"><div class="n">DC load</div><div class="x" id="load">—</div></div>
     <div class="tile"><div class="n">AC gen / xfer</div><div class="x cyan" id="ac">—</div></div>
     <div class="tile"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
@@ -35,10 +35,13 @@ async function paint(){
   try{
     const s=await avaFetch('/api/obs/solar-desk');
     const solar=s.solar||{}, tot=solar.totals||{};
-    const pv=tot.solar_in_w??solar.solar_in_w??solar.power_w;
+    const ebatt=Number(tot.ebatt_in_w??solar.ebatt_in_w??0);
+    const pv=ebatt>=20?ebatt:(tot.solar_in_w??solar.solar_in_w??solar.power_w);
     const load=tot.dc_load_w??tot.load_w??solar.load_w;
     const ac=(Number(tot.generator_w||0)+Number(tot.transfer_w||0))||Number(tot.ac_in_w||0)+Number(tot.ac_out_w||0);
     document.getElementById('solar').textContent=avaWatts(pv);
+    const lab=document.getElementById('solarInLab');
+    if(lab) lab.textContent=ebatt>=20?'E-Batt in':'PV in';
     document.getElementById('load').textContent=avaWatts(load);
     document.getElementById('ac').textContent=avaWatts(ac);
     document.getElementById('appl').textContent=avaWatts(tot.appliance_w);

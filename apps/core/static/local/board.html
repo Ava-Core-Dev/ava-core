@@ -178,7 +178,7 @@
           ${card("Solar", `
             <div class="big">${s.live ? dash(s.battery_pct, "%") : "not live"}</div>
             <p class="muted">${s.live ? "Bank now" : "EcoFlow not live"}</p>
-            ${row("PV", s.live ? dash(s.solar_in_w, " W") : "not live")}
+            ${row((Number(s.ebatt_in_w||0) >= 20) ? "E-Batt" : "PV", s.live ? dash((Number(s.ebatt_in_w||0) >= 20) ? s.ebatt_in_w : s.solar_in_w, " W") : "not live")}
             ${row("Load", s.live ? dash(s.load_w, " W") : "not live")}
             <p class="note"><a href="/ecoflow">Solar board</a> · <a href="/status">Full status desk</a></p>
           `)}
@@ -312,7 +312,7 @@
           ${row("Online", d.online ? "yes" : "no", d.online ? "ok" : "down")}
           ${row("SOC", dash(d.soc, "%"))}
           ${e ? row("Stored", `${e.stored_wh} Wh of ${e.capacity_wh} Wh`) : ""}
-          ${row("PV", dash(d.pv_w, " W"))}
+          ${row((d.input_kind === "ebatt") ? "E-Batt" : "PV", dash(d.input_kind === "ebatt" ? (d.ebatt_w ?? d.pv_w) : d.pv_w, " W"))}
           ${row("AC out", dash(d.ac_out_w, " W"))}
         </section>
       `;
@@ -324,7 +324,7 @@
       const energyCard = en ? card("Energy stored", `
             <div class="big">${en.stored_kwh.toFixed(2)} kWh</div>
             <p class="muted">of ${en.capacity_kwh.toFixed(2)} kWh nameplate · ${en.bank_pct}% capacity-weighted</p>
-            ${row("In (PV)", dash(f.pv_w, " W"))}
+            ${row((f.ebatt_w >= 20) ? "In (E-Batt)" : "In (PV)", dash((f.ebatt_w >= 20) ? f.ebatt_w : f.pv_w, " W"))}
             ${row("Out (combined)", dash(f.load_w, " W"))}
             ${row("Net", f.net_w != null ? `${f.net_w} W ${esc(f.direction || "")}` : "—")}
             ${row("At this rate", runtime)}
@@ -333,13 +333,13 @@
             <p class="note">Capacity is vendor spec. SOC and watts are live.</p>
           `) : "";
       main.innerHTML = `
-        <p class="lede">Live EcoFlow sample. Night PV near 0 is real. History chart only if the API has points.</p>
+        <p class="lede">Live EcoFlow sample. Night PV near 0 is real. E-Batt on the MPPT is not solar. History chart only if the API has points.</p>
         <div class="grid">
           ${card("Bank", `
             <div class="big">${s.live ? dash(s.battery_pct, "%") : "not live"}</div>
             ${row("Source", esc(s.source || "none"), s.live ? "ok" : "held")}
             ${row("State", dash(s.state))}
-            ${row("PV in", s.live ? dash(s.solar_in_w, " W") : "not live")}
+            ${row((Number(s.ebatt_in_w||0) >= 20) ? "E-Batt in" : "PV in", s.live ? dash((Number(s.ebatt_in_w||0) >= 20) ? s.ebatt_in_w : s.solar_in_w, " W") : "not live")}
             ${row("Load", s.live ? dash(s.load_w, " W") : "not live")}
             <p class="note"><a href="/status">Full status desk</a></p>
           `)}
