@@ -205,10 +205,12 @@ async def live_snapshot() -> dict:
         return snap
 
     # Cold process: serve on-disk quota first so /status never waits on EcoFlow
-    # + broken D1 long enough for the Worker to fall back to a frozen bank.
+    # long enough for the Worker (8s) to fall back to a frozen August D1 bank.
+    # Do not require online=True — ECO_STALE_S is 3 min; a just-recycled origin
+    # often has slightly older quota files and would otherwise miss this path.
     if not cached:
         disk = _quota_snapshot()
-        if disk and any(d.get("online") for d in (disk.get("devices") or [])):
+        if disk and disk.get("devices"):
             _LIVE_CACHE.update({"snap": disk, "at": now})
             try:
                 import asyncio
