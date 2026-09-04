@@ -75,6 +75,7 @@ class ChatRequest(BaseModel):
     context: str = ""
     surface: str = "public"
     max_tokens: int = 512
+    history: list[dict] = []
 
 
 @router.get("/auth/session")
@@ -104,20 +105,28 @@ async def api_chat(req: ChatRequest, request: Request):
     try:
         facts = await persona_svc.live_facts()
         if facts:
-            system += "\n\nLIVE FACTS\n" + facts
+            system += "\n\n" + facts
     except Exception:
-        pass
+        facts = ""
     if req.context:
         system += f"\n\nAdditional context:\n{req.context}"
 
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": req.message},
-    ]
+    messages = [{"role": "system", "content": system}]
+    if surface == "public":
+        messages.extend(persona_svc.PUBLIC_FEWSHOT)
+    for turn in (req.history or [])[-10]:
+        role = turn.get("role") if isinstance(turn, dict) else None
+        content = str((turn.get("content") if isinstance(turn, dict) else "") or "").strip()[:1500]
+        if role in {"user", "assistant"} and content:
+            messages.append({"role": role, "content": content})
+    if not messages or messages[-1].get("role") != "user" or messages[-1].get("content") != req.message:
+        messages.append({"role": "user", "content": req.message})
 
     reply = await ollama_svc.chat(messages, timeout=45)
     if reply:
-        return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL, "surface": surface}
+        reply = persona_svc.scrub_reply(reply)
+        if reply:
+            return {"reply": reply, "brain": "ollama", "model": config.OLLAMA_MODEL, "surface": surface}
 
     if not config.XAI_API_KEY:
         return JSONResponse({"error": "no AI backend available"}, status_code=503)

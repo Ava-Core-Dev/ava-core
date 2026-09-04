@@ -158,9 +158,16 @@ def _kilauea_line() -> str:
     except Exception:
         return "Kilauea: DOWN"
     level = st.get("alert_level") or "unknown"
-    head = st.get("headline") or ""
-    # Labelled as a volcano level so it is not folded into the weather line.
-    return f"Kilauea volcano alert level: {level}" + (f" — {head}" if head else "")
+    head = str(st.get("headline") or "").strip()
+    updated = str(st.get("updated_at") or "").strip()
+    bits = [f"Kilauea volcano alert level: {level}"]
+    if head:
+        bits.append(head)
+    else:
+        bits.append("no HVO headline in this sample")
+    if updated:
+        bits.append(f"sample {updated}")
+    return " — ".join(bits)
 
 
 async def live_facts() -> str:
@@ -172,7 +179,7 @@ async def live_facts() -> str:
     from apps.core.services import db_facts
 
     lines = [
-        f"LIVE FACTS ({config.hst_now_text()}). Quote these or say DOWN. Do not invent.",
+        f"Numbers for this turn ({config.hst_now_text()}). Speak in your own words. Do not print a LIVE FACTS heading.",
         db_facts.ecoflow_line(),
         db_facts.host_line(),
         _weather_line(),
