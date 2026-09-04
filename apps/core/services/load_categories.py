@@ -111,6 +111,70 @@ def _ac_in(d: dict) -> float:
     return max(float(d.get("ac_in_w") or 0), float(d.get("ac_charge_w") or 0))
 
 
+def _is_night(sun: dict | None) -> bool:
+    sun = sun or {}
+    if sun.get("after_sunset") or sun.get("before_sunrise"):
+        return True
+    if sun.get("ok") or sun.get("sunset") or sun.get("sunrise"):
+        return False
+    hour = datetime.now().hour
+    return hour >= 19 or hour < 6
+
+
+def solar_in_w(devices: list[dict]) -> float:
+    return round(
+        sum(float(d.get("pv_w") or 0) for d in devices if d.get("input_kind") != "ebatt"),
+        1,
+    )
+
+
+def ebatt_in_w(devices: list[dict]) -> float:
+    return round(
+        sum(
+            float(d.get("ebatt_w") or d.get("pv_w") or 0)
+            for d in devices
+            if d.get("input_kind") == "ebatt"
+        ),
+        1,
+    )
+
+
+def apply_ebatt(devices: list[dict], *, sun: dict | None = None) -> None:
+    """After sunset, MPPT ≤225 W that Delta is not discharging is the Ninebot, not PV."""
+    for d in devices:
+        d.pop("ebatt_w", None)
+        d["input_kind"] = None
+    if not devices:
+        return
+    if sun is None:
+        try:
+            from apps.core.services import sun_times
+
+            sun = sun_times.facts()
+        except Exception:
+            sun = {}
+    if not _is_night(sun):
+        return
+    incoming = sum(float(d.get("pv_w") or 0) for d in devices)
+    if incoming < EBATT_MIN_W or incoming > EBATT_MAX_W:
+        return
+    delta = next((d for d in devices if _is_delta(d)), None)
+    delta_out = 0.0
+    if delta:
+        delta_out = max(
+            float(delta.get("discharge_w") or 0),
+            float(delta.get("ac_out_w") or 0),
+            float(delta.get("out_w") or 0),
+        )
+    if same_watts(incoming, delta_out):
+        return
+    for d in devices:
+        w = float(d.get("pv_w") or 0)
+        if w >= EBATT_MIN_W:
+            d["input_kind"] = "ebatt"
+            d["ebatt_w"] = round(w, 1)
+
+
 def apply_roles(devices: list[dict]) -> None:
     for d in devices:
         d["ac_role"] = None
@@ -172,6 +236,7 @@ def apply_roles(devices: list[dict]) -> None:
             d["emergency_w"] = round(w, 1)
             if d.get("ac_role") not in ("transfer_out", "transfer_in"):
                 d["ac_role"] = "emergency"
+    apply_ebatt(devices)
 
 
 def categories(devices: list[dict]) -> dict:
@@ -218,7 +283,9 @@ def bank_state(devices: list[dict]) -> str:
         bits.append("emergency pack")
     if cats["hard_drives_12v_w"] >= CAR_W_MIN:
         bits.append("hard drives 12V")
-    if sum(float(d.get("pv_w") or 0) for d in devices) > 20:
+    if ebatt_in_w(devices) >= EBATT_MIN_W:
+        bits.append("E-Batt input")
+    elif solar_in_w(devices) > 20:
         bits.append("PV charging")
     if cats["server_mobile_w"] > 20:
         bits.append("server + mobile")
@@ -226,11 +293,22 @@ def bank_state(devices: list[dict]) -> str:
 
 
 def night_charge_callout(devices: list[dict], *, sun: dict | None = None) -> dict | None:
-    """Past sunset, PV ~0, measured AC or DC in. No invented watts."""
+    """Past sunset: E-Batt on the MPPT, or AC/DC in with true PV ~0. No invented watts."""
     sun = sun or {}
+    ebatt = ebatt_in_w(devices)
+    if ebatt >= EBATT_MIN_W:
+        return {
+            "show": True,
+            "kind": "ebatt",
+            "title": "E-Batt input",
+            "detail": "Recycled Ninebot 220 Wh on the MPPT. EcoFlow calls this PV. Not solar. Nameplate only — no SOC.",
+            "in_w": round(ebatt, 1),
+            "nameplate_wh": EBATT_WH,
+            "sunset": sun.get("sunset") or "",
+        }
     if not sun.get("after_sunset"):
         return None
-    pv = sum(float(d.get("pv_w") or 0) for d in devices)
+    pv = solar_in_w(devices)
     if pv > PV_FLAT_W:
         return None
     ac_in = sum(float(d.get("ac_in_w") or 0) for d in devices)
