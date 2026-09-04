@@ -15,7 +15,7 @@ const feedbackState = {
   discordSel: null,
   slackSel: null,
   targets: {
-    discord: "1532929974154166522",
+    discord: "1545287392552943768",
     slack: "C0BLMGBVAMD",
   },
 };

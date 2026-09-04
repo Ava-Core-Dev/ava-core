@@ -246,10 +246,10 @@ DISCORD_CHANNELS: dict[str, str] = {
     "governance":        "1522406451413385317",
     "voting":            "1522413185364398090",
     "constitution":      "1522406019152478210",
-    "development":       "1532929974154166522",
-    "memes_media":       "1516389376198840421",
+    "development":       "1545287392552943768",
+    "memes_media":       "1545287357618593843",
     "ava_media":         "1533268458668687392",
-    "random_facts":      "1531432703675596942",
+    "random_facts":      "1545287379055812638",
     "updates":           "1545284423740563528",   # pointer / forwards only — not report dump
     # Real #automations (economy + cron posts). Override with DISCORD_AUTOMATIONS_CHANNEL_ID.
     "automations":       os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1545284463783710720").strip()
@@ -285,8 +285,8 @@ DEFAULT_WATCH_CHANNELS: list[str] = [
     "1522406451413385317",  # governance
     "1522413185364398090",  # voting
     "1522406019152478210",  # constitution
-    "1516389376198840421",  # memes-and-media
-    "1532929974154166522",  # development
+    "1545287357618593843",  # memes-and-media
+    "1545287392552943768",  # development
     "1545284423740563528",  # updates
     AVA_DISCORD_HOME,       # Ava home — reports + global chat
 ]

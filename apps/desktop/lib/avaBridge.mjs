@@ -180,7 +180,7 @@ export async function loadDesktopEnv() {
 export const FEEDBACK_TARGETS = {
   discordDevelopment: {
     surface: "discord",
-    id: "1532929974154166522",
+    id: "1545287392552943768",
     label: "Discord #development",
   },
   slackFeedback: {
@@ -200,14 +200,14 @@ export const AVA_POST_PRESETS = [
   { key: "general", surface: "discord", id: "1545284354157187083", label: "Discord #general" },
   { key: "admins", surface: "discord", id: "1516121832493678612", label: "Discord #admins" },
   { key: "updates", surface: "discord", id: "1545284423740563528", label: "Discord #updates" },
-  { key: "development", surface: "discord", id: "1532929974154166522", label: "Discord #development" },
+  { key: "development", surface: "discord", id: "1545287392552943768", label: "Discord #development" },
   { key: "governance", surface: "discord", id: "1522406451413385317", label: "Discord #governance" },
   { key: "voting", surface: "discord", id: "1522413185364398090", label: "Discord #voting" },
   { key: "constitution", surface: "discord", id: "1522406019152478210", label: "Discord #constitution" },
   { key: "proposals", surface: "discord", id: "1526664180491358419", label: "Discord #proposals" },
-  { key: "memes", surface: "discord", id: "1516389376198840421", label: "Discord #memes-and-media" },
+  { key: "memes", surface: "discord", id: "1545287357618593843", label: "Discord #memes-and-media" },
   { key: "ava-media", surface: "discord", id: "1533268458668687392", label: "Discord Ava media vault" },
-  { key: "facts", surface: "discord", id: "1531432703675596942", label: "Discord #random-facts" },
+  { key: "facts", surface: "discord", id: "1545287379055812638", label: "Discord #random-facts" },
   { key: "solar", surface: "discord", id: "1533915343766949949", label: "Discord #solar-server" },
   { key: "ingame", surface: "discord", id: "1545284399107547179", label: "Discord in-game chat" },
   { key: "daily", surface: "discord", id: "1539779979280257054", label: "Discord Ava home" },
