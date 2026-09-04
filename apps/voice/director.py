@@ -201,32 +201,33 @@ def list_music_tracks(root: Path | None = None) -> list[Path]:
 
 
 def _music_cmdline_is_bed(cmdline: str) -> bool:
-    """True if this process command line is a music-bed player (not voice clips)."""
+    """True if this process command line is a music-bed player (not voice clips).
+
+    Prefer the AVA_MUSIC_BED marker. Broad path-only matching killed unrelated shells
+    (agent/verification commands that mentioned the music folder) and wedged origin
+    when taskkill ran on the asyncio thread.
+    """
     if not cmdline:
         return False
     low = cmdline.lower()
     if "ava_music_bed" in low:
         return True
-    if "my_workspace-dub" in low:
-        return True
-    # Path markers (slash-agnostic)
+    # Legacy orphans from before the marker existed.
+    if "system.windows.media.mediaplayer" not in low and "presentationcore" not in low:
+        return False
     compact = low.replace("/", "\\")
-    if "\\audio\\music\\" in compact or "\\audio\\music'" in compact:
+    if "\\audio\\music\\" in compact or "media\\public\\audio\\music" in compact:
         return True
-    if "media\\public\\audio\\music" in compact:
-        return True
-    if "mediaplayer" in low and "music" in low:
-        return True
-    if "presentationcore" in low and "music" in low:
+    if "my_workspace-dub" in low or "my_workspace-relax" in low:
         return True
     return False
 
 
 def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
-    """Kill OS players for the music bed folder (orphans from origin recycle).
+    """Kill OS players for the music bed (orphans from origin recycle).
 
-    Uses psutil + AVA_MUSIC_BED marker. Nested PowerShell CIM -like matching was
-    incomplete and left stacks after recycle / Desk restart / ensure races.
+    Uses psutil + AVA_MUSIC_BED marker. Only powershell/ffplay/etc hosts — never
+    path-only matches on arbitrary processes.
     """
     killed = 0
     try:
@@ -254,6 +255,8 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 continue
             if keep_pid is not None and pid == keep_pid:
                 continue
+            if pid <= 0:
+                continue
             try:
                 name = (proc.info.get("name") or "").lower()
                 cmd = proc.info.get("cmdline") or []
@@ -262,38 +265,30 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 continue
             if not cl or not _music_cmdline_is_bed(cl):
                 continue
-            # Only kill known player hosts (never random python with music path in cwd).
-            if name and name not in player_names and "ffplay" not in name:
-                if "powershell" not in name and "pwsh" not in name:
-                    continue
+            if name not in player_names:
+                continue
             try:
-                if os.name == "nt":
-                    subprocess.run(
-                        ["taskkill", "/PID", str(pid), "/T", "/F"],
-                        capture_output=True,
-                        timeout=10,
-                        creationflags=CREATE_NO_WINDOW,
-                    )
-                else:
-                    proc.kill()
+                # Prefer kill() — faster than taskkill and avoids /T on wrong trees.
+                proc.kill()
                 killed += 1
             except Exception:
                 try:
-                    proc.kill()
-                    killed += 1
+                    if os.name == "nt":
+                        subprocess.run(
+                            ["taskkill", "/PID", str(pid), "/T", "/F"],
+                            capture_output=True,
+                            timeout=5,
+                            creationflags=CREATE_NO_WINDOW,
+                        )
+                        killed += 1
                 except Exception:
                     pass
     elif os.name == "nt":
-        # Fallback without psutil: broad CIM match including AVA_MUSIC_BED.
         ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
         list_script = (
             "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
-            "Where-Object { $_.CommandLine -and ("
-            "  $_.CommandLine -match 'AVA_MUSIC_BED' -or "
-            "  $_.CommandLine -match 'My_Workspace-Dub' -or "
-            "  $_.CommandLine -match '[\\\\/]audio[\\\\/]music[\\\\/]' -or "
-            "  ($_.CommandLine -match 'MediaPlayer' -and $_.CommandLine -match 'music')"
-            ") } | ForEach-Object { $_.ProcessId }"
+            "Where-Object { $_.CommandLine -and $_.Name -match '^(powershell|pwsh|ffplay|ffmpeg)\\.exe$' "
+            "-and $_.CommandLine -match 'AVA_MUSIC_BED' } | ForEach-Object { $_.ProcessId }"
         )
         try:
             out = subprocess.run(
@@ -325,9 +320,9 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 continue
             try:
                 subprocess.run(
-                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    ["taskkill", "/PID", str(pid), "/F"],
                     capture_output=True,
-                    timeout=10,
+                    timeout=5,
                     creationflags=CREATE_NO_WINDOW,
                 )
                 killed += 1
@@ -335,13 +330,11 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 pass
     else:
         try:
-            marker = str(music_dir())
-            for pat in ("ffplay", "ffmpeg", "mpg123", "mpv", "cvlc"):
-                subprocess.run(
-                    ["pkill", "-f", f"{pat}.*{marker}"],
-                    capture_output=True,
-                    timeout=5,
-                )
+            subprocess.run(
+                ["pkill", "-f", "AVA_MUSIC_BED"],
+                capture_output=True,
+                timeout=5,
+            )
         except Exception:
             pass
     if killed:
@@ -349,6 +342,11 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
             "Music bed swept stray players  killed=%s", killed
         )
     return killed
+
+
+async def _kill_stray_music_players_async(*, keep_pid: int | None = None) -> int:
+    """Run kill_stray off the asyncio thread so origin health stays responsive."""
+    return await asyncio.to_thread(kill_stray_music_players, keep_pid=keep_pid)
 
 
 
