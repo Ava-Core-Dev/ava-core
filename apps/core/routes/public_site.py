@@ -160,6 +160,9 @@ async def charts_pages(rest: str):
     if p.is_dir():
         p = p / "index.html"
     return _file_or_none(p) or HTMLResponse("<p>Not on this server.</p>", status_code=404)
+
+
+@router.get("/weather/{rest:path}")
 async def weather_geo_pages(rest: str):
     found = _geo_file("weather", rest)
     return found or HTMLResponse("<p>Not on this server.</p>", status_code=404)
