@@ -16,6 +16,9 @@ function Register-SilentPythonw {
   )
   if ($Seconds -le 0 -and $Minutes -le 0) { throw "Minutes or Seconds required for $Name" }
   $interval = if ($Seconds -gt 0) { "PT${Seconds}S" } else { "PT${Minutes}M" }
+  # Watchdog Popen's long-lived uvicorn. PT1M + job membership = origin killed every minute.
+  # PT0S = unlimited (Task Scheduler). Other tasks keep a real minutes cap.
+  $timeLimit = if ($TimeoutMinutes -le 0) { "PT0S" } else { "PT${TimeoutMinutes}M" }
   $xmlPath = Join-Path $Repo "windows\$Name.xml"
   $start = (Get-Date).AddMinutes(1).ToString("yyyy-MM-ddTHH:mm:ss")
   $cmdEsc = [System.Security.SecurityElement]::Escape($Pythonw)
@@ -53,7 +56,7 @@ function Register-SilentPythonw {
     <Hidden>true</Hidden>
     <RunOnlyIfIdle>false</RunOnlyIfIdle>
     <WakeToRun>false</WakeToRun>
-    <ExecutionTimeLimit>PT${TimeoutMinutes}M</ExecutionTimeLimit>
+    <ExecutionTimeLimit>$timeLimit</ExecutionTimeLimit>
     <Priority>7</Priority>
   </Settings>
   <Actions Context="Author">
@@ -69,7 +72,7 @@ function Register-SilentPythonw {
   schtasks /Create /TN "AVA-CORE\$Name" /XML $xmlPath /F | Out-Host
 }
 
-Register-SilentPythonw -Name "watchdog" -ScriptPath (Join-Path $Repo "windows\watchdog.py") -Minutes 1 -TimeoutMinutes 1
+Register-SilentPythonw -Name "watchdog" -ScriptPath (Join-Path $Repo "windows\watchdog.py") -Minutes 1 -TimeoutMinutes 0
 # Task Scheduler on this Windows build rejects PT30S (min repeat is 1 minute).
 # auto-push.py ticks twice inside each minute so edits still hit GitHub in ~30s.
 Register-SilentPythonw -Name "auto-push" -ScriptPath (Join-Path $Repo "scripts\auto-push.py") -Minutes 1 -TimeoutMinutes 5

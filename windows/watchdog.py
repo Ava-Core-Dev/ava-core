@@ -16,6 +16,10 @@ import net_gate  # noqa: E402
 
 
 CREATE_NO_WINDOW = 0x08000000
+# Leave Task Scheduler's job so ExecutionTimeLimit cannot kill long-lived origin/tunnel.
+CREATE_BREAKAWAY_FROM_JOB = 0x01000000
+CREATE_NEW_PROCESS_GROUP = 0x00000200
+_SPAWN_FLAGS = CREATE_NO_WINDOW | CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_PROCESS_GROUP
 REPO = Path(__file__).resolve().parents[1]
 HOME = Path(os.environ.get("AVA_HOME", str(Path.home() / "ava")))
 os.environ["AVA_HOME"] = str(HOME)
@@ -81,7 +85,7 @@ def _ensure_tunnel() -> None:
         fh.write(f"\n---- {datetime.now(timezone.utc).isoformat()} watchdog spawn tunnel ----\n")
         subprocess.Popen(
             [str(exe), "tunnel", "run", "--token-file", str(CF_TOKEN)],
-            creationflags=CREATE_NO_WINDOW,
+            creationflags=_SPAWN_FLAGS,
             startupinfo=_quiet_startupinfo(),
             stdout=fh,
             stderr=fh,
@@ -157,7 +161,7 @@ subprocess.Popen(
     ],
     cwd=str(REPO),
     env=_with_jdk(os.environ.copy()),
-    creationflags=CREATE_NO_WINDOW,
+    creationflags=_SPAWN_FLAGS,
     startupinfo=si,
     stdout=log_f,
     stderr=log_f,
