@@ -53,6 +53,10 @@ async def run():
             name="morning_report",
             kind="morning",
         )
+    else:
+        from apps.core.services import report_audio_manual
+
+        play = await report_audio_manual.play_scheduled("morning")
     log.info(
         "Morning report engine_req=%s engine=%s blog=%s tts=%s play=%s dated=%s",
         engine,

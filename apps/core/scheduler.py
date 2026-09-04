@@ -165,6 +165,9 @@ class Scheduler:
         s.add_job(self._run("day_reports_evening"), CronTrigger(hour=18, minute=0),
                   id="day-reports-evening", name="Evening slot reports", misfire_grace_time=300)
 
+        s.add_job(self._run("evening_report_audio"), CronTrigger(hour=18, minute=5),
+                  id="evening-report-audio", name="Evening report MP3 (manual)", misfire_grace_time=300)
+
         # ── Merged morning summary (10:05 HST) ───────────────────────────────
         # Only cron that posts to #updates. Everything else → #automations.
         s.add_job(self._run("merged_morning"), CronTrigger(hour=10, minute=5),

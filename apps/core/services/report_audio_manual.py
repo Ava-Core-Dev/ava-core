@@ -102,8 +102,7 @@ def _safe_resolve(raw: str | Path | None) -> Path | None:
         if not p.is_absolute():
             from apps.core import config
 
-            root = Path(getattr(config, "BASE_DIR", None) or Path(config.DATA_DIR).parent)
-            p = (root / p).resolve()
+            p = (Path(config.AVA_HOME) / p).resolve()
         else:
             p = p.resolve()
     except Exception:

@@ -219,3 +219,49 @@ async def report_generation_play_mp3(body: ReportPlayIn, request: Request):
         name=f"{kind}_report",
         kind=kind,
     )
+
+
+class ManualAudioSetIn(BaseModel):
+    kind: str = Field(default="morning")
+    path: str | None = None
+    auto_play: bool | None = None
+    label: str | None = None
+    clear: bool = False
+
+
+class ManualAudioPlayIn(BaseModel):
+    kind: str = Field(default="morning")
+    path: str | None = None
+
+
+@router.get("/audio-manual")
+async def report_audio_manual_status():
+    """Operator picks morning/midday/evening MP3s for scheduled play (no TTS)."""
+    from apps.core.services import report_audio_manual
+
+    return report_audio_manual.status()
+
+
+@router.post("/audio-manual")
+async def report_audio_manual_set(body: ManualAudioSetIn, request: Request):
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    from apps.core.services import report_audio_manual
+
+    return report_audio_manual.set_slot(
+        body.kind,
+        path=body.path,
+        auto_play=body.auto_play,
+        label=body.label,
+        clear=bool(body.clear),
+    )
+
+
+@router.post("/audio-manual/play")
+async def report_audio_manual_play(body: ManualAudioPlayIn, request: Request):
+    """Play selected (or override) manual report MP3 now. No TTS spend."""
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    from apps.core.services import report_audio_manual
+
+    return await report_audio_manual.play_now(body.kind, path=body.path)

@@ -46,18 +46,18 @@ def _after_midday_success(*, engine: str, content: str) -> dict:
 
 
 async def _play_midday_mp3(tts: dict | None) -> dict | None:
-    """Desk playback after Ara write — file on disk, no re-TTS."""
+    """Desk playback: fresh Ara file if present, else operator manual pick."""
     tts = tts or {}
-    if not tts.get("ok"):
-        return {"ok": False, "skipped": True, "detail": "tts_not_ok", "tts": tts}
-    from apps.core.services import voice_events
+    from apps.core.services import report_audio_manual, voice_events
 
-    return await voice_events.play_report_mp3(
-        tts.get("current"),
-        tts.get("mp3"),
-        name="midday_report",
-        kind="midday",
-    )
+    if tts.get("ok"):
+        return await voice_events.play_report_mp3(
+            tts.get("current"),
+            tts.get("mp3"),
+            name="midday_report",
+            kind="midday",
+        )
+    return await report_audio_manual.play_scheduled("midday")
 
 
 async def run():
