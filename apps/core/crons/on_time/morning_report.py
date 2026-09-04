@@ -1,8 +1,7 @@
 """Morning report cron (10:00 HST) + merged morning summary (10:05 HST).
 
-Refreshes NOAA/Kīlauea first. While Grok is halted, writes file facts only
-(no xAI spend). Local Ollama polish is also skipped when Grok is halted so
-the morning path stays file-based until the operator turns spend back on.
+Refreshes NOAA/Kīlauea first. While Grok is halted, writes on-device Boot Report
+text only (no xAI spend, no Ara TTS from this cron unless a separate path arms it).
 """
 
 from __future__ import annotations
@@ -31,22 +30,25 @@ async def _refresh_prelims() -> dict:
 async def run():
     log.info("Morning report cron  %s", datetime.now(timezone.utc).isoformat())
     from apps.core import config
-    from apps.core.services import reports, xai
+    from apps.core.services import boot_report, reports, xai
     from apps.core.services import reports as report_store
 
+    if not boot_report.morning_automation_enabled():
+        log.info("Morning report automation OFF — prelims still refresh facts")
     prelim = await _refresh_prelims()
     log.info("morning prelims ok=%s", prelim.get("ok"))
 
-    if xai.grok_is_down():
-        from apps.core.services import boot_report
-
+    # Preferred path: on-device Boot Report (Grok halted or automation local-only).
+    if xai.grok_is_down() or boot_report.morning_automation_enabled():
         written = boot_report.write_boot_report(source="morning_cron_local")
         content = written.get("text") or ""
         reports.queue_public_draft("morning", content, source="cron_local")
         report_store.write_current(content, kind="morning", source="cron_local")
         log.info(
-            "Morning Boot Report via on-device brain (Grok halted) engine=%s",
+            "Morning Boot Report via on-device brain engine=%s scrub=%s automation=%s",
             written.get("engine"),
+            written.get("scrub"),
+            boot_report.morning_automation_enabled(),
         )
         return
 
@@ -55,7 +57,7 @@ async def run():
     raw = _datapoints(10, 500)
     factual = f"_Live snapshot (Grok unavailable or cooling down)._\n\n{raw[:1500]}"
     system = (
-        "You are Ava Ivy, the AI runtime of the HI Pacific Solar Root Server. "
+        "You are Ava Ivy, the AI runtime of the Hawaii Pacific Solar Root Server. "
         "Write a concise, natural morning summary under 300 words covering "
         "solar (ground-mounted arrays only — never rooftop), weather, earthquakes, economy, and server status. Friendly tone. "
         "Do not invent watts. If PV is near zero, say the array is on the ground / being reset, not that the roof is empty. "
@@ -102,20 +104,18 @@ async def run_merged():
     """Merged morning summary — drafts for operator approval."""
     log.info("Merged morning summary  %s", datetime.now(timezone.utc).isoformat())
     from apps.core import config
-    from apps.core.services import reports, xai
+    from apps.core.services import boot_report, reports, xai
 
     prelim = await _refresh_prelims()
     log.info("merged morning prelims ok=%s", prelim.get("ok"))
 
-    if xai.grok_is_down():
-        from apps.core.services import boot_report
-
+    if xai.grok_is_down() or boot_report.morning_automation_enabled():
         written = boot_report.write_boot_report(source="merged_morning_local")
         content = written.get("text") or ""
         reports.queue_public_draft("summary", content, source="cron_local")
         reports.write_current(content, kind="summary", source="cron_local")
         log.info(
-            "Merged morning Boot Report via on-device brain (Grok halted) engine=%s",
+            "Merged morning Boot Report via on-device brain engine=%s",
             written.get("engine"),
         )
         return
@@ -127,7 +127,7 @@ async def run_merged():
     system = (
         "Write a friendly merged morning summary for the RootMC Discord community. "
         "Cover: solar/power, weather, Kīlauea, earthquakes, player economy, Minecraft servers. "
-        "Under 400 words. Aloha tone. Use only the provided data. Do not invent numbers."
+        "Under 400 words. Warm tone. Use only the provided data. Do not invent numbers."
     )
     summary = synth.polish(
         "summary", system, all_data[:4000], factual=factual, channel="ava_home"
