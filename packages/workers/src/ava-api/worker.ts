@@ -22,7 +22,10 @@ import {
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://origin.avaivy.cloud";
-const VERCEL_FRONTEND = "https://avaivy-cloud.pages.dev";
+// Pin to a successful production deploy URL while avaivy-cloud.pages.dev
+// alias stays on an older build (queued stage never clears on the project).
+// Revert to https://avaivy-cloud.pages.dev when that alias catches up.
+const VERCEL_FRONTEND = "https://6899e1ba.avaivy-cloud.pages.dev";
 
 function isOpsPath(path: string): boolean {
   // Exact /api/ops and /api/ops/* only. Do not match /api/ops-schedule-banner.
