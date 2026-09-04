@@ -19,6 +19,7 @@ log = logging.getLogger("ava.report_generation")
 HST = ZoneInfo("Pacific/Honolulu")
 
 STATE_PATH = config.DATA_DIR / "state" / "report-generation.json"
+MIDDAY_SPEND_WINDOW_PATH = config.DATA_DIR / "state" / "midday-grok-window.json"
 
 _DEFAULT_CONTEXT = [
     "https://avaivy.cloud/context",
