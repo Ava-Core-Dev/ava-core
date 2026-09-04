@@ -500,17 +500,6 @@ export async function restoreMusicBedIfWanted(wanted) {
   const logPath = path.join(LOG_DIR, "ava-desktop.log");
   appendLog(logPath, "lifecycle: desk start — restoring music bed");
   try {
-    // Clear sticky pause from older stop() paths before start.
-    try {
-      await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "resume" }),
-        signal: AbortSignal.timeout(5000),
-      });
-    } catch {
-      /* start still clears operator hold */
-    }
     const r = await fetch(`http://127.0.0.1:${PORT}/api/voice/music`, {
       method: "POST",
       headers: { "content-type": "application/json" },
