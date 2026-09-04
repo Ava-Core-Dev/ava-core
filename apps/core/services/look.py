@@ -20,8 +20,8 @@ UA = "AvaIvy/2.0 (https://avaivy.cloud; look)"
 CACHE_S = 180
 
 _LOOK = re.compile(
-    r"\b(look|see|cam|camera|still|picture|photo|screenshot|satellite|outlook|"
-    r"nhc|hurricane map|cone|crater|lava lake|v1cam|v2cam|v3cam|halema|"
+    r"\b(look|looking|cam|camera|still|picture|photo|screenshot|satellite|outlook|"
+    r"nhc map|hurricane map|storm map|cone chart|crater|lava lake|v1cam|v2cam|v3cam|"
     r"pack screen|lcd|what does (it|that|the (cam|pack|sky|storm)) look)\b",
     re.I,
 )
