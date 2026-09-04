@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from apps.core import config
@@ -51,6 +52,21 @@ def _facts_kind(kind: str) -> str:
         except Exception as e:
             return f"Host: {type(e).__name__}"
     if kind == "weather":
+        try:
+            from apps.core.services import live_wx
+
+            lines = live_wx.weather_lines_sync()
+            if lines:
+                return "\n".join(lines)
+        except Exception as e:
+            log.debug("weather facts live_wx: %s", e)
+        nws = sorted(
+            config.REPORTS_DIR.glob("nws-weather-*.md"),
+            key=lambda x: x.stat().st_mtime,
+            reverse=True,
+        )
+        if nws:
+            return _clip(nws[0].read_text(encoding="utf-8", errors="replace"), 900)
         reports = sorted(
             config.REPORTS_DIR.glob("solar-weather-*.md"),
             key=lambda x: x.stat().st_mtime,
@@ -114,10 +130,13 @@ def _facts_kind(kind: str) -> str:
         except Exception as e:
             return f"Identity: {type(e).__name__}"
     if kind == "community":
+        boot = config.REPORTS_DIR / "morning-boot-current.md"
+        if boot.is_file():
+            return _clip(boot.read_text(encoding="utf-8", errors="replace"), 1200)
         current = config.REPORTS_DIR / "morning-report-current.md"
         if current.is_file():
             return _clip(current.read_text(encoding="utf-8", errors="replace"), 900)
-        return "Community: no current morning report file."
+        return "Community: no current morning / boot report file."
     return f"{kind}: unknown kind."
 
 

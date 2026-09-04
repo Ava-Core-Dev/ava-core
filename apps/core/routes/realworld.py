@@ -128,26 +128,52 @@ async def api_identity(request: Request):
 async def api_weather():
     """Latest NWS Big Island forecast + active alert count."""
     from apps.core.services.reports import latest_report
+    from apps.core.services.live_wx import _pick_period
+    from zoneinfo import ZoneInfo
 
     report = latest_report("nws-weather-*.md")
     if not report:
         return JSONResponse({"error": "no weather data yet"}, status_code=404)
 
     text = report.read_text(encoding="utf-8", errors="replace")
+    hour = datetime.now(ZoneInfo("Pacific/Honolulu")).hour
 
-    period_match = re.search(r"^###\s+(.+)$", text, re.MULTILINE)
-    temp_match = re.search(r"(\d+)°[FC]", text)
-    short_match = re.search(
-        r"^###\s+.+\n+(\d+°[FC]\s*[—\-]+\s*[^\n]+|.+)",
-        text,
-        re.MULTILINE,
-    )
+    # Prefer the period that matches the clock (Tonight after 18:00), not a leftover Afternoon.
+    chunks = re.split(r"^### ", text, flags=re.M)
+    periods: list[dict] = []
+    for chunk in chunks[1:]:
+        lines = chunk.strip().splitlines()
+        if not lines:
+            continue
+        name = lines[0].strip()
+        rest = " ".join(lines[1:])
+        tm = re.search(r"(\d+)°([FC])", rest)
+        sm = re.search(r"—\s*([^\n.]+)", rest)
+        periods.append(
+            {
+                "name": name,
+                "temperature": int(tm.group(1)) if tm else None,
+                "shortForecast": (sm.group(1).strip() if sm else ""),
+            }
+        )
+    picked = _pick_period(periods, hour) or (periods[0] if periods else None)
     alert_count = len(re.findall(r"^\*\*.*\*\*", text, re.MULTILINE))
-    forecast = (short_match.group(1).strip() if short_match else "") or "see report"
+    if picked:
+        temp = picked.get("temperature")
+        short = picked.get("shortForecast") or ""
+        forecast = f"{temp}°F — {short}" if temp is not None else short or "see report"
+        period_name = picked.get("name") or "?"
+        temperature_f = temp
+    else:
+        period_match = re.search(r"^###\s+(.+)$", text, re.MULTILINE)
+        temp_match = re.search(r"(\d+)°[FC]", text)
+        period_name = period_match.group(1).strip() if period_match else "?"
+        temperature_f = int(temp_match.group(1)) if temp_match else None
+        forecast = "see report"
 
     return {
-        "period": period_match.group(1).strip() if period_match else "?",
-        "temperature_f": int(temp_match.group(1)) if temp_match else None,
+        "period": period_name,
+        "temperature_f": temperature_f,
         "forecast": forecast,
         "alerts_active": alert_count,
         "updated_at": datetime.fromtimestamp(
