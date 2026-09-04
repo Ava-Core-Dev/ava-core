@@ -72,7 +72,8 @@ def _parse_cmd(text: str) -> str | None:
 
 def _tg_addressed(msg: dict, text: str) -> bool:
     raw = str(text or "")
-    if re.search(r"\bava(?:\s+ivy)?\b", raw, re.I):
+    cleaned = re.sub(r"\bava's\b", " ", raw, flags=re.I)
+    if re.search(r"\bava(?:\s+ivy)?\b", cleaned, re.I):
         return True
     low = raw.lower()
     if "@ava_ivy_bot" in low:
@@ -154,6 +155,19 @@ async def telegram_loop() -> None:
                 if bot_id and from_id == bot_id:
                     continue
                 telegram_rooms.append_log(cid, "ingest" if text else "group_update", text, from_id)
+                try:
+                    from apps.core.services import people
+
+                    people.observe(
+                        "telegram",
+                        from_id,
+                        username=label,
+                        first_name=str(from_user.get("first_name") or ""),
+                        text=text,
+                        chat_id=cid,
+                    )
+                except Exception:
+                    pass
                 if cmd:
                     if is_group:
                         continue
@@ -177,6 +191,16 @@ async def telegram_loop() -> None:
 
                 if is_group:
                     extra = telegram_rooms.lock_for(cid)
+                    try:
+                        from apps.core.services import people
+
+                        called = people.call_name_for("telegram", from_id)
+                        if called:
+                            extra += f"\nSpeaker's call name on file: {called}. Use it once, don't make it a roll call."
+                        else:
+                            extra += "\nNo call name on file for this speaker yet. You may ask once what to call them."
+                    except Exception:
+                        pass
                     reply = await discord_chat.ava_reply(asked, extra_lock=extra)
                 elif from_id == telegram_rooms.ALEX_TG:
                     reply = await discord_chat.ava_reply(asked, dm=True)

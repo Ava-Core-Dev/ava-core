@@ -111,9 +111,11 @@ def normalize(kind: str, raw: str) -> str | None:
         if value.startswith("mailto:"):
             value = value[7:]
         return value if EMAIL_RE.match(value) else None
-    if kind == "discord":
-        value = value.strip()
-        return value if DISCORD_RE.match(value) else None
+    if kind == "telegram":
+        value = value.lstrip("+")
+        if value.startswith("-"):
+            return None
+        return value if value.isdigit() and 5 <= len(value) <= 15 else None
     if kind == "uuid":
         value = value.lower()
         return value if UUID_RE.match(value) else None
