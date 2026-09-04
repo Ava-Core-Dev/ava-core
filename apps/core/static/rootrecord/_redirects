@@ -1,0 +1,50 @@
+# Root Goals app lives on goals.rootrecord.info (not apex /goals/*).
+/goals/* https://goals.rootrecord.info/goals/:splat 302
+
+/discord-verify.html /discord-verify 308
+/privacy.html /privacy 308
+/terms.html /terms 308
+/root-units.html /root-units 308
+/beta-tester-rewards /root-units 301
+/beta-tester-rewards/ /root-units 301
+/beta-tester-rewards.html /root-units 301
+
+# Charts (static directories + trailing slash).
+/charts /charts/ 308
+/charts/discord-activity /charts/discord-activity/ 308
+/charts/big-island-earthquakes /charts/big-island-earthquakes/ 308
+/charts/root-economy /charts/root-economy/ 308
+/charts/weekly-reports /charts/weekly-reports/ 308
+/chart /charts/root-economy/ 308
+/products/rootunits /products/rootunits/ 308
+/roadmap.html /roadmap/ 308
+/roadmap /roadmap/ 308
+
+# RootMC / Minecraft — migrated to rootmc.net (301).
+/blocknotes.html https://rootmc.net/ 301
+/blocknotes https://rootmc.net/ 301
+/rootmc.html https://rootmc.net/ 301
+/rootmc https://rootmc.net/ 301
+/realm https://rootmc.net/ 301
+/realm/ https://rootmc.net/ 301
+/realm/verify https://rootmc.net/verify/ 301
+/realm/verify/ https://rootmc.net/verify/ 301
+/realm/servers https://rootmc.net/servers/ 301
+/realm/servers/ https://rootmc.net/servers/ 301
+/realm/shops https://rootmc.net/market/ 301
+/realm/shops.html https://rootmc.net/market/ 301
+/realm/player https://rootmc.net/player/ 301
+/realm/player/ https://rootmc.net/player/ 301
+/realm/player/* https://rootmc.net/player/:splat 301
+/realm/wiki https://rootmc.net/wiki/ 301
+/realm/wiki/ https://rootmc.net/wiki/ 301
+/realm/wiki/player https://rootmc.net/wiki/player/ 301
+/realm/wiki/player/ https://rootmc.net/wiki/player/ 301
+/realm/wiki/dev https://rootmc.net/wiki/player/ 301
+/realm/wiki/dev/ https://rootmc.net/wiki/player/ 301
+/realm/plugins/* https://rootmc.net/plugins/:splat 301
+
+# Legacy Discord activity URLs → charts subtree.
+/discord-activity /charts/discord-activity/ 308
+/discord-activity/ /charts/discord-activity/ 308
+/discord-activity.html /charts/discord-activity/ 301

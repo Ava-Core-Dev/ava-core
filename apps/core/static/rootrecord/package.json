@@ -1,0 +1,12 @@
+{
+  "name": "rootrecord-website",
+  "private": true,
+  "scripts": {
+    "pages:dev": "wrangler pages dev .",
+    "pages:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File ./pages-deploy.ps1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250423.0",
+    "wrangler": "^3.114.0"
+  }
+}

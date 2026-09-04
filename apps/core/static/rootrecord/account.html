@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5FWZH64B');</script>
+  <!-- End Google Tag Manager -->
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account &mdash; RootRecord</title>
+  <meta name="description" content="Sign in to your RootRecord account: subscription status and billing from the web. Business Manager on Android uses this account for your cloud workspace.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,30..100;1,9..144,300..600,30..100&family=Geist:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Favicon -->
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#081C2B">
+  <link rel="canonical" href="https://rootrecord.info/account.html">
+  <!-- Open Graph / social -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RootRecord">
+  <meta property="og:title" content="Account &mdash; RootRecord">
+  <meta property="og:description" content="Sign in to your RootRecord account: subscription status and billing from the web. Business Manager on Android uses this account for your cloud workspace.">
+  <meta property="og:url" content="https://rootrecord.info/account.html">
+  <meta property="og:image" content="https://rootrecord.info/assets/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@RootRecord">
+  <meta name="twitter:title" content="Account &mdash; RootRecord">
+  <meta name="twitter:description" content="Sign in to your RootRecord account: subscription status and billing from the web. Business Manager on Android uses this account for your cloud workspace.">
+  <meta name="twitter:image" content="https://rootrecord.info/assets/og.jpg">
+  <link rel="stylesheet" href="/styles.css?v=10">
+</head>
+<body data-account-page="login">
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5FWZH64B"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+        <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/products.html">Products</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/about.html">About</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/contact.html">Contact</a>
+          <span class="nav-auth-guest">
+            <a href="/account-signup.html" class="nav-signup" data-testid="nav-signup-cta">Sign up</a>
+            <a href="/account.html" class="nav-cta" data-testid="nav-account-login" aria-current="page">Account</a>
+          </span>
+          <span class="nav-auth-user">
+            <span class="nav-account-wrap">
+              <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel" data-testid="nav-account-cta">Account</button>
+              <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
+                <a href="/account.html" role="menuitem" aria-current="page">Account</a>
+                <a href="/account/emails/" role="menuitem">Email preferences</a>
+                <a href="/my-apps.html" role="menuitem">My Apps</a>
+                <a href="/development-notice.html" role="menuitem">Development notice</a>
+                <a href="/billing.html" role="menuitem">Billing</a>
+                <a href="/root-units" role="menuitem">Roots</a>
+              </div>
+            </span>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="page-header">
+        <div class="container">
+          <div class="page-header-inner">
+            <p class="breadcrumb">Account</p>
+            <h1 class="page-title">Your <em>account</em>.</h1>
+            <p class="page-lead">Sign in for subscription status and billing. Your <strong>Roots</strong> balance, game links, buying options, and full guide are on <a href="/root-units">Root Units</a> &mdash; use Discord <strong>/bal</strong> and <strong>/send</strong> after linking your account. This portal is for your rootrecord.info profile; your apps and local data stay on your devices.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top:0">
+        <div class="container">
+          <div class="account-wrap">
+            <p id="status" class="status" role="status" data-testid="account-status"></p>
+
+            <section id="panel-loading" class="card-plain" hidden>
+              <p style="margin:0;color:var(--ink-muted)">Loading&hellip;</p>
+            </section>
+
+            <section id="panel-forms" class="card-plain" hidden data-testid="account-forms-panel">
+              <section class="card-plain" style="margin-bottom:1.25rem;padding:1rem;border:1px solid rgba(107,143,113,0.35);background:rgba(107,143,113,0.08)" data-testid="account-discord-guest-cta">
+                <h3 style="margin-top:0">Discord verification</h3>
+                <p class="note" style="margin-top:0.5rem">Sign in below to link Discord and get <strong>@Verified</strong> in the RootRecord server. Or use our dedicated verification page (handy from Discord).</p>
+                <p style="margin-top:0.75rem;margin-bottom:0">
+                  <a class="btn btn-secondary" href="/discord-verify" data-testid="discord-verify-page-link">Open Discord verification</a>
+                </p>
+              </section>
+              <h2>Sign in</h2>
+              <form id="form-login" class="stack-form" data-testid="login-form">
+                <label>Email <input type="email" id="login-email" name="email" autocomplete="username" required data-testid="login-email-input"></label>
+                <label>Password <input type="password" id="login-password" name="password" autocomplete="current-password" required data-testid="login-password-input"></label>
+                <button type="submit" class="btn btn-primary" data-testid="login-submit-btn">Sign in</button>
+              </form>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="password-reset-panel">
+                <h3 style="margin-top:0">Forgot password?</h3>
+                <form id="form-password-reset-request" class="stack-form" style="margin-top:0.75rem">
+                  <label>Email <input type="email" id="reset-request-email" autocomplete="username" data-testid="reset-request-email"></label>
+                  <button type="submit" class="btn btn-secondary" data-testid="reset-request-submit">Email reset link</button>
+                </form>
+                <form id="form-password-reset-confirm" class="stack-form" style="margin-top:1rem">
+                  <input type="hidden" id="reset-token">
+                  <label>Email for code reset <input type="email" id="reset-confirm-email" autocomplete="username" data-testid="reset-confirm-email"></label>
+                  <label>Reset code <input type="text" id="reset-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" data-testid="reset-code"></label>
+                  <label>New password <input type="password" id="reset-new-password" autocomplete="new-password" minlength="6" data-testid="reset-new-password"></label>
+                  <button type="submit" class="btn btn-primary" data-testid="reset-confirm-submit">Set new password</button>
+                </form>
+                <p class="note" style="margin-top:0.75rem">Open the reset link from email, or enter your email, code, and new password here.</p>
+              </section>
+
+              <p style="margin-top:1.5rem;margin-bottom:0">
+                <a class="btn btn-secondary" href="/account-signup.html" data-testid="create-account-link">Create an account</a>
+              </p>
+            </section>
+
+            <section id="panel-account" class="card-plain" hidden data-testid="account-details-panel">
+              <h2>Your account</h2>
+              <div id="account-details" class="account-grid"></div>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.08)" data-testid="account-verification">
+                <h3 style="margin-top:0">Account status</h3>
+                <p class="note" id="account-verification-status" style="margin-top:0.5rem">Checking verification status…</p>
+                <p class="account-discord-actions" id="account-verification-actions" style="margin-top:0.75rem;margin-bottom:0;display:flex;flex-wrap:wrap;gap:0.5rem">
+                  <button type="button" class="btn btn-secondary" id="btn-email-verify" data-testid="btn-email-verify">Send verification email</button>
+                  <a class="btn btn-secondary" href="/discord-verify" data-testid="account-discord-verify-link">Verify with Discord</a>
+                </p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="account-security-confirm">
+                <h3 style="margin-top:0">Sensitive changes</h3>
+                <p class="note" id="account-security-confirm-status" style="margin-top:0.5rem">Only confirm here when you are about to change security settings, unlink Discord, or delete the account.</p>
+                <p style="margin-top:0.75rem;margin-bottom:0">
+                  <button type="button" class="btn btn-secondary" id="btn-security-open" data-testid="btn-security-open">Confirm sensitive changes</button>
+                </p>
+                <p class="account-discord-actions" id="account-security-controls" style="margin-top:0.75rem;margin-bottom:0;display:flex;flex-wrap:wrap;gap:0.5rem" hidden>
+                  <button type="button" class="btn btn-secondary" id="btn-security-email" data-testid="btn-security-email">Email confirmation code</button>
+                  <input type="text" id="security-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" aria-label="Email confirmation code" style="max-width:10rem">
+                  <button type="button" class="btn btn-primary" id="btn-security-confirm" data-testid="btn-security-confirm">Confirm code</button>
+                  <a class="btn btn-secondary" href="/discord-verify">Re-verify with Discord</a>
+                </p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="account-password-change">
+                <h3 style="margin-top:0">Change password</h3>
+                <p class="note" style="margin-top:0.5rem">Requires a recent confirmation under <strong>Sensitive changes</strong> above.</p>
+                <form id="form-change-password" class="stack-form" style="margin-top:0.75rem;max-width:22rem">
+                  <label>Current password <input type="password" id="change-current-password" autocomplete="current-password" required data-testid="change-current-password"></label>
+                  <label>New password <input type="password" id="change-new-password" autocomplete="new-password" minlength="6" required data-testid="change-new-password"></label>
+                  <button type="submit" class="btn btn-secondary" data-testid="change-password-submit">Update password</button>
+                </form>
+                <p class="note" id="change-password-status" style="margin-top:0.5rem" hidden></p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="account-email-change">
+                <h3 style="margin-top:0">Change email</h3>
+                <p class="note" style="margin-top:0.5rem">We send a confirmation link to the new address. Requires a recent confirmation under <strong>Sensitive changes</strong>.</p>
+                <form id="form-change-email" class="stack-form" style="margin-top:0.75rem;max-width:22rem">
+                  <label>New email <input type="email" id="change-new-email" autocomplete="email" required data-testid="change-new-email"></label>
+                  <button type="submit" class="btn btn-secondary" data-testid="change-email-submit">Send change link</button>
+                </form>
+                <p class="note" id="change-email-status" style="margin-top:0.5rem" hidden></p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="account-public-profile">
+                <h3 style="margin-top:0">Public profile</h3>
+                <p class="note" style="margin-top:0.5rem">Shown on <strong>Root Economy</strong> in Root Farms (with your custodial Solana address). Letters, numbers, spaces, underscore, hyphen, or period — up to 32 characters.</p>
+                <form id="form-public-display-name" class="stack-form" style="margin-top:0.75rem;max-width:22rem">
+                  <label>Display name
+                    <input type="text" id="public-display-name" name="public_display_name" maxlength="32" autocomplete="nickname" placeholder="Optional">
+                  </label>
+                  <button type="submit" class="btn btn-secondary" id="btn-save-display-name">Save display name</button>
+                </form>
+                <p class="note" id="public-display-name-status" style="margin-top:0.5rem" hidden></p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="account-discord-link">
+                <h3 style="margin-top:0">Discord</h3>
+                <p class="note" style="margin-top:0.5rem">Link your Discord to receive <strong>@Verified</strong> in the RootRecord server and use <strong>/bal</strong> and <strong>/send</strong> for Roots.</p>
+                <p class="note" id="discord-link-status" style="margin-top:0.5rem">Not linked.</p>
+                <p class="account-discord-actions" style="margin-top:0.75rem;margin-bottom:0;display:flex;flex-wrap:wrap;gap:0.5rem">
+                  <button type="button" class="btn btn-secondary" id="btn-discord-link" data-testid="btn-discord-link">Link Discord</button>
+                  <button type="button" class="btn btn-ghost" id="btn-discord-unlink" data-testid="btn-discord-unlink" hidden>Unlink Discord</button>
+                </p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)">
+                <h3 style="margin-top:0">Email preferences</h3>
+                <p class="note" style="margin-top:0.5rem">Choose which product newsletters and updates you want to receive.</p>
+                <p style="margin-top:0.75rem;margin-bottom:0">
+                  <a class="btn btn-secondary" href="/account/emails/">Manage email preferences</a>
+                </p>
+              </section>
+
+              <section class="card-plain" style="margin-top:1.25rem;padding:1rem;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03)" data-testid="account-danger-zone">
+                <h3 style="margin-top:0">Danger zone</h3>
+                <p class="note" style="margin-top:0.5rem">
+                  Deleting your account permanently removes your RootRecord portal profile and any server-stored data tied to it (saved locations, notifications).
+                </p>
+                <p style="margin-top:0.75rem;margin-bottom:0">
+                  <button type="button" class="btn btn-secondary" id="btn-delete-account" data-testid="delete-account-btn">Delete account</button>
+                </p>
+              </section>
+
+              <p style="margin-top:1.25rem"><button type="button" class="btn btn-secondary" id="btn-logout" data-testid="logout-btn">Sign out</button></p>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+            <p>Multi-device solutions - your grounding roots for productivity.</p>
+          </div>
+          <div class="footer-col"><h4>Products</h4><ul><li><a href="/rootrecord-business-manager.html">Business Manager</a></li><li><a href="/rootrecord-weather-manager.html">Weather Manager</a></li><li><a href="/kilauea-alerts.html">Kilauea Alerts</a></li><li><a href="/pricing.html">Pricing</a></li></ul></div>
+          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about.html">About</a></li><li><a href="/roadmap/">Roadmap</a></li><li><a href="/faq.html">FAQ</a></li><li><a href="/contact.html">Contact</a></li><li><a href="/account.html">Account</a></li><li><a href="/billing.html">Billing</a></li><li><a href="/root-units">Roots</a></li></ul></div>
+          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms.html">Terms</a></li><li><a href="/privacy.html">Privacy</a></li><li><a href="https://github.com/RootRecord/Doc-Repo" target="_blank" rel="noopener">Developer Documentation</a></li></ul></div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.info/">rootrecord.info</a></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+  <script src="/site-nav.js?v=5" defer></script>
+  <script src="/earn-balance.js?v=2" defer></script>
+  <script src="/account.js?v=40" defer></script>
+</body>
+</html>

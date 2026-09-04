@@ -1,0 +1,3 @@
+# Authorized digital sellers for RootRecord Android apps (AdMob).
+# https://iabtechlab.com/ads-txt/
+google.com, pub-8245496571119619, DIRECT, f08c47fec0942fa0

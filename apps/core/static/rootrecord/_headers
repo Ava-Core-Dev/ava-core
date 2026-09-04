@@ -1,0 +1,28 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/styles.css
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/account.js
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/root-economy-widget.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/favicon.ico
+  Cache-Control: public, max-age=86400
+
+/favicon-*.png
+  Cache-Control: public, max-age=86400
+
+/assets/*
+  Cache-Control: public, max-age=2592000, immutable

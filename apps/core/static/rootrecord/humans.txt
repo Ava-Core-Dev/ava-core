@@ -1,0 +1,11 @@
+# humanstxt.org — who built / where to learn more
+
+/* Team */
+  Product:        RootRecord
+  Site:           https://rootrecord.info
+
+/* Documentation (canonical) */
+  GitHub:         https://github.com/RootRecord/Doc-Repo
+
+/* Thanks */
+  Built for operators and developers who read before they sign.

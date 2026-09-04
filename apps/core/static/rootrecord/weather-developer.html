@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5FWZH64B');</script>
+  <!-- End Google Tag Manager -->
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather Developer &mdash; RootRecord</title>
+  <meta name="description" content="Internal weather developer diagnostics for RootRecord.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://rootrecord.info/weather-developer.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,30..100;1,9..144,300..600,30..100&family=Geist:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+  <meta name="theme-color" content="#081C2B">
+  <link rel="stylesheet" href="/styles.css?v=10">
+</head>
+<body data-account-page="weather-developer">
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5FWZH64B"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+        <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/products.html">Products</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/about.html">About</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/contact.html">Contact</a>
+          <span class="nav-auth-guest">
+            <a href="/account-signup.html" class="nav-signup">Sign up</a>
+            <a href="/account.html" class="nav-cta">Account</a>
+          </span>
+          <span class="nav-auth-user">
+            <span class="nav-account-wrap">
+              <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel">Account</button>
+              <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
+                <a href="/account.html" role="menuitem">Account</a>
+                <a href="/my-apps.html" role="menuitem">My Apps</a>
+                <a href="/billing.html" role="menuitem">Billing</a>
+                <a href="/root-units" role="menuitem">Roots</a>
+              </div>
+            </span>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="page-header">
+        <div class="container">
+          <div class="page-header-inner">
+            <p class="breadcrumb">Internal</p>
+            <h1 class="page-title">Weather <em>Developer</em>.</h1>
+            <p class="page-lead">AccuWeather usage and live endpoint diagnostics.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top:0">
+        <div class="container">
+          <div class="account-wrap">
+            <p id="dev-status" class="status" role="status"></p>
+
+            <section id="dev-loading" class="card-plain">
+              <p style="margin:0;color:var(--ink-muted)">Authorizing&hellip;</p>
+            </section>
+
+            <section id="dev-denied" class="card-plain" hidden>
+              <h2>Access denied</h2>
+              <p class="note">This page is restricted to the owner account.</p>
+              <p style="margin-top:1rem"><a class="btn btn-secondary" href="/account.html">Go to Account</a></p>
+            </section>
+
+            <section id="dev-main" class="card-plain" hidden>
+              <h2>AccuWeather usage</h2>
+              <form id="usage-form" class="stack-form" style="margin-top:1rem">
+                <label>Days (1-90)
+                  <input id="usage-days" type="number" min="1" max="90" value="30">
+                </label>
+                <button type="submit" class="btn btn-primary">Load usage</button>
+              </form>
+              <div id="usage-summary" style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem"></div>
+              <div style="margin-top:1rem;overflow:auto">
+                <table id="usage-metrics-table" style="width:100%;border-collapse:collapse;font-size:.9rem">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.2)">Metric</th>
+                      <th style="text-align:right;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.2)">Count</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div style="margin-top:1rem;overflow:auto">
+                <table id="usage-daily-table" style="width:100%;border-collapse:collapse;font-size:.9rem">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.2)">Day (UTC)</th>
+                      <th style="text-align:right;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.2)">Accu calls</th>
+                      <th style="text-align:right;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.2)">Cache hits</th>
+                      <th style="text-align:right;padding:.5rem;border-bottom:1px solid rgba(255,255,255,.2)">Cache misses</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <pre id="usage-json" style="margin-top:1rem;white-space:pre-wrap;background:rgba(255,255,255,0.04);padding:1rem;border-radius:10px;border:1px solid rgba(255,255,255,0.14)"></pre>
+
+              <h2 style="margin-top:1.5rem">Live weather probe</h2>
+              <form id="probe-form" class="stack-form" style="margin-top:1rem">
+                <label>Latitude
+                  <input id="probe-lat" type="number" step="0.0001" value="21.3069" required>
+                </label>
+                <label>Longitude
+                  <input id="probe-lon" type="number" step="0.0001" value="-157.8583" required>
+                </label>
+                <label>Endpoint
+                  <select id="probe-endpoint">
+                    <option value="/api/weather/current">current</option>
+                    <option value="/api/weather/forecast">forecast</option>
+                    <option value="/api/weather/alerts">alerts</option>
+                  </select>
+                </label>
+                <button type="submit" class="btn btn-primary">Probe endpoint</button>
+              </form>
+              <pre id="probe-json" style="margin-top:1rem;white-space:pre-wrap;background:rgba(255,255,255,0.04);padding:1rem;border-radius:10px;border:1px solid rgba(255,255,255,0.14)"></pre>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/site-nav.js?v=5" defer></script>
+  <script src="/weather-developer.js?v=1" defer></script>
+</body>
+</html>

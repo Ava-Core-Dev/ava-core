@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-5FWZH64B');</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sponsored listings — Visiting Hawaiʻi · RootRecord</title>
+  <meta name="description" content="Put your local Hawaiʻi business in front of intentional travelers. $100/year sponsored listings in Visiting Hawaiʻi — save your listing, then pay to go live automatically.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@SOFT@0,9..144,300..600&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/styles.css?v=12">
+</head>
+<body class="visiting-hawaii-page">
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5FWZH64B" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="" width="32" height="32">RootRecord</a>
+        <button class="nav-toggle" type="button" aria-label="Toggle navigation" onclick="document.querySelector('.site-nav').classList.toggle('is-open');">Menu</button>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/visiting-hawaii.html">Visiting Hawaiʻi</a>
+          <a href="/contact.html">Contact</a>
+          <span class="nav-auth-guest"><a href="/account-signup.html" class="nav-signup">Sign up</a><a href="/account.html" class="nav-cta">Account</a></span>
+          <span class="nav-auth-user"><a href="/account.html" class="nav-cta">Account</a></span>
+        </nav>
+      </div>
+    </header>
+    <main class="site-main">
+      <section class="visiting-hawaii-hero-band">
+        <div class="container">
+          <p class="breadcrumb"><a href="/visiting-hawaii.html">Visiting Hawaiʻi</a> / Sponsored listings</p>
+          <h1 class="page-title">Reach travelers who want <em>real Hawaiʻi</em>.</h1>
+          <p class="page-lead" style="max-width:44rem">$100 per year · Featured placement in the Visiting Hawaiʻi app · Fair rotation with other local partners · Goes live automatically after Stripe checkout.</p>
+        </div>
+      </section>
+      <section class="section" style="padding-top:0">
+        <div class="container">
+          <div class="features" style="margin-bottom:2.5rem">
+            <div class="feature"><div class="feature-icon">📍</div><h3>Island + category targeting</h3><p>Appear when visitors browse your island and category — beaches, food, culture, adventures, and more.</p></div>
+            <div class="feature"><div class="feature-icon">🖼️</div><h3>Your photo &amp; story</h3><p>Hero image (HTTPS link), short teaser, and full description — same card format as editorial guides.</p></div>
+            <div class="feature"><div class="feature-icon">🔄</div><h3>Fair rotation</h3><p>Multiple sponsors share the spotlight; weighted slots rotate every few minutes so everyone gets impressions.</p></div>
+            <div class="feature"><div class="feature-icon">⚡</div><h3>Fully automated</h3><p>Save your listing anytime (requires a free RootRecord account). Pay $100/year — your ad activates on successful checkout.</p></div>
+            <div class="feature"><div class="feature-icon">🌺</div><h3>Travel pono</h3><p>We prioritize local, respectful businesses. Listings must fit mālama ʻāina values; we may decline or remove ads.</p></div>
+            <div class="feature"><div class="feature-icon">📊</div><h3>High intent audience</h3><p>Visitors using offline guides and maps — not random banner spam. Optional website / booking CTA button on your card.</p></div>
+          </div>
+
+          <p id="sponsor-status" class="status" role="status"></p>
+
+          <section class="card-plain" style="margin-bottom:1rem">
+            <h2>RootRecord account</h2>
+            <p id="account-link-copy" class="note">Sign in to save your listing and checkout. We store your application even if you do not pay yet.</p>
+            <p style="margin:1rem 0 0"><a id="account-link-btn" class="btn btn-secondary" href="/account.html">Sign in or create account</a></p>
+          </section>
+
+          <form id="sponsor-form" class="card-plain visiting-hawaii-waitlist-card" style="display:block">
+            <h2>Your sponsored listing</h2>
+            <p class="note">Fields match the in-app guide. Image must be a direct <strong>https://</strong> URL (your CDN, website, or social image link).</p>
+
+            <div class="stack-form" style="margin-top:1rem">
+              <label>Business / organization name<input id="businessName" required maxlength="180"></label>
+              <label>Contact email<input id="contactEmail" type="email" required maxlength="200"></label>
+              <label>Phone (optional)<input id="contactPhone" type="tel" maxlength="60"></label>
+              <label>Website (https, optional)<input id="websiteUrl" type="url" placeholder="https://"></label>
+
+              <label>Island<select id="islandId" required></select></label>
+              <label>Primary category<select id="categoryId" required></select></label>
+              <label>Sub-tags (comma-separated, optional)<input id="subFilters" placeholder="poke, family, snorkel"></label>
+
+              <label>Listing title (headline)<input id="title" required maxlength="160"></label>
+              <label>Short description (card teaser)<textarea id="shortDescription" rows="2" required maxlength="320"></textarea></label>
+              <label>Full description<textarea id="description" rows="5" required maxlength="8000"></textarea></label>
+              <label>Image URL (https)<input id="imageUrl" type="url" required placeholder="https://yoursite.com/photo.jpg"></label>
+
+              <label>Street / area (optional)<input id="addressLine" maxlength="240"></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+                <label>Latitude (optional)<input id="lat" inputmode="decimal" placeholder="21.3069"></label>
+                <label>Longitude (optional)<input id="lng" inputmode="decimal" placeholder="-157.8583"></label>
+              </div>
+              <label>Cost range<select id="costRange"><option value="">—</option><option value="free">Free</option><option value="$">$</option><option value="$$">$$</option><option value="$$$">$$$</option></select></label>
+              <label>Button label (optional)<input id="ctaLabel" maxlength="80" placeholder="Book now"></label>
+              <label>Button URL (https, optional)<input id="ctaUrl" type="url" placeholder="https://"></label>
+
+              <input type="hidden" id="listingId" value="">
+              <div class="cta-row" style="margin-top:0.5rem">
+                <button type="button" class="btn btn-secondary" id="saveDraftBtn">Save listing (no payment)</button>
+                <button type="button" class="btn btn-primary btn-arrow" id="payBtn">Pay $100/year &amp; go live</button>
+              </div>
+              <p class="note">Annual subscription via Stripe. Renewals keep your listing active. Cancel anytime in Stripe; listing pauses when subscription ends.</p>
+            </div>
+          </form>
+
+          <section id="mine-section" class="card-plain" style="margin-top:1rem" hidden>
+            <h2>Your saved listings</h2>
+            <ul id="mine-list" style="margin:0;padding-left:1.1rem"></ul>
+          </section>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer"><div class="container"><div class="footer-bottom"><span>&copy; <span id="yr"></span> RootRecord</span></div></div></footer>
+  </div>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+  <script src="/site-nav.js?v=5" defer></script>
+  <script>
+    const TOKEN_KEY = 'rootrecord_portal_token';
+    const ISLANDS = [
+      { id: 'oahu', name: 'Oʻahu' }, { id: 'maui', name: 'Maui' }, { id: 'kauai', name: 'Kauaʻi' },
+      { id: 'hawaii', name: 'Hawaiʻi (Big Island)' }, { id: 'molokai', name: 'Molokaʻi' }, { id: 'lanai', name: 'Lānaʻi' }
+    ];
+    const CATEGORIES = [
+      { id: 'beaches', name: 'Beaches' }, { id: 'hikes', name: 'Hikes & Nature' }, { id: 'culture', name: 'Culture & History' },
+      { id: 'food', name: 'Food & Drink' }, { id: 'adventure', name: 'Adventure' }, { id: 'drives', name: 'Scenic Drives' },
+      { id: 'hidden', name: 'Hidden Gems' }, { id: 'practical', name: 'Practical Info' }
+    ];
+    let linked = { ok: false, email: '' };
+    const statusEl = document.getElementById('sponsor-status');
+    const islandSel = document.getElementById('islandId');
+    const catSel = document.getElementById('categoryId');
+    ISLANDS.forEach(i => { const o = document.createElement('option'); o.value = i.id; o.textContent = i.name; islandSel.appendChild(o); });
+    CATEGORIES.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; catSel.appendChild(o); });
+
+    function setStatus(msg, kind) { statusEl.textContent = msg || ''; statusEl.className = 'status' + (kind ? ' status-' + kind : ''); }
+    function authHeaders() {
+      const h = { 'Content-Type': 'application/json', Accept: 'application/json' };
+      const t = localStorage.getItem(TOKEN_KEY);
+      if (t) h.Authorization = 'Bearer ' + t;
+      return h;
+    }
+    function payloadFromForm(strict) {
+      return {
+        strict: strict,
+        id: document.getElementById('listingId').value.trim() || undefined,
+        businessName: document.getElementById('businessName').value.trim(),
+        contactEmail: document.getElementById('contactEmail').value.trim(),
+        contactPhone: document.getElementById('contactPhone').value.trim(),
+        websiteUrl: document.getElementById('websiteUrl').value.trim(),
+        islandId: document.getElementById('islandId').value,
+        categoryId: document.getElementById('categoryId').value,
+        subFilters: document.getElementById('subFilters').value.split(',').map(s => s.trim()).filter(Boolean),
+        title: document.getElementById('title').value.trim(),
+        shortDescription: document.getElementById('shortDescription').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        imageUrl: document.getElementById('imageUrl').value.trim(),
+        addressLine: document.getElementById('addressLine').value.trim(),
+        lat: document.getElementById('lat').value.trim() ? Number(document.getElementById('lat').value) : null,
+        lng: document.getElementById('lng').value.trim() ? Number(document.getElementById('lng').value) : null,
+        costRange: document.getElementById('costRange').value,
+        ctaLabel: document.getElementById('ctaLabel').value.trim(),
+        ctaUrl: document.getElementById('ctaUrl').value.trim()
+      };
+    }
+    async function refreshAccount() {
+      try {
+        const res = await fetch('/v1/me', { credentials: 'include', headers: authHeaders() });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.email) throw new Error('not signed in');
+        linked = { ok: true, email: data.email };
+        document.getElementById('account-link-copy').textContent = 'Signed in as ' + linked.email + '. Listings attach to this account.';
+        document.getElementById('account-link-btn').textContent = 'Account settings';
+        document.getElementById('contactEmail').value = document.getElementById('contactEmail').value || linked.email;
+        loadMine();
+      } catch {
+        linked = { ok: false, email: '' };
+        document.getElementById('account-link-copy').textContent = 'Sign in required to save listings and pay. Your draft is not sent until you are signed in.';
+      }
+    }
+    async function saveListing(strict) {
+      if (!linked.ok) { setStatus('Sign in to save your listing.', 'err'); return; }
+      const res = await fetch('/api/visiting-hawaii/sponsored/applications', {
+        method: 'POST', credentials: 'include', headers: authHeaders(), body: JSON.stringify(payloadFromForm(strict))
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Save failed');
+      if (data.listingId) document.getElementById('listingId').value = data.listingId;
+      return data;
+    }
+    async function loadMine() {
+      if (!linked.ok) return;
+      const res = await fetch('/api/visiting-hawaii/sponsored/mine', { credentials: 'include', headers: authHeaders() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      const ul = document.getElementById('mine-list');
+      ul.innerHTML = '';
+      (data.listings || []).forEach(row => {
+        const li = document.createElement('li');
+        li.textContent = row.title + ' — ' + row.status + (row.paidThrough ? ' (through ' + row.paidThrough.slice(0, 10) + ')' : '');
+        li.style.marginBottom = '0.35rem';
+        ul.appendChild(li);
+      });
+      document.getElementById('mine-section').hidden = !(data.listings || []).length;
+    }
+    document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+      setStatus('', '');
+      try {
+        await saveListing(false);
+        setStatus('Listing saved. You can return anytime to pay and go live.', 'ok');
+        loadMine();
+      } catch (e) { setStatus(e.message || 'Could not save.', 'err'); }
+    });
+    document.getElementById('payBtn').addEventListener('click', async () => {
+      setStatus('', '');
+      try {
+        const saved = await saveListing(true);
+        const res = await fetch('/api/visiting-hawaii/sponsored/checkout', {
+          method: 'POST', credentials: 'include', headers: authHeaders(),
+          body: JSON.stringify({ listingId: saved.listingId })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || 'Checkout failed');
+        window.location.href = data.url;
+      } catch (e) { setStatus(e.message || 'Checkout error.', 'err'); }
+    });
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success') {
+      setStatus('Payment received — your sponsored listing should be live within a minute. Mahalo!', 'ok');
+    } else if (params.get('checkout') === 'cancel') {
+      setStatus('Checkout canceled. Your listing is still saved — pay when ready.', 'warn');
+    }
+    refreshAccount();
+  </script>
+</body>
+</html>

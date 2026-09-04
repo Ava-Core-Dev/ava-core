@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5FWZH64B');</script>
+  <!-- End Google Tag Manager -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Preferences - RootRecord</title>
+  <meta name="description" content="Manage RootRecord email newsletter and update preferences for your account.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,30..100;1,9..144,300..600,30..100&family=Geist:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#081C2B">
+  <link rel="canonical" href="https://rootrecord.info/account/emails/">
+  <link rel="stylesheet" href="/styles.css?v=10">
+</head>
+<body data-account-page="emails">
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5FWZH64B"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+        <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded',this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/products.html">Products</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/about.html">About</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/contact.html">Contact</a>
+          <span class="nav-auth-guest">
+            <a href="/account-signup.html" class="nav-signup">Sign up</a>
+            <a href="/account.html" class="nav-cta">Account</a>
+          </span>
+          <span class="nav-auth-user">
+            <span class="nav-account-wrap">
+              <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel" data-testid="nav-account-cta">Account</button>
+              <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
+                <a href="/account.html" role="menuitem">Account</a>
+                <a href="/account/emails/" role="menuitem" aria-current="page">Email preferences</a>
+                <a href="/my-apps.html" role="menuitem">My Apps</a>
+                <a href="/development-notice.html" role="menuitem">Development notice</a>
+                <a href="/billing.html" role="menuitem">Billing</a>
+              </div>
+            </span>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="page-header">
+        <div class="container">
+          <div class="page-header-inner">
+            <p class="breadcrumb">Account</p>
+            <h1 class="page-title">Email <em>preferences</em></h1>
+            <p class="page-lead">Choose which product newsletters and updates we send to your account email.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top:0">
+        <div class="container">
+          <div class="account-wrap">
+            <p id="status" class="status" role="status" data-testid="email-prefs-status"></p>
+
+            <section id="panel-emailprefs-loading" class="card-plain" hidden>
+              <p style="margin:0;color:var(--ink-muted)">Loading...</p>
+            </section>
+
+            <section id="panel-emailprefs-guest" class="card-plain" hidden data-testid="email-prefs-guest-panel">
+              <h2>Sign in required</h2>
+              <p class="note" style="margin-top:0">Open <a href="/account.html" style="color:var(--moss);text-decoration:underline;text-underline-offset:3px">Account</a> and sign in, then return here.</p>
+            </section>
+
+            <section id="panel-emailprefs-main" class="card-plain" hidden data-testid="email-prefs-main-panel">
+              <h2>Newsletter and update emails</h2>
+              <form id="form-email-prefs" class="stack-form" style="max-width:42rem">
+                <label><input type="checkbox" id="pref-general-newsletter"> General newsletter and updates</label>
+                <label><input type="checkbox" id="pref-kilauea-newsletter"> Kilauea newsletter and updates</label>
+                <label><input type="checkbox" id="pref-business-manager-newsletter"> Business Manager newsletter and updates</label>
+                <label><input type="checkbox" id="pref-simple-weather-newsletter"> Simple Weather newsletter and updates</label>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem">
+                  <button type="submit" class="btn btn-primary">Save preferences</button>
+                  <a class="btn btn-secondary" href="/account.html">Back to account</a>
+                  <button type="button" class="btn btn-secondary" id="btn-emailprefs-logout">Sign out</button>
+                </div>
+              </form>
+              <p class="note" id="email-prefs-updated-at" style="margin-top:0.75rem"></p>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+            <p>Multi-device solutions - your grounding roots for productivity.</p>
+          </div>
+          <div class="footer-col"><h4>Products</h4><ul><li><a href="/rootrecord-business-manager.html">Business Manager</a></li><li><a href="/rootrecord-weather-manager.html">Weather Manager</a></li><li><a href="/kilauea-alerts.html">Kilauea Alerts</a></li><li><a href="/pricing.html">Pricing</a></li></ul></div>
+          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about.html">About</a></li><li><a href="/roadmap/">Roadmap</a></li><li><a href="/faq.html">FAQ</a></li><li><a href="/contact.html">Contact</a></li><li><a href="/account.html">Account</a></li><li><a href="/billing.html">Billing</a></li></ul></div>
+          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms.html">Terms</a></li><li><a href="/privacy.html">Privacy</a></li></ul></div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.info/">rootrecord.info</a></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById("yr").textContent=new Date().getFullYear();</script>
+  <script src="/site-nav.js?v=5" defer></script>
+  <script src="/account.js?v=39" defer></script>
+</body>
+</html>

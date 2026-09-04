@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-store, max-age=0, must-revalidate">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Big Island earthquakes — charts &amp; Kīlauea AI reports</title>
+  <meta name="description" content="Public M1+ Hawaiʻi Island earthquake charts from USGS and archived Kīlauea AI hazard briefs.">
+  <link rel="canonical" href="https://rootrecord.info/charts/big-island-earthquakes/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#121212">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <style>
+    :root {
+      --bie-bg: #121212;
+      --bie-panel: #161616;
+      --bie-card: #1a1a1a;
+      --bie-border: #2a2a2a;
+      --bie-text: #e8e8ea;
+      --bie-muted: #9aa0a6;
+      --bie-accent: #e85d04;
+      --bie-accent-dim: #9a3412;
+      --bie-green: #43b581;
+      --bie-chart-bg: #1e1e22;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--bie-bg);
+      color: var(--bie-text);
+      font-size: 14px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    .bie-topbar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--bie-border);
+      background: var(--bie-panel);
+    }
+    .bie-topbar a { color: var(--bie-green); text-decoration: none; font-weight: 600; font-size: 13px; }
+    .bie-topbar a:hover { text-decoration: underline; }
+    .bie-main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+    h1 { margin: 0 0 0.35rem; font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+    .bie-lead { margin: 0 0 1rem; color: var(--bie-muted); font-size: 13px; max-width: 62ch; }
+    .bie-meta { font-size: 12px; color: var(--bie-muted); margin-bottom: 1rem; min-height: 1.2em; }
+    .bie-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+    .bie-chip {
+      border: 1px solid var(--bie-border); background: var(--bie-card); color: var(--bie-text);
+      border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    .bie-chip:hover { border-color: var(--bie-accent-dim); }
+    .bie-chip.is-on { border-color: var(--bie-accent); background: rgba(232, 93, 4, 0.12); color: #fdba74; }
+    .bie-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;
+    }
+    .bie-card {
+      border-radius: 10px; border: 1px solid var(--bie-border); padding: 0.85rem 1rem;
+      background: var(--bie-card);
+    }
+    .bie-card-l { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--bie-muted); }
+    .bie-card-v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.2rem; }
+    .bie-chart-grid { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+    @media (min-width: 900px) {
+      .bie-chart-grid { grid-template-columns: 1fr 1fr; }
+      .bie-chart-grid .bie-chart-wrap.span-2 { grid-column: 1 / -1; }
+    }
+    .bie-chart-wrap {
+      border-radius: 12px; border: 1px solid var(--bie-border); background: var(--bie-chart-bg);
+      padding: 1rem; min-height: 260px;
+    }
+    .bie-chart-title { font-weight: 600; font-size: 13px; margin: 0 0 0.75rem; }
+    .bie-panel { border-radius: 12px; border: 1px solid var(--bie-border); background: var(--bie-card); overflow: hidden; margin-top: 1.5rem; }
+    .bie-panel-h {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+      padding: 0.85rem 1rem; border-bottom: 1px solid var(--bie-border);
+    }
+    .bie-panel-h h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .bie-pager { display: flex; align-items: center; gap: 0.5rem; font-size: 12px; color: var(--bie-muted); }
+    .bie-pager button {
+      border: 1px solid var(--bie-border); background: var(--bie-panel); color: var(--bie-text);
+      border-radius: 6px; padding: 0.35rem 0.65rem; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    .bie-pager button:hover:not(:disabled) { border-color: var(--bie-accent); color: #fdba74; }
+    .bie-pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .bie-table-wrap { overflow: auto; }
+    table.bie-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .bie-table th, .bie-table td { padding: 0.65rem 1rem; text-align: left; border-bottom: 1px solid var(--bie-border); vertical-align: top; }
+    .bie-table th {
+      color: var(--bie-muted); font-weight: 600; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.04em; position: sticky; top: 0; background: var(--bie-card);
+    }
+    .bie-table td.mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: var(--bie-muted); white-space: nowrap; }
+    .bie-table .bie-summary { max-width: 42ch; color: var(--bie-text); line-height: 1.4; }
+    .bie-table .bie-type { color: var(--bie-muted); font-size: 11px; text-transform: capitalize; }
+    .bie-table tr.is-open { background: rgba(232, 93, 4, 0.06); }
+    .bie-detail td { padding-top: 0; border-bottom: 1px solid var(--bie-border); }
+    .bie-detail pre {
+      margin: 0 0 0.75rem; padding: 0.75rem; border-radius: 8px; background: var(--bie-panel);
+      border: 1px solid var(--bie-border); white-space: pre-wrap; word-break: break-word;
+      font-family: Inter, system-ui, sans-serif; font-size: 12px; line-height: 1.45; max-height: 320px; overflow: auto;
+    }
+    .bie-err {
+      border: 1px solid #7f1d1d; background: rgba(127, 29, 29, 0.25); border-radius: 10px;
+      padding: 1rem; margin-bottom: 1rem; font-size: 12px;
+    }
+    .bie-foot { margin-top: 2rem; font-size: 12px; color: var(--bie-muted); }
+    .bie-foot a { color: var(--bie-green); }
+  </style>
+</head>
+<body>
+  <header class="bie-topbar">
+    <a href="/charts/">← Charts</a>
+    <span style="font-size:12px;color:var(--bie-muted)">Big Island earthquakes · <a href="/kilauea-alerts.html" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Kilauea Alerts</a></span>
+  </header>
+
+  <main class="bie-main">
+    <h1>Big Island earthquakes</h1>
+    <p class="bie-lead">M1+ USGS catalog events in the Hawaiʻi region, plus archived Kīlauea AI hazard briefs. Earthquake data refreshes every few minutes; reports update when the Worker cron or Discord <code>/kilauea</code> command runs.</p>
+    <p class="bie-meta" id="bie-status">Loading…</p>
+    <div id="bie-err" class="bie-err" hidden></div>
+
+    <div class="bie-filters" aria-label="Chart window">
+      <span style="font-size:12px;color:var(--bie-muted)">Window</span>
+      <button type="button" class="bie-chip" data-days="7">7d</button>
+      <button type="button" class="bie-chip is-on" data-days="30">30d</button>
+      <button type="button" class="bie-chip" data-days="90">90d</button>
+    </div>
+
+    <div class="bie-cards" id="bie-cards"></div>
+
+    <div class="bie-chart-grid">
+      <div class="bie-chart-wrap span-2">
+        <p class="bie-chart-title">Events per day (HST)</p>
+        <canvas id="bie-chart-daily" height="120"></canvas>
+      </div>
+      <div class="bie-chart-wrap">
+        <p class="bie-chart-title">Magnitude distribution</p>
+        <canvas id="bie-chart-bins" height="160"></canvas>
+      </div>
+      <div class="bie-chart-wrap">
+        <p class="bie-chart-title">Magnitude over time</p>
+        <canvas id="bie-chart-scatter" height="160"></canvas>
+      </div>
+    </div>
+
+    <section class="bie-panel" aria-labelledby="bie-reports-heading">
+      <div class="bie-panel-h">
+        <h2 id="bie-reports-heading">Kīlauea AI reports</h2>
+        <div class="bie-pager">
+          <button type="button" id="bie-prev" aria-label="Previous page">← Prev</button>
+          <span id="bie-page-label">Page 1</span>
+          <button type="button" id="bie-next" aria-label="Next page">Next →</button>
+        </div>
+      </div>
+      <div class="bie-table-wrap">
+        <table class="bie-table">
+          <thead>
+            <tr>
+              <th>When (UTC)</th>
+              <th>Headline</th>
+              <th>Type</th>
+              <th>Summary</th>
+            </tr>
+          </thead>
+          <tbody id="bie-reports-body">
+            <tr><td colspan="4" style="color:var(--bie-muted)">Loading reports…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="bie-foot">Earthquake source: <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>. AI briefs are RootRecord-assisted synthesis — not official USGS/HVO/NWS releases. <a href="/kilauea-alerts.html">Kilauea Alerts app</a></p>
+  </main>
+
+  <script>
+(function () {
+  var days = 30;
+  var reportPage = 1;
+  var charts = { daily: null, bins: null, scatter: null };
+  var openReportId = null;
+
+  function $(id) { return document.getElementById(id); }
+  function fmtUtc(iso) {
+    if (!iso) return "—";
+    return String(iso).replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+  }
+  function esc(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function setStatus(msg) { $("bie-status").textContent = msg || ""; }
+  function showErr(msg) {
+    var el = $("bie-err");
+    if (!msg) { el.hidden = true; el.textContent = ""; return; }
+    el.hidden = false;
+    el.textContent = msg;
+  }
+
+  function chartColors() {
+    return {
+      accent: "#e85d04",
+      accentSoft: "rgba(232, 93, 4, 0.55)",
+      grid: "#333",
+      text: "#9aa0a6",
+    };
+  }
+
+  function destroyCharts() {
+    Object.keys(charts).forEach(function (k) {
+      if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+    });
+  }
+
+  function renderCards(data) {
+    var w = data.activity && data.activity.windows ? data.activity.windows : {};
+    var cards = [
+      { label: "In window", value: data.totals ? data.totals.in_window : "—" },
+      { label: "Last 24h", value: w.last_24_hours ? w.last_24_hours.count : "—" },
+      { label: "Last 7d", value: w.last_7_days ? w.last_7_days.count : "—" },
+      { label: "Largest (7d)", value: w.last_7_days && w.last_7_days.largest ? "M" + w.last_7_days.largest.magnitude.toFixed(1) : "—" },
+    ];
+    $("bie-cards").innerHTML = cards.map(function (c) {
+      return '<div class="bie-card"><div class="bie-card-l">' + esc(c.label) + '</div><div class="bie-card-v">' + esc(String(c.value)) + '</div></div>';
+    }).join("");
+  }
+
+  function renderCharts(data) {
+    if (typeof Chart === "undefined") return;
+    destroyCharts();
+    var c = chartColors();
+    var daily = data.daily_counts || [];
+    charts.daily = new Chart($("bie-chart-daily"), {
+      type: "bar",
+      data: {
+        labels: daily.map(function (d) { return d.date.slice(5); }),
+        datasets: [{
+          label: "Events",
+          data: daily.map(function (d) { return d.count; }),
+          backgroundColor: c.accentSoft,
+          borderColor: c.accent,
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: c.text, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }, grid: { color: c.grid } },
+          y: { beginAtZero: true, ticks: { color: c.text, precision: 0 }, grid: { color: c.grid } },
+        },
+      },
+    });
+
+    var bins = data.magnitude_bins || [];
+    charts.bins = new Chart($("bie-chart-bins"), {
+      type: "bar",
+      data: {
+        labels: bins.map(function (b) { return b.label; }),
+        datasets: [{
+          data: bins.map(function (b) { return b.count; }),
+          backgroundColor: c.accentSoft,
+          borderColor: c.accent,
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: c.text }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: c.text, precision: 0 }, grid: { color: c.grid } },
+        },
+      },
+    });
+
+    var events = data.events || [];
+    charts.scatter = new Chart($("bie-chart-scatter"), {
+      type: "scatter",
+      data: {
+        datasets: [{
+          label: "Magnitude",
+          data: events.map(function (e) { return { x: e.time_ms, y: e.magnitude }; }),
+          backgroundColor: c.accentSoft,
+          borderColor: c.accent,
+          pointRadius: events.map(function (e) { return Math.min(8, 2 + (e.magnitude || 0)); }),
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var e = events[ctx.dataIndex];
+                return e ? "M" + e.magnitude + " · " + (e.place || "Hawaiʻi") : "";
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: "linear",
+            ticks: {
+              color: c.text,
+              callback: function (v) {
+                var d = new Date(v);
+                return (d.getUTCMonth() + 1) + "/" + d.getUTCDate();
+              },
+              maxTicksLimit: 8,
+            },
+            grid: { color: c.grid },
+          },
+          y: {
+            title: { display: true, text: "Magnitude", color: c.text },
+            ticks: { color: c.text },
+            grid: { color: c.grid },
+          },
+        },
+      },
+    });
+  }
+
+  async function loadEarthquakes() {
+    showErr("");
+    setStatus("Loading earthquake data…");
+    var res = await fetch("/api/public/kilauea/big-island-earthquakes?days=" + days, { cache: "no-store" });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data.ok) throw new Error(data.detail || ("HTTP " + res.status));
+    renderCards(data);
+    renderCharts(data);
+    setStatus((data.count_description || "") + " · Updated " + fmtUtc(data.generated_at));
+    return data;
+  }
+
+  function renderReports(data) {
+    var body = $("bie-reports-body");
+    var reports = data.reports || [];
+    if (!reports.length) {
+      body.innerHTML = '<tr><td colspan="4" style="color:var(--bie-muted)">No AI reports stored yet.</td></tr>';
+    } else {
+      body.innerHTML = reports.map(function (r) {
+        var open = openReportId === r.id;
+        var headline = r.headline || r.event || "(untitled)";
+        var rows = '<tr class="' + (open ? "is-open" : "") + '" data-id="' + esc(r.id) + '" style="cursor:pointer">' +
+          '<td class="mono">' + esc(fmtUtc(r.created_at)) + '</td>' +
+          '<td>' + esc(headline) + (r.magnitude != null ? ' <span class="bie-type">M' + r.magnitude.toFixed(1) + '</span>' : '') + '</td>' +
+          '<td class="bie-type">' + esc(r.source_type || "—") + '</td>' +
+          '<td class="bie-summary">' + esc(r.summary || "") + '</td>' +
+          '</tr>';
+        if (open) {
+          rows += '<tr class="bie-detail"><td colspan="4"><pre>' + esc(r.body || r.summary || "") + '</pre></td></tr>';
+        }
+        return rows;
+      }).join("");
+      body.querySelectorAll("tr[data-id]").forEach(function (tr) {
+        tr.addEventListener("click", function () {
+          var id = tr.getAttribute("data-id");
+          openReportId = openReportId === id ? null : id;
+          renderReports(data);
+        });
+      });
+    }
+    $("bie-page-label").textContent = "Page " + data.page + " of " + Math.max(1, data.total_pages || 1) + " · " + (data.total || 0) + " reports";
+    $("bie-prev").disabled = !data.has_prev;
+    $("bie-next").disabled = !data.has_next;
+  }
+
+  async function loadReports() {
+    var res = await fetch("/api/public/kilauea/ai-reports?page=" + reportPage + "&limit=10", { cache: "no-store" });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok || !data.ok) throw new Error(data.detail || ("HTTP " + res.status));
+    renderReports(data);
+    return data;
+  }
+
+  async function refresh() {
+    try {
+      await Promise.all([loadEarthquakes(), loadReports()]);
+    } catch (e) {
+      showErr(e instanceof Error ? e.message : String(e));
+      setStatus("");
+    }
+  }
+
+  document.querySelectorAll(".bie-chip[data-days]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      days = Number(btn.getAttribute("data-days")) || 30;
+      document.querySelectorAll(".bie-chip[data-days]").forEach(function (b) { b.classList.remove("is-on"); });
+      btn.classList.add("is-on");
+      loadEarthquakes().catch(function (e) { showErr(String(e.message || e)); });
+    });
+  });
+
+  $("bie-prev").addEventListener("click", function () {
+    if (reportPage <= 1) return;
+    reportPage -= 1;
+    openReportId = null;
+    loadReports().catch(function (e) { showErr(String(e.message || e)); });
+  });
+  $("bie-next").addEventListener("click", function () {
+    reportPage += 1;
+    openReportId = null;
+    loadReports().catch(function (e) { showErr(String(e.message || e)); });
+  });
+
+  function boot() {
+    if (typeof Chart === "undefined") {
+      setTimeout(boot, 50);
+      return;
+    }
+    refresh();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+  </script>
+</body>
+</html>

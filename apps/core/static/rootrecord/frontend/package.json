@@ -1,0 +1,11 @@
+{
+  "name": "rootrecord-preview",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "start": "serve ../ -l tcp://0.0.0.0:3000 --no-clipboard"
+  },
+  "dependencies": {
+    "serve": "14.2.4"
+  }
+}

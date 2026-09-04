@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0e15">
+<title>Ava Ivy — Weather Data</title>
+<link rel="stylesheet" href="/css/home.css">
+<link rel="stylesheet" href="/css/weather.css">
+</head>
+<body>
+<div class="ambient"></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="mark">✦</span><span><b>AVA</b><small>IVY</small></span></a>
+  <nav>
+    <a href="/">Home</a>
+    <a class="active" href="/weather/">Weather</a>
+    <a href="/earthquakes/">Earthquakes</a>
+    <a href="/news/">News</a>
+    <a href="/context/">Context</a>
+    <a href="/directory/">Directory</a>
+  </nav>
+  <div class="status"><i></i><span>LOADING DATA…</span></div>
+</header>
+<main>
+  <section class="weather-hero">
+    <div>
+      <div class="eyebrow"><span></span> GLOBAL · COLLECTED WEATHER</div>
+      <h1>The weather, <em>measured.</em></h1>
+      <p class="lead">Global totals and averages across every stored observation, location, and provider in Ava’s weather database. Region and state detail lives on geography pages — start with Hawaiʻi.</p>
+    </div>
+    <div class="weather-links">
+      <a class="primary" href="/weather/united-states/hawaii/">Hawaiʻi Weather ↗</a>
+      <a class="secondary" href="/states/">Browse States ↗</a>
+    </div>
+  </section>
+
+  <section class="stat-grid" id="stats"></section>
+
+  <section class="weather-card database-card">
+    <div class="kicker">DATABASE</div>
+    <div class="db-line">
+      <div>
+        <h2>Collected observation store</h2>
+        <p class="muted" id="coverage">Loading coverage…</p>
+      </div>
+      <div class="db-badge" id="dbScope">ALL STORED OBSERVATIONS</div>
+    </div>
+  </section>
+
+  <section class="section-head">
+    <div>
+      <div class="eyebrow">RECENT COVERAGE</div>
+      <h2>Last 24 hours</h2>
+      <p class="muted">Short-window averages of the same global database.</p>
+    </div>
+  </section>
+  <section class="weather-grid" id="recent"></section>
+
+  <section class="section-head">
+    <div>
+      <div class="eyebrow">PROVIDERS</div>
+      <h2>Data sources</h2>
+      <p class="muted">Distinct providers contributing to the global store.</p>
+    </div>
+  </section>
+  <section class="region-cards" id="providers"></section>
+
+  <section class="weather-footer-panel">
+    <div>
+      <div class="kicker">STATE DETAIL</div>
+      <h2>Hawaiʻi weather desk</h2>
+      <p>Island averages, monitored locations, and live conditions for Hawaiʻi are on the state weather surface — not on this global totals page.</p>
+    </div>
+    <a class="primary" href="/weather/united-states/hawaii/">Open Hawaiʻi Weather ↗</a>
+  </section>
+
+  <section class="weather-footer-panel">
+    <div>
+      <div class="kicker">ARCHIVE</div>
+      <h2>Weather reports</h2>
+      <p>Historical location reports and special-event coverage remain in the Context archive.</p>
+    </div>
+    <a class="primary" href="/context/reports/weather/">Open Weather Reports ↗</a>
+  </section>
+</main>
+<footer>
+  <span>✦ Ava Ivy</span>
+  <span>Global Weather Totals</span>
+  <span>© 2026</span>
+</footer>
+<script src="/js/weather-page.js"></script>
+</body>
+</html>

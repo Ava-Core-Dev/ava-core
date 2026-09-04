@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Root Economy — internal circulation</title>
+
+  <meta name="description" content="Live Roots internal circulation across linked RootRecord accounts. Public top holders.">
+
+  <link rel="canonical" href="https://rootrecord.info/charts/root-economy/">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="icon" href="/favicon.ico" sizes="any">
+
+  <meta name="theme-color" content="#121212">
+
+  <link rel="stylesheet" href="/styles.css?v=11">
+
+  <style>
+
+    :root {
+
+      --da-bg: #121212;
+
+      --da-panel: #161616;
+
+      --da-card: #1a1a1a;
+
+      --da-border: #2a2a2a;
+
+      --da-text: #e8e8ea;
+
+      --da-muted: #9aa0a6;
+
+      --da-green: #43b581;
+
+    }
+
+    html, body { margin: 0; min-height: 100%; }
+
+    body.re-dash {
+
+      font-family: Inter, system-ui, sans-serif;
+
+      background: var(--da-bg);
+
+      color: var(--da-text);
+
+      font-size: 14px;
+
+    }
+
+    .re-topbar {
+
+      display: flex; align-items: center; justify-content: space-between;
+
+      padding: 0.65rem 1rem; border-bottom: 1px solid var(--da-border); background: var(--da-panel);
+
+    }
+
+    .re-topbar a { color: var(--da-green); text-decoration: none; font-weight: 600; font-size: 13px; }
+
+    .re-main { max-width: 960px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+    .re-main h1 { margin: 0 0 0.35rem; font-size: 1.65rem; }
+
+    .re-sub { margin: 0 0 1.25rem; color: var(--da-muted); font-size: 13px; max-width: 60ch; line-height: 1.5; }
+
+    .re-main .re-widget {
+
+      background: var(--da-card);
+
+      border-color: var(--da-border);
+
+    }
+
+    .re-main .re-widget-table th { background: var(--da-card); color: var(--da-muted); }
+
+    .re-main .re-widget-table td { border-color: var(--da-border); color: var(--da-text); }
+
+    .re-main .re-widget-total-val { color: var(--da-green); }
+
+  </style>
+
+</head>
+
+<body class="re-dash">
+
+  <header class="re-topbar">
+
+    <a href="/">← RootRecord</a>
+
+    <span style="font-size:12px;color:var(--da-muted)">Root Economy · public</span>
+
+  </header>
+
+  <main class="re-main">
+
+    <h1>Root Economy</h1>
+
+    <p class="re-sub">Total <strong>internal circulation</strong> — Roots held in linked <strong>rootrecord.info</strong> accounts (ledger balances, not on-chain supply). Updates when members sign in, claim signup credit, open an app for the first time, or earn while using apps. No sign-in required to view.</p>
+
+    <div id="re-economy-full"></div>
+
+  </main>
+
+  <script src="/root-economy-widget.js?v=12" defer></script>
+
+  <script defer>
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+      var root = document.getElementById("re-economy-full");
+
+      if (typeof mountRootEconomyWidget === "function") {
+
+        mountRootEconomyWidget(root, { compact: false, pollMs: 15000, showLeaderboard: true });
+
+      }
+
+    });
+
+  </script>
+
+</body>
+
+</html>
+

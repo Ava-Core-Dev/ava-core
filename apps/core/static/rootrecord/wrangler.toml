@@ -1,0 +1,27 @@
+# Cloudflare Pages — static site + small Functions (API base for account portal).
+# Deploy: npm install && npm run pages:deploy
+# (pages-deploy.ps1 walks up for credentials.env / credentials.env.txt and supports API token or email + global key.)
+#
+# Custom domain (e.g. rootrecord.info):
+# 1. Cloudflare dashboard → Workers & Pages → rootrecord-website → Custom domains → Set up a domain.
+# 2. Enter rootrecord.info (and/or www). Zone must use Cloudflare DNS, or follow the CNAME instructions.
+# 3. If this hostname was used elsewhere, remove it from the old Worker/Pages project first.
+# 4. ROOTRECORD_API_BASE targets the **account** API Worker (auth + shared portal routes). CORS allows your Pages origin.
+name = "rootrecord-website"
+compatibility_date = "2024-11-01"
+pages_build_output_dir = "."
+# Set CLOUDFLARE_ACCOUNT_ID in the environment (e.g. credentials.env) when deploying; Pages wrangler.toml does not support account_id.
+
+[vars]
+# Account API Worker (no trailing slash). Same D1 as other API Workers.
+# For HttpOnly SSO cookies (`Domain=.rootrecord.info`), point this at a ***.rootrecord.info** route on that Worker (not *.workers.dev).
+ROOTRECORD_API_BASE = "https://rootrecord-api-account.rootrecord.workers.dev"
+# Optional: `ROOTRECORD_API_ACCOUNT_BASE` for Pages `/api/discord-*` proxies (host or full `https://` URL; defaults to rootrecord-api-account *.workers.dev).
+# Optional: `ROOTRECORD_API_KILAUEA_BASE` for `/api/public/kilauea/*` chart proxies (defaults to rootrecord-api-kilauea *.workers.dev).
+# Secret `RR_PUSH_ADMIN_SECRET` must be set on this Pages project (same value as on `rootrecord-api-account`) for `/charts/discord-activity/` (legacy `/discord-activity/` redirects).
+# Secret `GITHUB_TOKEN` — fine-grained or classic PAT with `repo` scope for `/charts/weekly-reports/` (`GET /api/weekly-work-log`). Optional var `GITHUB_OWNER` (default RootRecord).
+# Pricing table (Billing page). Publishable key is client-safe; rotate in dashboard if needed.
+STRIPE_PRICING_TABLE_ID = "prctbl_1TQJ0kIaRpbMiAovAUe3X3QJ"
+STRIPE_PUBLISHABLE_KEY = "pk_live_51T3sezIaRpbMiAov6SUJgKLGR1igmRGOYg1rY1hKJPAWxLXDgJR7kRNSBSM8sJ2Wat1zuC56iE4TCTyPfqmEfTT600cR21LwYA"
+# Customer billing portal login URL (from payment dashboard).
+STRIPE_CUSTOMER_PORTAL_URL = "https://billing.stripe.com/p/login/9B64gzaB73pb1wM7oH5gc00"

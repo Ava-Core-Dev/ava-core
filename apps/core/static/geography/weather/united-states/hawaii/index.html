@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0e15">
+<title>Hawaiʻi Weather — Ava Ivy</title>
+<link rel="stylesheet" href="/css/home.css">
+<link rel="stylesheet" href="/css/weather.css">
+<link rel="stylesheet" href="/css/geography.css">
+</head>
+<body data-country="united-states" data-state="hawaii" data-location="">
+<div class="ambient"></div>
+<header class="nav">
+  <a class="brand" href="/"><span class="mark">✦</span><span><b>AVA</b><small>IVY</small></span></a>
+  <nav>
+    <a href="/">Home</a>
+    <a class="active" href="/weather/">Weather</a>
+    <a href="/earthquakes/">Earthquakes</a>
+    <a href="/news/">News</a>
+    <a href="/directory/">Directory</a>
+  </nav>
+  <div class="status"><i></i><span>LOADING…</span></div>
+</header>
+<main>
+  <section class="weather-hero">
+    <div>
+      <div class="eyebrow">UNITED STATES · HAWAIʻI</div>
+      <h1>Hawaiʻi <em>weather</em></h1>
+      <p class="lead">State-level collected weather: island averages, monitored locations, and live reference conditions. Global totals stay on the main Weather page.</p>
+    </div>
+    <div class="weather-links">
+      <a class="secondary" href="/weather/">Global Weather ↗</a>
+      <a class="primary" href="/states/hawaii/">Hawaiʻi State ↗</a>
+    </div>
+  </section>
+
+  <section class="stat-grid" id="hiStats"></section>
+
+  <section class="section-head">
+    <div>
+      <div class="eyebrow">LIVE REFERENCE</div>
+      <h2>Current conditions</h2>
+      <p class="muted">From the Hawaiʻi state weather feed (Mountain View reference when available).</p>
+    </div>
+  </section>
+  <section class="weather-grid" id="hiLive"></section>
+
+  <section class="section-head">
+    <div>
+      <div class="eyebrow">ISLANDS</div>
+      <h2>Regional averages</h2>
+      <p class="muted">Averages from stored observations grouped by island / region.</p>
+    </div>
+  </section>
+  <section class="region-cards" id="hiRegions"></section>
+
+  <section class="section-head">
+    <div>
+      <div class="eyebrow">LOCATIONS</div>
+      <h2>Monitored places</h2>
+      <p class="muted">Every Hawaiʻi location with stored observations in the weather database.</p>
+      <input id="hiSearch" type="search" placeholder="Search island or location…" style="margin-top:10px;max-width:520px;width:100%;padding:10px 12px;border:1px solid #253246;border-radius:10px;background:#0d1420;color:#edf3ff">
+    </div>
+  </section>
+  <section class="location-cards" id="hiLocations"></section>
+
+  <section class="section-head">
+    <div>
+      <div class="eyebrow">NAVIGATION</div>
+      <h2>Islands &amp; state surfaces</h2>
+    </div>
+  </section>
+  <section class="location-cards" id="hiIslandLinks">
+    <a class="location-node" href="/states/hawaii/island/hawaii/"><span class="island">ISLAND</span><h3>Hawaiʻi</h3><p>Big Island locations</p></a>
+    <a class="location-node" href="/states/hawaii/island/maui/"><span class="island">ISLAND</span><h3>Maui</h3><p>Maui locations</p></a>
+    <a class="location-node" href="/states/hawaii/island/oahu/"><span class="island">ISLAND</span><h3>Oʻahu</h3><p>Oʻahu locations</p></a>
+    <a class="location-node" href="/states/hawaii/island/kauai/"><span class="island">ISLAND</span><h3>Kauaʻi</h3><p>Kauaʻi locations</p></a>
+    <a class="location-node" href="/states/hawaii/island/molokai/"><span class="island">ISLAND</span><h3>Molokaʻi</h3><p>Molokaʻi locations</p></a>
+    <a class="location-node" href="/states/hawaii/island/lanai/"><span class="island">ISLAND</span><h3>Lānaʻi</h3><p>Lānaʻi locations</p></a>
+  </section>
+
+  <section class="weather-footer-panel">
+    <div>
+      <div class="kicker">GLOBAL</div>
+      <h2>Full database totals</h2>
+      <p>Observation counts and averages across every country in the store.</p>
+    </div>
+    <a class="primary" href="/weather/">Open Global Weather ↗</a>
+  </section>
+</main>
+<footer>
+  <span>✦ Ava Ivy</span>
+  <span>Hawaiʻi Weather</span>
+  <span>© 2026</span>
+</footer>
+<script src="/js/weather-hawaii.js"></script>
+</body>
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5FWZH64B');</script>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-store, max-age=0, must-revalidate">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages — Discord activity</title>
+  <meta name="description" content="RootRecord Discord guild message stats (operator).">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://rootrecord.info/charts/discord-activity/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#121212">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <style>
+    :root {
+      --da-bg: #121212;
+      --da-panel: #161616;
+      --da-card: #1a1a1a;
+      --da-border: #2a2a2a;
+      --da-text: #e8e8ea;
+      --da-muted: #9aa0a6;
+      --da-green: #43b581;
+      --da-green-dim: #2d7a57;
+      --da-blue: #5865f2;
+      --da-chart-bg: #1e1e22;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body.da-dash {
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--da-bg);
+      color: var(--da-text);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .da-topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--da-border);
+      background: var(--da-panel);
+    }
+    .da-topbar a { color: var(--da-green); text-decoration: none; font-weight: 600; font-size: 13px; }
+    .da-topbar a:hover { text-decoration: underline; }
+    .da-shell { display: flex; min-height: calc(100vh - 48px); }
+    .da-sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--da-panel);
+      border-right: 1px solid var(--da-border);
+      padding: 1rem 0;
+    }
+    .da-side-h { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--da-muted); padding: 0 1rem 0.5rem; }
+    .da-nav a {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.45rem 1rem; color: var(--da-muted); text-decoration: none; font-size: 13px;
+    }
+    .da-nav a:hover { background: rgba(255,255,255,.04); color: var(--da-text); }
+    .da-nav a.is-active { color: var(--da-text); background: rgba(67,181,129,.12); border-left: 3px solid var(--da-green); padding-left: calc(1rem - 3px); }
+    .da-main { flex: 1; padding: 1.25rem 1.5rem 2rem; min-width: 0; }
+    .da-filters {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;
+    }
+    .da-filters-ch {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      width: 100%;
+      flex-basis: 100%;
+      margin-top: 0.35rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--da-border);
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .da-tag {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: var(--da-card); border: 1px solid var(--da-border); border-radius: 6px;
+      padding: 0.25rem 0.6rem; font-size: 12px; color: var(--da-muted);
+    }
+    .da-tag strong { color: var(--da-text); font-weight: 500; }
+    .da-tag button {
+      background: none; border: none; color: var(--da-muted); cursor: pointer; padding: 0 0.15rem; font-size: 14px; line-height: 1;
+    }
+    .da-chip {
+      border: 1px solid var(--da-border); background: var(--da-card); color: var(--da-text);
+      border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    .da-chip:hover { border-color: var(--da-green-dim); }
+    .da-chip.is-on { border-color: var(--da-green); background: rgba(67,181,129,.1); color: var(--da-green); }
+    .da-title-row { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.75rem; }
+    .da-title-row h1 { margin: 0; font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+    .da-sub { margin: 0.35rem 0 0; color: var(--da-muted); font-size: 13px; max-width: 52ch; }
+    .da-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .da-linkbtn {
+      background: none; border: none; color: var(--da-blue); font-size: 12px; cursor: pointer; font-family: inherit; text-decoration: none;
+    }
+    .da-linkbtn:hover { text-decoration: underline; }
+    .da-tabs { display: flex; gap: 0.25rem; margin-bottom: 1rem; }
+    .da-tab {
+      padding: 0.4rem 0.9rem; border-radius: 6px; border: 1px solid transparent; background: transparent;
+      color: var(--da-muted); font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500;
+    }
+    .da-tab.is-active { background: var(--da-card); border-color: var(--da-border); color: var(--da-text); }
+    .da-tab[disabled] { opacity: 0.45; cursor: not-allowed; }
+    .da-hm { text-align: center; font-variant-numeric: tabular-nums; min-width: 2rem; font-size: 11px; }
+    .da-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .da-card {
+      border-radius: 10px; border: 1px solid var(--da-border); padding: 1rem 1rem 0.85rem;
+      background: var(--da-card); cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .da-card:hover { border-color: #3a3a3a; }
+    .da-card.is-off { opacity: 0.45; }
+    .da-card.is-primary { border-color: var(--da-green); background: linear-gradient(145deg, rgba(67,181,129,.18), var(--da-card)); box-shadow: 0 0 0 1px rgba(67,181,129,.25); }
+    .da-card-h { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--da-muted); margin-bottom: 0.35rem; }
+    .da-card-h input { accent-color: var(--da-green); width: 16px; height: 16px; cursor: pointer; }
+    .da-card-v { font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .da-chart-wrap {
+      border-radius: 12px; border: 1px solid var(--da-border); background: var(--da-chart-bg);
+      padding: 1rem 1rem 0.5rem; min-height: 280px;
+    }
+    .da-chart-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .da-ma { font-size: 11px; color: var(--da-muted); }
+    .da-ma label { display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer; }
+    .da-panel { margin-top: 1.5rem; border-radius: 12px; border: 1px solid var(--da-border); background: var(--da-card); overflow: hidden; }
+    .da-panel-h { padding: 0.75rem 1rem; border-bottom: 1px solid var(--da-border); font-weight: 600; font-size: 13px; }
+    .da-table-wrap { overflow: auto; max-height: 420px; }
+    table.da-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .da-table th, .da-table td { padding: 0.55rem 1rem; text-align: left; border-bottom: 1px solid var(--da-border); }
+    .da-table th { color: var(--da-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; position: sticky; top: 0; background: var(--da-card); }
+    .da-table td.mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: var(--da-muted); }
+    .da-status { font-size: 12px; color: var(--da-muted); margin-bottom: 0.75rem; min-height: 1.2em; }
+    .da-err {
+      border: 1px solid #7f1d1d; background: rgba(127,29,29,.25); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; font-size: 12px; line-height: 1.45;
+    }
+    .da-err.da-warn {
+      border-color: #a16207; background: rgba(250, 204, 21, .08); color: #fde68a;
+    }
+    .da-err code { font-family: "JetBrains Mono", monospace; font-size: 11px; }
+    @media (max-width: 800px) {
+      .da-shell { flex-direction: column; }
+      .da-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--da-border); display: flex; flex-wrap: wrap; gap: 0.25rem; padding: 0.5rem; }
+      .da-side-h { display: none; }
+      .da-nav { display: flex; flex-wrap: wrap; }
+      .da-nav a { border-radius: 6px; border-left: none !important; padding-left: 1rem !important; }
+    }
+  </style>
+</head>
+<body class="da-dash">
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5FWZH64B" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
+  <header class="da-topbar">
+    <a href="/charts/">← Charts</a>
+    <span style="font-size:12px;color:var(--da-muted)">Discord activity · operator · <a href="/" style="color:inherit;text-decoration:underline;text-underline-offset:2px">rootrecord.info</a></span>
+  </header>
+
+  <div class="da-shell">
+    <aside class="da-sidebar">
+      <div class="da-side-h">Stats</div>
+      <nav class="da-nav">
+        <a class="is-active" href="#messages">Messages</a>
+        <a href="#members">Members</a>
+        <a href="#" id="da-nav-heatmap">Heatmap</a>
+      </nav>
+      <div class="da-side-h" style="margin-top:1rem">Tools</div>
+      <nav class="da-nav">
+        <a href="#" id="da-rebuild">Rebuild daily chart</a>
+      </nav>
+    </aside>
+
+    <main class="da-main" id="messages">
+      <div class="da-filters" aria-label="Filters">
+        <span class="da-tag">Time — <strong id="da-time-label">Last 14 days</strong></span>
+        <span class="da-tag">User type — <strong>Users</strong></span>
+        <div style="flex:1"></div>
+        <button type="button" class="da-chip" data-days="7">7d</button>
+        <button type="button" class="da-chip is-on" data-days="14">14d</button>
+        <button type="button" class="da-chip" data-days="30">30d</button>
+        <button type="button" class="da-chip" data-days="90">90d</button>
+      </div>
+      <div class="da-filters da-filters-ch" aria-label="Channel scope">
+        <span class="da-tag" style="font-weight:600;color:var(--da-text);border-color:var(--da-green-dim)">Channels</span>
+        <button type="button" class="da-chip is-on" id="da-ch-all" title="Chart and totals use every discovered channel">All channels</button>
+        <span class="da-tag" style="border:none;background:transparent;color:var(--da-muted);padding-left:0">One channel</span>
+        <select id="da-channel-filter" class="da-chip" style="min-width:14rem;max-width:28rem;font:inherit" aria-label="Pick one Discord channel"></select>
+        <span class="da-tag" style="margin-left:auto;font-size:11px;color:var(--da-muted)" id="da-live-hint">Live · this tab polls every 10s · Worker sync ~1 min</span>
+      </div>
+
+      <div class="da-title-row">
+        <div>
+          <h1>Messages</h1>
+          <p class="da-sub">Totals combine every text/news/forum/thread channel the bot can read. Only the announcements channel is copied into the mobile developer feed. Numbers refresh automatically while this tab is open; new Discord posts reach D1 within about a minute (Worker cron).</p>
+        </div>
+        <div class="da-actions">
+          <button type="button" class="da-linkbtn" id="da-csv">Export CSV</button>
+          <button type="button" class="da-linkbtn" id="da-png">Download chart</button>
+          <button type="button" class="da-chip" id="da-refresh">Refresh</button>
+        </div>
+      </div>
+
+      <div class="da-tabs" role="tablist">
+        <button type="button" class="da-tab is-active" id="da-tab-chart" role="tab" aria-selected="true">Chart</button>
+        <button type="button" class="da-tab" id="da-tab-heatmap" role="tab" aria-selected="false">Heatmap</button>
+      </div>
+
+      <p class="da-status" id="da-status" role="status"></p>
+      <div class="da-err" id="da-error" hidden></div>
+
+      <div id="da-content" hidden>
+        <div class="da-cards">
+          <div class="da-card is-primary" id="card-msgs" data-ds="0" title="Toggle series">
+            <div class="da-card-h"><span>Total messages</span><input type="checkbox" id="chk-msgs" checked aria-label="Show messages on chart"></div>
+            <div class="da-card-v" id="val-msgs">0</div>
+          </div>
+          <div class="da-card" id="card-members" data-ds="1">
+            <div class="da-card-h"><span>Unique members</span><input type="checkbox" id="chk-members" checked aria-label="Show members on chart"></div>
+            <div class="da-card-v" id="val-members">0</div>
+          </div>
+          <div class="da-card" id="card-ch" data-ds="2">
+            <div class="da-card-h"><span>Channels</span><input type="checkbox" id="chk-ch" checked aria-label="Show channels on chart"></div>
+            <div class="da-card-v" id="val-ch">1</div>
+          </div>
+        </div>
+
+        <div id="da-panel-chart">
+        <div class="da-chart-wrap">
+          <div class="da-chart-head">
+            <span class="da-ma"><label><input type="checkbox" id="chk-ma"> Moving average (7d)</label></span>
+          </div>
+          <div style="height:240px;position:relative">
+            <canvas id="da-chart" aria-label="Messages over time"></canvas>
+          </div>
+        </div>
+        </div>
+
+        <div id="da-panel-heatmap" hidden>
+          <p class="da-sub" style="margin-top:0">Messages per channel × UTC day (same window as time filter). Darker green = more messages that day.</p>
+          <div class="da-table-wrap" style="max-height:min(70vh,520px)">
+            <div id="da-heatmap-table"></div>
+          </div>
+        </div>
+
+        <div class="da-panel" id="members">
+          <div class="da-panel-h">Members (by last post)</div>
+          <div class="da-table-wrap">
+            <table class="da-table">
+              <thead><tr><th>Display name</th><th style="text-align:right">Posts</th><th>Last message (UTC)</th><th>User id</th></tr></thead>
+              <tbody id="da-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+(function () {
+  var days = 14;
+  var chartId = 'all';
+  var viewMode = 'chart';
+  var chart;
+  var state = { series: [], rows: [], startStr: '', distinct_channel_count: 0, channels: [], byChannelDaily: [] };
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function formatName(row) {
+    var g = (row.global_name || '').trim();
+    var u = (row.username || '').trim();
+    if (g) return g + (u ? ' (' + u + ')' : '');
+    return u || '—';
+  }
+  function formatTs(iso) {
+    if (!iso) return '—';
+    try {
+      var d = new Date(iso);
+      return isNaN(d.getTime()) ? esc(iso) : d.toISOString().replace('T',' ').replace(/\.\d{3}Z$/,' Z');
+    } catch (e) { return esc(iso); }
+  }
+
+  function startDateStr() {
+    var s = new Date();
+    s.setUTCHours(0,0,0,0);
+    s.setUTCDate(s.getUTCDate() - (days - 1));
+    return s.toISOString().slice(0, 10);
+  }
+
+  function movingAvg7(arr) {
+    return arr.map(function (_, i) {
+      var a = Math.max(0, i - 6);
+      var slice = arr.slice(a, i + 1);
+      var sum = slice.reduce(function (x, y) { return x + y; }, 0);
+      return sum / slice.length;
+    });
+  }
+
+  function channelLabel(id) {
+    var sid = String(id);
+    for (var i = 0; i < state.channels.length; i++) {
+      if (String(state.channels[i].channel_id) === sid && state.channels[i].name) return String(state.channels[i].name).slice(0, 36);
+    }
+    return sid.length > 14 ? '…' + sid.slice(-10) : sid;
+  }
+
+  function renderHeatmap() {
+    var wrap = el('da-heatmap-table');
+    if (!wrap) return;
+    var daysArr = state.series.map(function (s) { return s.day; });
+    var bc = chartId === 'all' ? (state.byChannelDaily || []) : (state.byChannelDaily || []).filter(function (r) { return String(r.channel_id) === String(chartId); });
+    var rows = {};
+    bc.forEach(function (c) {
+      var cid = String(c.channel_id);
+      if (!rows[cid]) rows[cid] = {};
+      rows[cid][c.day] = Number(c.message_count) || 0;
+    });
+    var chIds = Object.keys(rows);
+    if (chIds.length === 0) {
+      wrap.innerHTML = '<p class="da-sub" style="margin:0">No per-channel day cells yet. Run sync/backfill, then <strong>Rebuild daily chart</strong>.</p>';
+      return;
+    }
+    chIds.sort(function (a, b) { return channelLabel(a).localeCompare(channelLabel(b)); });
+    var maxV = 1;
+    chIds.forEach(function (cid) {
+      daysArr.forEach(function (d) {
+        var v = rows[cid][d] || 0;
+        if (v > maxV) maxV = v;
+      });
+    });
+    var head = '<thead><tr><th>Channel</th>' + daysArr.map(function (d) { return '<th class="mono">' + esc(d.slice(5)) + '</th>'; }).join('') + '<th style="text-align:right">Σ</th></tr></thead>';
+    var body = '<tbody>' + chIds.map(function (cid) {
+      var sum = 0;
+      var tds = daysArr.map(function (d) {
+        var v = rows[cid][d] || 0;
+        sum += v;
+        var p = maxV > 0 ? v / maxV : 0;
+        var bg = v === 0 ? 'transparent' : 'rgba(67,181,129,' + (0.1 + p * 0.55).toFixed(3) + ')';
+        return '<td class="mono da-hm" style="background:' + bg + '" title="' + esc(d + ': ' + v) + '">' + (v ? String(v) : '—') + '</td>';
+      }).join('');
+      return '<tr><td style="max-width:12rem">' + esc(channelLabel(cid)) + '</td>' + tds + '<td style="text-align:right;font-weight:600">' + sum + '</td></tr>';
+    }).join('') + '</tbody>';
+    wrap.innerHTML = '<table class="da-table">' + head + body + '</table>';
+  }
+
+  function setView(mode) {
+    viewMode = mode;
+    var pc = el('da-panel-chart');
+    var ph = el('da-panel-heatmap');
+    var tb = el('da-tab-chart');
+    var th = el('da-tab-heatmap');
+    if (pc) pc.hidden = mode !== 'chart';
+    if (ph) ph.hidden = mode !== 'heatmap';
+    if (tb) { tb.classList.toggle('is-active', mode === 'chart'); tb.setAttribute('aria-selected', mode === 'chart'); }
+    if (th) { th.classList.toggle('is-active', mode === 'heatmap'); th.setAttribute('aria-selected', mode === 'heatmap'); }
+    if (mode === 'heatmap') renderHeatmap();
+    else if (typeof Chart !== 'undefined') applyChart();
+  }
+
+  function applyChart() {
+    if (typeof Chart === 'undefined') return;
+    var labels = state.series.map(function (x) { return x.day.slice(5); });
+    var counts = state.series.map(function (x) { return x.message_count; });
+    var ma = movingAvg7(counts);
+    var membersLine = state.memberSeries || counts.map(function () { return 0; });
+    var uqCh = {};
+    (state.byChannelDaily || []).forEach(function (r) { uqCh[r.channel_id] = 1; });
+    var nCh = Math.max(1, Object.keys(uqCh).length, Number(state.distinct_channel_count) || 0, state.channels.length || 0);
+    var chLine = counts.map(function () { return nCh; });
+
+    var showMa = el('chk-ma').checked;
+    var h0 = !el('chk-msgs').checked;
+    var h1 = !el('chk-members').checked;
+    var h2 = !el('chk-ch').checked;
+
+    var ds = [
+      { label: 'Messages', data: counts, borderColor: '#43b581', backgroundColor: 'rgba(67,181,129,.12)', tension: 0.25, fill: true, yAxisID: 'y', hidden: h0 },
+      { label: 'Members (last post that day)', data: membersLine, borderColor: '#9aa0a6', tension: 0.2, fill: false, yAxisID: 'y1', borderDash: [4,3], hidden: h1 },
+      { label: 'Channels', data: chLine, borderColor: '#5865f2', tension: 0, fill: false, yAxisID: 'y1', borderDash: [2,2], hidden: h2 },
+    ];
+    if (showMa) {
+      ds.push({ label: '7d MA (messages)', data: ma, borderColor: '#faa61a', tension: 0.35, fill: false, yAxisID: 'y', borderDash: [6,3], pointRadius: 0, hidden: h0 });
+    }
+
+    if (chart) chart.destroy();
+    chart = new Chart(el('da-chart'), {
+      type: 'line',
+      data: { labels: labels, datasets: ds },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#9aa0a6', boxWidth: 12, font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: '#1a1a1a',
+            titleColor: '#e8e8ea',
+            bodyColor: '#c4c4c8',
+            borderColor: '#2a2a2a',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#9aa0a6', maxRotation: 45, font: { size: 10 } } },
+          y: { position: 'left', grid: { color: 'rgba(255,255,255,.06)' }, ticks: { color: '#9aa0a6', precision: 0 }, title: { display: true, text: 'Messages', color: '#43b581', font: { size: 11 } } },
+          y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#6b7280', precision: 0 }, title: { display: true, text: 'Members / channels', color: '#6b7280', font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  function updateCards() {
+    var start = state.startStr;
+    var end = state.series.length ? state.series[state.series.length - 1].day : start;
+    var sumMsgs = state.series.reduce(function (a, b) { return a + (b.message_count || 0); }, 0);
+    var rowsIn = state.rows.filter(function (r) {
+      var d = String(r.last_message_at || '').slice(0, 10);
+      return d >= start && d <= end;
+    });
+    el('val-msgs').textContent = String(sumMsgs);
+    el('val-members').textContent = String(rowsIn.length);
+    var bc = chartId === 'all' ? (state.byChannelDaily || []) : (state.byChannelDaily || []).filter(function (r) { return String(r.channel_id) === String(chartId); });
+    var uq = {};
+    bc.forEach(function (r) { uq[r.channel_id] = 1; });
+    var nWithData = Object.keys(uq).length;
+    el('val-ch').textContent = String(chartId === 'all' ? Math.max(state.channels.length || 0, nWithData, Number(state.distinct_channel_count) || 0) || 1 : 1);
+  }
+
+  function wireCardClicks() {
+    [['chk-msgs','card-msgs'],['chk-members','card-members'],['chk-ch','card-ch']].forEach(function (pair) {
+      var chk = el(pair[0]);
+      var card = el(pair[1]);
+      chk.addEventListener('change', function () {
+        card.classList.toggle('is-off', !chk.checked);
+        card.classList.toggle('is-primary', pair[0] === 'chk-msgs' && chk.checked);
+        if (viewMode === 'chart') applyChart();
+      });
+      card.addEventListener('click', function (e) {
+        if (e.target === chk) return;
+        chk.checked = !chk.checked;
+        chk.dispatchEvent(new Event('change'));
+      });
+    });
+    el('chk-ma').addEventListener('change', function () { if (viewMode === 'chart') applyChart(); });
+  }
+
+  function syncChannelPickerUi() {
+    var b = el('da-ch-all');
+    if (b) b.classList.toggle('is-on', chartId === 'all');
+  }
+
+  function load(opts) {
+    opts = opts || {};
+    var silent = !!opts.silent;
+    if (!silent) {
+      el('da-status').textContent = 'Loading…';
+      el('da-error').hidden = true;
+      el('da-error').classList.remove('da-warn');
+      el('da-content').hidden = true;
+    }
+    state.startStr = startDateStr();
+    el('da-time-label').textContent = 'Last ' + days + ' days';
+
+    var fetchOpts = { credentials: 'same-origin', cache: 'no-store' };
+    Promise.all([
+      fetch('/api/discord-activity-daily?days=' + encodeURIComponent(String(days)) + '&channel_id=' + encodeURIComponent(chartId) + '&_=' + String(Date.now()), fetchOpts).then(function (r) { return r.text().then(function (t) { try { return { ok: r.ok, status: r.status, j: JSON.parse(t) }; } catch (e) { return { ok: false, status: r.status, j: {} }; } }); }),
+      fetch('/api/discord-user-activity?limit=500&_=' + String(Date.now()), fetchOpts).then(function (r) { return r.text().then(function (t) { try { return { ok: r.ok, status: r.status, j: JSON.parse(t) }; } catch (e) { return { ok: false, status: r.status, j: {} }; } }); })
+    ]).then(function (both) {
+      var d = both[0], u = both[1];
+      var warn = '';
+      if (!u.ok || !u.j || u.j.ok !== true || !Array.isArray(u.j.rows)) {
+        var det = (u.j && (u.j.detail || u.j.error)) ? String(u.j.detail || u.j.error) : '';
+        if (!det) det = 'HTTP ' + u.status + ' from /api/discord-user-activity';
+        warn = 'Member list unavailable: ' + det + '. Charts still use daily totals if loaded. If status is 500, the Pages proxy was likely pointing at the wrong Worker — set Production var ROOTRECORD_API_ACCOUNT_BASE to your account API (e.g. https://rootrecord-api-account.rootrecord.workers.dev). Also set secret RR_PUSH_ADMIN_SECRET (same as on rootrecord-api-account), or run Web/main/pages-put-rr-push-secret.ps1 then redeploy.';
+        el('da-error').textContent = warn;
+        el('da-error').classList.add('da-warn');
+        el('da-error').hidden = false;
+        state.rows = [];
+      } else {
+        state.rows = u.j.rows;
+        el('da-error').hidden = true;
+        el('da-error').classList.remove('da-warn');
+      }
+      if (d.ok && d.j && d.j.ok === true && Array.isArray(d.j.series)) state.series = d.j.series;
+      else state.series = [];
+      state.channels = Array.isArray(d.j && d.j.channels) ? d.j.channels : [];
+      state.distinct_channel_count = d.j && d.j.distinct_channel_count != null ? Number(d.j.distinct_channel_count) : 0;
+      state.byChannelDaily = Array.isArray(d.j && d.j.by_channel_daily) ? d.j.by_channel_daily : [];
+      var sel = el('da-channel-filter');
+      if (sel) {
+        var keep = chartId;
+        sel.innerHTML = '';
+        var o0 = document.createElement('option');
+        o0.value = 'all';
+        o0.textContent = 'All channels (totals)';
+        sel.appendChild(o0);
+        state.channels.forEach(function (c) {
+          var o = document.createElement('option');
+          o.value = String(c.channel_id || '');
+          o.textContent = String((c.name || c.channel_id || '')).slice(0, 48);
+          sel.appendChild(o);
+        });
+        var okv = false;
+        for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === keep) { okv = true; break; } }
+        if (!okv) {
+          chartId = 'all';
+          sel.value = 'all';
+          if (keep !== 'all') { load({ silent: silent }); return; }
+        } else sel.value = keep;
+        syncChannelPickerUi();
+      }
+      if (state.series.length === 0) {
+        var n = days;
+        state.series = [];
+        var s = new Date();
+        s.setUTCHours(0,0,0,0);
+        s.setUTCDate(s.getUTCDate() - (n - 1));
+        for (var i = 0; i < n; i++) {
+          var dd = new Date(s);
+          dd.setUTCDate(dd.getUTCDate() + i);
+          state.series.push({ day: dd.toISOString().slice(0, 10), message_count: 0 });
+        }
+      }
+      state.memberSeries = state.series.map(function (pt) {
+        if (!state.rows.length) return 0;
+        return state.rows.filter(function (r) {
+          return String(r.last_message_at || '').slice(0, 10) === pt.day;
+        }).length;
+      });
+
+      el('da-tbody').innerHTML = state.rows.length
+        ? state.rows.map(function (row) {
+            return '<tr><td>' + esc(formatName(row)) + '</td><td style="text-align:right">' + esc(String(row.message_count != null ? row.message_count : '')) + '</td><td class="mono">' + formatTs(row.last_message_at) + '</td><td class="mono">' + esc(String(row.discord_user_id || '')) + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="4" style="padding:1rem;color:var(--da-muted)">No member rows (API above).</td></tr>';
+
+      updateCards();
+      el('da-content').hidden = false;
+      if (!silent) el('da-status').textContent = '';
+      if (viewMode === 'heatmap') renderHeatmap();
+      else if (typeof Chart !== 'undefined') applyChart();
+      else {
+        var t2 = setInterval(function () {
+          if (typeof Chart !== 'undefined') { clearInterval(t2); if (viewMode === 'chart') applyChart(); }
+        }, 50);
+      }
+    }).catch(function () {
+      if (!silent) el('da-status').textContent = '';
+      el('da-error').textContent = 'Network error.';
+      el('da-error').hidden = false;
+    });
+  }
+
+  document.querySelectorAll('.da-chip[data-days]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.da-chip[data-days]').forEach(function (b) { b.classList.remove('is-on'); });
+      btn.classList.add('is-on');
+      days = parseInt(btn.getAttribute('data-days'), 10) || 14;
+      load();
+    });
+  });
+  el('da-refresh').addEventListener('click', load);
+  el('da-rebuild').addEventListener('click', function (e) {
+    e.preventDefault();
+    el('da-status').textContent = 'Rebuilding daily rollup…';
+    fetch('/api/discord-activity-daily-rebuild', { method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        el('da-status').textContent = x.j && x.j.ok ? ('Rebuild OK · ' + (x.j.day_rows != null ? x.j.day_rows + ' day rows' : '') + (x.j.day_channel_rows != null ? ' · ' + x.j.day_channel_rows + ' day×channel cells' : '')) : ((x.j && x.j.detail) || 'Rebuild failed');
+        load();
+      })
+      .catch(function () { el('da-status').textContent = 'Rebuild request failed.'; });
+  });
+  el('da-csv').addEventListener('click', function () {
+    var lines = ['day,message_count'];
+    state.series.forEach(function (r) { lines.push(r.day + ',' + r.message_count); });
+    lines.push('');
+    lines.push('discord_user_id,username,global_name,message_count,last_message_at');
+    state.rows.forEach(function (r) {
+      lines.push([r.discord_user_id, r.username, r.global_name, r.message_count, r.last_message_at].map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g,'""') + '"'; }).join(','));
+    });
+    var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'discord-activity.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  el('da-png').addEventListener('click', function () {
+    if (!chart) return;
+    var a = document.createElement('a');
+    a.href = chart.toBase64Image();
+    a.download = 'discord-messages-chart.png';
+    a.click();
+  });
+
+  wireCardClicks();
+  el('da-ch-all').addEventListener('click', function () {
+    chartId = 'all';
+    var sel = el('da-channel-filter');
+    if (sel) sel.value = 'all';
+    syncChannelPickerUi();
+    load();
+  });
+  el('da-channel-filter').addEventListener('change', function () {
+    chartId = el('da-channel-filter').value || 'all';
+    syncChannelPickerUi();
+    load();
+  });
+  el('da-tab-chart').addEventListener('click', function () { setView('chart'); });
+  el('da-tab-heatmap').addEventListener('click', function () { setView('heatmap'); });
+  el('da-nav-heatmap').addEventListener('click', function (e) {
+    e.preventDefault();
+    setView('heatmap');
+    try { el('da-panel-heatmap').scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) {}
+  });
+  setInterval(function () {
+    if (document.visibilityState !== 'visible') return;
+    load({ silent: true });
+  }, 10000);
+  load();
+})();
+  </script>
+</body>
+</html>

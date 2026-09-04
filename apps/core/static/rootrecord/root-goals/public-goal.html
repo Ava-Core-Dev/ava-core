@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Goal — Root Record</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .rg-public { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .rg-muted { color: var(--muted, #6b7c75); }
+    .rg-section { margin: 1.25rem 0; }
+    .rg-steps li { margin: 0.35rem 0; }
+    .rg-disclaimer { font-size: 0.85rem; color: #6b7c75; border-left: 3px solid #2a9d63; padding: 0.5rem 0.75rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <main class="rg-public">
+    <p class="rg-muted"><a id="back" href="#">← All goals</a></p>
+    <h1 id="title">Goal</h1>
+    <p class="rg-disclaimer" id="disclaimer"></p>
+    <section class="rg-section">
+      <h2>Plan</h2>
+      <p id="summary" class="rg-muted"></p>
+      <ol id="steps" class="rg-steps"></ol>
+    </section>
+    <p class="rg-muted" id="status">Loading…</p>
+  </main>
+  <script>
+    (function () {
+      var DISCLAIMER = "Root Record does not provide financial support or advice. Actions and Suggestions are AI-generated and may not reflect Root Record's core beliefs. Use your own judgment.";
+      document.getElementById("disclaimer").textContent = DISCLAIMER;
+      var parts = location.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+      var goalsIdx = parts.indexOf("goals");
+      var address = goalsIdx > 0 ? parts[goalsIdx - 1] : "";
+      var slug = goalsIdx >= 0 && parts[goalsIdx + 1] ? parts[goalsIdx + 1] : "";
+      if (address) {
+        document.getElementById("back").href = "/" + address + "/goals";
+      }
+      if (!address || !slug) {
+        document.getElementById("status").textContent = "Invalid goal URL.";
+        return;
+      }
+      fetch("/api/public/goals/" + encodeURIComponent(address) + "/goals/" + encodeURIComponent(slug))
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            document.getElementById("status").textContent = res.j.detail || "Goal not found.";
+            return;
+          }
+          document.getElementById("status").textContent = "";
+          var g = res.j.goal || {};
+          document.title = (g.title || "Goal") + " — Root Goals";
+          document.getElementById("title").textContent = g.title || "Goal";
+          document.getElementById("summary").textContent = g.ai_summary_text || "";
+          var steps = (g.ai_plan && g.ai_plan.steps) || [];
+          document.getElementById("steps").innerHTML = steps.map(function (s) {
+            var t = (s && (s.title || s.detail)) || "";
+            return "<li>" + escapeHtml(String(t)) + "</li>";
+          }).join("");
+        })
+        .catch(function () {
+          document.getElementById("status").textContent = "Could not load goal.";
+        });
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+    })();
+  </script>
+</body>
+</html>

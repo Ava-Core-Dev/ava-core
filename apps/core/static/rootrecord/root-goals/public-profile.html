@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Public Goals — Root Record</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .rg-public { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .rg-muted { color: var(--muted, #6b7c75); }
+    .rg-goal-card { border: 1px solid #2d4f3f; border-radius: 10px; padding: 1rem; margin: 0.75rem 0; }
+    .rg-goal-card a { color: inherit; font-weight: 600; text-decoration: none; }
+    .rg-disclaimer { font-size: 0.85rem; color: #6b7c75; border-left: 3px solid #2a9d63; padding: 0.5rem 0.75rem; margin: 1rem 0; }
+  </style>
+</head>
+<body>
+  <main class="rg-public">
+    <p class="rg-muted"><a href="https://rootrecord.info">Root Record</a> · Root Goals 1.0.0 · Release 0</p>
+    <h1 id="title">Goals</h1>
+    <p class="rg-muted" id="address"></p>
+    <p class="rg-disclaimer" id="disclaimer"></p>
+    <div id="list"></div>
+    <p class="rg-muted" id="status">Loading…</p>
+  </main>
+  <script>
+    (function () {
+      var DISCLAIMER = "Root Record does not provide financial support or advice. Actions and Suggestions are AI-generated and may not reflect Root Record's core beliefs. Use your own judgment.";
+      document.getElementById("disclaimer").textContent = DISCLAIMER;
+      var parts = location.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+      var goalsIdx = parts.indexOf("goals");
+      var address = goalsIdx > 0 ? parts[goalsIdx - 1] : "";
+      document.getElementById("address").textContent = address ? "Solana: " + address : "";
+      if (!address) {
+        document.getElementById("status").textContent = "Missing wallet address in URL.";
+        return;
+      }
+      fetch("/api/public/goals/" + encodeURIComponent(address) + "/goals")
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) {
+            document.getElementById("status").textContent = res.j.detail || "Profile not found.";
+            return;
+          }
+          document.getElementById("status").textContent = "";
+          var goals = res.j.goals || [];
+          if (!goals.length) {
+            document.getElementById("list").innerHTML = "<p class=\"rg-muted\">No public goals yet.</p>";
+            return;
+          }
+          document.getElementById("list").innerHTML = goals.map(function (g) {
+            var href = "/" + address + "/goals/" + encodeURIComponent(g.slug);
+            return "<article class=\"rg-goal-card\"><a href=\"" + href + "\">" + escapeHtml(g.title) + "</a>" +
+              (g.ai_summary_text ? "<p class=\"rg-muted\">" + escapeHtml(g.ai_summary_text) + "</p>" : "") +
+              "</article>";
+          }).join("");
+        })
+        .catch(function () {
+          document.getElementById("status").textContent = "Could not load goals.";
+        });
+      function escapeHtml(s) {
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+    })();
+  </script>
+</body>
+</html>

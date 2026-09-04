@@ -1,0 +1,11 @@
+node_modules/
+.wrangler/
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

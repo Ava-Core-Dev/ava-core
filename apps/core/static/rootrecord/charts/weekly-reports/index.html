@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-store, max-age=0, must-revalidate">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Work Log Reports — RootRecord</title>
+  <meta name="description" content="Weekly GitHub commit rollup across all RootRecord repositories (operator).">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://rootrecord.info/charts/weekly-reports/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#121212">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <style>
+    :root {
+      --wwl-bg: #121212;
+      --wwl-panel: #161616;
+      --wwl-card: #1a1a1a;
+      --wwl-border: #2a2a2a;
+      --wwl-text: #e8e8ea;
+      --wwl-muted: #9aa0a6;
+      --wwl-green: #43b581;
+      --wwl-blue: #5865f2;
+      --wwl-chart-bg: #1e1e22;
+      --wwl-warn: #f0ad4e;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: var(--wwl-bg);
+      color: var(--wwl-text);
+      font-size: 14px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wwl-topbar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--wwl-border);
+      background: var(--wwl-panel);
+    }
+    .wwl-topbar a { color: var(--wwl-green); text-decoration: none; font-weight: 600; font-size: 13px; }
+    .wwl-topbar a:hover { text-decoration: underline; }
+    .wwl-main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+    h1 { margin: 0 0 0.35rem; font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
+    .wwl-lead { margin: 0 0 1rem; color: var(--wwl-muted); font-size: 13px; max-width: 68ch; }
+    .wwl-meta { font-size: 12px; color: var(--wwl-muted); margin-bottom: 1rem; min-height: 1.2em; }
+    .wwl-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+    .wwl-btn {
+      border: 1px solid var(--wwl-border); background: var(--wwl-card); color: var(--wwl-text);
+      border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    .wwl-btn:hover { border-color: var(--wwl-green); }
+    .wwl-btn.primary { border-color: var(--wwl-green); background: rgba(67, 181, 129, 0.12); color: var(--wwl-green); }
+    .wwl-error {
+      border: 1px solid #7f1d1d; background: rgba(127, 29, 29, 0.25); color: #fecaca;
+      border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 13px;
+    }
+    .wwl-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;
+    }
+    .wwl-card {
+      border-radius: 10px; border: 1px solid var(--wwl-border); padding: 0.85rem 1rem;
+      background: var(--wwl-card);
+    }
+    .wwl-card-l { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--wwl-muted); }
+    .wwl-card-v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 0.2rem; }
+    .wwl-card-s { font-size: 11px; color: var(--wwl-muted); margin-top: 0.15rem; }
+    .wwl-chart-wrap {
+      border-radius: 12px; border: 1px solid var(--wwl-border); background: var(--wwl-chart-bg);
+      padding: 1rem; min-height: 300px; margin-bottom: 1.25rem;
+    }
+    .wwl-chart-title { font-weight: 600; font-size: 13px; margin: 0 0 0.75rem; }
+    .wwl-panel { border-radius: 12px; border: 1px solid var(--wwl-border); background: var(--wwl-card); overflow: hidden; }
+    .wwl-panel-h {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+      padding: 0.85rem 1rem; border-bottom: 1px solid var(--wwl-border);
+    }
+    .wwl-panel-h h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .wwl-table-wrap { overflow-x: auto; }
+    table.wwl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .wwl-table th, .wwl-table td { padding: 0.55rem 0.85rem; text-align: left; border-bottom: 1px solid var(--wwl-border); }
+    .wwl-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--wwl-muted); background: rgba(255,255,255,0.02); cursor: pointer; user-select: none; white-space: nowrap; }
+    .wwl-table th:hover { color: var(--wwl-text); }
+    .wwl-table td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+    .wwl-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .wwl-badge {
+      display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+      padding: 0.12rem 0.4rem; border-radius: 4px; border: 1px solid var(--wwl-border); color: var(--wwl-muted);
+    }
+    .wwl-badge.private { border-color: #7c3aed; color: #c4b5fd; background: rgba(124, 58, 237, 0.12); }
+    .wwl-badge.public { border-color: #2563eb; color: #93c5fd; background: rgba(37, 99, 235, 0.12); }
+    .wwl-table a { color: var(--wwl-blue); text-decoration: none; }
+    .wwl-table a:hover { text-decoration: underline; }
+    .wwl-stale { color: var(--wwl-warn); }
+    .wwl-active { color: var(--wwl-green); font-weight: 600; }
+    .wwl-hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="wwl-topbar">
+    <a href="/charts/">← Charts</a>
+    <span style="font-size:12px;color:var(--wwl-muted)">Weekly Work Log Reports · operator</span>
+  </header>
+  <main class="wwl-main">
+    <h1>Weekly Work Log Reports</h1>
+    <p class="wwl-lead">Commit activity across all GitHub repositories on the <strong>RootRecord</strong> account — public and private. Weeks start on Monday (UTC). Data is cached for one hour server-side.</p>
+    <div class="wwl-actions">
+      <button type="button" class="wwl-btn primary" id="wwl-refresh">Refresh data</button>
+      <button type="button" class="wwl-btn" id="wwl-force">Force rebuild (bypass cache)</button>
+      <button type="button" class="wwl-btn" id="wwl-csv">Download CSV</button>
+    </div>
+    <p class="wwl-meta" id="wwl-status">Loading…</p>
+    <div class="wwl-error wwl-hidden" id="wwl-error" role="alert"></div>
+    <div id="wwl-content" class="wwl-hidden">
+      <div class="wwl-cards" id="wwl-cards"></div>
+      <div class="wwl-chart-wrap">
+        <p class="wwl-chart-title">Weekly commits (all repositories)</p>
+        <canvas id="wwl-chart" height="120"></canvas>
+      </div>
+      <section class="wwl-panel">
+        <div class="wwl-panel-h">
+          <h2>Repositories</h2>
+          <span style="font-size:12px;color:var(--wwl-muted)" id="wwl-repo-count"></span>
+        </div>
+        <div class="wwl-table-wrap">
+          <table class="wwl-table" id="wwl-table">
+            <thead>
+              <tr>
+                <th data-sort="name">Repository</th>
+                <th data-sort="private">Visibility</th>
+                <th data-sort="language">Language</th>
+                <th data-sort="totalCommits">Commits</th>
+                <th data-sort="activeWeeks">Active weeks</th>
+                <th data-sort="firstCommit">First commit</th>
+                <th data-sort="lastCommit">Last commit</th>
+                <th data-sort="lastPush">Last push</th>
+              </tr>
+            </thead>
+            <tbody id="wwl-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script defer>
+(function () {
+  var state = { data: null, sortKey: 'totalCommits', sortDir: -1 };
+  var chart = null;
+
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fmtDate(s) {
+    if (!s) return '—';
+    var d = new Date(s.length === 10 ? s + 'T00:00:00Z' : s);
+    if (isNaN(d.getTime())) return esc(s);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
+  function daysAgo(iso) {
+    if (!iso) return 9999;
+    var d = new Date(iso);
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+  function weekLabel(key) {
+    var d = new Date(key + 'T00:00:00Z');
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  }
+
+  function renderCards(data) {
+    var spanWeeks = data.firstActivityWeek && data.lastActivityWeek
+      ? Math.max(1, Math.round((new Date(data.lastActivityWeek) - new Date(data.firstActivityWeek)) / (7 * 86400000)) + 1)
+      : 0;
+    el('wwl-cards').innerHTML = [
+      card('Repositories', data.repoCount, data.publicRepos + ' public · ' + data.privateRepos + ' private'),
+      card('Total commits', data.totalCommits, 'Across all repos'),
+      card('Active weeks', data.activeWeekCount, spanWeeks ? ('~' + spanWeeks + ' week span') : ''),
+      card('First activity', fmtDate(data.firstActivityWeek), 'Week of (UTC)'),
+      card('Latest activity', fmtDate(data.lastActivityWeek), 'Week of (UTC)'),
+      card('Generated', fmtDate(data.generatedAt.slice(0, 10)), data.generatedAt.slice(11, 19) + ' UTC')
+    ].join('');
+  }
+
+  function card(label, value, sub) {
+    return '<div class="wwl-card"><div class="wwl-card-l">' + esc(label) + '</div><div class="wwl-card-v">' + esc(String(value)) + '</div>' +
+      (sub ? '<div class="wwl-card-s">' + esc(sub) + '</div>' : '') + '</div>';
+  }
+
+  function renderChart(data) {
+    var keys = Object.keys(data.weeklyGlobal || {}).sort();
+    var values = keys.map(function (k) { return data.weeklyGlobal[k]; });
+    var ctx = el('wwl-chart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: keys.map(weekLabel),
+        datasets: [{
+          label: 'Commits',
+          data: values,
+          backgroundColor: 'rgba(67, 181, 129, 0.65)',
+          borderColor: '#43b581',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: function (items) {
+                var i = items[0];
+                return 'Week of ' + keys[i.dataIndex];
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#9aa0a6', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { beginAtZero: true, ticks: { color: '#9aa0a6', precision: 0 }, grid: { color: 'rgba(255,255,255,0.06)' } }
+        }
+      }
+    });
+  }
+
+  function compareRows(a, b, key) {
+    var av = a[key], bv = b[key];
+    if (key === 'private') { av = a.private ? 1 : 0; bv = b.private ? 1 : 0; }
+    if (av == null && bv == null) return 0;
+    if (av == null) return 1;
+    if (bv == null) return -1;
+    if (typeof av === 'number' && typeof bv === 'number') return av - bv;
+    return String(av).localeCompare(String(bv));
+  }
+
+  function renderTable(data) {
+    var rows = (data.repos || []).slice();
+    rows.sort(function (a, b) {
+      var c = compareRows(a, b, state.sortKey);
+      return state.sortDir * c;
+    });
+    el('wwl-repo-count').textContent = rows.length + ' repos · sorted by ' + state.sortKey;
+    el('wwl-tbody').innerHTML = rows.map(function (r) {
+      var stale = daysAgo(r.lastPush || r.lastCommit) > 14;
+      var recent = daysAgo(r.lastPush || r.lastCommit) <= 7;
+      var statusCls = recent ? 'wwl-active' : (stale ? 'wwl-stale' : '');
+      return '<tr>' +
+        '<td><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.name) + '</a></td>' +
+        '<td><span class="wwl-badge ' + (r.private ? 'private' : 'public') + '">' + (r.private ? 'Private' : 'Public') + '</span></td>' +
+        '<td>' + esc(r.language) + '</td>' +
+        '<td class="num">' + esc(String(r.totalCommits)) + '</td>' +
+        '<td class="num">' + esc(String(r.activeWeeks)) + '</td>' +
+        '<td class="num">' + fmtDate(r.firstCommit) + '</td>' +
+        '<td class="num ' + statusCls + '">' + fmtDate(r.lastCommit) + '</td>' +
+        '<td class="num ' + statusCls + '">' + fmtDate(r.lastPush) + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  function downloadCsv(data) {
+    var lines = ['week,commits_all_repos'];
+    Object.keys(data.weeklyGlobal || {}).sort().forEach(function (k) {
+      lines.push(k + ',' + data.weeklyGlobal[k]);
+    });
+    lines.push('');
+    lines.push('repo,visibility,language,commits,active_weeks,first_commit,last_commit,last_push,url');
+    (data.repos || []).forEach(function (r) {
+      lines.push([
+        r.name,
+        r.private ? 'private' : 'public',
+        r.language,
+        r.totalCommits,
+        r.activeWeeks,
+        r.firstCommit || '',
+        r.lastCommit || '',
+        (r.lastPush || '').slice(0, 10),
+        r.url
+      ].map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','));
+    });
+    var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'weekly-work-log-' + (data.generatedAt || '').slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function load(force) {
+    el('wwl-status').textContent = force ? 'Rebuilding from GitHub (may take a minute)…' : 'Loading…';
+    el('wwl-error').classList.add('wwl-hidden');
+    el('wwl-content').classList.add('wwl-hidden');
+    var q = force ? '?refresh=1&_=' + Date.now() : '?_=' + Date.now();
+    fetch('/api/weekly-work-log' + q, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (r) { return r.text().then(function (t) {
+        try { return { ok: r.ok, status: r.status, j: JSON.parse(t) }; }
+        catch (e) { return { ok: false, status: r.status, j: {} }; }
+      }); })
+      .then(function (x) {
+        if (!x.ok || !x.j || x.j.ok !== true) {
+          var det = (x.j && x.j.detail) ? String(x.j.detail) : ('HTTP ' + x.status);
+          el('wwl-error').textContent = det + (det.indexOf('GITHUB_TOKEN') >= 0
+            ? ' Set secret GITHUB_TOKEN on the rootrecord-website Pages project (PAT with repo scope), then redeploy.'
+            : '');
+          el('wwl-error').classList.remove('wwl-hidden');
+          el('wwl-status').textContent = 'Failed to load.';
+          return;
+        }
+        state.data = x.j;
+        renderCards(x.j);
+        renderTable(x.j);
+        el('wwl-content').classList.remove('wwl-hidden');
+        el('wwl-status').textContent = 'Account @' + x.j.account + ' · ' + x.j.totalCommits + ' commits · cached up to 1 hour';
+        if (typeof Chart !== 'undefined') renderChart(x.j);
+        else {
+          var t = setInterval(function () {
+            if (typeof Chart !== 'undefined') { clearInterval(t); renderChart(x.j); }
+          }, 50);
+        }
+      })
+      .catch(function () {
+        el('wwl-error').textContent = 'Network error loading /api/weekly-work-log';
+        el('wwl-error').classList.remove('wwl-hidden');
+        el('wwl-status').textContent = 'Failed to load.';
+      });
+  }
+
+  document.querySelectorAll('#wwl-table th[data-sort]').forEach(function (th) {
+    th.addEventListener('click', function () {
+      var key = th.getAttribute('data-sort');
+      if (state.sortKey === key) state.sortDir *= -1;
+      else { state.sortKey = key; state.sortDir = key === 'name' || key === 'language' ? 1 : -1; }
+      if (state.data) renderTable(state.data);
+    });
+  });
+  el('wwl-refresh').addEventListener('click', function () { load(false); });
+  el('wwl-force').addEventListener('click', function () { load(true); });
+  el('wwl-csv').addEventListener('click', function () { if (state.data) downloadCsv(state.data); });
+  load(false);
+})();
+  </script>
+</body>
+</html>

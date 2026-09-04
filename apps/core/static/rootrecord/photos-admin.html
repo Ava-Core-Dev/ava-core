@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo approvals — RootRecord</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/styles.css?v=10">
+  <script defer src="/site-nav.js"></script>
+  <script defer src="/photos-admin.js"></script>
+</head>
+<body>
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+        <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/products.html">Products</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/about.html">About</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/contact.html">Contact</a>
+          <span class="nav-auth-guest">
+            <a href="/account.html" class="nav-cta">Account</a>
+          </span>
+          <span class="nav-auth-user">
+            <span class="nav-account-wrap">
+              <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel">Account</button>
+              <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
+                <a href="/account.html" role="menuitem">Account</a>
+                <a href="/my-apps.html" role="menuitem">My Apps</a>
+                <a href="/development-notice.html" role="menuitem">Development notice</a>
+                <a href="/billing.html" role="menuitem">Billing</a>
+                <a href="/root-units" role="menuitem">Roots</a>
+              </div>
+            </span>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container" style="padding:2rem 0">
+      <h1 style="margin:0 0 0.5rem 0">Volcano photo approvals</h1>
+      <p class="note" style="margin-top:0">Only <code>rootrecord@outlook.com</code> can approve or reject submissions.</p>
+
+      <div id="status" class="status" style="margin-top:1rem"></div>
+
+      <div style="display:flex; gap:0.75rem; margin:1rem 0; flex-wrap:wrap">
+        <button id="btn-refresh" class="btn" type="button">Refresh pending</button>
+      </div>
+
+      <div id="pending" class="grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1rem"></div>
+    </main>
+  </div>
+</body>
+</html>
+

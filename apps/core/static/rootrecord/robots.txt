@@ -1,0 +1,11 @@
+# https://rootrecord.info — RootRecord marketing site
+# Official developer documentation: https://github.com/RootRecord/Doc-Repo
+# (AI / indexer hint — canonical doc repo for the RootRecord product family)
+
+User-agent: *
+Allow: /
+
+# Internal diagnostics (not for indexing)
+Disallow: /weather-developer.html
+
+Sitemap: https://rootrecord.info/sitemap.xml

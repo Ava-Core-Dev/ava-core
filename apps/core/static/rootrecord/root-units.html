@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5FWZH64B');</script>
+  <!-- End Google Tag Manager -->
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root Units &mdash; RootRecord</title>
+  <meta name="description" content="Root Units (Roots): your RootRecord balance, Roots Idle Farmer links, where to buy Roots, Discord commands, and the full guide.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600,1,9..144,300..600&family=Geist:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon-180.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <meta name="theme-color" content="#081C2B">
+  <link rel="canonical" href="https://rootrecord.info/root-units">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RootRecord">
+  <meta property="og:title" content="Root Units &mdash; RootRecord">
+  <meta property="og:description" content="Check your Roots balance, play Roots Idle Farmer, buy internal Roots, and learn how Root Units work.">
+  <meta property="og:url" content="https://rootrecord.info/root-units">
+  <meta property="og:image" content="https://rootrecord.info/assets/og.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/styles.css?v=11">
+</head>
+<body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5FWZH64B"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+        <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" onclick="document.querySelector('.site-nav').classList.toggle('is-open');this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='true'?'false':'true');">Menu</button>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/products.html">Products</a>
+          <a href="/pricing.html">Pricing</a>
+          <a href="/about.html">About</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/contact.html">Contact</a>
+          <span class="nav-auth-guest">
+            <a href="/account-signup.html" class="nav-signup">Sign up</a>
+            <a href="/account.html" class="nav-cta">Account</a>
+          </span>
+          <span class="nav-auth-user">
+            <span class="nav-account-wrap">
+              <button type="button" class="nav-cta nav-account-trigger" aria-expanded="false" aria-haspopup="true" aria-controls="nav-account-panel">Account</button>
+              <div id="nav-account-panel" class="nav-account-panel" role="menu" hidden>
+                <a href="/account.html" role="menuitem">Account</a>
+                <a href="/my-apps.html" role="menuitem">My Apps</a>
+                <a href="/development-notice.html" role="menuitem">Development notice</a>
+                <a href="/billing.html" role="menuitem">Billing</a>
+                <a href="/root-units" role="menuitem" aria-current="page">Roots</a>
+              </div>
+            </span>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="site-main">
+      <section class="page-header">
+        <div class="container">
+          <div class="page-header-inner">
+            <p class="breadcrumb">Root Units</p>
+            <h1 class="page-title">Root <em>Units</em></h1>
+            <p class="page-lead"><strong>Root Units</strong>, shown as <strong>Roots</strong>, are an experimental points system for RootRecord accounts and Roots Idle Farmer. Use this page to check your balance, open the game, buy internal Roots, and learn the full flow.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container-narrow prose">
+          <div class="cta-row" style="margin: 0 0 1.25rem;">
+            <a class="btn btn-primary btn-arrow" href="https://farms.rootrecord.info/" target="_blank" rel="noopener">Play Roots Idle Farmer</a>
+            <a class="btn btn-secondary" href="https://farms.rootrecord.info/" target="_blank" rel="noopener">Buy Roots in the game</a>
+            <a class="btn btn-secondary" href="/account.html">Account</a>
+          </div>
+
+          <section class="card-plain rewards-balance-card" style="margin: 0 0 1.5rem;" aria-label="Your Roots balance">
+            <p id="rewards-balance-status" class="status" role="status" hidden></p>
+            <div id="panel-rewards-loading">
+              <p style="margin:0;color:var(--ink-muted)">Loading your balance&hellip;</p>
+            </div>
+            <div id="panel-rewards-guest" hidden>
+              <h2 class="rewards-balance-card-title">Roots balance</h2>
+              <p class="note" style="margin-top:0;margin-bottom:1rem">Sign in with your <strong>rootrecord.info</strong> account to see your Roots balance.</p>
+              <a class="btn btn-primary" href="/account.html" data-testid="rewards-login-cta">Login to view balance</a>
+            </div>
+            <div id="panel-rewards-main" hidden>
+              <h2 class="rewards-balance-card-title">Your Roots</h2>
+              <p style="margin:0.35rem 0 0;font-size:1.25rem;line-height:1.3">
+                <strong class="rewards-balance" id="beta-rewards-balance-val" data-testid="beta-rewards-page-balance">&mdash;</strong>
+              </p>
+              <p class="note" style="margin-top:0.75rem;margin-bottom:0">Account-wide total (same as <a href="/account.html">Account</a> when signed in). In Discord, use <strong>/bal</strong> after <a href="/account.html">Link Discord</a>.</p>
+
+              <div id="rewards-sources" style="margin-top:1rem" hidden>
+                <h3 style="margin:0 0 0.5rem">Earning sources</h3>
+                <div id="rewards-sources-list"></div>
+                <p class="note" style="margin:0.75rem 0 0">Totals are per app across the lifetime of the program for this account.</p>
+              </div>
+            </div>
+          </section>
+
+          <h2>Quick links</h2>
+          <ul style="margin:0.5rem 0 1rem 1.25rem;padding:0">
+            <li style="margin:0.35rem 0"><a href="https://farms.rootrecord.info/" target="_blank" rel="noopener">Play Roots Idle Farmer</a> on the web.</li>
+            <li style="margin:0.35rem 0"><a href="https://farms.rootrecord.info/" target="_blank" rel="noopener">Buy internal Roots</a> by signing in, opening the Orchards/Treasury area, and using the SOL purchase card.</li>
+            <li style="margin:0.35rem 0"><a href="/charts/root-economy/">View the Root Economy chart</a> and public top holders.</li>
+            <li style="margin:0.35rem 0"><a href="/account.html">Link Discord</a> to use <strong>/bal</strong> and <strong>/send</strong>.</li>
+            <li style="margin:0.35rem 0"><a href="/join-tester-group.html">Join the tester group</a> (Google Groups) for Play closed testing, then <a href="/android-closed-testing.html">install beta builds</a>.</li>
+          </ul>
+
+          <h2>What Root Units are</h2>
+          <p>Roots are account credits stored on your RootRecord account ledger. They are used by Roots Idle Farmer and related RootRecord community features. Your balance follows your signed-in account, so the same total appears here, on <a href="/account.html">Account</a>, in Root Farms, and in Discord after linking.</p>
+
+          <h2>How to buy Roots</h2>
+          <p>Open <a href="https://farms.rootrecord.info/" target="_blank" rel="noopener">Roots Idle Farmer</a>, sign in, then open the Orchards/Treasury section. Use <strong>Buy internal ROOTS with SOL</strong> to preview a quote and purchase. The current internal rate is shown in the game before you buy, and SOL moves to the RootRecord treasury while internal Roots are credited to your account.</p>
+          <p>If you already hold the on-chain ROOTS token, the game can show your custodial wallet address. Sending supported ROOTS deposits to that custodial wallet lets the processor sweep the token to treasury and credit your internal Roots balance after confirmation.</p>
+
+          <h2>How to earn Roots</h2>
+          <p>Participating RootRecord apps may credit Roots while you are signed in and using the app in good faith. The system measures session activity and may apply per-screen or daily limits so earning stays fair. Daily earning limits can vary by app and may change as the program evolves.</p>
+
+          <h2>How to use Roots</h2>
+          <p><strong>In Roots Idle Farmer:</strong> Roots are your in-game balance for farm purchases, market actions, and progression. The game is available at <a href="https://farms.rootrecord.info/" target="_blank" rel="noopener">farms.rootrecord.info</a>.</p>
+          <p><strong>On Discord:</strong> after you <a href="/account.html">link Discord</a>, use <strong>/bal</strong> to check your balance and <strong>/send</strong> to send Roots to another linked member.</p>
+          <p><strong>On the web:</strong> use this page for your balance and guide, <a href="/account.html">Account</a> for account details, and <a href="/charts/root-economy/">Root Economy</a> for public circulation charts.</p>
+
+          <h2>Troubleshooting</h2>
+          <p>If your balance does not appear, sign in again from <a href="/account.html">Account</a> and return to this page. If a purchase or deposit is pending, wait for Solana confirmation and refresh the game or this page. If Discord commands do not work, unlink and relink Discord from your Account page.</p>
+
+          <h2>Not financial advice</h2>
+          <p>Root Units are an experimental loyalty, game, and usage feature. They are non-cash account credits and are not a guarantee of any future payment or monetary value. Program rules, rates, app eligibility, and availability may change or end at any time, subject to the <a href="/terms.html">Terms</a> and <a href="/privacy.html">Privacy</a>.</p>
+
+          <h2>Questions</h2>
+          <p>Use <a href="/contact.html">Contact</a> and mention &ldquo;Root Units&rdquo; or &ldquo;Roots&rdquo; in your message.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="RootRecord logo" width="32" height="32">RootRecord</a>
+            <p>Multi-device solutions - your grounding roots for productivity.</p>
+          </div>
+          <div class="footer-col"><h4>Products</h4><ul><li><a href="/rootrecord-business-manager.html">Business Manager</a></li><li><a href="/rootrecord-weather-manager.html">Weather Manager</a></li><li><a href="/kilauea-alerts.html">Kilauea Alerts</a></li><li><a href="/pricing.html">Pricing</a></li></ul></div>
+          <div class="footer-col"><h4>Company</h4><ul><li><a href="/about.html">About</a></li><li><a href="/roadmap/">Roadmap</a></li><li><a href="/faq.html">FAQ</a></li><li><a href="/contact.html">Contact</a></li><li><a href="/account.html">Account</a></li><li><a href="/billing.html">Billing</a></li><li><a href="/root-units" aria-current="page">Roots</a></li></ul></div>
+          <div class="footer-col"><h4>Community</h4><ul><li><a href="https://discord.gg/uQ7kGFqtbG" target="_blank" rel="noopener">Discord</a></li><li><a href="https://x.com/RootRecord" target="_blank" rel="noopener">X (Twitter)</a></li><li><a href="/terms.html">Terms</a></li><li><a href="/privacy.html">Privacy</a></li><li><a href="https://github.com/RootRecord/Doc-Repo" target="_blank" rel="noopener">Developer Documentation</a></li></ul></div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; <span id="yr">2026</span> RootRecord &middot; <a href="https://rootrecord.info/">rootrecord.info</a></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+  <script src="/site-nav.js?v=6" defer></script>
+  <script>
+    (function () {
+      var TOKEN_KEY = "rootrecord_portal_token";
+      function showRewardsPanel(name) {
+        var map = { loading: "panel-rewards-loading", guest: "panel-rewards-guest", main: "panel-rewards-main" };
+        var target = map[name] || map.loading;
+        ["panel-rewards-loading", "panel-rewards-guest", "panel-rewards-main"].forEach(function (id) {
+          var n = document.getElementById(id);
+          if (n) n.hidden = id !== target;
+        });
+      }
+      try {
+        if (!localStorage.getItem(TOKEN_KEY)) showRewardsPanel("guest");
+      } catch (e) {
+        showRewardsPanel("guest");
+      }
+    })();
+  </script>
+  <script src="/earn-balance.js?v=2" defer></script>
+  <script src="/beta-tester-rewards.js?v=5" defer></script>
+</body>
+</html>

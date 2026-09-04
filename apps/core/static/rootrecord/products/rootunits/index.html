@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roots Idle Farmer &mdash; RootRecord</title>
+  <meta name="description" content="Roots Idle Farmer — earn Roots in a shared economy. Play on farms.rootrecord.info or Android; track live internal circulation on the Root Economy chart.">
+  <link rel="canonical" href="https://rootrecord.info/products/rootunits/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,30..100&family=Geist:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/styles.css?v=11">
+  <script src="/root-economy-widget.js?v=12" defer></script>
+</head>
+<body>
+  <div class="site">
+    <header class="site-header">
+      <div class="container site-header-inner">
+        <a class="brand" href="/"><img class="brand-mark" src="/favicon-180.png" alt="" width="32" height="32">RootRecord</a>
+        <nav class="site-nav">
+          <a href="/">Home</a>
+          <a href="/products.html" aria-current="page">Products</a>
+          <a href="/root-units">Roots</a>
+          <a href="/account.html" class="nav-cta">Account</a>
+        </nav>
+      </div>
+    </header>
+    <main class="site-main">
+      <section class="page-header">
+        <div class="container">
+          <p class="breadcrumb"><a href="/products.html">Products</a> / Roots Idle Farmer</p>
+          <h1 class="page-title">Roots <em>Idle Farmer</em></h1>
+          <p class="page-lead">Idle farming on the shared RootRecord economy. Sign in with your <strong>rootrecord.info</strong> account to earn Roots in-game; balances live on the same ledger as our other apps.</p>
+        </div>
+      </section>
+      <section class="section" style="padding-top:0">
+        <div class="container">
+          <div class="callout callout-hero">
+            <h2 style="margin:0 0 0.5rem;font-size:1.35rem">Play now</h2>
+            <p style="margin:0 0 1rem">Web app at <strong>farms.rootrecord.info</strong>. Android package <code>com.rootrecord.rootunits</code> (closed testing when listed).</p>
+            <div class="cta-row">
+              <a class="btn btn-primary btn-arrow" href="https://farms.rootrecord.info/" target="_blank" rel="noopener">Open farms.rootrecord.info</a>
+              <a class="btn btn-secondary" href="/root-units">Your Roots balance</a>
+            </div>
+          </div>
+          <h2 class="section-title" style="font-size:1.2rem;margin:2rem 0 0.75rem">Root Economy (live)</h2>
+          <p class="note" style="margin:0 0 1rem">Total internal circulation across linked accounts — no sign-in required.</p>
+          <div id="product-rootunits-economy"></div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="container footer-bottom">
+        <span>&copy; <span id="yr">2026</span> RootRecord</span>
+      </div>
+    </footer>
+  </div>
+  <script>
+    document.getElementById("yr").textContent = new Date().getFullYear();
+    document.addEventListener("DOMContentLoaded", function () {
+      var el = document.getElementById("product-rootunits-economy");
+      if (el && typeof mountRootEconomyWidget === "function") {
+        mountRootEconomyWidget(el, { compact: false, days: 30, pollMs: 20000 });
+      }
+    });
+  </script>
+  <script src="/site-nav.js?v=5" defer></script>
+</body>
+</html>
