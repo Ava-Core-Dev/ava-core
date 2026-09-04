@@ -13,6 +13,8 @@ from apps.core.services.data_layout import device_role, ecoflow_dir, ensure_data
 log = logging.getLogger("ava.loads")
 
 APPLIANCE_AC_W = 1000.0
+STARLINK_BAND_LO = 40.0
+STARLINK_BAND_HI = 250.0
 CAR_W_MIN = 5.0
 NIGHT_IN_W = 20.0
 PV_FLAT_W = 15.0
@@ -97,6 +99,14 @@ def _is_river(d: dict) -> bool:
     return device_role(str(d.get("sn") or d.get("label") or "")) == "river"
 
 
+def _ac_out(d: dict) -> float:
+    return float(d.get("ac_out_w") or 0)
+
+
+def _ac_in(d: dict) -> float:
+    return max(float(d.get("ac_in_w") or 0), float(d.get("ac_charge_w") or 0))
+
+
 def apply_roles(devices: list[dict]) -> None:
     for d in devices:
         d["ac_role"] = None
@@ -108,42 +118,58 @@ def apply_roles(devices: list[dict]) -> None:
     delta = next((d for d in devices if _is_delta(d)), None)
     river = next((d for d in devices if _is_river(d)), None)
 
-    def _pair(src: dict, dst: dict) -> bool:
-        src_out = max(float(src.get("ac_out_w") or 0), float(src.get("discharge_w") or 0))
-        dst_in = max(float(dst.get("ac_in_w") or 0), float(dst.get("ac_charge_w") or 0))
-        if not same_watts(src_out, dst_in):
-            return False
-        src["ac_role"] = "transfer_out"
-        dst["ac_role"] = "transfer_in"
-        src["transfer_sure"] = True
-        dst["transfer_sure"] = True
-        src["transfer_w"] = round(src_out, 1)
-        dst["transfer_w"] = round(dst_in, 1)
-        return True
-
-    if delta and river and (_pair(delta, river) or _pair(river, delta)):
-        return
-
-    extra = 0.0
+    src = dst = None
+    transfer = 0.0
     if delta and river:
-        extra = max(0.0, float(delta.get("ac_out_w") or 0) - float(river.get("ac_in_w") or 0))
-    kettle = extra >= APPLIANCE_AC_W or extra >= 800
+        d_out, r_out = _ac_out(delta), _ac_out(river)
+        d_in, r_in = _ac_in(delta), _ac_in(river)
+        # AC only — never discharge_w (USB inflates that).
+        if d_out >= 20 and r_in >= 20:
+            src, dst = delta, river
+            transfer = min(d_out, r_in)
+        elif r_out >= 20 and d_in >= 20:
+            src, dst = river, delta
+            transfer = min(r_out, d_in)
+        if src is not None:
+            src["ac_role"] = "transfer_out"
+            dst["ac_role"] = "transfer_in"
+            src["transfer_sure"] = True
+            dst["transfer_sure"] = True
+            src["transfer_w"] = round(transfer, 1)
+            dst["transfer_w"] = round(transfer, 1)
 
+    leftover: list[tuple[dict, float]] = []
     for d in devices:
-        aco = float(d.get("ac_out_w") or 0)
-        if aco < 20:
+        aco = _ac_out(d)
+        house = max(0.0, aco - transfer) if d is src else aco
+        if house < 20:
             continue
-        if aco >= APPLIANCE_AC_W or (_is_delta(d) and kettle and extra >= APPLIANCE_AC_W):
-            d["ac_role"] = "appliances"
-            d["appliance_w"] = round(aco if aco >= APPLIANCE_AC_W else extra, 1)
-        elif _is_delta(d):
-            d["ac_role"] = "starlink_lights"
-            d["starlink_w"] = round(aco, 1)
-        elif _is_river(d):
-            d["ac_role"] = "emergency"
-            d["emergency_w"] = round(aco, 1)
+        leftover.append((d, house))
+
+    kettle_devs = [(d, w) for d, w in leftover if w >= APPLIANCE_AC_W]
+    house_devs = [(d, w) for d, w in leftover if w < APPLIANCE_AC_W]
+    for d, w in kettle_devs:
+        d["ac_role"] = "appliances"
+        d["appliance_w"] = round(w, 1)
+
+    starlink_pick: dict | None = None
+    in_band = [(d, w) for d, w in house_devs if STARLINK_BAND_LO <= w <= STARLINK_BAND_HI]
+    if len(in_band) == 1:
+        starlink_pick = in_band[0][0]
+    elif house_devs:
+        starlink_pick = max(house_devs, key=lambda x: x[1])[0]
+
+    for d, w in house_devs:
+        if d is starlink_pick:
+            d["starlink_w"] = round(w, 1)
+            if d.get("ac_role") != "transfer_out":
+                d["ac_role"] = "starlink_lights"
         else:
-            d["ac_role"] = "ac_out"
+            d["emergency_w"] = round(w, 1)
+            if d.get("ac_role") != "transfer_out" and d.get("ac_role") != "transfer_in":
+                d["ac_role"] = "emergency"
+            elif d.get("ac_role") == "transfer_in" and not d.get("starlink_w"):
+                d["ac_role"] = "emergency"
 
 
 def categories(devices: list[dict]) -> dict:
