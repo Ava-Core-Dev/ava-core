@@ -45,6 +45,24 @@ async def lifespan(app: FastAPI):
         ],
         force=True,
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    class _RedactSecrets(logging.Filter):
+        _bot = re.compile(r"bot\d+:[A-Za-z0-9_-]+")
+
+        def filter(self, record: logging.LogRecord) -> bool:
+            try:
+                record.msg = self._bot.sub("bot<redacted>", str(record.msg))
+            except Exception:
+                pass
+            return True
+
+    import re as _re_mod
+
+    redact = _RedactSecrets()
+    for h in logging.getLogger().handlers:
+        h.addFilter(redact)
 
     config.ensure_dirs()
     import asyncio

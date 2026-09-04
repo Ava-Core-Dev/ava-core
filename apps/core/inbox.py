@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 
 from . import config
@@ -91,6 +92,8 @@ async def telegram_loop() -> None:
         log.info("Telegram inbox off (no bot token)")
         return
     log.info("Telegram report-subscribe inbox running")
+    from apps.core.services import telegram_rooms
+
     state = _load_state()
     offset = int(state.get("telegram_offset") or 0)
     while True:
@@ -104,20 +107,35 @@ async def telegram_loop() -> None:
                 chat_id = chat.get("id")
                 if chat_id is None:
                     continue
+                chat_type = str(chat.get("type") or "")
+                is_group = chat_type in {"group", "supergroup"}
                 cmd = _parse_cmd(text)
                 from_user = msg.get("from") or {}
+                from_id = str(from_user.get("id") or "")
                 label = str(from_user.get("username") or from_user.get("first_name") or "")
+                telegram_rooms.append_log(str(chat_id), "ingest" if text else "group_update", text, from_id)
                 if cmd:
                     reply = await _handle("telegram", str(chat_id), cmd, label=label)
                     await telegram.send_message(chat_id, reply)
                     continue
                 asked = text.strip()
-                if asked:
-                    from apps.core.services import discord_chat
+                if not asked:
+                    continue
+                if is_group and not _tg_addressed(msg, asked):
+                    continue
+                from apps.core.services import discord_chat
 
+                if is_group:
+                    extra = telegram_rooms.lock_for(str(chat_id))
+                    reply = await discord_chat.ava_reply(asked, extra_lock=extra)
+                elif from_id == telegram_rooms.ALEX_TG:
                     reply = await discord_chat.ava_reply(asked, dm=True)
-                    if reply:
-                        await telegram.send_message(chat_id, reply)
+                else:
+                    extra = persona_lock_public()
+                    reply = await discord_chat.ava_reply(asked, extra_lock=extra)
+                if reply:
+                    telegram_rooms.append_log(str(chat_id), "reply", reply, "ava")
+                    await telegram.send_message(chat_id, reply)
             state = _load_state()
             state["telegram_offset"] = offset
             _save_state(state)
@@ -125,6 +143,12 @@ async def telegram_loop() -> None:
             log.debug("telegram inbox: %s", e)
             import asyncio
             await asyncio.sleep(5)
+
+
+def persona_lock_public() -> str:
+    from apps.core.services import persona as persona_svc
+
+    return persona_svc.PUBLIC_LOCK.strip()
 
 
 async def _discord_bot_id() -> str:
