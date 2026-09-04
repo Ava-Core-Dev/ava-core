@@ -34,6 +34,8 @@ import websockets
 MUSIC_AUDIO_EXTS = {
     ".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".wma", ".opus",
 }
+# Short overlap when advancing to the next shuffled track (winsound has no volume fade).
+MUSIC_BLEND_S = 1.35
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -246,13 +248,19 @@ def _music_cmdline_is_bed(cmdline: str) -> bool:
     return False
 
 
-def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
+def kill_stray_music_players(
+    *, keep_pid: int | None = None, keep_pids: set[int] | None = None
+) -> int:
     """Kill OS players for the music bed (orphans from origin recycle).
 
     Uses psutil + AVA_MUSIC_BED marker. Only powershell/ffplay/etc hosts — never
     path-only matches on arbitrary processes.
+    keep_pid / keep_pids spare the live player (and a brief blend overlap peer).
     """
     killed = 0
+    spare: set[int] = set(keep_pids or ())
+    if keep_pid is not None:
+        spare.add(int(keep_pid))
     try:
         import psutil
     except Exception:
@@ -278,7 +286,7 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 pid = int(proc.info["pid"])
             except Exception:
                 continue
-            if keep_pid is not None and pid == keep_pid:
+            if pid in spare:
                 continue
             if pid <= 0:
                 continue
@@ -341,7 +349,7 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 if line.isdigit():
                     pids.append(int(line))
         for pid in pids:
-            if keep_pid is not None and pid == keep_pid:
+            if pid in spare:
                 continue
             try:
                 subprocess.run(
@@ -369,9 +377,48 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
     return killed
 
 
-async def _kill_stray_music_players_async(*, keep_pid: int | None = None) -> int:
+async def _kill_stray_music_players_async(
+    *, keep_pid: int | None = None, keep_pids: set[int] | None = None
+) -> int:
     """Run kill_stray off the asyncio thread so origin health stays responsive."""
-    return await asyncio.to_thread(kill_stray_music_players, keep_pid=keep_pid)
+    return await asyncio.to_thread(
+        kill_stray_music_players, keep_pid=keep_pid, keep_pids=keep_pids
+    )
+
+
+def _music_wanted_path() -> Path:
+    try:
+        from apps.core import config
+
+        return Path(config.DATA_DIR) / "state" / "music-bed-wanted.txt"
+    except Exception:
+        return Path.home() / "ava" / "data" / "state" / "music-bed-wanted.txt"
+
+
+def set_music_bed_wanted(on: bool) -> None:
+    """Persist operator intent so origin recycle can restart the bed."""
+    path = _music_wanted_path()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("1" if on else "0", encoding="ascii")
+    except Exception:
+        logging.getLogger("ava.director").warning(
+            "Music bed wanted flag write failed  path=%s", path
+        )
+
+
+def music_bed_wanted() -> bool:
+    """True when env AVA_MUSIC_BED=1 or data/state/music-bed-wanted.txt is on."""
+    if music_bed_autostart_enabled():
+        return True
+    try:
+        path = _music_wanted_path()
+        if path.is_file():
+            raw = path.read_text(encoding="utf-8", errors="ignore").strip().lower()
+            return raw in ("1", "true", "yes", "on")
+    except Exception:
+        pass
+    return False
 
 
 
