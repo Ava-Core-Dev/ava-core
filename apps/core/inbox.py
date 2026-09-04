@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 
 from . import config
-from .services import discord, subscribers, telegram
+from .services import discord, slack, subscribers, telegram
 
 log = logging.getLogger("ava.inbox")
 
@@ -45,7 +45,7 @@ def _load_state() -> dict:
             return json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             pass
-    return {"telegram_offset": 0, "discord_last": {}}
+    return {"telegram_offset": 0, "discord_last": {}, "slack_last": {}}
 
 
 def _save_state(state: dict) -> None:
@@ -229,7 +229,74 @@ async def _discord_tick() -> None:
     _save_state(state)
 
 
+def _slack_addressed(text: str, bot_id: str) -> bool:
+    raw = str(text or "")
+    if bot_id and f"<@{bot_id}>" in raw:
+        return True
+    import re
+
+    return bool(re.search(r"\bava(?:\s+ivy)?\b", raw, re.I))
+
+
+async def slack_loop() -> None:
+    if not config.slack_bot_token():
+        log.info("Slack inbox off (no bot token)")
+        return
+    import asyncio
+    import re
+
+    probe = await slack.auth_test()
+    if not probe.get("ok"):
+        log.info("Slack inbox off (%s)", probe.get("error") or "auth.test")
+        return
+    bot_id = str(probe.get("user_id") or config.slack_bot_user_id() or "")
+    log.info("Slack Ava mention inbox running")
+    while True:
+        try:
+            state = _load_state()
+            last: dict[str, str] = dict(state.get("slack_last") or {})
+            for cid in config.SLACK_CHANNELS.values():
+                if not cid:
+                    continue
+                msgs = await slack.history(cid, limit=10)
+                if not msgs:
+                    continue
+                newest = str(msgs[0].get("ts") or "")
+                prev = last.get(cid)
+                if not prev:
+                    last[cid] = newest
+                    continue
+                pending = []
+                for msg in msgs:
+                    ts = str(msg.get("ts") or "")
+                    if not ts or float(ts or 0) <= float(prev or 0):
+                        break
+                    pending.append(msg)
+                for msg in reversed(pending):
+                    if msg.get("bot_id") or msg.get("subtype"):
+                        continue
+                    uid = str(msg.get("user") or "")
+                    if uid and uid == bot_id:
+                        continue
+                    text = str(msg.get("text") or "")
+                    if not _slack_addressed(text, bot_id):
+                        continue
+                    asked = re.sub(rf"<@{re.escape(bot_id)}>", " ", text).strip() if bot_id else text.strip()
+                    from apps.core.services import discord_chat
+
+                    reply = await discord_chat.ava_reply(asked or "hey", dm=False)
+                    if reply:
+                        await slack.post_message(cid, reply)
+                last[cid] = newest or prev
+            state = _load_state()
+            state["slack_last"] = last
+            _save_state(state)
+        except Exception as e:
+            log.debug("slack inbox: %s", e)
+        await asyncio.sleep(25)
+
+
 async def run_inbox() -> None:
     import asyncio
 
-    await asyncio.gather(telegram_loop(), discord_loop())
+    await asyncio.gather(telegram_loop(), discord_loop(), slack_loop())
