@@ -232,15 +232,15 @@ def build_facts(*, source: str = "boot") -> str:
     lines.append(
         "Broken / needs work (operator notes if known): after restore, public chat can show "
         "offline until origin and on-device brain are warm; paid cloud voice stays off; "
-        "prefer wall power if the site bank is low."
+        "this site is off-grid solar — if the site bank is low, manage load and sun, never advise wall power."
     )
     lines.append(
         "Already landed (recent, if true on this host): net-gate restore, Ava Desk visible launch, "
         "day board, guest reply cap, persona live facts for public chat."
     )
     lines.append(
-        "Priority: keep paid cloud voice off; keep AC and site bank alive; leave public chat on the "
-        "on-device brain; wait for warm load after restores."
+        "Priority: keep paid cloud voice off; keep Starlink and the site bank alive on solar packs, "
+        "sun, and load management; leave public chat on the on-device brain; wait for warm load after restores."
     )
     return "\n".join(lines)
 
@@ -249,6 +249,20 @@ _FORBIDDEN = re.compile(
     r"\b(Aloha|OmniBook|Cloudflare|Ollama|Electron|Vulkan|Radeon|Shockbyte|"
     r"GitHub|Grok|xAI|ChatGPT|Claude|Cursor|llama|qwen|Llama|Qwen)\b",
     re.I,
+)
+
+
+_WALL_POWER_ADVICE = re.compile(
+    r"(?i)\b("
+    r"prefer\s+wall\s+power(?:\s+if\s+the\s+site\s+bank\s+is\s+low)?"
+    r"|a\s+preference\s+for\s+wall\s+power(?:\s+when\s+the\s+site\s+bank\s+is\s+low)?"
+    r"|wall\s+power"
+    r"|wall\s+outlet"
+    r"|AC\s+power"
+    r"|plug(?:\s+it)?\s+in(?:to)?(?:\s+(?:the\s+)?(?:wall|outlet|grid))?"
+    r"|dock\s+(?:for\s+)?(?:power|charging)"
+    r"|on\s+(?:the\s+)?(?:wall\s+)?dock\s+for\s+power"
+    r")\b[^.]*\.?"
 )
 
 
@@ -270,6 +284,18 @@ def scrub_spoken(text: str) -> str:
     out = re.sub(r"\bHST\b", "Hawaiian Standard Time", out)
     out = re.sub(r"Hawai[`ʻ']i", "Hawaii", out)
     out = re.sub(r"\bHI\b", "Hawaii", out)
+    # Off-grid: never advise grid wall power for this Root Server.
+    out = _WALL_POWER_ADVICE.sub(
+        "keep Starlink and the site bank alive on solar packs, sun, and load management",
+        out,
+    )
+    out = re.sub(
+        r"(?i)\bkeep\s+AC\s+and\s+(?:the\s+)?site\s+bank\s+alive\b",
+        "keep Starlink and the site bank alive on solar packs, sun, and load management",
+        out,
+    )
+    out = re.sub(r"[ \t]{2,}", " ", out)
+    out = re.sub(r"\n{3,}", "\n\n", out)
     if not out.rstrip().endswith("End of status."):
         if "End of status" not in out:
             out = out.rstrip() + "\n\nEnd of status."
@@ -330,11 +356,11 @@ Kīlauea Summary. {kil}
 
 Power. {power}
 
-Broken / needs work. After a restore, public chat can say offline until origin and the on-device brain are warm. Paid cloud voice stays off. Prefer wall power if the site bank is low.
+Broken / needs work. After a restore, public chat can say offline until origin and the on-device brain are warm. Paid cloud voice stays off. This site is off-grid solar. If the site bank is low, manage load and sun — never advise wall power.
 
 Already landed. Net-gate restore, visible Ava Desk launch, day board, guest reply cap, and persona live facts for public chat are on this host.
 
-Priority. Keep paid cloud voice off. Keep AC and the site bank alive. Leave public chat on the on-device brain. After restores, wait for warm load before the first public reply.
+Priority. Keep paid cloud voice off. Keep Starlink and the site bank alive on solar packs, sun, and load management. Leave public chat on the on-device brain. After restores, wait for warm load before the first public reply.
 
 End of status.
 """

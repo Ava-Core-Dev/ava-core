@@ -412,8 +412,9 @@ def _fmt_host(row: dict[str, Any], *, last_at: float | None, source: str) -> str
         bits.append(source)
     batt = row.get("battery_pct")
     if batt is not None:
-        ac = "AC" if row.get("battery_plugged") else "battery"
-        bits.append(f"charge {int(round(float(batt)))}% {ac}")
+        # Off-grid: never say "AC" here — models turn it into wall-outlet advice.
+        mode = "charging" if row.get("battery_plugged") else "on battery"
+        bits.append(f"charge {int(round(float(batt)))}% {mode}")
     cpu = row.get("cpu_pct")
     if cpu is not None:
         bits.append(f"CPU {int(round(float(cpu)))}%")
