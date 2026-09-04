@@ -204,6 +204,20 @@ async def live_snapshot() -> dict:
         _LIVE_CACHE.update({"snap": snap, "at": now})
         return snap
 
+    # Cold process: serve on-disk quota first so /status never waits on EcoFlow
+    # + broken D1 long enough for the Worker to fall back to a frozen bank.
+    if not cached:
+        disk = _quota_snapshot()
+        if disk and any(d.get("online") for d in (disk.get("devices") or [])):
+            _LIVE_CACHE.update({"snap": disk, "at": now})
+            try:
+                import asyncio
+
+                asyncio.get_running_loop().create_task(_refresh_live_snapshot())
+            except RuntimeError:
+                pass
+            return disk
+
     online_map: dict[str, bool | None] = {}
     banks: list[float] = []
     devices: list[dict] = []
@@ -271,8 +285,16 @@ async def live_snapshot() -> dict:
         "source": "ecoflow_live",
         "updated_at": datetime.now(timezone.utc).isoformat(),
     })
-    await _push_ecoflow_d1(live)
+    # Cache before D1. Never await edge write on the desk path — 403/7403 can
+    # burn the Worker's 8s proxy budget and force CLOUDFLARE-FALLBACK with a
+    # stale D1 bank that still says ecoflow_live.
     _LIVE_CACHE.update({"snap": live, "at": now})
+    try:
+        import asyncio
+
+        asyncio.get_running_loop().create_task(_push_ecoflow_d1(live))
+    except RuntimeError:
+        pass
     return live
 
 
@@ -305,6 +327,10 @@ async def _push_ecoflow_d1(snap: dict) -> None:
 
         if not config.CF_D1_HEARTBEAT_DB_ID:
             return
+        # Same quiet window as write_heartbeat — do not hammer 403/7403.
+        fail_until = float(getattr(heartbeat, "_fail_until", 0) or 0)
+        if fail_until and time.monotonic() < fail_until:
+            return
         payload = json.dumps(snap, default=str)[:120_000]
         sql = (
             "CREATE TABLE IF NOT EXISTS ava_ecoflow ("
@@ -317,14 +343,23 @@ async def _push_ecoflow_d1(snap: dict) -> None:
         modes = heartbeat._auth_modes()
         if not modes:
             return
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=5) as client:
             headers = modes[0][1]
-            await heartbeat._d1_query(client, sql, headers=headers)
-            await heartbeat._d1_query(
+            created = await heartbeat._d1_query(client, sql, headers=headers)
+            if created is not None and created.status_code in {401, 403}:
+                heartbeat._fail_until = time.monotonic() + float(
+                    getattr(heartbeat, "_FAIL_QUIET_S", 600) or 600
+                )
+                return
+            written = await heartbeat._d1_query(
                 client, upsert,
-                [ "ava-core", datetime.now(timezone.utc).isoformat(), payload],
+                ["ava-core", datetime.now(timezone.utc).isoformat(), payload],
                 headers,
             )
+            if written is not None and written.status_code in {401, 403}:
+                heartbeat._fail_until = time.monotonic() + float(
+                    getattr(heartbeat, "_FAIL_QUIET_S", 600) or 600
+                )
     except Exception as e:
         log.debug("ecoflow D1 push skipped: %s", e)
 
