@@ -89,7 +89,7 @@ export default {
 
     // The solar board and the status board were the same page.
     if (path === "/solar") {
-      return Response.redirect(url.origin + HOME_PAGE, 301);
+      return Response.redirect(url.origin + "/status", 301);
     }
 
     // One pattern for every HTML file: /about.html → /about (query kept).
