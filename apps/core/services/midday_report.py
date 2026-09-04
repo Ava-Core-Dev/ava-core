@@ -402,15 +402,28 @@ def generate_spoken(
         stamped = False
     else:
         text = boot_report.scrub_spoken(reply)
-        if include_timestamp and "12 noon" not in text and "noon" not in text.lower():
-            # Ensure full path carries the noon presentation clock.
-            text = re.sub(
-                r"(?i)^(This is the Ava Core Root Record midday status for [^.\n]+)\.?",
-                rf"\1, {PRESENT_AS_NOON}.",
-                text,
-                count=1,
-            )
-            text = boot_report.scrub_spoken(text)
+        day = weekday_line()
+        opener_full = open_line(include_timestamp=True, now=datetime.now(HST))
+        opener_bare = open_line(include_timestamp=False, now=datetime.now(HST))
+        if include_timestamp:
+            if not re.search(r"(?i)midday status for", text):
+                text = opener_full + "\n\n" + text.lstrip()
+            elif "12 noon" not in text and "noon" not in text.lower():
+                text = re.sub(
+                    r"(?i)^(This is the Ava Core Root Record midday status for [^.\n]+)\.?",
+                    rf"\1, {PRESENT_AS_NOON}.",
+                    text,
+                    count=1,
+                )
+            # Model sometimes emits only the clock fragment — replace with full opener.
+            if re.match(r"(?i)^\s*about\s+12\s+noon", text):
+                text = opener_full + "\n\n" + re.sub(
+                    r"(?i)^\s*about\s+12\s+noon[^.]*\.\s*", "", text, count=1
+                )
+        else:
+            if not re.search(r"(?i)midday status for", text):
+                text = opener_bare + "\n\n" + text.lstrip()
+        text = boot_report.scrub_spoken(text)
 
     return {
         "ok": True,
