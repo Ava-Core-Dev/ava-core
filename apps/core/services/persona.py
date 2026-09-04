@@ -176,7 +176,12 @@ async def live_facts() -> str:
     EcoFlow / host / identities come from read-only jsonl or sqlite last samples.
     Does not call live_snapshot() (that path appends history).
     """
-    from apps.core.services import db_facts
+    from apps.core.services import db_facts, live_wx
+
+    try:
+        wx_lines = await live_wx.weather_lines()
+    except Exception:
+        wx_lines = ["Weather: DOWN", "HI alerts: unknown", "Hurricanes: unknown"]
 
     lines = [
         f"Numbers for this turn ({config.hst_now_text()}). Speak in your own words. Do not print a LIVE FACTS heading.",
@@ -197,7 +202,8 @@ Never print the words LIVE FACTS. Never print "Quote these or say DOWN". Never p
 No URLs unless they ask where to go. No operator paths. No uvicorn.
 Utilities first: solar packs, this host, Kīlauea, weather. Minecraft / RootMC only if they ask.
 If they ask stats, status, solar, look again, or current: say both packs (DELTA 2 and RIVER 2 Pro) with SOC, stored Wh, in W, out W, then the bank and this server's battery. Use only the numbers block. Do not invent. Night PV 0 W is normal.
-If they ask Kīlauea or the Big Island: give the live alert level and any headline in the numbers block. If there is no headline, say that is all you have live — do not invent lava, vents, or USGS text.
+If they ask weather, wind, hazards, or alerts: use the Weather and HI alerts lines. If alerts are listed, those ARE hazards — do not say none. Pick the current period (Tonight after evening, not a leftover This Afternoon).
+If they ask hurricanes: use the Hurricanes line. A named storm near Hawaiʻi is not "none." If the line says none inside 1500 nm, say that, and you may mention the worldwide count. Do not invent tracks.
 If a line is DOWN, say you do not have that live.
 OUTPUT ONLY the reply text.
 """
