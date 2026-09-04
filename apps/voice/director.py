@@ -754,6 +754,7 @@ class StreamDirector:
         self._music_enabled = False
         self._music_operator_hold = True
         self._music_hold = False
+        set_music_bed_wanted(False)
         self._kill_music_proc()
         task = self._music_task
         self._music_task = None
@@ -781,11 +782,13 @@ class StreamDirector:
             if not tracks:
                 log.warning("Music bed: no audio under %s", music_dir())
                 return {"ok": False, "detail": "no_tracks", "dir": str(music_dir())}
+            set_music_bed_wanted(True)
             if self._music_task is not None and not self._music_task.done():
                 # Already looping — sweep orphans but do not start a second loop.
                 swept = await _kill_stray_music_players_async(
                     keep_pid=self._music_proc_pid
                 )
+                self._music_enabled = True
                 self._music_operator_hold = False
                 self._release_music_if_idle()
                 return {
@@ -800,10 +803,7 @@ class StreamDirector:
             self._music_enabled = True
             # Never clear a live report/chime hold — starting the bed under a REPORT
             # used to unmute the bed on top of Ara and drown the clip.
-            voice_busy = (
-                self._current is not None
-                and int(getattr(self._current, "priority", 0) or 0) > Priority.AMBIENT
-            )
+            voice_busy = self._voice_busy_for_music()
             if voice_busy:
                 self._music_hold = True
             else:
@@ -833,38 +833,43 @@ class StreamDirector:
         return int(priority) > Priority.AMBIENT
 
     def _voice_busy_for_music(self) -> bool:
-        """True when any director voice is current, paused, or still queued.
+        """True when REPORT+ voice is current, paused, or still queued.
 
-        Every queued clip holds the bed. Release only when the queue is empty
-        and nothing is playing (after phrase_all_systems_running, chimes, reports).
+        Ambient leftovers in the queue must not keep the bed silent forever.
+        Hold covers chimes, reports, startup phrase_all_systems_running (CRITICAL),
+        then release when none of those remain.
         """
-        if self._current is not None:
+        if self._current is not None and self._priority_holds_music(
+            int(getattr(self._current, "priority", 0) or 0)
+        ):
             return True
-        if self._paused is not None:
-            return True
-        try:
-            if not self._queue.empty():
-                return True
-        except Exception:
+        if self._paused is not None and self._priority_holds_music(
+            int(getattr(self._paused, "priority", 0) or 0)
+        ):
             return True
         try:
             pending = list(getattr(self._queue, "_queue", []))
-            if pending:
-                return True
         except Exception:
-            pass
+            return True
+        for item in pending:
+            if not isinstance(item, AudioItem):
+                continue
+            # Queued items store negated priority until run() restores it.
+            nat = -int(item.priority)
+            if self._priority_holds_music(nat):
+                return True
         return False
 
     def _release_music_if_idle(self) -> None:
-        """Clear voice hold when no voice item is current, paused, or queued."""
+        """Clear voice hold when no REPORT+ item is current, paused, or queued."""
         if self._voice_busy_for_music():
             return
         if self._music_hold:
             log.info("Music bed resume")
         self._music_hold = False
 
-    def _kill_music_proc(self) -> None:
-        """Stop the single bed player and sweep AVA_MUSIC_BED orphans."""
+    def _kill_music_proc(self, *, keep_pid: int | None = None) -> None:
+        """Stop the bed player(s); optionally spare keep_pid (blend handoff)."""
         proc = self._music_proc
         self._music_proc = None
         pid = self._music_proc_pid
@@ -874,24 +879,30 @@ class StreamDirector:
                 pid = pid or proc.pid
             except Exception:
                 pass
-            try:
-                if proc.returncode is None:
-                    proc.kill()
-            except Exception:
-                if os.name == "nt" and pid:
-                    try:
-                        subprocess.run(
-                            ["taskkill", "/PID", str(pid), "/F"],
-                            capture_output=True,
-                            timeout=5,
-                            creationflags=CREATE_NO_WINDOW,
-                        )
-                    except Exception:
-                        pass
-        kill_stray_music_players()
+            if keep_pid is None or pid != keep_pid:
+                try:
+                    if proc.returncode is None:
+                        proc.kill()
+                except Exception:
+                    if os.name == "nt" and pid:
+                        try:
+                            subprocess.run(
+                                ["taskkill", "/PID", str(pid), "/F"],
+                                capture_output=True,
+                                timeout=5,
+                                creationflags=CREATE_NO_WINDOW,
+                            )
+                        except Exception:
+                            pass
+        kill_stray_music_players(keep_pid=keep_pid)
 
     async def _music_loop(self) -> None:
-        """Shuffle all recursive tracks, play through, reshuffle, repeat."""
+        """Shuffle all recursive tracks, play through, reshuffle, repeat.
+
+        Near each track's end, briefly overlaps the next file (MUSIC_BLEND_S) so
+        there is no dead air between songs. No stacking beyond that overlap window.
+        """
+        continue_existing = False
         while self._music_enabled and self._running:
             tracks = list_music_tracks()
             force = (os.getenv("AVA_MUSIC_FORCE") or "").strip()
@@ -913,23 +924,35 @@ class StreamDirector:
             if not tracks:
                 self._music_playlist = []
                 self._music_index = -1
+                continue_existing = False
                 await asyncio.sleep(30)
                 continue
             if not force:
                 random.shuffle(tracks)
             self._music_playlist = list(tracks)
             log.info("Music bed shuffle  n=%s", len(tracks))
-            for i, path in enumerate(tracks):
+            i = 0
+            while i < len(tracks):
+                path = tracks[i]
                 self._music_index = i
                 if not self._music_enabled or not self._running:
                     return
                 while self._music_bed_held():
+                    continue_existing = False
                     await asyncio.sleep(0.25)
                     if not self._music_enabled or not self._running:
                         return
                 if not path.is_file():
+                    continue_existing = False
+                    i += 1
                     continue
-                finished = await self._play_music_track(path)
+                nxt = tracks[i + 1] if (i + 1) < len(tracks) else None
+                finished, handed_off = await self._play_music_track(
+                    path,
+                    blend_into=nxt,
+                    continue_existing=continue_existing,
+                )
+                continue_existing = False
                 # Voice / operator interrupt: wait for clear, then restart same track.
                 if not finished and self._music_bed_held():
                     while self._music_bed_held():
@@ -937,16 +960,33 @@ class StreamDirector:
                         if not self._music_enabled or not self._running:
                             return
                     if path.is_file() and self._music_enabled and self._running:
-                        await self._play_music_track(path)
+                        finished, handed_off = await self._play_music_track(
+                            path,
+                            blend_into=nxt,
+                            continue_existing=False,
+                        )
+                if handed_off and nxt is not None:
+                    continue_existing = True
+                    i += 1
+                    continue
+                i += 1
 
-    async def _play_music_track(self, path: Path) -> bool:
-        """Play one bed track until natural end. Returns False if hold aborted it.
+    async def _play_music_track(
+        self,
+        path: Path,
+        *,
+        blend_into: Path | None = None,
+        continue_existing: bool = False,
+    ) -> tuple[bool, bool]:
+        """Play one bed track until natural end.
+
+        Returns (finished_ok, handed_off). handed_off=True means blend_into is
+        already playing and the next loop iteration must continue that process.
 
         Playlist advance is gated on measured file duration (wave/ffmpeg), not on the
-        OS player exiting. MediaPlayer Position/MediaEnded used to return in seconds–
-        ~1min while the WAV was still minutes long; kill_stray mid-song also looked
-        like a finished track and skipped ahead. If the player dies early we respawn
-        the same file until the duration clock is satisfied (unless held).
+        OS player exiting. If the player dies early we respawn the same file until the
+        duration clock is satisfied (unless held). Near the end, optionally spawn
+        blend_into for a short overlap, then kill only the outgoing player.
         """
         self._music_current = path
         wait_s = _music_wait_seconds(path)
@@ -955,7 +995,7 @@ class StreamDirector:
             log.warning("Music bed: no audio player — skipping %s", path.name)
             await asyncio.sleep(2.0)
             self._music_current = None
-            return True
+            return True, False
 
         env = dict(os.environ)
         if os.name != "nt":
@@ -970,67 +1010,115 @@ class StreamDirector:
                 env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
             env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
 
-        def _build_cmd() -> list[str]:
+        def _build_cmd_for(target: Path) -> list[str]:
             if player_cmd[-1] == "_AVA_PLAY_MP3_":
-                return _windows_play_music(path)
-            return list(player_cmd) + [str(path)]
+                return _windows_play_music(target)
+            return list(player_cmd) + [str(target)]
 
         aborted = False
+        handed_off = False
+        blend_proc: asyncio.subprocess.Process | None = None
+        blend_pid: int | None = None
         started = time.monotonic()
         # Require ~95% of measured length before treating an early process exit as done.
         min_ok = max(5.0, wait_s * 0.95)
-        try:
-            # One stream only — clear orphans before first spawn of this track.
-            await _kill_stray_music_players_async()
-            while True:
-                if self._music_bed_held() or not self._music_enabled:
-                    aborted = True
-                    break
-                elapsed = time.monotonic() - started
-                if elapsed >= wait_s:
-                    break
+        blend_at = max(5.0, wait_s - MUSIC_BLEND_S)
 
-                cmd = _build_cmd()
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    env=env,
-                    **_windows_hidden(),
+        async def _spawn(target: Path) -> asyncio.subprocess.Process:
+            return await asyncio.create_subprocess_exec(
+                *_build_cmd_for(target),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                env=env,
+                **_windows_hidden(),
+            )
+
+        try:
+            proc: asyncio.subprocess.Process | None = None
+            if (
+                continue_existing
+                and self._music_proc is not None
+                and self._music_proc.returncode is None
+            ):
+                proc = self._music_proc
+                # Already played ~MUSIC_BLEND_S during previous track's overlap.
+                started = time.monotonic() - min(MUSIC_BLEND_S, wait_s * 0.2)
+                log.info(
+                    "Music bed continue after blend: %s  pid=%s  wait_s=%.1f",
+                    path.name,
+                    self._music_proc_pid,
+                    wait_s,
                 )
+            else:
+                # One stream only — clear orphans before first spawn of this track.
+                await _kill_stray_music_players_async()
+                if self._music_bed_held() or not self._music_enabled:
+                    return False, False
+                proc = await _spawn(path)
                 self._music_proc = proc
                 try:
                     self._music_proc_pid = proc.pid
                 except Exception:
                     self._music_proc_pid = None
                 log.info(
-                    "Music bed playing: %s  pid=%s  wait_s=%.1f  elapsed=%.1f",
+                    "Music bed playing: %s  pid=%s  wait_s=%.1f  elapsed=0.0",
                     path.name,
                     self._music_proc_pid,
                     wait_s,
-                    elapsed,
                 )
-                while proc.returncode is None:
+
+            while True:
+                if self._music_bed_held() or not self._music_enabled:
+                    aborted = True
+                    break
+                if proc is None:
+                    break
+                elapsed = time.monotonic() - started
+                if elapsed >= wait_s:
+                    break
+
+                # Near end: start next track under the current one (short overlap).
+                if (
+                    blend_into is not None
+                    and blend_into.is_file()
+                    and blend_proc is None
+                    and elapsed >= blend_at
+                    and not self._music_bed_held()
+                    and self._music_enabled
+                ):
+                    try:
+                        blend_proc = await _spawn(blend_into)
+                        try:
+                            blend_pid = blend_proc.pid
+                        except Exception:
+                            blend_pid = None
+                        log.info(
+                            "Music bed blend into %s  pid=%s  from=%s",
+                            blend_into.name,
+                            blend_pid,
+                            path.name,
+                        )
+                    except Exception as e:
+                        log.warning("Music bed blend spawn failed: %s", e)
+                        blend_proc = None
+                        blend_pid = None
+
+                if proc.returncode is not None:
+                    early = time.monotonic() - started
+                    if early >= wait_s or early >= min_ok:
+                        break
                     if self._music_bed_held() or not self._music_enabled:
                         aborted = True
-                        self._kill_music_proc()
                         break
-                    if (time.monotonic() - started) >= wait_s:
-                        # Natural wall-clock end — stop player and advance.
-                        self._kill_music_proc()
-                        break
-                    try:
-                        await asyncio.wait_for(proc.wait(), timeout=0.4)
-                    except asyncio.TimeoutError:
-                        continue
-
-                if aborted:
-                    break
-                if (time.monotonic() - started) >= wait_s:
-                    break
-
-                early = time.monotonic() - started
-                if early < min_ok and self._music_enabled and not self._music_bed_held():
+                    # Early death — do not leave a blend orphan stacking.
+                    if blend_proc is not None:
+                        try:
+                            if blend_proc.returncode is None:
+                                blend_proc.kill()
+                        except Exception:
+                            pass
+                        blend_proc = None
+                        blend_pid = None
                     log.warning(
                         "Music bed player exited early (%.1fs < %.1fs) — respawning %s",
                         early,
@@ -1039,18 +1127,76 @@ class StreamDirector:
                     )
                     await asyncio.sleep(1.0)
                     await _kill_stray_music_players_async()
+                    if self._music_bed_held() or not self._music_enabled:
+                        aborted = True
+                        break
+                    proc = await _spawn(path)
+                    self._music_proc = proc
+                    try:
+                        self._music_proc_pid = proc.pid
+                    except Exception:
+                        self._music_proc_pid = None
+                    log.info(
+                        "Music bed playing: %s  pid=%s  wait_s=%.1f  elapsed=%.1f",
+                        path.name,
+                        self._music_proc_pid,
+                        wait_s,
+                        time.monotonic() - started,
+                    )
                     continue
-                break
+
+                if self._music_bed_held() or not self._music_enabled:
+                    aborted = True
+                    if blend_proc is not None:
+                        try:
+                            if blend_proc.returncode is None:
+                                blend_proc.kill()
+                        except Exception:
+                            pass
+                        blend_proc = None
+                        blend_pid = None
+                    self._kill_music_proc()
+                    break
+
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=0.35)
+                except asyncio.TimeoutError:
+                    pass
+
+            if aborted:
+                pass
+            elif (
+                blend_proc is not None
+                and blend_proc.returncode is None
+                and blend_into is not None
+            ):
+                # Promote next; kill only the outgoing player.
+                self._kill_music_proc(keep_pid=blend_pid)
+                self._music_proc = blend_proc
+                self._music_proc_pid = blend_pid
+                self._music_current = blend_into
+                handed_off = True
+                blend_proc = None
+            else:
+                self._kill_music_proc()
         except Exception as e:
             log.warning("Music bed play failed (%s): %s", path.name, e)
             aborted = False
+            handed_off = False
         finally:
-            if self._music_proc is not None:
-                self._kill_music_proc()
-            self._music_proc = None
-            self._music_proc_pid = None
-            self._music_current = None
-        return not aborted
+            if blend_proc is not None:
+                try:
+                    if blend_proc.returncode is None:
+                        blend_proc.kill()
+                except Exception:
+                    pass
+            if not handed_off:
+                if self._music_proc is not None:
+                    self._kill_music_proc()
+                self._music_proc = None
+                self._music_proc_pid = None
+                self._music_current = None
+        return (not aborted), handed_off
 
     # ── OBS WebSocket ─────────────────────────────────────────────────────────
 
@@ -1169,8 +1315,17 @@ class StreamDirector:
                 item.priority = -item.priority  # restore natural priority
                 await self._play(item)
             except asyncio.TimeoutError:
-                # Safety net: clear a stuck voice hold when nothing is queued.
+                # Safety net: clear a stuck voice hold when nothing REPORT+ remains.
                 self._release_music_if_idle()
+                # If operator wanted the bed and the loop died, restart it.
+                if music_bed_wanted() and (
+                    self._music_task is None or self._music_task.done()
+                ):
+                    if not self._music_operator_hold:
+                        try:
+                            await self.start_music_bed()
+                        except Exception:
+                            log.exception("Music bed supervisor restart failed")
                 continue
             except Exception:
                 log.exception("Stream Director loop error")
@@ -1178,8 +1333,9 @@ class StreamDirector:
                 self._release_music_if_idle()
 
     async def _play(self, item: AudioItem) -> None:
-        # ANY director voice clip holds the bed (startup phrase, chime, report, ambient).
-        self._hold_music()
+        # REPORT+ (chime / report / critical / startup phrase) holds the bed.
+        if self._priority_holds_music(int(getattr(item, "priority", 0) or 0)):
+            self._hold_music()
 
         if self._current and item.priority > self._current.priority:
             self._paused = self._current
@@ -1369,7 +1525,7 @@ def ensure_running() -> asyncio.Task:
 
 
 def music_bed_autostart_enabled() -> bool:
-    """Origin lifespan gate. Default off until operator starts bed (or sets AVA_MUSIC_BED=1)."""
+    """Env-only gate: AVA_MUSIC_BED=1 forces autostart regardless of wanted file."""
     raw = (os.getenv("AVA_MUSIC_BED") or "0").strip().lower()
     return raw not in ("0", "false", "off", "no", "")
 

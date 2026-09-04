@@ -84,18 +84,18 @@ async def lifespan(app: FastAPI):
             ensure_music_bed,
             ensure_running,
             kill_stray_music_players,
-            music_bed_autostart_enabled,
+            music_bed_wanted,
         )
 
         ensure_running()
         # Always sweep orphans from prior recycles — never leave stacked beds.
         swept = kill_stray_music_players()
-        if music_bed_autostart_enabled():
+        if music_bed_wanted():
             ensure_music_bed()
             log.info("Stream Director + music bed started  swept=%s", swept)
         else:
             log.info(
-                "Stream Director started; music bed OFF (AVA_MUSIC_BED)  swept=%s",
+                "Stream Director started; music bed OFF (wanted=0)  swept=%s",
                 swept,
             )
     except Exception as e:
