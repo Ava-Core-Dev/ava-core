@@ -155,6 +155,31 @@ def _music_wait_seconds(path: Path) -> float:
     return min(7200.0, max(30.0, (size / 16000.0) + 2.0) if size else 600.0)
 
 
+def _music_bed_python() -> str:
+    """Interpreter for play_music_bed.py.
+
+    Use the base (non-venv) pythonw when possible. The venv Scripts\\pythonw.exe
+    launcher often leaves a parent+child pair both matching AVA_MUSIC_BED, which
+    looked like stacking and broke keep_pid sweeps (child killed, audio died).
+    play_music_bed only needs stdlib winsound — no venv imports.
+    """
+    base = getattr(sys, "_base_executable", None) or sys.executable
+    py = Path(base)
+    if os.name == "nt" and py.name.lower() == "python.exe":
+        candidate = py.with_name("pythonw.exe")
+        if candidate.is_file():
+            return str(candidate)
+    if os.name == "nt" and py.name.lower() == "pythonw.exe" and py.is_file():
+        return str(py)
+    # Fallback: origin's interpreter, prefer pythonw to avoid console flash.
+    cur = Path(sys.executable)
+    if os.name == "nt" and cur.name.lower() == "python.exe":
+        candidate = cur.with_name("pythonw.exe")
+        if candidate.is_file():
+            return str(candidate)
+    return str(cur if cur.is_file() else sys.executable)
+
+
 def _windows_play_music(path: Path) -> list[str]:
     """Play one bed track on Windows via winsound (WAV) — not WPF MediaPlayer.
 
@@ -166,14 +191,8 @@ def _windows_play_music(path: Path) -> list[str]:
     AVA_MUSIC_BED must appear on the command line for kill_stray.
     """
     resolved = str(path.resolve())
-    py = sys.executable
-    # Prefer pythonw when origin is pythonw so no console flashes.
-    if py.lower().endswith("python.exe"):
-        candidate = Path(py).with_name("pythonw.exe")
-        if candidate.is_file():
-            py = str(candidate)
     helper = str(Path(__file__).resolve().parent / "play_music_bed.py")
-    return [py, helper, "AVA_MUSIC_BED", resolved]
+    return [_music_bed_python(), helper, "AVA_MUSIC_BED", resolved]
 
 
 def music_dir() -> Path:
