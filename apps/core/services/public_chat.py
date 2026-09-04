@@ -211,10 +211,6 @@ def match_public_reply(message: str) -> dict | None:
 
 def directory_reply() -> str:
     return (
-        "I don't have a tight public card for that yet — here's the map. "
-        f"Me: {LINKS['home']} · host: {LINKS['status']} · files: {LINKS['media']} · "
-        f"RootMC join {LINKS['play']} ({LINKS['rootmc']}) · solar/Kīlauea {LINKS['record']} · "
-        f"goals {LINKS['goals']}. "
-        f"Want me to think it through live? Log in at {LINKS['mc_login']} "
-        f"(same account as {LINKS['login']}). Public answers stay free either way."
+        "Ask about solar, the host, Kīlauea, or weather. RootMC if you want the game. "
+        f"Live board: {LINKS['record']}."
     )
