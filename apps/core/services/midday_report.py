@@ -402,7 +402,6 @@ def generate_spoken(
         stamped = False
     else:
         text = boot_report.scrub_spoken(reply)
-        day = weekday_line()
         opener_full = open_line(include_timestamp=True, now=datetime.now(HST))
         opener_bare = open_line(include_timestamp=False, now=datetime.now(HST))
         if include_timestamp:
