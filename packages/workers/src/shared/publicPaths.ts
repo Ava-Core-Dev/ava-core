@@ -132,7 +132,7 @@ export function isReadMethod(method: string): boolean {
 /** Visitor writes allowed when the origin is dark (offline inbox). */
 export function isPublicWrite(method: string, path: string): boolean {
   if (method !== "POST") return false;
-  return path === "/feedback" || path === "/api/feedback";
+  return path === "/feedback" || path === "/api/feedback" || path === "/api/chat";
 }
 
 /** Trailing slash off, so `/status/` and `/status` are one page. */
