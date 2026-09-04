@@ -197,9 +197,9 @@ export const FEEDBACK_TARGETS = {
 
 /** Named destinations for manual Post-as-Ava (Discord / Slack / Telegram). */
 export const AVA_POST_PRESETS = [
-  { key: "general", surface: "discord", id: "1516108586307158088", label: "Discord #general" },
+  { key: "general", surface: "discord", id: "1545284354157187083", label: "Discord #general" },
   { key: "admins", surface: "discord", id: "1516121832493678612", label: "Discord #admins" },
-  { key: "updates", surface: "discord", id: "1520665313631408251", label: "Discord #updates" },
+  { key: "updates", surface: "discord", id: "1545284423740563528", label: "Discord #updates" },
   { key: "development", surface: "discord", id: "1532929974154166522", label: "Discord #development" },
   { key: "governance", surface: "discord", id: "1522406451413385317", label: "Discord #governance" },
   { key: "voting", surface: "discord", id: "1522413185364398090", label: "Discord #voting" },
@@ -209,7 +209,7 @@ export const AVA_POST_PRESETS = [
   { key: "ava-media", surface: "discord", id: "1533268458668687392", label: "Discord Ava media vault" },
   { key: "facts", surface: "discord", id: "1531432703675596942", label: "Discord #random-facts" },
   { key: "solar", surface: "discord", id: "1533915343766949949", label: "Discord #solar-server" },
-  { key: "ingame", surface: "discord", id: "1516706598519832677", label: "Discord in-game chat" },
+  { key: "ingame", surface: "discord", id: "1545284399107547179", label: "Discord in-game chat" },
   { key: "daily", surface: "discord", id: "1539779979280257054", label: "Discord Ava home" },
   { key: "economy", surface: "discord", id: "1516804780884889621", label: "Discord #economy" },
   { key: "slack-dev", surface: "slack", id: "C0BMCPMDDQR", label: "Slack #development-feed" },

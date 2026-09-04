@@ -240,7 +240,7 @@ AVA_DISCORD_HOME = (
 )
 
 DISCORD_CHANNELS: dict[str, str] = {
-    "general":           "1516108586307158088",
+    "general":           "1545284354157187083",
     "admins":            "1516121832493678612",
     "proposals":         "1526664180491358419",
     "governance":        "1522406451413385317",
@@ -250,21 +250,21 @@ DISCORD_CHANNELS: dict[str, str] = {
     "memes_media":       "1516389376198840421",
     "ava_media":         "1533268458668687392",
     "random_facts":      "1531432703675596942",
-    "updates":           "1520665313631408251",   # pointer / forwards only — not report dump
+    "updates":           "1545284423740563528",   # pointer / forwards only — not report dump
     # Real #automations (economy + cron posts). Override with DISCORD_AUTOMATIONS_CHANNEL_ID.
-    "automations":       os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1535712809399361668").strip()
-                         or "1535712809399361668",
+    "automations":       os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1545284463783710720").strip()
+                         or "1545284463783710720",
     "daily_summary":     AVA_DISCORD_HOME,
     # Live economy stats land in #automations unless DISCORD_ECONOMY_STATS_CHANNEL_ID is set.
     "economy_info":      os.getenv(
                              "DISCORD_ECONOMY_STATS_CHANNEL_ID",
-                             os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1535712809399361668"),
+                             os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "1545284463783710720"),
                          ).strip()
-                         or "1535712809399361668",
+                         or "1545284463783710720",
     "ava_progress":      AVA_DISCORD_HOME,
     "hourly_snapshots":  AVA_DISCORD_HOME,
-    "ingame_chat":       "1516706598519832677",
-    "livestream_updates": os.getenv("AVA_LIVESTREAM_UPDATES_CHANNEL_ID", "1536631631572377712"),
+    "ingame_chat":       "1545284399107547179",
+    "livestream_updates": os.getenv("AVA_LIVESTREAM_UPDATES_CHANNEL_ID", "1545284480812449793"),
     "ava_home":          AVA_DISCORD_HOME,
     "audit":             os.getenv("AVA_AUDIT_CHANNEL_ID", ""),
     "changelog":         AVA_DISCORD_HOME,
@@ -281,13 +281,13 @@ NEVER_MENTION: set[str] = {
 DEFAULT_WATCH_CHANNELS: list[str] = [
     # #proposals 1526664180491358419 404s — skip until the channel exists again
     "1516121832493678612",  # admins
-    "1516108586307158088",  # general
+    "1545284354157187083",  # general
     "1522406451413385317",  # governance
     "1522413185364398090",  # voting
     "1522406019152478210",  # constitution
     "1516389376198840421",  # memes-and-media
     "1532929974154166522",  # development
-    "1520665313631408251",  # updates
+    "1545284423740563528",  # updates
     AVA_DISCORD_HOME,       # Ava home — reports + global chat
 ]
 

@@ -60,7 +60,7 @@ def _channel() -> str:
         os.getenv("DISCORD_ADSENSE_CHANNEL_ID", "").strip()
         or os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "").strip()
         or config.DISCORD_CHANNELS.get("automations", "")
-        or "1535712809399361668"
+        or "1545284463783710720"
     )
 
 

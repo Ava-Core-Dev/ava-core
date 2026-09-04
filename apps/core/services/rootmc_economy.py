@@ -224,6 +224,6 @@ def economy_discord_channel() -> str:
     return (
         os.getenv("DISCORD_ECONOMY_STATS_CHANNEL_ID", "").strip()
         or os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "").strip()
-        or "1535712809399361668"
+        or "1545284463783710720"
         or config.DISCORD_CHANNELS.get("automations", "")
     )
