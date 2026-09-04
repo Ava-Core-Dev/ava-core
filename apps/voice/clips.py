@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -30,8 +31,27 @@ NUMBERS_DIR = ASSETS_DIR / "numbers"
 WORDS_DIR   = ASSETS_DIR / "words"
 TIME_DIR    = ASSETS_DIR / "time_clips"
 SOUNDS_DIR  = ASSETS_DIR / "sounds"
+PHONEME_DIR = ASSETS_DIR / "phonemes"
 
 SILENCE_MS  = 90  # gap between clips in ms
+
+
+def ffmpeg_bin() -> str | None:
+    from_env = (os.getenv("AVA_FFMPEG") or "").strip()
+    if from_env and Path(from_env).is_file():
+        return from_env
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg
+
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if exe and Path(exe).is_file():
+            return exe
+    except Exception:
+        pass
+    return None
 
 
 def _number_to_clips(n: int) -> list[str]:
@@ -80,7 +100,7 @@ def _number_to_clips(n: int) -> list[str]:
 
 def _find_clip(name: str) -> Path | None:
     """Search numbers/ first so 1.mp3 is the digit, not a word collision."""
-    for directory in (NUMBERS_DIR, WORDS_DIR, ASSETS_DIR):
+    for directory in (NUMBERS_DIR, WORDS_DIR, TIME_DIR, SOUNDS_DIR, PHONEME_DIR, ASSETS_DIR):
         for ext in (".mp3", ".wav"):
             p = directory / (name + ext)
             if p.exists():
@@ -116,11 +136,15 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
                 if i < len(clips) - 1 and SILENCE_MS > 0:
                     f.write(f"file '{_escape_concat_path(tmpdir / 'silence.mp3')}'\n")
 
+        ff = ffmpeg_bin()
+        if not ff:
+            raise FileNotFoundError("ffmpeg missing")
+
         if SILENCE_MS > 0 and len(clips) > 1:
             silence = tmpdir / "silence.mp3"
             _run(
                 [
-                    "ffmpeg", "-y",
+                    ff, "-y",
                     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
                     "-t", f"{gap:.3f}",
                     "-c:a", "libmp3lame", "-q:a", "9",
@@ -132,7 +156,7 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
 
         result = _run(
             [
-                "ffmpeg", "-y",
+                ff, "-y",
                 "-f", "concat", "-safe", "0",
                 "-i", str(list_file),
                 "-c:a", "libmp3lame",
