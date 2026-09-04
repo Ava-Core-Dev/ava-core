@@ -9,7 +9,7 @@ Priority tiers:
   P3 Critical  — earthquake alert, eruption alert (interrupts immediately)
   P2 Scheduled — hourly chime, time announcement
   P1 Report    — voice reports (weather, solar, economy, volcano) — queued FIFO
-  P0 Ambient   — rotating background MP4 playlist (paused by everything)
+  P0 Ambient   — shuffled music bed under Media/public/audio/music (paused by everything)
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ import asyncio
 import json
 import logging
 import os
+import random
 import shutil
 import subprocess
 import time
@@ -27,6 +28,11 @@ from pathlib import Path
 from typing import Any
 
 import websockets
+
+# Desktop music bed — recursive under public/audio/music (mp3/wav/etc.)
+MUSIC_AUDIO_EXTS = {
+    ".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".wma", ".opus",
+}
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -107,6 +113,53 @@ def _windows_play_mp3(path: Path) -> list[str]:
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
     return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
+
+
+def _windows_play_music(path: Path) -> list[str]:
+    """PowerShell MediaPlayer for long bed tracks (wav/mp3). No 120s report cap."""
+    p = str(path.resolve()).replace("'", "''")
+    try:
+        size = path.stat().st_size
+        # Rough PCM wav ~176 KB/s; mp3 ~16 KB/s — pick the longer estimate.
+        dur = min(7200.0, max(60.0, size / 16000.0 + 5.0))
+    except Exception:
+        dur = 600.0
+    script = (
+        "Add-Type -AssemblyName PresentationCore; "
+        "$m = New-Object System.Windows.Media.MediaPlayer; "
+        f"$m.Open([Uri]'{p}'); $m.Play(); "
+        "Start-Sleep -Milliseconds 500; "
+        "$guard = 0; "
+        "while ($m.NaturalDuration.HasTimeSpan -eq $false -and $guard -lt 80) { "
+        "  Start-Sleep -Milliseconds 100; $guard++ }; "
+        "if ($m.NaturalDuration.HasTimeSpan) { "
+        "  while ($m.Position -lt $m.NaturalDuration.TimeSpan) { Start-Sleep -Milliseconds 250 } "
+        f"}} else {{ Start-Sleep -Seconds {dur:.1f} }}"
+    )
+    ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
+    return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
+
+
+def music_dir() -> Path:
+    try:
+        from apps.core import config
+
+        return Path(config.ASSETS_DIR) / "music"
+    except Exception:
+        return Path.home() / "ava" / "Media" / "public" / "audio" / "music"
+
+
+def list_music_tracks(root: Path | None = None) -> list[Path]:
+    """All audio files under the music tree (recursive). Does not invent files."""
+    base = root or music_dir()
+    if not base.is_dir():
+        return []
+    out: list[Path] = []
+    for p in base.rglob("*"):
+        if p.is_file() and p.suffix.lower() in MUSIC_AUDIO_EXTS:
+            out.append(p)
+    return out
+
 
 log = logging.getLogger("ava.director")
 
