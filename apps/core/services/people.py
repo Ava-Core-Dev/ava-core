@@ -75,6 +75,15 @@ def connect() -> sqlite3.Connection:
           text TEXT,
           at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS utterances (
+          id INTEGER PRIMARY KEY,
+          person_id INTEGER NOT NULL REFERENCES people(id),
+          surface TEXT,
+          chat_id TEXT,
+          text TEXT,
+          at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_utterances_person ON utterances(person_id, id);
         """
     )
     return conn
@@ -98,6 +107,9 @@ def _merge_people(conn: sqlite3.Connection, a: int, b: int) -> int:
     keep, drop = (a, b) if a < b else (b, a)
     conn.execute("UPDATE channels SET person_id=? WHERE person_id=?", (keep, drop))
     conn.execute("UPDATE agriculture SET person_id=? WHERE person_id=?", (keep, drop))
+    conn.execute("UPDATE plants SET person_id=? WHERE person_id=?", (keep, drop))
+    conn.execute("UPDATE person_notes SET person_id=? WHERE person_id=?", (keep, drop))
+    conn.execute("UPDATE utterances SET person_id=? WHERE person_id=?", (keep, drop))
     conn.execute("DELETE FROM people WHERE id=?", (drop,))
     return keep
 
