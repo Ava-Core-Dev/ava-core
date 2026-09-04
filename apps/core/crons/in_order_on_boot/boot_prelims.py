@@ -28,7 +28,13 @@ async def run(*, write_report: bool = True) -> dict:
     try:
         from apps.core.crons.since_last_fire import nws_hawaii as nws_hawaii_cron
 
-        nws_out = await nws_hawaii_cron.run(reason="boot", force_speak=True)
+        # Morning boot always refreshes spoken summary. Midday prelims (write_report=False)
+        # only emit when the product hash changed — do not spam noon drafts.
+        nws_reason = "boot" if write_report else "midday_prelim"
+        nws_out = await nws_hawaii_cron.run(
+            reason=nws_reason,
+            force_speak=bool(write_report),
+        )
         out["steps"]["nws_hawaii"] = {
             "ok": bool(nws_out.get("ok")),
             "alerts": nws_out.get("alerts"),
