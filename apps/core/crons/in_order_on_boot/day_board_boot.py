@@ -11,3 +11,4 @@ async def run():
 
     result = await day_reports.maybe_boot_morning()
     log.info("day-board boot skipped=%s", result.get("skipped"))
+    return result

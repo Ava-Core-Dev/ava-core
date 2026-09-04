@@ -47,6 +47,13 @@ async def reports_board():
     return reports.status_board()
 
 
+@router.get("/day-board")
+async def day_board_status():
+    from apps.core.services import day_board
+
+    return {"ok": True, "catalog": day_board.catalog(), "remaining": day_board.remaining()}
+
+
 @router.get("/current")
 async def current_report():
     return reports.read_current()

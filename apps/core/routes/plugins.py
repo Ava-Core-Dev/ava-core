@@ -30,7 +30,7 @@ async def api_plugins():
     return {
         "ok": True,
         "voice_plugins": [
-            "hourly_chime", "voice_report", "nws_weather", "open_meteo",
+            "hourly_chime", "remaining_tasks", "voice_report", "nws_weather", "open_meteo",
             "earthquake_global", "earthquake_hawaii", "kilauea_report", "youtube_stats",
         ],
         "status": "running",

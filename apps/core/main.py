@@ -199,6 +199,18 @@ async def lifespan(app: FastAPI):
         log.debug("boot api-ledger skipped: %s", e)
 
     try:
+        async def _boot_day_board():
+            await asyncio.sleep(55)
+            from apps.core.crons.in_order_on_boot import day_board_boot
+
+            result = await day_board_boot.run()
+            log.info("boot day-board skipped=%s", (result or {}).get("skipped"))
+
+        asyncio.create_task(_boot_day_board())
+    except Exception as e:
+        log.debug("boot day-board skipped: %s", e)
+
+    try:
         from apps.core.services import uptime_log, schedule_clock, sun_times
         sun_times.refresh_if_stale()
         uptime_log.record_origin_start()
