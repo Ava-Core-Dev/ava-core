@@ -90,6 +90,7 @@ h1 {
 }
 .sub { color: var(--muted); margin: 0.25rem 0 0.85rem; font-size: 0.9rem; }
 .hint-inline { color: var(--muted); font-size: 0.8rem; margin: -0.35rem 0 0.5rem; }
+#desk-lifecycle-status.warn-inline { color: #fbbf24; }
 nav {
   display: flex;
   gap: 0.3rem;
