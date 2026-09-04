@@ -328,7 +328,7 @@
         <div class="card">
           <div class="k">Totals now</div>
           <div class="split">
-            <div class="tile"><div class="n">PV in</div><div class="x solar" id="solar">—</div></div>
+            <div class="tile"><div class="n" id="solarInLab">PV in</div><div class="x solar" id="solar">—</div></div>
             <div class="tile"><div class="n">Server + mobile</div><div class="x" id="load">—</div></div>
             <div class="tile" id="tileStar"><div class="n">Starlink + lights</div><div class="x cyan" id="star">—</div></div>
             <div class="tile" id="tileAppl"><div class="n">Appliances</div><div class="x warn" id="appl">—</div></div>
@@ -347,7 +347,7 @@
           <div class="hero-title">Live power desk</div>
           <p class="hero-sub">Bank · packs · this server (not Starlink). Charts below; averages further down.</p>
           <div class="hero-metrics">
-            <div class="m"><div class="n">PV in</div><div class="x solar" id="heroPv">—</div></div>
+            <div class="m"><div class="n" id="heroPvLab">PV in</div><div class="x solar" id="heroPv">—</div></div>
             <div class="m"><div class="n">Bank</div><div class="x cyan" id="heroBank">—</div></div>
             <div class="m"><div class="n">DC load</div><div class="x" id="heroLoad">—</div></div>
             <div class="m"><div class="n">CPU</div><div class="x" id="heroCpu">—</div></div>
@@ -359,7 +359,7 @@
           <div class="pack">
             <h4>Delta 2</h4>
             <div class="big" id="packDeltaSoc">—</div>
-            <div class="meta">PV <span id="packDeltaPv">—</span> · <span id="packDeltaState">—</span></div>
+            <div class="meta"><span id="packDeltaInLab">PV</span> <span id="packDeltaPv">—</span> · <span id="packDeltaState">—</span></div>
           </div>
           <div class="pack">
             <h4>River 2 Pro</h4>
@@ -486,7 +486,8 @@ function ring(d){
   const bits = [];
   if (d.online === false) bits.push("last known");
   else {
-    if (d.pv_w > 2) bits.push(Math.round(d.pv_w)+" W PV");
+    if (d.input_kind === "ebatt" && (d.ebatt_w > 2 || d.pv_w > 2)) bits.push(Math.round(d.ebatt_w || d.pv_w)+" W E-Batt");
+    else if (d.pv_w > 2) bits.push(Math.round(d.pv_w)+" W PV");
     const role = d.ac_role;
     if (role === "appliances") bits.push(Math.round(d.ac_out_w)+" W appliances");
     else if (role === "starlink_lights") bits.push(Math.round(d.ac_out_w)+" W Starlink + lights");

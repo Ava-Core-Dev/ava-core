@@ -216,6 +216,64 @@ function applyAcRoles(devices: Array<Record<string, unknown>>): void {
   }
 }
 
+function sameWatts(a: number, b: number): boolean {
+  if (a < 20 || b < 20) return false;
+  const slack = Math.max(40, 0.12 * Math.max(a, b));
+  return Math.abs(a - b) <= slack;
+}
+
+function isNightHst(): boolean {
+  const h = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: "Pacific/Honolulu",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(new Date()),
+  );
+  return h >= 19 || h < 6;
+}
+
+const EBATT_MIN_W = 20;
+const EBATT_MAX_W = 225;
+const EBATT_WH = 220;
+
+function applyEbatt(devices: Array<Record<string, unknown>>): void {
+  for (const d of devices) {
+    delete d.ebatt_w;
+    d.input_kind = null;
+  }
+  if (!devices.length || !isNightHst()) return;
+  const incoming = devices.reduce((s, d) => s + Number(d.pv_w || 0), 0);
+  if (incoming < EBATT_MIN_W || incoming > EBATT_MAX_W) return;
+  const delta = devices.find(isDelta);
+  const deltaOut = delta
+    ? Math.max(Number(delta.discharge_w || 0), Number(delta.ac_out_w || 0), Number(delta.out_w || 0))
+    : 0;
+  if (sameWatts(incoming, deltaOut)) return;
+  for (const d of devices) {
+    const w = Number(d.pv_w || 0);
+    if (w >= EBATT_MIN_W) {
+      d.input_kind = "ebatt";
+      d.ebatt_w = Math.round(w * 10) / 10;
+    }
+  }
+}
+
+function solarInW(devices: Array<Record<string, unknown>>): number {
+  return Math.round(
+    devices.reduce((s, d) => s + (d.input_kind === "ebatt" ? 0 : Number(d.pv_w || 0)), 0) * 10,
+  ) / 10;
+}
+
+function ebattInW(devices: Array<Record<string, unknown>>): number {
+  return Math.round(
+    devices.reduce(
+      (s, d) => s + (d.input_kind === "ebatt" ? Number(d.ebatt_w || d.pv_w || 0) : 0),
+      0,
+    ) * 10,
+  ) / 10;
+}
+
 function loadCategories(devices: Array<Record<string, unknown>>) {
   let transfer = 0, appliances = 0, starlink = 0, emergency = 0, server = 0, drives = 0;
   for (const d of devices) {
@@ -297,9 +355,12 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
     });
   }
   applyAcRoles(devices);
+  applyEbatt(devices);
   const cats = loadCategories(devices);
   const battery = banks.length ? Math.round((banks.reduce((a, b) => a + b, 0) / banks.length) * 10) / 10 : null;
-  const pv = devices.reduce((s, d) => s + Number(d.pv_w || 0), 0);
+  const solarW = solarInW(devices);
+  const ebattW = ebattInW(devices);
+  const inW = Math.round((solarW + ebattW) * 10) / 10;
   const dc = devices.reduce((s, d) => s + Number(d.dc_out_w || 0), 0);
   const acInSum = devices.reduce((s, d) => s + Number(d.ac_in_w || 0), 0);
   const acOutSum = devices.reduce((s, d) => s + Number(d.ac_out_w || 0), 0);
@@ -312,18 +373,21 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
   if (cats.starlink_lights_w >= 20) bits.push("Starlink + lights");
   if (cats.emergency_pack_w >= 20) bits.push("emergency pack");
   if (cats.hard_drives_12v_w >= 5) bits.push("hard drives 12V");
-  if (pv > 20) bits.push("PV charging");
+  if (ebattW >= 20) bits.push("E-Batt input");
+  else if (solarW > 20) bits.push("PV charging");
   if (cats.server_mobile_w > 20) bits.push("server + mobile");
   const snap = {
     battery_pct: battery,
     bank_pct: battery,
-    solar_in_w: Math.round(pv * 10) / 10,
+    solar_in_w: solarW,
+    ebatt_in_w: ebattW,
     load_w: Math.round(dc * 10) / 10,
-    power_w: Math.round(pv * 10) / 10,
+    power_w: solarW,
     state: bits.join(" · ") || "idle",
     devices,
     totals: {
-      solar_in_w: Math.round(pv * 10) / 10,
+      solar_in_w: solarW,
+      ebatt_in_w: ebattW,
       load_w: Math.round(dc * 10) / 10,
       dc_load_w: Math.round(dc * 10) / 10,
       ac_in_w: Math.round(acInSum * 10) / 10,
@@ -335,7 +399,7 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
       emergency_pack_w: cats.emergency_pack_w,
       server_mobile_w: cats.server_mobile_w,
       hard_drives_12v_w: cats.hard_drives_12v_w,
-      net_w: Math.round((pv - dc) * 10) / 10,
+      net_w: Math.round((inW - dc) * 10) / 10,
       bank_avg_pct: battery,
       packs: devices.length,
       categories: cats,
@@ -343,6 +407,21 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
     source: "ecoflow_cf",
     updated_at: new Date().toISOString(),
   };
+  if (ebattW >= 20) {
+    (snap as Record<string, unknown>).ebatt = {
+      in_w: ebattW,
+      nameplate_wh: EBATT_WH,
+      label: "E-Batt input",
+    };
+    (snap as Record<string, unknown>).night_charge = {
+      show: true,
+      kind: "ebatt",
+      title: "E-Batt input",
+      detail: "Recycled Ninebot 220 Wh on the MPPT. EcoFlow calls this PV. Not solar. Nameplate only — no SOC.",
+      in_w: ebattW,
+      nameplate_wh: EBATT_WH,
+    };
+  }
   await env.AVA_HEARTBEAT_DB.prepare(
     "INSERT INTO ava_ecoflow (host, ts, json) VALUES (?1, ?2, ?3) ON CONFLICT(host) DO UPDATE SET ts = excluded.ts, json = excluded.json",
   )
