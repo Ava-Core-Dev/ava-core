@@ -1037,28 +1037,130 @@ async function refreshReports() {
           <div class="muted">${escapeHtml(f.rel || f.path || "")}</div>
         </div>
         <div class="muted">${escapeHtml(f.kind || "")}${f.dir ? " · folder" : ""}</div>
-        <div class="muted">${fmtHst(f.mtimeMs)}</div>
-        <div class="muted">${f.dir ? "—" : `${Math.max(1, Math.round((f.size || 0) / 1024))} KB`}</div>
-        <div class="actions"></div>
+        <div class="muted">${f.mtime ? fmtHst(f.mtime) : "—"}</div>
+        <div class="muted">${f.bytes != null ? `${Math.round(f.bytes / 1024)} KB` : ""}</div>
+        <div></div>
       `;
-      const actions = row.querySelector(".actions");
-      const openBtn = document.createElement("button");
-      openBtn.type = "button";
-      openBtn.textContent = f.dir ? "Open" : "Open";
-      openBtn.onclick = () => window.avaDesktop.openPath(f.path);
-      const revealBtn = document.createElement("button");
-      revealBtn.type = "button";
-      revealBtn.textContent = "Reveal";
-      revealBtn.onclick = () => window.avaDesktop.revealPath(f.path);
-      actions.append(openBtn, revealBtn);
       genHost.appendChild(row);
     }
+
     $("reports-status").textContent = "";
-    tickCountdowns();
-    ensureCronLive();
-  } catch (err) {
-    meta.textContent = String(err.message || err);
-    $("reports-status").textContent = `Brain must be up on ${lastBrainUrl || "the selected connection"}`;
+    await refreshReportAudioManual();
+  } catch (e) {
+    meta.textContent = String(e?.message || e);
+  }
+}
+
+async function refreshReportAudioManual() {
+  const host = $("reports-audio-manual");
+  const statusEl = $("reports-audio-status");
+  if (!host) return;
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/reports/audio-manual`, {
+      cache: "no-store",
+    });
+    const st = await res.json();
+    if (!st?.ok) {
+      host.innerHTML = `<div class="muted">${escapeHtml(st?.detail || "unavailable")}</div>`;
+      return;
+    }
+    const cands = st.candidates || [];
+    const labels = { morning: "Morning (10:00)", midday: "Noon (11:55)", evening: "Evening (18:05)" };
+    host.innerHTML = "";
+    for (const kind of st.kinds || ["morning", "midday", "evening"]) {
+      const slot = (st.slots || {})[kind] || {};
+      const row = document.createElement("div");
+      row.className = "cron-row report-row";
+      const sel = document.createElement("select");
+      sel.dataset.kind = kind;
+      sel.className = "reports-audio-select";
+      const opt0 = document.createElement("option");
+      opt0.value = "";
+      opt0.textContent = "(none)";
+      sel.appendChild(opt0);
+      let matched = false;
+      for (const c of cands) {
+        const opt = document.createElement("option");
+        opt.value = c.path;
+        opt.textContent = `${c.name} · ${c.rel || ""}`;
+        if (slot.path && c.path === slot.path) {
+          opt.selected = true;
+          matched = true;
+        }
+        sel.appendChild(opt);
+      }
+      if (slot.path && !matched) {
+        const opt = document.createElement("option");
+        opt.value = slot.path;
+        opt.textContent = slot.exists ? slot.path : `(missing) ${slot.path}`;
+        opt.selected = true;
+        sel.appendChild(opt);
+      }
+      const auto = document.createElement("input");
+      auto.type = "checkbox";
+      auto.checked = !!slot.auto_play;
+      auto.title = "Auto-play on schedule";
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.textContent = "Save";
+      saveBtn.className = "primary";
+      saveBtn.onclick = async () => {
+        statusEl.textContent = "Saving…";
+        const body = {
+          kind,
+          path: sel.value || "",
+          auto_play: !!auto.checked,
+          clear: !sel.value,
+        };
+        const r = await fetch(`${brainBaseUrl()}/api/reports/audio-manual`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const j = await r.json();
+        statusEl.textContent = JSON.stringify(j, null, 2);
+        await refreshReportAudioManual();
+      };
+      const playBtn = document.createElement("button");
+      playBtn.type = "button";
+      playBtn.textContent = "Play now";
+      playBtn.onclick = async () => {
+        statusEl.textContent = "Playing…";
+        const r = await fetch(`${brainBaseUrl()}/api/reports/audio-manual/play`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, path: sel.value || null }),
+        });
+        const j = await r.json();
+        statusEl.textContent = JSON.stringify(j, null, 2);
+      };
+      const left = document.createElement("div");
+      left.innerHTML = `<div class="id">${escapeHtml(labels[kind] || kind)}</div>
+        <div class="muted">${slot.exists ? "file on disk" : slot.path ? "missing file" : "not set"} · auto ${slot.auto_play ? "ON" : "off"}</div>`;
+      const mid = document.createElement("div");
+      mid.appendChild(sel);
+      const autoWrap = document.createElement("label");
+      autoWrap.className = "check";
+      autoWrap.style.display = "flex";
+      autoWrap.style.gap = "0.35rem";
+      autoWrap.style.alignItems = "center";
+      autoWrap.appendChild(auto);
+      autoWrap.appendChild(document.createTextNode("Auto-play"));
+      const actions = document.createElement("div");
+      actions.className = "row wrap";
+      actions.appendChild(autoWrap);
+      actions.appendChild(saveBtn);
+      actions.appendChild(playBtn);
+      row.appendChild(left);
+      row.appendChild(mid);
+      row.appendChild(actions);
+      host.appendChild(row);
+    }
+    if (statusEl && !statusEl.textContent) {
+      statusEl.textContent = st.note || "";
+    }
+  } catch (e) {
+    host.innerHTML = `<div class="muted">${escapeHtml(String(e?.message || e))}</div>`;
   }
 }
 
