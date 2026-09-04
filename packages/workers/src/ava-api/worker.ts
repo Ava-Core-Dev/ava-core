@@ -151,6 +151,26 @@ export default {
       return Response.redirect(url.origin + "/#talk", 302);
     }
 
+    // GEO / context pickup — origin owns plain-text maps so Pages SPA cannot swallow them.
+    const geoPath = path.replace(/\/+$/, "") || "/";
+    if (
+      geoPath === "/llms.txt" ||
+      geoPath === "/ai.txt" ||
+      geoPath === "/robots.txt" ||
+      geoPath === "/context" ||
+      geoPath === "/context.md" ||
+      geoPath === "/api/context" ||
+      path.startsWith("/context/") ||
+      path.startsWith("/docs/geo/")
+    ) {
+      return proxyToOrigin(request, {
+        originUrl: origin,
+        path: path,
+        timeoutMs: 8000,
+        offlineFallback: holdingPage,
+      });
+    }
+
     // GET / is the Pages frontend. POST /api/chat still proxies to origin above.
 
     if (path.startsWith("/ava/")) {

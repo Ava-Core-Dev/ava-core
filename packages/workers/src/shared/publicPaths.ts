@@ -32,6 +32,11 @@ const PUBLIC_EXACT = new Set([
   "/api/news/global",
   "/api/site-config",
   "/api/site-config.json",
+  "/api/context",
+  "/llms.txt",
+  "/ai.txt",
+  "/robots.txt",
+  "/context.md",
 ]);
 
 /** Read-only families. Writes under these are still refused by method. */
@@ -51,6 +56,8 @@ const PUBLIC_PREFIX = [
   "/css/",
   "/js/",
   "/assets/",
+  "/context/",
+  "/docs/geo/",
 ];
 
 /**
@@ -99,6 +106,7 @@ const PUBLIC_PAGES = new Set([
   "/feedback",
   "/chat",
   "/roadmap",
+  "/context",
   "/account/emails",
   "/products/rootunits",
   "/discord-verify.js",
@@ -192,7 +200,7 @@ export function isPublicPage(path: string): boolean {
   const pretty = withoutHtmlExtension(path);
   if (pretty && HTML_PAGES.has(pretty)) return true;
   if (HTML_PAGES.has(path) || PUBLIC_PAGES.has(path)) return true;
-  return ["/earthquakes", "/news", "/states", "/charts", "/wiki", "/products", "/roadmap"].some(
+  return ["/earthquakes", "/news", "/states", "/charts", "/wiki", "/products", "/roadmap", "/context", "/docs/geo"].some(
     (p) => path === p || path.startsWith(p + "/"),
   );
 }
