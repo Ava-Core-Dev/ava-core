@@ -17,24 +17,37 @@ _TAGS_TTL_S = 30.0
 _tags_cache: tuple[float, bool, list[str]] = (0.0, False, [])
 
 
-def _payload(messages: list[dict], model: str | None) -> dict:
-    return {
+def _payload(messages: list[dict], model: str | None, *, keep_alive=None, num_predict: int | None = None) -> dict:
+    options: dict = {
+        "num_ctx": int(config.OLLAMA_NUM_CTX),
+    }
+    if num_predict is not None:
+        options["num_predict"] = int(num_predict)
+    body = {
         "model": model or config.OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
         "think": False,
-        "options": {
-            "num_ctx": int(config.OLLAMA_NUM_CTX),
-        },
+        "options": options,
     }
+    if keep_alive is not None:
+        body["keep_alive"] = keep_alive
+    return body
 
 
-def chat_sync(messages: list[dict], *, model: str | None = None, timeout: int = 90) -> str | None:
+def chat_sync(
+    messages: list[dict],
+    *,
+    model: str | None = None,
+    timeout: int = 90,
+    keep_alive=None,
+    num_predict: int | None = None,
+) -> str | None:
     """Blocking Ollama chat for crons. Default is AVA_OLLAMA_MODEL (llama3.2)."""
     try:
         r = httpx.post(
             f"{config.OLLAMA_URL}/api/chat",
-            json=_payload(messages, model),
+            json=_payload(messages, model, keep_alive=keep_alive, num_predict=num_predict),
             timeout=timeout,
         )
         if r.status_code == 200:

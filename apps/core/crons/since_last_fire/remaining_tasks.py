@@ -39,20 +39,6 @@ def _script(items: list[dict], now: datetime) -> str:
             bits.append(phrase)
             spoken += 1
             continue
-        # Stitch from words we already have when the whole phrase is not recorded yet.
-        label = str(row.get("label") or phrase).lower()
-        for tok in (
-            "morning",
-            "midday",
-            "evening",
-            "solar",
-            "weather",
-            "kilauea",
-            "economy",
-            "report",
-        ):
-            if tok in label.replace("ī", "i") and _find_clip(tok):
-                bits.append(tok)
         spoken += 1
     return " ".join(bits)
 
