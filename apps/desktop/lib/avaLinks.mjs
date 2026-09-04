@@ -7,113 +7,70 @@ export const AVA_LINK_GROUPS = [
     label: "Live boards",
     links: [
       {
-        title: "Status / solar board",
-        url: "https://rootrecord.info/ava/status",
-        note: "Battery, solar, load, CPU, multiplier (connected 1+1%+1%/10% battery+1%/100W; offline 1.00× +1% env)",
+        title: "Status desk",
+        url: "https://rootrecord.cloud/status",
+        note: "Public status on rootrecord.cloud",
       },
       {
-        title: "Ava tunnel home",
-        url: "https://ava.rootmc.net/",
-        note: "Redirects to canonical status",
+        title: "Origin (tunnel)",
+        url: "https://origin.avaivy.cloud/",
+        note: "Cloudflare tunnel → this PC :8787",
       },
       {
-        title: "Solar (tunnel)",
-        url: "https://ava.rootmc.net/solar",
-        note: "Same board via Cloudflare tunnel",
-      },
-      {
-        title: "Connections",
-        url: "https://rootrecord.info/ava/status/connections",
-        note: "Players · servers · app sessions",
-      },
-      {
-        title: "Services",
-        url: "https://rootrecord.info/ava/status/services",
-        note: "Services panel",
-      },
-      {
-        title: "Logs",
-        url: "https://rootrecord.info/ava/logs",
-        note: "Process activity · no message content",
-      },
-      {
-        title: "Minecraft status",
-        url: "https://rootrecord.info/ava/status/minecraft",
-        note: "Paper test status only — console is in this app",
-      },
-      {
-        title: "Economy board",
-        url: "https://ava.rootmc.net/economy",
-        note: "Live Root-Economy · wallets, ledger, gold, playtime",
-      },
-      {
-        title: "Ava Finance",
-        url: "https://ava.rootmc.net/finance",
-        note: "Public ops expenses + optimal monthly budget",
-      },
-      {
-        title: "Public files",
-        url: "https://ava.rootmc.net/publicfiles/",
-        note: "Download jars / APKs / AABs",
-      },
-      {
-        title: "Health",
-        url: "https://ava.rootmc.net/health",
+        title: "Origin health",
+        url: "https://origin.avaivy.cloud/health",
         note: "JSON liveness",
+      },
+      {
+        title: "Kīlauea",
+        url: "https://kilauea.cloud/",
+        note: "Public Kīlauea app",
+      },
+      {
+        title: "Weather product",
+        url: "https://rootrecord.cloud/weather",
+        note: "Public product page",
+      },
+      {
+        title: "Ava wiki",
+        url: "https://avaivy.cloud/",
+        note: "Wiki / context — not an iframe of the desk",
       },
     ],
   },
   {
     id: "local",
-    label: "Local OptiPlex",
+    label: "Local AVA-CORE",
     links: [
       {
-        title: "Local status",
+        title: "Local origin",
         url: "http://127.0.0.1:8787/",
         note: "HTTP home on this host",
       },
       {
-        title: "Local solar",
-        url: "http://127.0.0.1:8787/solar",
-        note: "Direct board (no tunnel)",
+        title: "Local status",
+        url: "http://127.0.0.1:8787/status",
       },
       {
-        title: "Local finance",
-        url: "http://127.0.0.1:8787/finance",
-        note: "Public ops expenses board",
+        title: "Local weather",
+        url: "http://127.0.0.1:8787/weather",
       },
       {
-        title: "Local connections",
-        url: "http://127.0.0.1:8787/connections",
+        title: "Local Kīlauea",
+        url: "http://127.0.0.1:8787/kilauea",
       },
       {
-        title: "Local services",
-        url: "http://127.0.0.1:8787/services",
+        title: "Local account",
+        url: "http://127.0.0.1:8787/account.html",
       },
       {
-        title: "Local plugins API",
-        url: "http://127.0.0.1:8787/api/plugins/status",
-        note: "Private · Ava Client Release tab",
+        title: "Local site-config",
+        url: "http://127.0.0.1:8787/api/site-config",
       },
       {
-        title: "Local apps API",
-        url: "http://127.0.0.1:8787/api/apps/status",
-        note: "Private · Ava Client Release tab",
-      },
-      {
-        title: "Local context",
-        url: "http://127.0.0.1:8787/context",
-        note: "AI pickup HTML",
-      },
-      {
-        title: "LAN status",
-        url: "http://192.168.1.62:8787/",
-        note: "LAN reach to Ava HTTP",
-      },
-      {
-        title: "phpMyAdmin",
-        url: "https://ava.rootmc.net/phpmyadmin/",
-        note: "Needs MySQL up on host",
+        title: "Local health",
+        url: "http://127.0.0.1:8787/health",
+        note: "JSON liveness",
       },
     ],
   },
@@ -122,54 +79,13 @@ export const AVA_LINK_GROUPS = [
     label: "Wiki & context",
     links: [
       {
-        title: "Ava wiki hub",
-        url: "https://rootrecord.info/ava/",
-        note: "Human atlas",
+        title: "Ava Ivy home",
+        url: "https://avaivy.cloud/",
+        note: "Public wiki / context",
       },
       {
-        title: "AI context (HTML)",
-        url: "https://rootrecord.info/ava/context",
-        note: "Hand to any AI to resume Ava work",
-      },
-      {
-        title: "AI context (markdown)",
-        url: "https://rootrecord.info/ava/context.md",
-      },
-      {
-        title: "Core",
-        url: "https://rootrecord.info/ava/core.html",
-      },
-      {
-        title: "Brains",
-        url: "https://rootrecord.info/ava/brains.html",
-      },
-      {
-        title: "Crons",
-        url: "https://rootrecord.info/ava/crons.html",
-      },
-      {
-        title: "Data",
-        url: "https://rootrecord.info/ava/data.html",
-      },
-      {
-        title: "Surfaces",
-        url: "https://rootrecord.info/ava/surfaces.html",
-      },
-      {
-        title: "Hosting",
-        url: "https://rootrecord.info/ava/hosting.html",
-      },
-      {
-        title: "RootMC (wiki)",
-        url: "https://rootrecord.info/ava/rootmc.html",
-      },
-      {
-        title: "Root Record (wiki)",
-        url: "https://rootrecord.info/ava/root-record.html",
-      },
-      {
-        title: "Glossary",
-        url: "https://rootrecord.info/ava/glossary.html",
+        title: "Chat",
+        url: "https://rootrecord.cloud/chat",
       },
     ],
   },
@@ -179,17 +95,16 @@ export const AVA_LINK_GROUPS = [
     links: [
       {
         title: "Root Record",
-        url: "https://rootrecord.info/",
-        note: "Data center + ops software",
+        url: "https://rootrecord.cloud/",
+        note: "Public home",
       },
       {
         title: "Account / sign in",
-        url: "https://rootrecord.info/account",
+        url: "https://rootrecord.cloud/account",
       },
       {
-        title: "Merged homepage + Ava chat",
-        url: "https://merged.rootrecord.info/",
-        note: "The Root bridge",
+        title: "Discord verify",
+        url: "https://rootrecord.cloud/discord-verify",
       },
       {
         title: "RootMC",
@@ -209,11 +124,6 @@ export const AVA_LINK_GROUPS = [
         title: "RootMC API",
         url: "https://api.rootmc.net/",
       },
-      {
-        title: "Public files",
-        url: "https://ava.rootmc.net/publicfiles/",
-        note: "Jars / APKs / misc",
-      },
     ],
   },
   {
@@ -221,38 +131,21 @@ export const AVA_LINK_GROUPS = [
     label: "APIs",
     links: [
       {
-        title: "Status API",
-        url: "https://ava.rootmc.net/api/status",
+        title: "Origin status",
+        url: "https://origin.avaivy.cloud/api/status",
       },
       {
-        title: "Solar API",
-        url: "https://ava.rootmc.net/api/solar",
+        title: "Site config",
+        url: "https://origin.avaivy.cloud/api/site-config",
       },
       {
-        title: "Context API",
-        url: "https://ava.rootmc.net/api/context",
+        title: "Account Worker",
+        url: "https://rootrecord-api-account.rootrecord.workers.dev/",
       },
       {
-        title: "Powered-by widget",
-        url: "https://ava.rootmc.net/api/powered-by",
-      },
-      {
-        title: "Open hours",
-        url: "https://ava.rootmc.net/api/ava-hours",
-      },
-      {
-        title: "Public chat (POST)",
-        url: "https://ava.rootmc.net/api/public-chat",
-        note: "Merge homepage chat endpoint",
-      },
-      {
-        title: "Connections API",
-        url: "https://rootrecord.info/ava/status/api/connections",
-      },
-      {
-        title: "Solar mining multiplier",
-        url: "https://api.rootmc.net/api/rootmc/solar-mining-multiplier",
-        note: "Gold boost from bank SOC",
+        title: "RootMC API",
+        url: "https://api.rootmc.net/",
+        note: "Minecraft API only — not Ava origin",
       },
     ],
   },
@@ -265,19 +158,9 @@ export const AVA_LINK_GROUPS = [
         url: "https://discord.gg/rFFQYrNaqS",
       },
       {
-        title: "Solar ops Discord channel",
-        url: "https://discord.com/channels/1516108585740800042/1533915343766949949",
-        note: "#solar-server",
-      },
-      {
-        title: "Slack solar feed",
-        url: "https://rootmcworkspace.slack.com/",
-        note: "#solar-feed — copy of each Discord solar report",
-      },
-      {
-        title: "Ava-Core-Dev on GitHub",
-        url: "https://github.com/Ava-Core-Dev",
-        note: "Engineering org going forward",
+        title: "RootRecord on GitHub",
+        url: "https://github.com/RootRecord",
+        note: "Public org",
       },
     ],
   },
