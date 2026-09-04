@@ -164,16 +164,21 @@ def _windows_play_music(path: Path) -> list[str]:
     p = str(path.resolve()).replace("'", "''")
     dur = _music_wait_seconds(path)
     # AVA_MUSIC_BED marker must stay in the command line so kill_stray can find orphans.
+    # Always sleep the measured length even if Open/Play throws — early process exit
+    # used to look like a finished track and trigger a respawn storm.
     script = (
         "$ProgressPreference='SilentlyContinue'; "
         "# AVA_MUSIC_BED; "
-        "Add-Type -AssemblyName PresentationCore; "
-        "$m = New-Object System.Windows.Media.MediaPlayer; "
-        f"$m.Open([Uri]'{p}'); "
-        "Start-Sleep -Milliseconds 400; "
-        "$m.Play(); "
+        "$m = $null; "
+        "try { "
+        "  Add-Type -AssemblyName PresentationCore; "
+        "  $m = New-Object System.Windows.Media.MediaPlayer; "
+        f"  $m.Open([Uri]'{p}'); "
+        "  Start-Sleep -Milliseconds 400; "
+        "  $m.Play(); "
+        "} catch { } "
         f"Start-Sleep -Seconds {dur:.2f}; "
-        "$m.Stop(); $m.Close()"
+        "try { if ($m) { $m.Stop(); $m.Close() } } catch { }"
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
     return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
@@ -723,10 +728,24 @@ class StreamDirector:
             # Silence leftovers from dead uvicorn / double spawn before first track.
             await _kill_stray_music_players_async()
             self._music_enabled = True
-            self._music_hold = False
+            # Never clear a live report/chime hold — starting the bed under a REPORT
+            # used to unmute the bed on top of Ara and drown the clip.
+            voice_busy = (
+                self._current is not None
+                and int(getattr(self._current, "priority", 0) or 0) > Priority.AMBIENT
+            )
+            if voice_busy:
+                self._music_hold = True
+            else:
+                self._music_hold = False
             self._music_operator_hold = False
             self._music_task = asyncio.create_task(self._music_loop(), name="ava-music-bed")
-            log.info("Music bed started  tracks=%s  dir=%s", len(tracks), music_dir())
+            log.info(
+                "Music bed started  tracks=%s  dir=%s  voice_hold=%s",
+                len(tracks),
+                music_dir(),
+                self._music_hold,
+            )
             return {"ok": True, "tracks": len(tracks), "dir": str(music_dir())}
 
     def _hold_music(self) -> None:
