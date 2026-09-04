@@ -277,7 +277,7 @@ async def api_config():
 _RR_STATIC = Path(__file__).resolve().parent / "static" / "rootrecord"
 
 
-@app.get("/{rest:path}")
+@app.api_route("/{rest:path}", methods=["GET", "HEAD"])
 async def rootrecord_static_fallback(rest: str):
     from fastapi.responses import FileResponse, HTMLResponse
 

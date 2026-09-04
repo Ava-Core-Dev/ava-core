@@ -87,32 +87,30 @@ class HourlyChimePlugin(Plugin):
         self._play()
 
     def _play(self) -> Path | None:
-        """Play bell, then the matching time announcement."""
-        if not self.sound_path.exists():
-            log.error("Chime file not found: %s", self.sound_path)
-            return None
+        """Play one concatenated chime (bell + clock). Never stack time_HHMM.mp3."""
+        from zoneinfo import ZoneInfo
+
+        from apps.voice.local_tts import GENERATED, build_time_announcement
 
         player = self._find_player()
         if not player:
             log.error("No audio player found (tried ffplay, aplay, paplay, play)")
             return None
 
-        # 1) Play the bell
-        log.info("Playing hourly chime: %s", self.sound_path.name)
-        self._spawn_player(player, self.sound_path)
-
-        # 2) After a short gap, play the time announcement
-        if self.announce_time:
-            time_clip = self._resolve_time_clip()
-            if time_clip and time_clip.exists():
-                # Give the bell a moment to start / finish
-                time.sleep(1.8)
-                log.info("Announcing time: %s", time_clip.name)
-                self._spawn_player(player, time_clip)
-            else:
-                log.warning("No matching time clip found for current hour")
-
-        return self.sound_path
+        now = datetime.now(ZoneInfo("Pacific/Honolulu"))
+        hour, minute = now.hour, (0 if now.minute < 15 else 30 if now.minute < 45 else 0)
+        if now.minute >= 45:
+            hour = (hour + 1) % 24
+        if now.minute in (0, 30):
+            hour, minute = now.hour, now.minute
+        dest = GENERATED / f"chime-{hour:02d}{minute:02d}.mp3"
+        built = build_time_announcement(hour, minute, dest, now=now)
+        if not built.get("ok"):
+            log.error("Chime concat failed: %s", built)
+            return None
+        log.info("Playing hourly chime concat %s clips=%s", dest.name, built.get("clips"))
+        self._spawn_player(player, dest)
+        return dest
 
     def _resolve_time_clip(self) -> Path | None:
         """Return path to time_HHMM.mp3 for the current :00 or :30 slot (HST)."""
