@@ -528,6 +528,7 @@ def as_dict() -> dict[str, Any]:
         "LOG_DIR":         str(LOG_DIR),
         "VOICE_MODE":      VOICE_MODE,
         "GROK_MODEL":      GROK_MODEL,
+        "GROK_USE_MODEL":  GROK_USE_MODEL,
         "TTS_VOICE":       TTS_VOICE,
         "OLLAMA_URL":      OLLAMA_URL,
         "OLLAMA_MODEL":    OLLAMA_MODEL,

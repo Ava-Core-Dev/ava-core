@@ -15,6 +15,7 @@ from typing import Any
 import requests
 
 from .. import config
+from . import model_pick
 
 log = logging.getLogger("ava.xai")
 
@@ -95,7 +96,7 @@ def _check(r: requests.Response, what: str) -> None:
     elif r.status_code == 403:
         msg += " → Key disabled or out of credits. Check console.x.ai → Billing"
     elif r.status_code == 404:
-        msg += f" → Model {config.GROK_MODEL} not found"
+        msg += f" → Model {payload.get('model') if 'payload' in dir() else config.GROK_MODEL} not found"
     log.error(msg)
     raise XAIError(msg)
 

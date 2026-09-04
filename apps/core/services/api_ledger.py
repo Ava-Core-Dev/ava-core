@@ -81,7 +81,7 @@ SEED_ROWS: tuple[dict[str, Any], ...] = (
     # Gemini
     {"vendor": "gemini", "model": "gemini-3.6-flash", "input": 1.5, "cached": 0.15, "output": 7.5, "notes": "Google paid standard"},
     {"vendor": "gemini", "model": "gemini-3.1-pro", "input": 2.0, "cached": 0.2, "output": 12.0, "notes": "≤200k; >200k input $4 / output $18"},
-    {"vendor": "gemini", "model": "gemini-2.5-flash", "input": 0.3, "cached": 0.03, "output": 2.5, "notes": "flat across context"},
+    {"vendor": "gemini", "model": "gemini-2.5-flash-lite", "input": 0.1, "cached": 0.01, "output": 0.4, "notes": "cheapest Gemini paid text"},
     {"vendor": "gemini", "model": "gemini-2.5-pro", "input": 1.25, "cached": 0.125, "output": 10.0, "notes": "≤200k; >200k input $2.50 / output $15"},
     {"vendor": "gemini", "model": "gemini-3.8-flash", "input": 0.75, "cached": 0.075, "output": 3.5, "notes": "as billed inside Cursor Other Models"},
     # Anthropic (linked via Cursor Other Models; no Ava key yet)
@@ -726,6 +726,13 @@ def snapshot() -> dict:
         "balances": _balance_block(st),
         "prices": latest_catalog(),
         "auto": auto_turn_estimates(),
+        "defaults": {
+            "xai": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("xai"),
+            "openai": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("openai"),
+            "gemini": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("gemini"),
+            "cursor": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("cursor"),
+            "anthropic": __import__("apps.core.services.model_pick", fromlist=["pick"]).pick("anthropic"),
+        },
         "last": last,
         "self_update": {
             "on": False,
