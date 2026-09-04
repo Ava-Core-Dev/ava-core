@@ -162,9 +162,12 @@ function nodeBin() {
 }
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1320,
-    height: 920,
+  const ui = loadDeskUiState(DESK_ROOT);
+  lastDeskPage = ui.page || "terminal";
+  const bounds = ui.bounds;
+  const opts = {
+    width: bounds?.width || 1320,
+    height: bounds?.height || 920,
     minWidth: 980,
     minHeight: 680,
     title: "Ava Ivy",
@@ -173,7 +176,16 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-  });
+  };
+  if (
+    bounds &&
+    Number.isFinite(bounds.x) &&
+    Number.isFinite(bounds.y)
+  ) {
+    opts.x = bounds.x;
+    opts.y = bounds.y;
+  }
+  mainWindow = new BrowserWindow(opts);
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
   mainWindow.webContents.on("did-fail-load", (_e, code, desc, url) => {
     console.error("desk load failed", code, desc, url);
@@ -189,10 +201,99 @@ function createWindow() {
   // "Root Record is online. I'm back."
 
   // Closing the GUI must not kill origin — Ava stays up as the root server.
+  // Music bed + desk-spawned ops are stopped on quit (see handleDeskClose).
+
+  mainWindow.on("close", () => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const b = mainWindow.getBounds();
+        saveDeskUiState(
+          {
+            page: lastDeskPage,
+            bounds: b,
+          },
+          DESK_ROOT,
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  });
 
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+}
+
+async function handleDeskClose(reason) {
+  if (deskCloseHandled) return;
+  deskCloseHandled = true;
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try {
+        saveDeskUiState(
+          {
+            page: lastDeskPage,
+            bounds: mainWindow.getBounds(),
+          },
+          DESK_ROOT,
+        );
+      } catch {
+        /* ignore */
+      }
+    }
+    const peek = await peekMusicBedStatus();
+    if (peek.ok) {
+      saveDeskUiState(
+        {
+          musicWanted: Boolean(peek.musicWanted || peek.playing),
+          musicTrack: peek.musicTrack || null,
+          closedAt: new Date().toISOString(),
+          closeReason: reason,
+        },
+        DESK_ROOT,
+      );
+    } else {
+      saveDeskUiState(
+        { closedAt: new Date().toISOString(), closeReason: reason },
+        DESK_ROOT,
+      );
+    }
+  } catch {
+    /* ignore */
+  }
+
+  if (runningOps) {
+    try {
+      runningOps.kill("SIGTERM");
+    } catch {
+      /* ignore */
+    }
+    runningOps = null;
+    runningOpsId = null;
+  }
+
+  // Stop music + MediaPlayer orphans. Do not stop origin/watchdog/crons.
+  await stopDeskOwnedAudio();
+}
+
+async function restoreDeskSession() {
+  const ui = loadDeskUiState(DESK_ROOT);
+  const morning = checkMorningReportStatus(DESK_ROOT);
+  sendOps("ava:desk-lifecycle", {
+    phase: "start",
+    ui,
+    morning,
+  });
+  if (ui.musicWanted) {
+    const music = await restoreMusicBedIfWanted(true);
+    sendOps("ava:desk-lifecycle", {
+      phase: "music-restore",
+      music,
+      track: ui.musicTrack || null,
+    });
+  }
+  return { ui, morning };
 }
 
 function sendOps(channel, payload) {
@@ -276,6 +377,7 @@ if (!app.requestSingleInstanceLock()) {
 
 app.whenReady().then(async () => {
   if (!app.hasSingleInstanceLock()) return;
+  deskCloseHandled = false;
   // Start Ava Core + Voice with the GUI. Closing the window does not stop origin.
   try {
     await startAvaSession();
@@ -285,9 +387,21 @@ app.whenReady().then(async () => {
 
   createWindow();
   scheduleGitAutoCheck();
+  // After window is up: morning-report JSON check + optional music restore.
+  setTimeout(() => {
+    restoreDeskSession().catch((err) => {
+      console.error("Desk restore failed:", err?.message || err);
+    });
+  }, 1500);
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      startAvaSession().finally(() => createWindow());
+      deskCloseHandled = false;
+      startAvaSession().finally(() => {
+        createWindow();
+        setTimeout(() => {
+          restoreDeskSession().catch(() => {});
+        }, 1500);
+      });
     }
   });
   loadDesktopEnv()
@@ -296,28 +410,17 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  if (runningOps) {
-    try {
-      runningOps.kill("SIGTERM");
-    } catch {
-      /* ignore */
-    }
-    runningOps = null;
-  }
-  // Origin must keep running. On Windows, quitting Electron would be fine
-  // only because core is a detached / WinSW process — do not call stopAvaSession.
-  if (process.platform !== "darwin") app.quit();
+  void handleDeskClose("window-all-closed").finally(() => {
+    if (process.platform !== "darwin") app.quit();
+  });
 });
 
-app.on("before-quit", () => {
-  if (runningOps) {
-    try {
-      runningOps.kill("SIGTERM");
-    } catch {
-      /* ignore */
-    }
-    runningOps = null;
-  }
+app.on("before-quit", (e) => {
+  if (deskCloseHandled) return;
+  e.preventDefault();
+  void handleDeskClose("before-quit").finally(() => {
+    app.exit(0);
+  });
 });
 
 ipcMain.handle("ava:env-status", async () => {
@@ -912,6 +1015,22 @@ ipcMain.handle("ava:git-sync-prefs-save", async (_e, patch = {}) => {
   scheduleGitAutoCheck();
   return { ok: true, prefs };
 });
+
+ipcMain.handle("ava:desk-ui-get", async () => ({
+  ok: true,
+  state: loadDeskUiState(DESK_ROOT),
+  path: path.join(DESK_ROOT, "data", "state", "desk-ui.json"),
+}));
+
+ipcMain.handle("ava:desk-ui-save", async (_e, patch = {}) => {
+  if (patch?.page) lastDeskPage = String(patch.page);
+  const state = saveDeskUiState(patch || {}, DESK_ROOT);
+  return { ok: true, state };
+});
+
+ipcMain.handle("ava:morning-report-check", async () =>
+  checkMorningReportStatus(DESK_ROOT),
+);
 
 ipcMain.handle("ava:git-status", async () => runGitSyncMode("status", { autoPull: false }));
 

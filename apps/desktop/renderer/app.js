@@ -41,6 +41,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
     btn.classList.add("active");
     $(`page-${btn.dataset.page}`).classList.add("active");
+    window.avaDesktop?.deskUiSave?.({ page: btn.dataset.page }).catch(() => {});
     if (btn.dataset.page === "links") renderLinks();
     if (btn.dataset.page === "release") refreshRelease();
     if (btn.dataset.page === "crons") refreshCrons();
@@ -68,6 +69,55 @@ document.querySelectorAll(".tab").forEach((btn) => {
     }
   });
 });
+
+function paintDeskLifecycleStatus(payload) {
+  const el = $("desk-lifecycle-status");
+  if (!el) return;
+  if (!payload) {
+    el.textContent = "";
+    return;
+  }
+  if (payload.phase === "music-restore") {
+    const ok = payload.music?.ok;
+    const track = payload.track ? ` · ${payload.track}` : "";
+    el.textContent = ok
+      ? `Music bed restored${track}`
+      : `Music bed restore failed${payload.music?.detail ? ` · ${payload.music.detail}` : ""}`;
+    return;
+  }
+  const morning = payload.morning;
+  const ui = payload.ui;
+  const parts = [];
+  if (morning?.summary) parts.push(morning.summary);
+  if (ui?.musicWanted) parts.push("Last session had music bed on — restoring.");
+  if (ui?.page && ui.page !== "terminal") parts.push(`Tab: ${ui.page}`);
+  el.textContent = parts.join(" · ") || "";
+  if (morning?.missing) el.classList.add("warn-inline");
+  else el.classList.remove("warn-inline");
+}
+
+function restoreDeskPage(page) {
+  const id = String(page || "").trim();
+  if (!id) return;
+  const btn = document.querySelector(`.tab[data-page="${id}"]`);
+  if (btn && !btn.classList.contains("active")) btn.click();
+}
+
+async function applyDeskUiRestore() {
+  try {
+    const res = await window.avaDesktop?.deskUiGet?.();
+    const st = res?.state;
+    if (st?.page) restoreDeskPage(st.page);
+  } catch {
+    /* ignore */
+  }
+  try {
+    const morning = await window.avaDesktop?.morningReportCheck?.();
+    paintDeskLifecycleStatus({ phase: "start", morning, ui: (await window.avaDesktop?.deskUiGet?.())?.state });
+  } catch {
+    /* ignore */
+  }
+}
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, "&amp;")
@@ -3821,6 +3871,8 @@ async function boot() {
   window.avaDesktop.earlyLogin?.().catch(() => {});
   await refreshGitSyncPrefs();
   window.avaDesktop.onGitSync?.((payload) => applyGitSyncResult(payload));
+  window.avaDesktop.onDeskLifecycle?.((payload) => paintDeskLifecycleStatus(payload));
+  await applyDeskUiRestore();
   $("git-check-btn")?.addEventListener("click", () => runGitCheckBtn().catch(() => {}));
   $("git-pull-btn")?.addEventListener("click", () => runGitPullBtn().catch(() => {}));
   $("git-prefs-save")?.addEventListener("click", () => saveGitSyncPrefsForm().catch(() => {}));

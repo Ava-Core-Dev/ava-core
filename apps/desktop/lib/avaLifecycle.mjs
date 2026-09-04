@@ -2,6 +2,7 @@
  * Ava session lifecycle — start Python core + voice with the desktop GUI.
  * Origin stays up if the window closes. A watchdog restarts core if /health dies.
  * stopAvaSession() is only for an explicit power-off.
+ * Desk close → stopDeskOwnedAudio() (music bed + orphans only; not origin).
  */
 import { spawn } from "node:child_process";
 import fs from "node:fs";
