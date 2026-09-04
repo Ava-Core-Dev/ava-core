@@ -132,6 +132,15 @@ export default {
       });
     }
 
+    if (path === "/" || path === "/chat" || path === "/chat/") {
+      return proxyToOrigin(request, {
+        originUrl: origin,
+        path: "/chat",
+        timeoutMs: 8000,
+        offlineFallback: holdingPage,
+      });
+    }
+
     if (path.startsWith("/ava/")) {
       return proxyToOrigin(request, {
         originUrl: origin,
