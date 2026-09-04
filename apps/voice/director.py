@@ -933,7 +933,7 @@ class StreamDirector:
                         min_ok,
                         path.name,
                     )
-                    await asyncio.sleep(0.2)
+                    await asyncio.sleep(1.0)
                     await _kill_stray_music_players_async()
                     continue
                 break
