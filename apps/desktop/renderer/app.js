@@ -1040,7 +1040,7 @@ async function refreshWeatherGifsPage() {
     urow.className = "cron-row";
     urow.innerHTML = `
       <div>
-        <div class="id">Desktop collector</div>
+        <div class="id">Weather GIF collector</div>
         <div class="muted">${escapeHtml(d.collector || up.abs || "")}</div>
       </div>
       <div>workstations collector</div>
