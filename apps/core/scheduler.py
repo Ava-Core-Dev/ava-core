@@ -41,7 +41,7 @@ def _job_wave(job_id: str) -> int:
     }
     wave4 = {
         "morning-report", "merged-morning-summary", "cursor-fallback",
-        "economy-brief", "overnight-relay", "governance-daily",
+        "economy-brief", "overnight-relay", "governance-daily", "governance-self-update",
     }
     wave5 = {"adsense-eod", "admob-eod"}
     wave6 = {"time-chime", "broadcast-loop", "hourly-clip-prebuild", "hourly-clip-reports"}
@@ -141,6 +141,9 @@ class Scheduler:
 
         s.add_job(self._run("governance_daily"), CronTrigger(hour=10, minute=8),
                   id="governance-daily", name="RootRecord governance daily", misfire_grace_time=300)
+
+        s.add_job(self._run("governance_self_update"), IntervalTrigger(hours=1),
+                  id="governance-self-update", name="Governance self-update after boot grace", misfire_grace_time=300)
 
         # ── Economy brief (15:00 HST daily) ──────────────────────────────────
         s.add_job(self._run("economy_brief"), CronTrigger(hour=15, minute=0),

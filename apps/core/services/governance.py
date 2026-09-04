@@ -93,12 +93,27 @@ def write_flags(patch: dict) -> dict:
     return cur
 
 
+BOOT_GRACE_S = 3600  # self-update only after boot reports / catchups
+
+
+def origin_uptime_s() -> int:
+    try:
+        from apps.core.services import uptime_log
+
+        n = uptime_log.facts().get("desk_uptime_s")
+        return int(n or 0)
+    except Exception:
+        return 0
+
+
 def cursor_may_run(st: dict | None = None) -> tuple[bool, str]:
     st = st or flags()
     if not st.get("community_governance"):
         return False, "governance_off"
     if not st.get("self_update"):
         return False, "self_update_off"
+    if origin_uptime_s() < BOOT_GRACE_S:
+        return False, "boot_grace"
     free = st.get("cursor_context_free_pct")
     need = int(st.get("cursor_min_free_pct") or 25)
     if free is None:
@@ -326,7 +341,7 @@ def try_cursor_hook(item: dict, st: dict) -> dict:
     return job
 
 
-def run_daily(*, hours: int = 26, source: str = "daily") -> dict:
+def run_daily(*, hours: int = 26, source: str = "daily", allow_self_update: bool | None = None) -> dict:
     st = flags()
     result = tally(hours=hours)
     result["source"] = source
@@ -334,6 +349,7 @@ def run_daily(*, hours: int = 26, source: str = "daily") -> dict:
         "community_governance": st["community_governance"],
         "self_update": st["self_update"],
         "cursor_gate": cursor_may_run(st)[1],
+        "origin_uptime_s": origin_uptime_s(),
     }
     result["pages"] = []
     result["cursor"] = []
@@ -353,7 +369,10 @@ def run_daily(*, hours: int = 26, source: str = "daily") -> dict:
     finally:
         conn.close()
     result["pages"] = write_pages(result, st)
-    if st.get("self_update"):
+    do_update = st.get("self_update") if allow_self_update is None else bool(allow_self_update)
+    if source == "boot":
+        do_update = False
+    if do_update:
         for item in result.get("passed") or []:
             result["cursor"].append(try_cursor_hook(item, st))
     LAST_PATH.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
@@ -365,6 +384,26 @@ def run_daily(*, hours: int = 26, source: str = "daily") -> dict:
         len(result["pages"]),
     )
     return result
+
+
+def run_self_update() -> dict:
+    """After boot grace: queue Cursor for already-passed items. No-op if gates fail."""
+    st = flags()
+    ok, gate = cursor_may_run(st)
+    out = {"ok": ok, "gate": gate, "cursor": []}
+    if not ok:
+        log.info("governance self-update held gate=%s", gate)
+        return out
+    last = {}
+    if LAST_PATH.is_file():
+        try:
+            last = json.loads(LAST_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            last = {}
+    for item in last.get("passed") or []:
+        out["cursor"].append(try_cursor_hook(item, st))
+    log.info("governance self-update jobs=%s", len(out["cursor"]))
+    return out
 
 
 def snapshot() -> dict:

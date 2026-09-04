@@ -170,7 +170,7 @@ async def lifespan(app: FastAPI):
             await asyncio.sleep(40)
             from apps.core.services import governance
 
-            result = governance.run_daily(source="boot")
+            result = governance.run_daily(source="boot", allow_self_update=False)
             log.info(
                 "boot governance people=%s passed=%s gate=%s",
                 (result.get("people")),
