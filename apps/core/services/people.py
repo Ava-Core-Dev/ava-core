@@ -372,12 +372,18 @@ def _auto_capture(conn: sqlite3.Connection, person_id: int, surface: str, sid: s
             "INSERT INTO utterances (person_id, surface, chat_id, text, at) VALUES (?, ?, ?, ?, ?)",
             (person_id, surface, chat_id or None, raw[:500], _now()),
         )
-        conn.execute(
-            """DELETE FROM utterances WHERE person_id=? AND id NOT IN (
-                 SELECT id FROM utterances WHERE person_id=? ORDER BY id DESC LIMIT 40
-               )""",
-            (person_id, person_id),
-        )
+        keep = [
+            int(r["id"])
+            for r in conn.execute(
+                "SELECT id FROM utterances WHERE person_id=? ORDER BY id DESC LIMIT 40",
+                (person_id,),
+            ).fetchall()
+        ]
+        if keep:
+            conn.execute(
+                f"DELETE FROM utterances WHERE person_id=? AND id NOT IN ({','.join('?' * len(keep))})",
+                (person_id, *keep),
+            )
     love = _LOVE_RE.search(raw)
     if love:
         _note_if_new(conn, person_id, "interest", love.group(0).strip()[:200])
