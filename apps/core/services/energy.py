@@ -79,6 +79,8 @@ def bank(packs: list[dict[str, Any]]) -> dict[str, Any]:
                 "capacity_wh": round(cap),
                 "stored_wh": round(wh),
                 "pv_w": _num(p.get("pv_w")),
+                "ebatt_w": _num(p.get("ebatt_w")),
+                "input_kind": p.get("input_kind"),
                 "out_w": _num(p.get("out_w") if p.get("out_w") is not None else p.get("ac_out_w")),
             }
         )
@@ -104,18 +106,30 @@ def host_stored_wh(battery_pct: Any) -> float | None:
     return HOST_WH * max(0.0, min(100.0, pct)) / 100.0
 
 
-def flow(pv_w: Any, load_w: Any, *, stored_wh_now: Any = None, capacity_wh: Any = None) -> dict[str, Any]:
+def flow(pv_w: Any, load_w: Any, *, stored_wh_now: Any = None, capacity_wh: Any = None,
+         ebatt_w: Any = None) -> dict[str, Any]:
     """Net watts and a runtime estimate at the current rate.
 
     load_w is the combined AC out across packs, so the runtime covers everything
     on the packs, this host included. Rates are never summed as energy.
+    E-Batt counts as energy in, not as solar.
     """
     pv = _num(pv_w)
+    ebatt = _num(ebatt_w)
     load = _num(load_w)
-    out: dict[str, Any] = {"pv_w": pv, "load_w": load, "net_w": None, "direction": None}
-    if pv is None or load is None:
+    out: dict[str, Any] = {
+        "pv_w": pv,
+        "ebatt_w": ebatt,
+        "load_w": load,
+        "net_w": None,
+        "direction": None,
+    }
+    if load is None:
         return out
-    net = pv - load
+    if pv is None and ebatt is None:
+        return out
+    in_w = (pv or 0.0) + (ebatt or 0.0)
+    net = in_w - load
     out["net_w"] = round(net, 1)
     stored = _num(stored_wh_now)
     cap = _num(capacity_wh)
@@ -134,7 +148,7 @@ def flow(pv_w: Any, load_w: Any, *, stored_wh_now: Any = None, capacity_wh: Any 
 
 
 def summary(packs: list[dict[str, Any]], *, pv_w: Any, load_w: Any,
-            host_battery_pct: Any = None) -> dict[str, Any]:
+            host_battery_pct: Any = None, ebatt_w: Any = None) -> dict[str, Any]:
     """One block for boards and LIVE FACTS."""
     b = bank(packs)
     if not b.get("ok"):
@@ -144,6 +158,7 @@ def summary(packs: list[dict[str, Any]], *, pv_w: Any, load_w: Any,
         load_w,
         stored_wh_now=b["stored_wh"],
         capacity_wh=b["capacity_wh"],
+        ebatt_w=ebatt_w,
     )
     host_wh = host_stored_wh(host_battery_pct)
     total_cap = b["capacity_wh"] + HOST_WH
@@ -172,13 +187,20 @@ def facts_lines(
     pv_w: Any,
     load_w: Any,
     host_battery_pct: Any = None,
+    ebatt_w: Any = None,
 ) -> list[str]:
     """One bullet per pack, then the combined bank. Empty list when unusable.
 
     A 3B model misreads a long semicolon run-on: it borrows one pack's SOC for
     the other and repeats the bank percent as a pack percent. One fact per line.
     """
-    s = summary(packs, pv_w=pv_w, load_w=load_w, host_battery_pct=host_battery_pct)
+    s = summary(
+        packs,
+        pv_w=pv_w,
+        load_w=load_w,
+        host_battery_pct=host_battery_pct,
+        ebatt_w=ebatt_w,
+    )
     if not s.get("ok"):
         return []
     lines: list[str] = []
@@ -189,7 +211,9 @@ def facts_lines(
             soc_s,
             f"{int(round(p['stored_wh']))} Wh stored of {int(p['capacity_wh'])} Wh",
         ]
-        if p.get("pv_w") is not None:
+        if p.get("input_kind") == "ebatt" and p.get("ebatt_w") is not None:
+            bits.append(f"E-Batt in {int(round(p['ebatt_w']))} W")
+        elif p.get("pv_w") is not None:
             bits.append(f"PV in {int(round(p['pv_w']))} W")
         if p.get("out_w") is not None:
             bits.append(f"out {int(round(p['out_w']))} W")
@@ -202,7 +226,11 @@ def facts_lines(
         f"{s['stored_kwh']:.2f} kWh stored of {s['capacity_kwh']:.2f} kWh",
         f"{s['bank_pct']}% capacity-weighted (nameplate, not measured)",
     ]
-    if f.get("pv_w") is not None:
+    if f.get("ebatt_w"):
+        combined.append(f"E-Batt in {int(round(f['ebatt_w']))} W")
+    if f.get("pv_w") and not (f.get("ebatt_w") and abs(f["pv_w"] or 0) < 1):
+        combined.append(f"PV in {int(round(f['pv_w']))} W")
+    elif f.get("pv_w") is not None and not f.get("ebatt_w"):
         combined.append(f"PV in {int(round(f['pv_w']))} W")
     if f.get("load_w") is not None:
         combined.append(f"load out {int(round(f['load_w']))} W")
