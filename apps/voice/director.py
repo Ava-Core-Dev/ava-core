@@ -115,26 +115,69 @@ def _windows_play_mp3(path: Path) -> list[str]:
     return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
 
 
+def _audio_file_duration_s(path: Path) -> float | None:
+    """Best-effort length in seconds (wave header / ffmpeg). None if unknown."""
+    try:
+        if path.suffix.lower() == ".wav":
+            import wave
+
+            with wave.open(str(path), "rb") as w:
+                rate = float(w.getframerate() or 0)
+                if rate > 0:
+                    return w.getnframes() / rate
+    except Exception:
+        pass
+    try:
+        from apps.voice.clips import mp3_duration_s
+
+        got = mp3_duration_s(path)
+        if got and got > 0.5:
+            return float(got)
+    except Exception:
+        pass
+    return None
+
+
 def _windows_play_music(path: Path) -> list[str]:
-    """PowerShell MediaPlayer for long bed tracks (wav/mp3). No 120s report cap."""
+    """PowerShell MediaPlayer for long bed tracks (wav/mp3). Full track — no 60s cap."""
     p = str(path.resolve()).replace("'", "''")
+    measured = _audio_file_duration_s(path)
     try:
         size = path.stat().st_size
-        # Rough PCM wav ~176 KB/s; mp3 ~16 KB/s — pick the longer estimate.
-        dur = min(7200.0, max(60.0, size / 16000.0 + 5.0))
     except Exception:
-        dur = 600.0
+        size = 0
+    if measured and measured > 1.0:
+        dur = measured + 2.0
+    elif path.suffix.lower() == ".wav":
+        # PCM stereo 16-bit 44.1kHz ≈ 176400 B/s — never use the mp3 16KB/s guess.
+        dur = max(30.0, (size / 176400.0) + 5.0) if size else 600.0
+    else:
+        dur = max(30.0, (size / 16000.0) + 5.0) if size else 600.0
+    dur = min(7200.0, dur)
+    ceiling = min(7200.0, dur + 30.0)
+    # AVA_MUSIC_BED marker must stay in the command line so kill_stray can find orphans
+    # even when Win32_Process truncates long paths.
     script = (
+        "$ProgressPreference='SilentlyContinue'; "
+        "# AVA_MUSIC_BED; "
         "Add-Type -AssemblyName PresentationCore; "
         "$m = New-Object System.Windows.Media.MediaPlayer; "
+        "$script:avaBedDone = $false; "
+        "$m.add_MediaEnded({ $script:avaBedDone = $true }); "
         f"$m.Open([Uri]'{p}'); $m.Play(); "
         "Start-Sleep -Milliseconds 500; "
         "$guard = 0; "
-        "while ($m.NaturalDuration.HasTimeSpan -eq $false -and $guard -lt 80) { "
-        "  Start-Sleep -Milliseconds 100; $guard++ }; "
-        "if ($m.NaturalDuration.HasTimeSpan) { "
-        "  while ($m.Position -lt $m.NaturalDuration.TimeSpan) { Start-Sleep -Milliseconds 250 } "
-        f"}} else {{ Start-Sleep -Seconds {dur:.1f} }}"
+        "while ($m.NaturalDuration.HasTimeSpan -eq $false -and $guard -lt 120 "
+        "-and -not $script:avaBedDone) { Start-Sleep -Milliseconds 100; $guard++ }; "
+        f"$ceiling = {ceiling:.1f}; "
+        "$sw = [Diagnostics.Stopwatch]::StartNew(); "
+        "while (-not $script:avaBedDone) { "
+        "  if ($m.NaturalDuration.HasTimeSpan -and "
+        "      $m.Position -ge $m.NaturalDuration.TimeSpan) { break }; "
+        "  if ($sw.Elapsed.TotalSeconds -ge $ceiling) { break }; "
+        "  Start-Sleep -Milliseconds 250 "
+        "}; "
+        "$m.Stop(); $m.Close()"
     )
     ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
     return [ps, "-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-Command", script]
@@ -162,31 +205,100 @@ def list_music_tracks(root: Path | None = None) -> list[Path]:
 
 
 
+def _music_cmdline_is_bed(cmdline: str) -> bool:
+    """True if this process command line is a music-bed player (not voice clips)."""
+    if not cmdline:
+        return False
+    low = cmdline.lower()
+    if "ava_music_bed" in low:
+        return True
+    if "my_workspace-dub" in low:
+        return True
+    # Path markers (slash-agnostic)
+    compact = low.replace("/", "\\")
+    if "\\audio\\music\\" in compact or "\\audio\\music'" in compact:
+        return True
+    if "media\\public\\audio\\music" in compact:
+        return True
+    if "mediaplayer" in low and "music" in low:
+        return True
+    if "presentationcore" in low and "music" in low:
+        return True
+    return False
+
+
 def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
-    """Kill OS players whose command line points at the music bed folder.
+    """Kill OS players for the music bed folder (orphans from origin recycle).
 
-    Origin force-kill orphans PowerShell MediaPlayer / ffplay children; without a
-    sweep, each recycle stacks another track until everything plays at once.
+    Uses psutil + AVA_MUSIC_BED marker. Nested PowerShell CIM -like matching was
+    incomplete and left stacks after recycle / Desk restart / ensure races.
     """
-    try:
-        root = music_dir().resolve()
-        _ = str(root)
-    except Exception:
-        return 0
-
     killed = 0
-    if os.name == "nt":
+    try:
+        import psutil
+    except Exception:
+        psutil = None  # type: ignore
+
+    player_names = {
+        "powershell.exe",
+        "pwsh.exe",
+        "ffplay.exe",
+        "ffmpeg.exe",
+        "mpg123.exe",
+        "mpv.exe",
+        "vlc.exe",
+        "wscript.exe",
+        "cscript.exe",
+    }
+
+    if psutil is not None:
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                pid = int(proc.info["pid"])
+            except Exception:
+                continue
+            if keep_pid is not None and pid == keep_pid:
+                continue
+            try:
+                name = (proc.info.get("name") or "").lower()
+                cmd = proc.info.get("cmdline") or []
+                cl = " ".join(cmd)
+            except (psutil.Error, TypeError):
+                continue
+            if not cl or not _music_cmdline_is_bed(cl):
+                continue
+            # Only kill known player hosts (never random python with music path in cwd).
+            if name and name not in player_names and "ffplay" not in name:
+                if "powershell" not in name and "pwsh" not in name:
+                    continue
+            try:
+                if os.name == "nt":
+                    subprocess.run(
+                        ["taskkill", "/PID", str(pid), "/T", "/F"],
+                        capture_output=True,
+                        timeout=10,
+                        creationflags=CREATE_NO_WINDOW,
+                    )
+                else:
+                    proc.kill()
+                killed += 1
+            except Exception:
+                try:
+                    proc.kill()
+                    killed += 1
+                except Exception:
+                    pass
+    elif os.name == "nt":
+        # Fallback without psutil: broad CIM match including AVA_MUSIC_BED.
         ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
         list_script = (
-            "$procs = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
+            "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
             "Where-Object { $_.CommandLine -and ("
-            "  $_.Name -match '^(powershell|pwsh|ffplay|ffmpeg|mpg123|mpv|vlc)' -or "
-            "  $_.CommandLine -match 'MediaPlayer'"
-            ") -and ("
-            "  $_.CommandLine -like '*Media*public*audio*music*' -or "
-            "  $_.CommandLine -like '*\\\\audio\\\\music\\\\*'"
-            ") }; "
-            "$procs | ForEach-Object { $_.ProcessId }"
+            "  $_.CommandLine -match 'AVA_MUSIC_BED' -or "
+            "  $_.CommandLine -match 'My_Workspace-Dub' -or "
+            "  $_.CommandLine -match '[\\\\/]audio[\\\\/]music[\\\\/]' -or "
+            "  ($_.CommandLine -match 'MediaPlayer' -and $_.CommandLine -match 'music')"
+            ") } | ForEach-Object { $_.ProcessId }"
         )
         try:
             out = subprocess.run(
@@ -225,11 +337,7 @@ def kill_stray_music_players(*, keep_pid: int | None = None) -> int:
                 )
                 killed += 1
             except Exception:
-                try:
-                    os.kill(pid, 9)
-                    killed += 1
-                except Exception:
-                    pass
+                pass
     else:
         try:
             marker = str(music_dir())
