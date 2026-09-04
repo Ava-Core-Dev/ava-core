@@ -52,6 +52,17 @@ async def cron_runs(limit: int = 50):
         return {"ok": False, "detail": str(e), "runs": []}
 
 
+@router.post("/ensure-midday")
+async def ensure_midday():
+    """Hot path: register midday-report (11:55 → noon) if the live scheduler lacks it."""
+    sched = get_scheduler()
+    if sched is None:
+        return {"ok": False, "detail": "scheduler not started"}
+    if not hasattr(sched, "ensure_midday_job"):
+        return {"ok": False, "detail": "ensure_midday_job missing — recycle origin once"}
+    return sched.ensure_midday_job()
+
+
 @router.post("/{job_id}/run")
 async def run_cron(job_id: str):
     sched = get_scheduler()
