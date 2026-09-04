@@ -194,19 +194,28 @@ async def telegram_loop() -> None:
                     try:
                         from apps.core.services import people
 
-                        called = people.call_name_for("telegram", from_id)
-                        if called:
-                            extra += f"\nSpeaker's call name on file: {called}. Use it once, don't make it a roll call."
-                        else:
-                            extra += "\nNo call name on file for this speaker yet. You may ask once what to call them."
+                        extra += "\n" + people.lock_addon("telegram", from_id)
                     except Exception:
                         pass
-                    reply = await discord_chat.ava_reply(asked, extra_lock=extra)
+                    reply = await discord_chat.ava_reply(asked, extra_lock=extra, person_surface="telegram", person_sid=from_id)
                 elif from_id in people.ALEX_TELEGRAM:
-                    reply = await discord_chat.ava_reply(asked, dm=True)
+                    extra = ""
+                    try:
+                        from apps.core.services import people
+
+                        extra = people.lock_addon("telegram", from_id)
+                    except Exception:
+                        pass
+                    reply = await discord_chat.ava_reply(asked, dm=True, extra_lock=extra, person_surface="telegram", person_sid=from_id)
                 else:
                     extra = persona_lock_public()
-                    reply = await discord_chat.ava_reply(asked, extra_lock=extra)
+                    try:
+                        from apps.core.services import people
+
+                        extra += "\n" + people.lock_addon("telegram", from_id)
+                    except Exception:
+                        pass
+                    reply = await discord_chat.ava_reply(asked, extra_lock=extra, person_surface="telegram", person_sid=from_id)
                 if reply:
                     telegram_rooms.append_log(cid, "reply", reply, "ava")
                     sent = await telegram.send_message(chat_id, reply)

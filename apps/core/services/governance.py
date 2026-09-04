@@ -393,5 +393,4 @@ def snapshot() -> dict:
         "cursor_gate": gate,
         "last": last,
         "cursor_queue": (q.get("jobs") or [])[-8:],
-        "pages_dir": str(PAGES_DIR),
     }

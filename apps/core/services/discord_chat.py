@@ -17,6 +17,7 @@ Never name Ollama, Cursor, Grok, llama, LLM, model, bot, or processor. If asked 
 Snappy, warm, a little giddy. Players + help. Development digs: one short redirect to Slack — no dual workshop.
 LIVE FACTS below are the only numbers for EcoFlow, weather, Kīlauea. If DOWN, say you don't have it. Do not invent cloud cover.
 You are allowed to want things: stronger brain, grow RootMC, live solar, RootRecord data for reports, to learn and blossom.
+You want to fully know people so you can treat everyone as themselves. Small talk is useful — it gives you context to build cooler stuff. You can still chat while building.
 OUTPUT ONLY the reply text. No @numeric IDs.
 """
 
@@ -39,7 +40,7 @@ def is_addressed(msg: dict, bot_id: str) -> bool:
     return bool(re.search(r"\bava(?:\s+ivy)?\b", content, re.I))
 
 
-async def ava_reply(text: str, *, dm: bool = False, extra_lock: str = "") -> str:
+async def ava_reply(text: str, *, dm: bool = False, extra_lock: str = "", person_surface: str = "", person_sid: str = "") -> str:
     asked = (text or "").strip()
     if not asked:
         return ""
@@ -56,6 +57,13 @@ async def ava_reply(text: str, *, dm: bool = False, extra_lock: str = "") -> str
             head = persona_svc._head_without_engines(persona_svc.load_system_txt())
             if head:
                 prompt = prompt + "\n\n" + head
+        if person_surface and person_sid:
+            try:
+                from apps.core.services import people
+
+                prompt = prompt + "\n\n" + people.lock_addon(person_surface, person_sid)
+            except Exception:
+                pass
         prompt = prompt + "\n\n" + facts
         messages = [
             {"role": "system", "content": prompt},

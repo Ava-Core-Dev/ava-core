@@ -149,6 +149,14 @@ class CronConfigBody(BaseModel):
     everyMs: int | None = None
 
 
+class GovernanceBody(BaseModel):
+    community_governance: bool | None = None
+    self_update: bool | None = None
+    cursor_min_free_pct: int | None = None
+    cursor_context_free_pct: int | None = None
+    run_now: bool = False
+
+
 # ── Weather GIFs ──────────────────────────────────────────────────────────────
 
 def _dir_info(kind: str, path: Path) -> dict:
@@ -683,6 +691,21 @@ async def cron_config(body: CronConfigBody | None = None):
             _write_json(path, disabled)
         return {"ok": True, "id": body.id, "disabled": bool(disabled.get(body.id))}
     return {"ok": True, "disabled": disabled}
+
+
+@router.get("/governance")
+@router.post("/governance")
+async def api_governance(body: GovernanceBody | None = None):
+    from apps.core.services import governance
+
+    if body is not None:
+        patch = body.model_dump(exclude_none=True)
+        patch.pop("run_now", None)
+        if patch:
+            governance.write_flags(patch)
+        if body.run_now:
+            governance.run_daily(source="desk")
+    return governance.snapshot()
 
 
 @router.post("/restart")
