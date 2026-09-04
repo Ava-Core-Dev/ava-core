@@ -277,6 +277,25 @@ def build_weather() -> dict[str, Any]:
     except Exception:
         pass
 
+    counties = None
+    try:
+        from apps.core.services import nws_hawaii
+
+        st = nws_hawaii.load_state()
+        if st:
+            counties = {
+                "source": st.get("source"),
+                "alert_count": st.get("alert_count"),
+                "by_county": st.get("by_county"),
+                "spoken": st.get("spoken"),
+                "last_poll_hst": st.get("last_poll_hst"),
+                "hash": st.get("hash"),
+            }
+            if st.get("spoken"):
+                rows = list(rows) + [str(st.get("spoken"))]
+    except Exception:
+        pass
+
     return {
         "resource": "weather",
         "title": "Weather",
@@ -284,6 +303,7 @@ def build_weather() -> dict[str, Any]:
         "lines": rows,
         "hurricane": hurricane,
         "nws_report": nws_age,
+        "nws_hawaii_counties": counties,
     }
 
 
