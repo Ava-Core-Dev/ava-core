@@ -10,17 +10,16 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from apps.voice.local_tts import GENERATED, clock_tokens, speak_script
+from apps.voice.local_tts import GENERATED, speak_script
 
 log = logging.getLogger("ava.cron.remaining_tasks")
 HST = ZoneInfo("Pacific/Honolulu")
 MAX_SPOKEN = 8
 
 
-def _script(items: list[dict], now: datetime) -> str:
-    bits = clock_tokens(now.hour, 30 if now.minute >= 15 else 0)
-    if now.minute in (0, 30):
-        bits = clock_tokens(now.hour, now.minute)
+def _script(items: list[dict], _now: datetime) -> str:
+    # No clock_tokens — time-chime already speaks the clock at :30.
+    bits: list[str] = []
     lead = "phrase_remaining_tasks"
     from apps.voice.clips import _find_clip
 
