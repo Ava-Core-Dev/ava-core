@@ -402,11 +402,14 @@ class StreamDirector:
         self._sse_listeners: list[asyncio.Queue] = []
         # Shuffled recursive music bed (P0 ambient) — paused by REPORT+
         self._music_enabled = False
-        self._music_hold = False
+        self._music_hold = False  # voice / report interrupt
+        self._music_operator_hold = False  # Desk Audio tab pause
         self._music_task: asyncio.Task | None = None
         self._music_proc: asyncio.subprocess.Process | None = None
         self._music_proc_pid: int | None = None
         self._music_current: Path | None = None
+        self._music_playlist: list[Path] = []
+        self._music_index: int = -1
         self._music_tracks_n = 0
         self._music_start_lock = asyncio.Lock()
 
