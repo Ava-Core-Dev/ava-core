@@ -112,25 +112,6 @@ class HourlyChimePlugin(Plugin):
         self._spawn_player(player, dest)
         return dest
 
-    def _resolve_time_clip(self) -> Path | None:
-        """Return path to time_HHMM.mp3 for the current :00 or :30 slot (HST)."""
-        now = datetime.now()
-        minute = 0 if now.minute < 15 else (30 if now.minute < 45 else 0)
-        hour = now.hour
-        if now.minute >= 45:
-            hour = (hour + 1) % 24
-        if now.minute in (0, 30):
-            hour, minute = now.hour, now.minute
-        name = f"time_{hour:02d}{minute:02d}.mp3"
-        candidate = self.time_clips_dir / name
-        if candidate.exists():
-            return candidate
-        for alt in (f"time_{hour:02d}{minute:02d}.mp3", f"{hour:02d}{minute:02d}.mp3"):
-            p = self.time_clips_dir / alt
-            if p.exists():
-                return p
-        return None
-
     def _spawn_player(self, player: str, path: Path) -> None:
         """Fire-and-forget audio playback."""
         try:
