@@ -30,6 +30,8 @@ const PUBLIC_EXACT = new Set([
   "/api/mobile/kilauea-ai-analyses",
   "/api/earthquakes/global",
   "/api/news/global",
+  "/api/site-config",
+  "/api/site-config.json",
 ]);
 
 /** Read-only families. Writes under these are still refused by method. */
@@ -73,6 +75,11 @@ const PUBLIC_PAGES = new Set([
   "/account.html",
   "/account-signup.html",
   "/billing.html",
+  "/discord-verify",
+  "/discord-verify.html",
+  "/discord-verify.js",
+  "/account.js",
+  "/site-nav.js",
 ]);
 
 /** Never public, on any surface, whatever else changes. */

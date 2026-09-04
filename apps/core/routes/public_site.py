@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 from apps.core.services import geography as geo
 
@@ -52,6 +52,8 @@ async def public_home():
 @router.get("/account-signup.html")
 @router.get("/billing")
 @router.get("/billing.html")
+@router.get("/discord-verify")
+@router.get("/discord-verify.html")
 async def product_page(request: Request):
     name = request.url.path.rstrip("/").split("/")[-1]
     if not name.endswith(".html"):
@@ -60,6 +62,15 @@ async def product_page(request: Request):
     if found is not None:
         return found
     return _page()
+
+
+@router.get("/discord-verify.js")
+@router.get("/account.js")
+@router.get("/site-nav.js")
+async def product_js(request: Request):
+    name = request.url.path.rstrip("/").split("/")[-1]
+    found = _file_or_none(_STATIC_RR / name)
+    return found or HTMLResponse("", status_code=404)
 
 
 @router.get("/kilauea")
@@ -92,6 +103,17 @@ async def rootmc_page():
 async def ava_chat_page():
     text = _CHAT.read_text(encoding="utf-8") if _CHAT.is_file() else "<p>chat missing</p>"
     return HTMLResponse(text, headers={"Cache-Control": "no-store"})
+
+
+@router.get("/api/site-config")
+@router.get("/api/site-config.json")
+async def site_config():
+    return JSONResponse(
+        {
+            "apiBase": "https://rootrecord-api-account.rootrecord.workers.dev",
+        },
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/api/geography/{product}")
