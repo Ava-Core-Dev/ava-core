@@ -72,7 +72,7 @@ async def run():
 
     engine = report_generation.engine_for("midday")
     result = report_generation.generate(
-        "midday", dry_run=False, allow_tts=True
+        "midday", dry_run=False, allow_tts=False
     )
     if result.get("blocked"):
         log.error(
