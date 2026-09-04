@@ -83,6 +83,22 @@ def _tg_addressed(msg: dict, text: str) -> bool:
     return False
 
 
+def _tg_reply_to_ava(msg: dict, bot_id: str) -> bool:
+    reply = msg.get("reply_to_message") or {}
+    src = reply.get("from") or {}
+    if bot_id and str(src.get("id") or "") == str(bot_id):
+        return True
+    return bool(src.get("is_bot"))
+
+
+def _tg_directed_followup(msg: dict, text: str, bot_id: str) -> bool:
+    """Next line after Ava, or a Telegram reply to her, even without her name."""
+    if _tg_reply_to_ava(msg, bot_id) or _tg_addressed(msg, text):
+        return True
+    raw = str(text or "").strip()
+    return bool(re.match(r"^(you|you['’]re|your|u)\b", raw, re.I))
+
+
 async def _handle(surface: str, sid: str, cmd: str, *, label: str = "") -> str:
     if cmd == "help":
         return HELP
@@ -107,8 +123,16 @@ async def telegram_loop() -> None:
     log.info("Telegram report-subscribe inbox running")
     from apps.core.services import telegram_rooms
 
+    bot_id = ""
+    try:
+        me = await telegram.get_me()
+        bot_id = str((me or {}).get("id") or "")
+    except Exception:
+        bot_id = ""
+
     state = _load_state()
     offset = int(state.get("telegram_offset") or 0)
+    followup: dict = dict(state.get("telegram_followup") or {})
     while True:
         try:
             updates = await telegram.get_updates(offset=offset or None, timeout=25)
@@ -120,28 +144,39 @@ async def telegram_loop() -> None:
                 chat_id = chat.get("id")
                 if chat_id is None:
                     continue
+                cid = str(chat_id)
                 chat_type = str(chat.get("type") or "")
                 is_group = chat_type in {"group", "supergroup"}
                 cmd = _parse_cmd(text)
                 from_user = msg.get("from") or {}
                 from_id = str(from_user.get("id") or "")
                 label = str(from_user.get("username") or from_user.get("first_name") or "")
-                telegram_rooms.append_log(str(chat_id), "ingest" if text else "group_update", text, from_id)
+                if bot_id and from_id == bot_id:
+                    continue
+                telegram_rooms.append_log(cid, "ingest" if text else "group_update", text, from_id)
                 if cmd:
                     if is_group:
                         continue
-                    reply = await _handle("telegram", str(chat_id), cmd, label=label)
+                    reply = await _handle("telegram", cid, cmd, label=label)
                     await telegram.send_message(chat_id, reply)
                     continue
                 asked = text.strip()
                 if not asked:
                     continue
-                if is_group and not _tg_addressed(msg, asked):
+                should = False
+                if not is_group:
+                    should = True
+                elif _tg_reply_to_ava(msg, bot_id) or _tg_addressed(msg, asked):
+                    should = True
+                elif followup.get(cid):
+                    should = _tg_directed_followup(msg, asked, bot_id)
+                    followup[cid] = False
+                if is_group and not should:
                     continue
                 from apps.core.services import discord_chat
 
                 if is_group:
-                    extra = telegram_rooms.lock_for(str(chat_id))
+                    extra = telegram_rooms.lock_for(cid)
                     reply = await discord_chat.ava_reply(asked, extra_lock=extra)
                 elif from_id == telegram_rooms.ALEX_TG:
                     reply = await discord_chat.ava_reply(asked, dm=True)
@@ -149,10 +184,13 @@ async def telegram_loop() -> None:
                     extra = persona_lock_public()
                     reply = await discord_chat.ava_reply(asked, extra_lock=extra)
                 if reply:
-                    telegram_rooms.append_log(str(chat_id), "reply", reply, "ava")
-                    await telegram.send_message(chat_id, reply)
+                    telegram_rooms.append_log(cid, "reply", reply, "ava")
+                    sent = await telegram.send_message(chat_id, reply)
+                    if is_group and sent:
+                        followup[cid] = True
             state = _load_state()
             state["telegram_offset"] = offset
+            state["telegram_followup"] = followup
             _save_state(state)
         except Exception as e:
             log.debug("telegram inbox: %s", e)

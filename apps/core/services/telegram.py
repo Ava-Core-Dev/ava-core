@@ -39,6 +39,20 @@ async def send_message(chat_id: str | int, text: str) -> dict | None:
     return body.get("result")
 
 
+async def get_me() -> dict:
+    if not _base():
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(f"{_base()}/getMe")
+        body = r.json()
+        if body.get("ok") and isinstance(body.get("result"), dict):
+            return body["result"]
+    except Exception as e:
+        log.debug("Telegram getMe: %s", e)
+    return {}
+
+
 async def get_updates(offset: int | None = None, timeout: int = 20) -> list[dict[str, Any]]:
     if not _base():
         return []
