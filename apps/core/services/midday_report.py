@@ -199,6 +199,13 @@ def build_facts(
     except Exception as e:
         lines.append(f"Weather: unavailable ({type(e).__name__})")
 
+    try:
+        from apps.core.services import nws_hawaii
+
+        lines.extend(nws_hawaii.facts_lines())
+    except Exception as e:
+        lines.append(f"NWS Hawaii by county: unavailable ({type(e).__name__})")
+
     nws = sorted(
         config.REPORTS_DIR.glob("nws-weather-*.md"),
         key=lambda p: p.stat().st_mtime,

@@ -44,6 +44,7 @@ Required shape:
    - Boot Summary (overnight downtime, restore/boot time, net-gate stop/restore, desk restore issues if any)
    - System Summary (origin, tunnel, on-device brain, Desk, watchdog tasks, voice mode local, public chat path when warm)
    - Weather Summary (use the weather facts; say how fresh if age is given)
+   - NWS by County (use the NWS Hawaii by county FACTS — one short line per county; quiet counties may say no active warnings; do not invent storms)
    - Kīlauea Summary (advisory / not erupting is NOT an eruption; use erupting=false when present)
    - Power / bank if measured numbers exist
    - Change vs previous morning Boot Report when DIFFERENTIALS are in FACTS (bank %, pack SOC, host charge, hours — measured only)
@@ -422,6 +423,13 @@ def build_facts(*, source: str = "boot") -> str:
     except Exception as e:
         lines.append(f"Weather: unavailable ({type(e).__name__})")
 
+    try:
+        from apps.core.services import nws_hawaii
+
+        lines.extend(nws_hawaii.facts_lines())
+    except Exception as e:
+        lines.append(f"NWS Hawaii by county: unavailable ({type(e).__name__})")
+
     nws = sorted(
         config.REPORTS_DIR.glob("nws-weather-*.md"),
         key=lambda p: p.stat().st_mtime,
@@ -577,6 +585,14 @@ def _fallback_spoken(
     except Exception:
         pass
 
+    nws_county = "NWS Hawaii by county is not on file."
+    try:
+        from apps.core.services import nws_hawaii
+
+        nws_county = nws_hawaii.spoken_section_for_boot()
+    except Exception:
+        pass
+
     kil = "Kīlauea alert is not on file."
     alert = _read_json(config.DATA_DIR / "state" / "kilauea-alert.json")
     if alert:
@@ -617,6 +633,8 @@ Boot Summary. Net-gate stopped overnight and restored this morning. Gap on file 
 System Summary. Origin is {origin}. The public tunnel should reach origin when the edge is healthy. The on-device brain is {brain}. Voice mode is local clip packs. Paid cloud voice stays off. Public chat runs edge to origin to the on-device brain when warm. Watchdog tasks keep origin and Desk under watch.
 
 Weather Summary. {wx}
+
+NWS by County. {nws_county}
 
 Kīlauea Summary. {kil}
 
