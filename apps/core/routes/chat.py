@@ -93,7 +93,7 @@ async def api_chat(req: ChatRequest, request: Request):
 
     raw = (req.message or "").strip()
     if not raw:
-        return {"reply": "Aloha — I'm Ava Ivy. What do you want to know?", "brain": "canned", "topic": "greet"}
+        return {"reply": GREETING, "brain": "canned", "topic": "greet"}
 
     surface = req.surface if req.surface in _SURFACES else "public"
     try:
