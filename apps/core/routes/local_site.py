@@ -93,6 +93,8 @@ def _solar_safe(snap: dict) -> dict:
                 "soc": d.get("soc"),
                 "online": bool(d.get("online")),
                 "pv_w": d.get("pv_w"),
+                "ebatt_w": d.get("ebatt_w"),
+                "input_kind": d.get("input_kind"),
                 "ac_out_w": d.get("ac_out_w"),
                 "watts_in": d.get("watts_in"),
                 "watts_out": d.get("watts_out"),
@@ -100,6 +102,7 @@ def _solar_safe(snap: dict) -> dict:
         )
     src = snap.get("source")
     pv = snap.get("solar_in_w") if snap.get("solar_in_w") is not None else snap.get("power_w")
+    ebatt = snap.get("ebatt_in_w") or 0
     load = snap.get("load_w")
     return {
         "ok": True,
@@ -107,10 +110,12 @@ def _solar_safe(snap: dict) -> dict:
         "source": src,
         "battery_pct": snap.get("battery_pct") if snap.get("battery_pct") is not None else snap.get("bank_pct"),
         "solar_in_w": pv,
+        "ebatt_in_w": ebatt,
         "load_w": load,
         "state": snap.get("state"),
+        "night_charge": snap.get("night_charge"),
         "devices": devices,
-        "energy": energy.summary(devices, pv_w=pv, load_w=load),
+        "energy": energy.summary(devices, pv_w=pv, load_w=load, ebatt_w=ebatt),
     }
 
 
@@ -495,6 +500,7 @@ async def build_board() -> dict:
             solar.get("devices") or [],
             pv_w=solar.get("solar_in_w"),
             load_w=solar.get("load_w"),
+            ebatt_w=solar.get("ebatt_in_w"),
             host_battery_pct=batt.get("pct"),
         )
         en = solar["energy"]
