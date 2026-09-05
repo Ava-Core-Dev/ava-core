@@ -201,8 +201,8 @@ CLOCK_JOBS = (
 
 BOOT_JOBS = (
     {"id": "startup-voice", "manual": False, "note": "Reconnect or all-systems clip"},
-    {"id": "adsense-boot", "manual": False, "note": "AdSense boot report"},
-    {"id": "admob-boot", "manual": False, "note": "AdMob boot report"},
+    {"id": "adsense-boot", "manual": False, "note": "AdSense boot off (no Discord)"},
+    {"id": "admob-boot", "manual": False, "note": "AdMob boot off (no Discord)"},
     {"id": "account-import-boot", "manual": False, "note": "Identity import"},
     {"id": "governance-boot", "manual": False, "note": "Governance snapshot, no self-update"},
     {"id": "api-prices-boot", "manual": False, "note": "Price catalog at start"},
