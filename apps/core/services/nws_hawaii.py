@@ -372,13 +372,18 @@ async def stitch_and_play_local(
     force_restitch: bool = False,
     play: bool = True,
 ) -> dict[str, Any]:
-    """Build/queue nws-hawaii-current.mp3 via local_tts. Never paid TTS."""
+    """Build/queue nws-hawaii-current.wav via local_tts. Never paid TTS."""
     from apps.voice.local_tts import speak_script
     from apps.core.services import voice_events
 
-    dest = config.GENERATED_DIR / "nws-hawaii-current.mp3"
+    dest = config.GENERATED_DIR / "nws-hawaii-current.wav"
     dest.parent.mkdir(parents=True, exist_ok=True)
-    need = force_restitch or (not dest.is_file()) or dest.stat().st_size < 1000
+    legacy_mp3 = dest.with_suffix(".mp3")
+    need = (
+        force_restitch
+        or (not dest.is_file())
+        or dest.stat().st_size < 1000
+    )
     stitch: dict[str, Any] = {"ok": True, "skipped_stitch": not need}
     if need:
         script = build_clip_script(by_county)
@@ -386,32 +391,45 @@ async def stitch_and_play_local(
         stitch["script"] = script
         if not stitch.get("ok"):
             return {"ok": False, "detail": "stitch_failed", "stitch": stitch}
-        # Keep public current copy in sync (tight stitch, no stale short file).
         try:
             import shutil
 
-            pub = Path(config.AUDIO_CURRENT_DIR) / "nws-hawaii-current.mp3"
+            pub = Path(config.AUDIO_CURRENT_DIR) / "nws-hawaii-current.wav"
             pub.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(dest, pub)
+            # Drop stale MP3 siblings so play prefers WAV.
+            for stale in (legacy_mp3, Path(config.AUDIO_CURRENT_DIR) / "nws-hawaii-current.mp3"):
+                if stale.is_file():
+                    try:
+                        stale.unlink()
+                    except OSError:
+                        pass
         except Exception:
             pass
-        # Drop stale WAV so winsound reconverts from the new MP3 (no padded ghost).
-        try:
-            wav = dest.with_suffix(".wav")
-            if wav.is_file():
-                wav.unlink()
-        except Exception:
-            pass
-    if not dest.is_file():
+    play_path = dest if dest.is_file() else legacy_mp3
+    if not play_path.is_file():
         return {"ok": False, "detail": "mp3_missing", "stitch": stitch}
     if not play:
-        return {"ok": True, "stitch": stitch, "play": {"ok": True, "skipped": True}, "mp3": str(dest)}
+        return {
+            "ok": True,
+            "stitch": stitch,
+            "play": {"ok": True, "skipped": True},
+            "mp3": str(play_path),
+            "wav": str(dest) if dest.is_file() else None,
+        }
     play_out = await voice_events.play_report_mp3(
         dest,
+        legacy_mp3,
         name="nws_hawaii",
         kind=None,
     )
-    return {"ok": bool(play_out.get("ok")), "stitch": stitch, "play": play_out, "mp3": str(dest)}
+    return {
+        "ok": bool(play_out.get("ok")),
+        "stitch": stitch,
+        "play": play_out,
+        "mp3": str(play_path),
+        "wav": str(dest) if dest.is_file() else None,
+    }
 
 
 async def refresh(

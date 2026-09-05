@@ -1083,7 +1083,17 @@ def _audio_pending_jobs() -> list[dict]:
             "kind": "cron",
         }
         if jid == "morning-boot-replay":
-            row["morning_boot"] = _morning_boot_armed()
+            boot = _morning_boot_armed()
+            # Hide from Desk Pending when disarmed or after noon HST.
+            try:
+                from zoneinfo import ZoneInfo
+
+                hour = datetime.now(ZoneInfo("Pacific/Honolulu")).hour
+            except Exception:
+                hour = 99
+            if not boot.get("armed") or hour >= 12:
+                continue
+            row["morning_boot"] = boot
         out.append(row)
     out.sort(key=lambda x: int(x.get("nextAt") or 0) or 10**15)
     return out

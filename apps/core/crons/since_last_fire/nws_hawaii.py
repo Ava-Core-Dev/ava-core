@@ -1,7 +1,8 @@
 """NWS Hawaiʻi by-county hazard poll — api.weather.gov.
 
-Every 15 minutes + boot. Speaks (writes spoken script / draft) only when the
-product hash changes, or on boot. Does not call Grok. Does not touch midday toggles.
+Every 15 minutes + boot. Speaks only when the product hash changes, or on boot
+when that hash was never spoken. Does not force-speak on every origin recycle.
+Does not call Grok. Does not touch midday toggles.
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ async def run(*, reason: str = "poll", force_speak: bool = False):
 
     result = await nws_hawaii.refresh(
         reason=reason,
-        force_speak=force_speak or reason == "boot",
+        force_speak=force_speak,
         speak_on_change=True,
     )
     log.info(
