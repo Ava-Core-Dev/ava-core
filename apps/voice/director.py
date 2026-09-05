@@ -39,6 +39,8 @@ MUSIC_AUDIO_EXTS = {
 MUSIC_BLEND_S = 2.5
 # Tiny slop past wave-header length only — was +1.0s and left dead air after natural end.
 MUSIC_WAIT_PAD_S = 0.05
+# Skip short intros / stingers from the shuffled bed playlist.
+MUSIC_MIN_DURATION_S = 60.0
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -204,6 +206,67 @@ def _windows_play_music(path: Path) -> list[str]:
     resolved = str(path.resolve())
     helper = str(Path(__file__).resolve().parent / "play_music_bed.py")
     return [_music_bed_python(), helper, "AVA_MUSIC_BED", resolved]
+
+
+def _windows_play_voice_clip(path: Path) -> list[str]:
+    """Play one report/chime WAV via winsound. Marker is AVA_VOICE_CLIP (not bed)."""
+    resolved = str(path.resolve())
+    helper = str(Path(__file__).resolve().parent / "play_music_bed.py")
+    return [_music_bed_python(), helper, "AVA_VOICE_CLIP", resolved]
+
+
+def _ensure_winsound_wav(path: Path) -> Path | None:
+    """WAV path for winsound: existing .wav, sibling .wav, or ffmpeg convert."""
+    if not path or not path.is_file():
+        return None
+    if path.suffix.lower() == ".wav":
+        return path
+    sibling = path.with_suffix(".wav")
+    try:
+        if sibling.is_file() and sibling.stat().st_mtime >= path.stat().st_mtime - 0.5:
+            return sibling
+    except Exception:
+        if sibling.is_file():
+            return sibling
+    try:
+        from apps.voice.clips import ffmpeg_bin
+
+        ff = ffmpeg_bin()
+    except Exception:
+        ff = None
+    if not ff:
+        log.warning("ffmpeg missing — cannot convert %s for winsound", path.name)
+        return None
+    dest = sibling
+    try:
+        cmd = [
+            ff,
+            "-y",
+            "-i",
+            str(path.resolve()),
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
+            str(dest),
+        ]
+        kwargs: dict[str, Any] = {
+            "capture_output": True,
+            "timeout": 180,
+        }
+        if os.name == "nt":
+            kwargs["creationflags"] = CREATE_NO_WINDOW
+        result = subprocess.run(cmd, **kwargs)
+        if result.returncode != 0 or not dest.is_file():
+            err = (result.stderr or b"")[-400:].decode("utf-8", errors="ignore")
+            log.warning("ffmpeg wav convert failed for %s: %s", path.name, err or result.returncode)
+            return None
+        return dest
+    except Exception as e:
+        log.warning("ffmpeg wav convert error (%s): %s", path.name, e)
+        return None
 
 
 def music_dir() -> Path:
