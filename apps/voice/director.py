@@ -726,18 +726,19 @@ class StreamDirector:
             try:
                 from apps.voice import desk_audio
 
-                alive = bool(desk_audio.bed_busy())
-                ducked = bool(desk_audio.is_ducked())
-                bp = desk_audio.bed_path()
-                if alive and bp is not None:
-                    self._music_current = bp
+                snap = desk_audio.snapshot()
+                alive = bool(snap.get("bed_busy"))
+                ducked = bool(snap.get("ducked"))
+                bp = snap.get("bed_path")
+                if alive and bp:
+                    self._music_current = Path(bp)
                 elif not alive and not self._music_operator_hold:
-                    # Ghost Now with no channel — clear unless operator pause.
                     if not self._music_hold:
                         self._music_current = None
                 self._music_proc_pid = os.getpid() if alive else None
             except Exception:
                 alive = False
+                ducked = False
                 self._music_proc_pid = None
         else:
             proc = self._music_proc
@@ -1179,13 +1180,14 @@ class StreamDirector:
                     end_reason = (
                         "operator_pause" if self._music_operator_hold else "disabled"
                     )
-                    desk_audio.stop_bed()
+                    await asyncio.to_thread(desk_audio.stop_bed)
                     break
-                if not desk_audio.bed_busy():
+                busy = await asyncio.to_thread(desk_audio.refresh_bed_busy)
+                if not busy:
                     end_reason = "natural_exit"
                     break
                 elapsed = time.monotonic() - started
-                # Soft gate: if channel still busy far past header, keep waiting.
+                # Soft gate: if stream still busy far past header, keep waiting.
                 if elapsed >= wait_s + 30.0:
                     log.warning(
                         "Music bed desk past wait+30s still busy  name=%s  wait_s=%.1f",
@@ -1193,7 +1195,7 @@ class StreamDirector:
                         wait_s,
                     )
                     end_reason = "forced_advance"
-                    desk_audio.stop_bed()
+                    await asyncio.to_thread(desk_audio.stop_bed)
                     break
                 await asyncio.sleep(0.15)
         except Exception as e:
