@@ -277,10 +277,9 @@ def bank_state(devices: list[dict]) -> str:
         bits.append(f"transfer {src} → {dst}")
     elif cats["transfer_w"] >= 20:
         bits.append("AC transfer")
-    if cats["starlink_lights_w"] >= 20:
-        bits.append("Starlink + lights")
-    if cats["emergency_pack_w"] >= 20:
-        bits.append("emergency pack")
+    house_ac = float(cats["starlink_lights_w"] or 0) + float(cats["emergency_pack_w"] or 0)
+    if house_ac >= 20:
+        bits.append("house AC")
     if cats["hard_drives_12v_w"] >= CAR_W_MIN:
         bits.append("hard drives 12V")
     if ebatt_in_w(devices) >= EBATT_MIN_W:

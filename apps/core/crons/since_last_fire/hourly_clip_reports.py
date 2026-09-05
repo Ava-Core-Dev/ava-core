@@ -45,11 +45,7 @@ def _join(bits: list[str]) -> str:
 
 
 def _ac_role_tokens() -> list[str]:
-    """Leftover house AC → starlink. Other leftover AC → emergency. Transfer separate.
-
-    Do not scan live_facts for the word Starlink — energy.facts_lines always
-    mentions Starlink on the host-battery disclaimer.
-    """
+    """Speak AC transfer only. Do not guess Starlink / emergency from watt bands."""
     bits: list[str] = []
     try:
         from apps.core.crons.since_last_fire.solar_weather import _quota_snapshot
@@ -65,10 +61,6 @@ def _ac_role_tokens() -> list[str]:
         return bits
     if float(cats.get("transfer_w") or 0) >= 20:
         bits.append("transfer")
-    if float(cats.get("starlink_lights_w") or 0) >= 20:
-        bits.append("starlink")
-    if float(cats.get("emergency_pack_w") or 0) >= 20:
-        bits.append("emergency")
     return [t for t in bits if _has_clip(t)]
 
 
@@ -118,7 +110,7 @@ def solar_script(facts: str, now: datetime) -> str:
         bits += ["river"]
     m = re.search(r"E-Batt in\s+(\d+)\s*W", facts, re.I)
     if m:
-        bits += ["emergency", m.group(1)]
+        bits += [m.group(1)]
         bits += _clip_or("watts_in", ["watts"])
     else:
         m = re.search(r"Bank combined[^\n]*PV in\s+(\d+)\s*W", facts, re.I) or re.search(
