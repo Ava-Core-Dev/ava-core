@@ -80,20 +80,28 @@ def _client_ip(request: Request) -> str:
 _PORTAL_ME = "https://rootrecord-api-account.rootrecord.workers.dev/api/auth/me"
 _token_cache: dict[str, tuple[float, bool]] = {}
 _TOKEN_TTL_S = 300.0
+_TOKEN_FAIL_TTL_S = 30.0  # brief negative / soft-fail cache
 
 
 def _portal_token_ok(token: str) -> bool:
-    """Validate Root Record portal Bearer against account worker. Cached briefly."""
-    import time
+    """Validate Root Record portal Bearer against account worker. Cached briefly.
 
-    tok = (token or "").strip()
+    Runs synchronously — call only from a worker thread (see _has_session).
+    Network blips must not flip a signed-in visitor back to the guest wall:
+    unknown errors keep the last cached verdict, or accept a long-looking token.
+    """
+    import time
+    from urllib.error import HTTPError
+    from urllib.parse import unquote
+
+    tok = unquote((token or "").strip())
     if len(tok) < 16:
         return False
     now = time.monotonic()
     hit = _token_cache.get(tok)
     if hit and now < hit[0]:
         return hit[1]
-    ok = False
+    ok: bool | None = None
     try:
         import urllib.request
 
@@ -105,40 +113,58 @@ def _portal_token_ok(token: str) -> bool:
             },
             method="GET",
         )
-        with urllib.request.urlopen(req, timeout=6) as resp:
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
             ok = 200 <= int(resp.status) < 300
+    except HTTPError as e:
+        # 401/403 = not signed in. Anything else = treat as soft fail.
+        if int(getattr(e, "code", 0) or 0) in (401, 403):
+            ok = False
+        else:
+            ok = None
     except Exception:
-        ok = False
-    _token_cache[tok] = (now + _TOKEN_TTL_S, ok)
+        ok = None
+
+    if ok is None:
+        if hit is not None:
+            ok = hit[1]
+        else:
+            # Soft fail: AuthBar already proved the token in-browser; don't wall.
+            ok = len(tok) >= 24
+        _token_cache[tok] = (now + _TOKEN_FAIL_TTL_S, ok)
+    else:
+        _token_cache[tok] = (now + _TOKEN_TTL_S, ok)
     if len(_token_cache) > 500:
         for k in list(_token_cache.keys())[:100]:
             _token_cache.pop(k, None)
     return ok
 
 
-def _has_session(request: Request) -> bool:
+async def _has_session(request: Request) -> bool:
     """True when the visitor is a signed-in Root Record account for chat caps.
 
-    AuthBar stores the portal token in localStorage and (after fix) an ava_session
-    cookie. ChatWidget sends Authorization: Bearer. Cookie-only presence without
-    a validated token is not enough — that was the signed-in-but-capped bug.
+    AuthBar stores the portal token in localStorage and an ava_session cookie.
+    ChatWidget sends Authorization: Bearer. Validation hits the account worker
+    off the event loop so a slow /me cannot freeze public chat.
     """
+    from urllib.parse import unquote
+
     if (request.headers.get("x-ava-session") or "").strip():
         return True
     auth = (request.headers.get("authorization") or "").strip()
-    if auth.lower().startswith("bearer ") and _portal_token_ok(auth[7:].strip()):
-        return True
+    if auth.lower().startswith("bearer "):
+        tok = auth[7:].strip()
+        if await asyncio.to_thread(_portal_token_ok, tok):
+            return True
     for name in ("ava_session", "rr_web_session"):
-        raw = (request.cookies.get(name) or "").strip()
+        raw = unquote((request.cookies.get(name) or "").strip())
         if not raw:
             continue
-        if _portal_token_ok(raw):
+        if await asyncio.to_thread(_portal_token_ok, raw):
             return True
         # Legacy rr_web_session (non-portal) still counts as signed in.
         if name == "rr_web_session" and len(raw) >= 8:
             return True
     return False
-
 
 class ChatRequest(BaseModel):
     message: str
@@ -188,7 +214,7 @@ def _count_generation(ip: str, guest_hash: str, member: bool) -> None:
 
 @router.get("/auth/session")
 async def api_session(request: Request):
-    member = _has_session(request)
+    member = await _has_session(request)
     ip = _client_ip(request)
     remaining = None
     if not guests_svc.is_local(ip):
@@ -217,7 +243,7 @@ async def api_chat(req: ChatRequest, request: Request):
         }
 
     ip = _client_ip(request)
-    member = _has_session(request)
+    member = await _has_session(request)
     sid, set_sid = _web_sid(req, request)
     surface = req.surface if req.surface in _SURFACES else "public"
     guest_hash = ""
