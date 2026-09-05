@@ -96,6 +96,43 @@ def _key(chat_id: str | int, message_id: str | int) -> str:
     return f"{chat_id}:{message_id}"
 
 
+def guess_question_for_chat(chat_id: str | int) -> str:
+    """Last inbound line in this group (for Cursor sends with no explicit Q)."""
+    path = (
+        config.PUBLIC_MEDIA
+        / "documents"
+        / "telegram"
+        / "data"
+        / "groups"
+        / str(chat_id)
+        / "inbound.jsonl"
+    )
+    if not path.is_file():
+        return ""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for line in reversed(lines[-80:]):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(row, dict):
+                continue
+            if str(row.get("event") or "") not in {"ingest", "group_update"}:
+                continue
+            if str(row.get("fromId") or "") in {"", "ava"}:
+                continue
+            preview = str(row.get("preview") or "").strip()
+            if preview:
+                return preview[:2000]
+    except Exception:
+        return ""
+    return ""
+
+
 def note_outbound(
     *,
     surface: str,

@@ -58,6 +58,14 @@ def lock_for(chat_id: str) -> str:
     dash = (prof.get("solar") or {}).get("publicDashboard") if isinstance(prof.get("solar"), dict) else ""
     if dash:
         lines.append("If they ask where the solar board is: " + str(dash))
+    try:
+        from apps.core.services import reply_feedback
+
+        good = reply_feedback.fewshot_block(chat_id=str(chat_id))
+        if good:
+            lines.append(good)
+    except Exception:
+        pass
     return "\n".join(lines)
 
 

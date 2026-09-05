@@ -16,7 +16,13 @@ def _base() -> str:
     return f"https://api.telegram.org/bot{token}" if token else ""
 
 
-async def send_message(chat_id: str | int, text: str) -> dict | None:
+async def send_message(
+    chat_id: str | int,
+    text: str,
+    *,
+    question: str = "",
+    source: str = "",
+) -> dict | None:
     if not _base() or not str(chat_id).strip() or not str(text or "").strip():
         return None
     async with httpx.AsyncClient(timeout=20) as client:
@@ -36,7 +42,25 @@ async def send_message(chat_id: str | int, text: str) -> dict | None:
     if r.status_code >= 400 or not body.get("ok"):
         log.warning("Telegram send failed chat=%s: %s", chat_id, str(body)[:200])
         return None
-    return body.get("result")
+    result = body.get("result")
+    if isinstance(result, dict) and result.get("message_id") is not None:
+        try:
+            from apps.core.services import reply_feedback
+
+            q = str(question or "").strip()
+            if not q:
+                q = reply_feedback.guess_question_for_chat(chat_id)
+            reply_feedback.note_outbound(
+                surface="telegram",
+                chat_id=chat_id,
+                message_id=result.get("message_id"),
+                answer=str(text)[:3900],
+                question=q,
+                source=source or "telegram_send",
+            )
+        except Exception as e:
+            log.debug("outbound register: %s", e)
+    return result
 
 
 async def get_me() -> dict:
@@ -58,7 +82,8 @@ async def get_updates(offset: int | None = None, timeout: int = 20) -> list[dict
         return []
     payload: dict[str, Any] = {
         "timeout": timeout,
-        "allowed_updates": ["message"],
+        # message_reaction: thumbs-up etc. on Ava lines (incl. Cursor-sent)
+        "allowed_updates": ["message", "message_reaction"],
     }
     if offset:
         payload["offset"] = offset

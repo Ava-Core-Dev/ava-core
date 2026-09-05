@@ -139,6 +139,40 @@ async def telegram_loop() -> None:
             updates = await telegram.get_updates(offset=offset or None, timeout=25)
             for upd in updates:
                 offset = max(offset, int(upd.get("update_id") or 0) + 1)
+                # Positive reaction on any Ava send (inbox or Cursor) → gold context
+                mr = upd.get("message_reaction")
+                if isinstance(mr, dict):
+                    try:
+                        from apps.core.services import reply_feedback
+
+                        chat = mr.get("chat") or {}
+                        cid_r = chat.get("id")
+                        mid = mr.get("message_id")
+                        if cid_r is not None and mid is not None:
+                            new_r = list(mr.get("new_reaction") or [])
+                            old_r = list(mr.get("old_reaction") or [])
+                            if reply_feedback.reaction_is_positive(new_r, old_r):
+                                emoji = ""
+                                for item in new_r:
+                                    if isinstance(item, dict) and item.get("emoji"):
+                                        emoji = str(item.get("emoji") or "")
+                                        break
+                                user = mr.get("user") or {}
+                                reply_feedback.mark_good_from_reaction(
+                                    chat_id=cid_r,
+                                    message_id=mid,
+                                    emoji=emoji,
+                                    reactor_id=str(user.get("id") or ""),
+                                )
+                                telegram_rooms.append_log(
+                                    str(cid_r),
+                                    "reaction_gold",
+                                    emoji or "👍",
+                                    str(user.get("id") or ""),
+                                )
+                    except Exception as e:
+                        log.debug("telegram reaction: %s", e)
+                    continue
                 msg = upd.get("message") or {}
                 text = str(msg.get("text") or "")
                 chat = msg.get("chat") or {}
@@ -172,7 +206,9 @@ async def telegram_loop() -> None:
                     if is_group:
                         continue
                     reply = await _handle("telegram", cid, cmd, label=label)
-                    await telegram.send_message(chat_id, reply)
+                    await telegram.send_message(
+                        chat_id, reply, question=text.strip(), source="inbox_cmd"
+                    )
                     continue
                 asked = text.strip()
                 if not asked:
@@ -214,7 +250,9 @@ async def telegram_loop() -> None:
                     reply = await discord_chat.ava_reply(asked, extra_lock=extra)
                 if reply:
                     telegram_rooms.append_log(cid, "reply", reply, "ava")
-                    sent = await telegram.send_message(chat_id, reply)
+                    sent = await telegram.send_message(
+                        chat_id, reply, question=asked, source="inbox"
+                    )
                     if is_group and sent:
                         followup[cid] = True
             state = _load_state()
