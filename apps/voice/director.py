@@ -9,7 +9,8 @@ Priority tiers:
   P3 Critical  — earthquake alert, eruption alert (interrupts immediately)
   P2 Scheduled — hourly chime, time announcement
   P1 Report    — voice reports (weather, solar, economy, volcano) — queued FIFO
-  P0 Ambient   — shuffled music bed under Media/public/audio/music (paused by everything)
+  P0 Ambient   — shuffled music bed under Media/public/audio/music
+                 (Windows: ducked under Ava via desk_audio / pygame; operator pause stops)
 """
 
 from __future__ import annotations
@@ -39,7 +40,8 @@ MUSIC_AUDIO_EXTS = {
 MUSIC_BLEND_S = 2.5
 # Tiny slop past wave-header length only — was +1.0s and left dead air after natural end.
 MUSIC_WAIT_PAD_S = 0.05
-# After a report/chime ends: wait this long, then start the bed (no orphan sweep).
+# After operator pause clears: wait this long before starting the next bed track.
+# Voice hold no longer kills the bed (duck via desk_audio); this is pause/resume only.
 MUSIC_RESUME_AFTER_VOICE_S = 1.0
 # Skip short intros / stingers from the shuffled bed playlist.
 MUSIC_MIN_DURATION_S = 60.0
@@ -718,23 +720,45 @@ class StreamDirector:
         return bool(self._music_hold or self._music_operator_hold)
 
     def get_status(self) -> dict:
-        # Truth: dead player handles must not report as playing.
-        proc = self._music_proc
-        if proc is not None and proc.returncode is not None:
-            self._music_proc = None
-            self._music_proc_pid = None
-            proc = None
-        alive = proc is not None and proc.returncode is None
-        if not alive:
-            self._music_proc_pid = None
-            # Ghost Now track with no player — clear unless voice hold still owns silence.
-            if not self._music_bed_held():
-                self._music_current = None
+        # Truth: no audio must not report as playing. Voice duck keeps bed "playing".
+        ducked = False
+        if os.name == "nt":
+            try:
+                from apps.voice import desk_audio
+
+                alive = bool(desk_audio.bed_busy())
+                ducked = bool(desk_audio.is_ducked())
+                bp = desk_audio.bed_path()
+                if alive and bp is not None:
+                    self._music_current = bp
+                elif not alive and not self._music_operator_hold:
+                    # Ghost Now with no channel — clear unless operator pause.
+                    if not self._music_hold:
+                        self._music_current = None
+                self._music_proc_pid = os.getpid() if alive else None
+            except Exception:
+                alive = False
+                self._music_proc_pid = None
+        else:
+            proc = self._music_proc
+            if proc is not None and proc.returncode is not None:
+                self._music_proc = None
+                self._music_proc_pid = None
+                proc = None
+            alive = proc is not None and proc.returncode is None
+            if not alive:
+                self._music_proc_pid = None
+                if not self._music_bed_held():
+                    self._music_current = None
 
         voice_now = self._item_dict(self._current)
         music_track = self._music_current.name if self._music_current else None
+        # Playing while ducked (voice hold); only operator pause means not playing.
         music_playing = bool(
-            self._music_enabled and music_track and alive and not self._music_bed_held()
+            self._music_enabled
+            and music_track
+            and alive
+            and not self._music_operator_hold
         )
         queue = self._peek_queue()
         return {
@@ -749,6 +773,7 @@ class StreamDirector:
                     "track": music_track if music_playing else None,
                     "playing": music_playing,
                     "held": self._music_bed_held(),
+                    "ducked": ducked or self._music_hold,
                 },
             },
             "up_next": {
@@ -759,6 +784,7 @@ class StreamDirector:
             "music": {
                 "enabled": self._music_enabled,
                 "hold": self._music_hold,
+                "ducked": ducked or self._music_hold,
                 "operator_paused": self._music_operator_hold,
                 "tracks": self._music_tracks_n,
                 "current": music_track if music_playing else None,
