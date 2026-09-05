@@ -234,7 +234,7 @@ if not decision.get("allow_origin"):
 _ensure_tunnel()
 
 # Hung: process/port up but /health dark → kill once, then spawn below.
-_recycle_hung_origin()
+recycled = _recycle_hung_origin()
 
 if _health_ok():
     if decision.get("restart_desk"):
@@ -243,15 +243,11 @@ if _health_ok():
 
 # Still warming (young process, health not ready) — do not dual-spawn.
 age = _youngest_origin_age_s()
-if _origin_process_present() and age is not None and age < 90.0:
+if (not recycled) and _origin_process_present() and age is not None and age < 90.0:
     sys.exit(0)
 
-# Process present + health dark + already recycled / cooldown: wait next tick.
-if _origin_process_present() and not _port_open():
-    # Dying — next tick will spawn.
-    sys.exit(0)
-if _origin_process_present() and _port_open() and not _health_ok():
-    # Recycle on cooldown or failed — avoid second parent.
+# Process still listed after a failed/cooldown recycle — wait next tick.
+if (not recycled) and _origin_process_present():
     sys.exit(0)
 
 
