@@ -197,8 +197,15 @@ def ensure_today(*, now: datetime | None = None) -> dict:
         if "scheduled_at" not in row:
             row["scheduled_at"] = f"{day}T{meta['hour']:02d}:{meta['minute']:02d}:00"
             changed = True
+        eng, mp3 = _engine_mp3_defaults(kind)
+        # Always refresh from live toggles so stale cloud does not stick after lockout.
+        if row.get("engine_req") != eng:
+            row["engine_req"] = eng
+            changed = True
+        if row.get("mp3_req") != mp3:
+            row["mp3_req"] = mp3
+            changed = True
         if "engine_req" not in row or "mp3_req" not in row:
-            eng, mp3 = _engine_mp3_defaults(kind)
             row.setdefault("engine_req", eng)
             row.setdefault("mp3_req", mp3)
             changed = True
