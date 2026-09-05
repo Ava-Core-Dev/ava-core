@@ -72,6 +72,16 @@ async def run() -> None:
             source,
         )
         return
+    from apps.core.services.obs_presence import obs_skip_reason, obs_work_allowed
+
+    if not obs_work_allowed():
+        log.debug(
+            "minecraft live detect %s obs=skipped (%s) source=%s",
+            {k: snap.get(k) for k in ("ingame", "client_now", "thumb_ready", "players_online")},
+            obs_skip_reason() or "obs_idle",
+            source,
+        )
+        return
     result = await apply_minecraft_live(snap)
     log.info(
         "minecraft live detect %s obs=%s source=%s",

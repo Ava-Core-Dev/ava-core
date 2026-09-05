@@ -25,6 +25,15 @@ _listeners: list[asyncio.Queue] = []
 
 def broadcast_audio_event(event: dict):
     """Called by the voice director when a new track is ready."""
+    try:
+        from apps.core.services.obs_presence import obs_work_allowed
+
+        if not obs_work_allowed():
+            return
+    except Exception:
+        return
+    if not _listeners:
+        return
     payload = json.dumps(event)
     for q in list(_listeners):
         try:
@@ -38,9 +47,16 @@ async def obs_audio_stream():
     """
     OBS Browser Source page — add this URL as a Browser Source in OBS.
     Listens on SSE and auto-plays audio when signaled by the Stream Director.
+    Idle when OBS is closed (no SSE).
     """
-    generated = config.GENERATED_DIR
-    return HTMLResponse(f"""<!DOCTYPE html>
+    from apps.core.services.obs_presence import obs_process_running, obs_work_allowed
+
+    if not obs_work_allowed() and not obs_process_running():
+        return HTMLResponse(
+            "<!DOCTYPE html><html><body style='margin:0;background:transparent'>"
+            "<script>/* OBS closed — no audio bridge */</script></body></html>",
+            status_code=200,
+        )
 <html lang="en">
 <head>
 <meta charset="UTF-8">
