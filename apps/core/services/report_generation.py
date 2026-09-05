@@ -942,11 +942,23 @@ def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
         missing.append("End of status")
     if kind == "kilauea":
         return (not missing), missing
-    for lead in ("Broken / needs work", "Already landed", "Priority"):
-        if lead.lower() not in low:
-            missing.append(lead)
+
+    def _has(*aliases: str) -> bool:
+        return any(a in low for a in aliases)
+
+    if not _has(
+        "broken / needs work",
+        "broken/needs work",
+        "broken needs work",
+        "broken / needs",
+    ):
+        missing.append("Broken / needs work")
+    if not _has("already landed"):
+        missing.append("Already landed")
+    if not _has("priority:", "priority —", "priority -", "priority\n", "priority "):
+        missing.append("Priority")
     # Only fail when Broken / Already landed still claim "not live" (the noon bug).
-    for section in ("broken / needs work", "already landed"):
+    for section in ("broken / needs work", "broken/needs work", "already landed"):
         idx = low.find(section)
         if idx < 0:
             continue
