@@ -152,9 +152,9 @@ def unregister_listener(q) -> None:
 
 
 def broadcast_program_event(event: dict) -> None:
-    """Push play events when on air or Desk local HTML listen is active."""
+    """Push play events when on air or Desk local_playback (HTML listen)."""
     st = load()
-    if not (st.get("on_air") or st.get("local_playback") or visitor_awake()):
+    if not (st.get("on_air") or st.get("local_playback")):
         return
     if not _listeners:
         return
