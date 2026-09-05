@@ -425,12 +425,12 @@ def _fmt_host(row: dict[str, Any], *, last_at: float | None, source: str) -> str
     if npu is not None:
         bits.append(f"npu {int(round(float(npu)))}%")
     elif row.get("npu_present"):
-        bits.append("npu present")
+        bits.append("npu present (load not sampled)")
     gpu = row.get("gpu_pct")
     if gpu is not None:
         bits.append(f"i_gpu {int(round(float(gpu)))}%")
     elif row.get("gpu_name"):
-        bits.append(str(row.get("gpu_name")))
+        bits.append(f"{row.get('gpu_name')} (load not sampled)")
     return "Host: " + (", ".join(bits) if bits else "sampled, thin")
 
 

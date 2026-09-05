@@ -139,10 +139,17 @@ def system_script(facts: str, now: datetime) -> str:
     m = re.search(r"RAM\s+(\d+)\s*%", facts, re.I)
     if m:
         bits += ["memory", m.group(1), "percent"]
-    if re.search(r"\bnpu\b", facts.lower()):
+    # Prefer measured percents. Do not say "npu load" without a number.
+    m = re.search(r"\bnpu\s+(\d+)\s*%", facts, re.I)
+    if m:
         bits += _clip_or("npu_load", ["npu", "load"])
-    if "840m" in facts.lower() or "igpu" in facts.lower() or "i_gpu" in facts.lower() or "radeon" in facts.lower():
+        bits += [m.group(1), "percent"]
+    m = re.search(r"\bi_gpu\s+(\d+)\s*%", facts, re.I)
+    if not m:
+        m = re.search(r"\bigpu\s+(\d+)\s*%", facts, re.I)
+    if m:
         bits += _clip_or("i_gpu_load", ["i_gpu", "load"])
+        bits += [m.group(1), "percent"]
     return _join(bits)
 
 

@@ -40,11 +40,21 @@ async def run():
         temp_line = f"Temp: {temp}°C{src}"
 
     gpu = row.get("gpu_name") or "not sampled"
-    npu_line = (
-        "NPU: present — watts not sampled (stock Ollama does not use it)"
-        if npu_present()
-        else "NPU: not found"
-    )
+    gpu_pct = row.get("gpu_pct")
+    if gpu_pct is not None:
+        gpu_line = f"iGPU: {gpu} — {gpu_pct}%"
+    else:
+        gpu_line = f"iGPU: {gpu} — load not sampled"
+    npu = row.get("npu_pct")
+    if npu is not None:
+        npu_line = f"NPU: {npu}% (present={bool(npu_present())})"
+    elif npu_present():
+        npu_line = (
+            "NPU: present — load not sampled "
+            "(Windows exposes no NPU Engine counter; stock Ollama does not use it)"
+        )
+    else:
+        npu_line = "NPU: not found"
     up = int(row.get("uptime_s") or 0)
 
     content = (
@@ -55,7 +65,7 @@ async def run():
         f"({row.get('mem_used_gb')} / {row.get('mem_total_gb')} GB)\n"
         f"{batt_line}\n"
         f"{temp_line}\n"
-        f"GPU: {gpu}\n"
+        f"{gpu_line}\n"
         f"{npu_line}\n"
         f"Uptime: {up // 3600}h {(up % 3600) // 60}m\n"
         f"\nDisks:\n"

@@ -6,6 +6,8 @@ Ollama does not use the NPU. Never invent watts.
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import time
 import winreg
 from pathlib import Path
