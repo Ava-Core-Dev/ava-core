@@ -335,75 +335,24 @@ def kill_stray_music_players(
 ) -> int:
     """Kill OS players for the music bed (orphans from origin recycle).
 
-    Uses psutil + AVA_MUSIC_BED marker. Only powershell/ffplay/etc hosts — never
-    path-only matches on arbitrary processes.
+    Windows: CIM filter on AVA_MUSIC_BED only — never psutil process_iter(cmdline),
+    which can hang this PC and freeze origin /health.
     keep_pid / keep_pids spare the live player (and a brief blend overlap peer).
     """
     killed = 0
     spare: set[int] = set(keep_pids or ())
     if keep_pid is not None:
         spare.add(int(keep_pid))
-    try:
-        import psutil
-    except Exception:
-        psutil = None  # type: ignore
+    deadline = time.monotonic() + 8.0
 
-    player_names = {
-        "powershell.exe",
-        "pwsh.exe",
-        "python.exe",
-        "pythonw.exe",
-        "ffplay.exe",
-        "ffmpeg.exe",
-        "mpg123.exe",
-        "mpv.exe",
-        "vlc.exe",
-        "wscript.exe",
-        "cscript.exe",
-    }
-
-    if psutil is not None:
-        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-            try:
-                pid = int(proc.info["pid"])
-            except Exception:
-                continue
-            if pid in spare:
-                continue
-            if pid <= 0:
-                continue
-            try:
-                name = (proc.info.get("name") or "").lower()
-                cmd = proc.info.get("cmdline") or []
-                cl = " ".join(cmd)
-            except (psutil.Error, TypeError):
-                continue
-            if not cl or not _music_cmdline_is_bed(cl):
-                continue
-            if name not in player_names:
-                continue
-            try:
-                # Prefer kill() — faster than taskkill and avoids /T on wrong trees.
-                proc.kill()
-                killed += 1
-            except Exception:
-                try:
-                    if os.name == "nt":
-                        subprocess.run(
-                            ["taskkill", "/PID", str(pid), "/T", "/F"],
-                            capture_output=True,
-                            timeout=5,
-                            creationflags=CREATE_NO_WINDOW,
-                        )
-                        killed += 1
-                except Exception:
-                    pass
-    elif os.name == "nt":
+    if os.name == "nt":
         ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
         list_script = (
             "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
-            "Where-Object { $_.CommandLine -and $_.Name -match '^(powershell|pwsh|python|pythonw|ffplay|ffmpeg)\\.exe$' "
-            "-and $_.CommandLine -match 'AVA_MUSIC_BED' } | ForEach-Object { $_.ProcessId }"
+            "Where-Object { $_.CommandLine -and "
+            "($_.Name -match '^(powershell|pwsh|python|pythonw|ffplay|ffmpeg)\\.exe$') "
+            "-and ($_.CommandLine -match 'AVA_MUSIC_BED') } | "
+            "ForEach-Object { $_.ProcessId }"
         )
         try:
             out = subprocess.run(
@@ -419,7 +368,7 @@ def kill_stray_music_players(
                 ],
                 capture_output=True,
                 text=True,
-                timeout=15,
+                timeout=8,
                 creationflags=CREATE_NO_WINDOW,
             )
         except Exception:
@@ -431,25 +380,74 @@ def kill_stray_music_players(
                 if line.isdigit():
                     pids.append(int(line))
         for pid in pids:
+            if time.monotonic() > deadline:
+                break
             if pid in spare:
                 continue
             try:
+                # No /T — tree kill can take down related shells on this host.
                 subprocess.run(
                     ["taskkill", "/PID", str(pid), "/F"],
                     capture_output=True,
-                    timeout=5,
+                    timeout=3,
                     creationflags=CREATE_NO_WINDOW,
                 )
                 killed += 1
             except Exception:
                 pass
-    else:
+        if killed:
+            logging.getLogger("ava.director").info(
+                "Music bed swept stray players  killed=%s", killed
+            )
+        return killed
+
+    try:
+        import psutil
+    except Exception:
         try:
             subprocess.run(
                 ["pkill", "-f", "AVA_MUSIC_BED"],
                 capture_output=True,
                 timeout=5,
             )
+        except Exception:
+            pass
+        return killed
+
+    player_names = {
+        "powershell.exe",
+        "pwsh.exe",
+        "python.exe",
+        "pythonw.exe",
+        "ffplay.exe",
+        "ffmpeg.exe",
+        "mpg123.exe",
+        "mpv.exe",
+        "vlc.exe",
+        "wscript.exe",
+        "cscript.exe",
+    }
+    for proc in psutil.process_iter(["pid", "name"]):
+        if time.monotonic() > deadline:
+            break
+        try:
+            pid = int(proc.info["pid"])
+        except Exception:
+            continue
+        if pid in spare or pid <= 0:
+            continue
+        try:
+            name = (proc.info.get("name") or "").lower()
+            if name not in player_names:
+                continue
+            cl = " ".join(proc.cmdline() or [])
+        except Exception:
+            continue
+        if not cl or not _music_cmdline_is_bed(cl):
+            continue
+        try:
+            proc.kill()
+            killed += 1
         except Exception:
             pass
     if killed:

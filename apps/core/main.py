@@ -83,21 +83,17 @@ async def lifespan(app: FastAPI):
         from apps.voice.director import (
             ensure_music_bed,
             ensure_running,
-            kill_stray_music_players,
             music_bed_wanted,
         )
 
         ensure_running()
-        # Always sweep orphans from prior recycles — never leave stacked beds.
-        swept = kill_stray_music_players()
+        # Do not sync-sweep on the event loop — Windows process scans hang /health.
+        # ensure_music_bed runs kill_stray off-thread inside start_music_bed.
         if music_bed_wanted():
             ensure_music_bed()
-            log.info("Stream Director + music bed started  swept=%s", swept)
+            log.info("Stream Director + music bed start queued")
         else:
-            log.info(
-                "Stream Director started; music bed OFF (wanted=0)  swept=%s",
-                swept,
-            )
+            log.info("Stream Director started; music bed OFF (wanted=0)")
     except Exception as e:
         log.warning("Stream Director / music bed failed to start: %s", e)
 
