@@ -249,6 +249,7 @@ async def report_generation_play_mp3(body: ReportPlayIn, request: Request):
     kind = (body.kind or "midday").strip().lower()
     return await voice_events.play_report_mp3(
         body.mp3,
+        config.GENERATED_DIR / f"{kind}-report-current.wav",
         config.GENERATED_DIR / f"{kind}-report-current.mp3",
         name="status",
         kind=kind,

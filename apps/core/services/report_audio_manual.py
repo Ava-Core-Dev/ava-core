@@ -135,7 +135,7 @@ def list_candidates(*, limit: int = 80) -> list[dict]:
         if not root.is_dir():
             continue
         try:
-            files = list(root.rglob("*.mp3"))
+            files = list(root.rglob("*.wav")) + list(root.rglob("*.mp3"))
         except Exception:
             continue
         for p in files:
