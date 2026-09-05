@@ -3137,11 +3137,16 @@ function paintRadioControls(radio) {
   if (tools) {
     const t = radio.tools || {};
     tools.textContent = [
-      t.encoder_ready ? "Icecast+ffmpeg ready" : "Encoder: origin file SSE (no Icecast yet)",
-      t.ffmpeg ? "ffmpeg ok" : "ffmpeg missing",
-      t.icecast ? "icecast ok" : "icecast missing",
-      "desktop loopback OFF",
-    ].join(" · ");
+      t.ffmpeg
+        ? t.icecast
+          ? "Icecast+ffmpeg ready"
+          : "ffmpeg live · /radio/live.mp3"
+        : "ffmpeg missing",
+      t.icecast ? "icecast ok" : null,
+      "speakers ≠ broadcast",
+    ]
+      .filter(Boolean)
+      .join(" · ");
   }
   if (open && radio.wake_page) {
     open.href = radio.wake_page.includes("127.0.0.1")

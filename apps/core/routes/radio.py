@@ -156,29 +156,29 @@ def _player_html() -> str:
 <script>
 const player = document.getElementById('player');
 const status = document.getElementById('status');
+function playSrc(src, name) {
+  if (!src) return;
+  player.src = src;
+  player.play().catch(()=>{});
+  status.textContent = name || 'Now playing';
+}
+fetch('/api/radio/now').then(r=>r.json()).then(j=>{
+  if (!j.on_air) { status.textContent = 'Off air'; return; }
+  playSrc(j.live || j.src, j.name);
+}).catch(()=>{ status.textContent = 'Reconnecting…'; });
 const es = new EventSource('/radio/events');
-es.onopen = () => { status.textContent = 'Ready'; };
+es.onopen = () => {};
 es.onerror = () => { status.textContent = 'Reconnecting…'; };
 es.addEventListener('play', e => {
   const data = JSON.parse(e.data);
-  if (!data.src) return;
-  player.src = data.src;
-  player.play().catch(()=>{});
-  status.textContent = data.name || 'Now playing';
+  // Prefer live remux when present; else direct file URL
+  playSrc(data.live || data.src, data.name);
 });
-es.addEventListener('message', e => {
-  try {
-    const data = JSON.parse(e.data);
-    if (data.type === 'connected') status.textContent = 'Ready';
-  } catch {}
+player.addEventListener('ended', () => {
+  fetch('/api/radio/now').then(r=>r.json()).then(j=>{
+    if (j.on_air) playSrc(j.live || j.src, j.name);
+  }).catch(()=>{});
 });
-fetch('/api/radio/now').then(r=>r.json()).then(j=>{
-  if (j && j.src) {
-    player.src = j.src;
-    player.play().catch(()=>{});
-    status.textContent = j.name || 'Now playing';
-  }
-}).catch(()=>{});
 </script>
 </body>
 </html>"""

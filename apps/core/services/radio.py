@@ -110,14 +110,16 @@ def tool_status() -> dict[str, Any]:
         "encode_mode": (
             "icecast+ffmpeg"
             if (ffmpeg and icecast)
+            else "ffmpeg_live_mp3"
+            if ffmpeg
             else "origin_file_sse"
         ),
         "desktop_loopback": False,
         "note": (
-            "Install Icecast2 for a classic mount. "
-            "ffmpeg is enough for local remux; on-air uses origin file URLs + SSE until Icecast."
+            "ffmpeg live remux at /radio/live.mp3 when on air. "
+            "Icecast optional for multi-mount later."
             if ffmpeg
-            else "Install ffmpeg (winget Gyan.FFmpeg) + Icecast2 for encode."
+            else "Install ffmpeg (winget Gyan.FFmpeg) for live remux."
         ),
     }
 
@@ -159,11 +161,12 @@ def program_url_for_file(path: Path | str) -> str | None:
 
 def announce_program_file(path: Path | str, *, name: str = "") -> None:
     src = program_url_for_file(path)
-    if not src:
+    if not src and not Path(path).is_file():
         return
     broadcast_program_event(
         {
-            "src": src,
+            "src": src or "/radio/live.mp3",
+            "live": "/radio/live.mp3",
             "name": name or Path(path).name,
             "priority": 1,
         }
