@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05 (HST)  
 **Machine:** AVA-CORE · live tree `C:\Users\rootr\ava`  
-**Status:** Phase 1+ shipping (2026-09-05) — Desk Radio, Banished wake, OBS idle gates, desk mid-track clock-kill removed, ffmpeg installed (Icecast still missing → `origin_file_sse`), bed announces to Radio SSE.  
+**Status:** Building (2026-09-05) — public wake copy cleaned (no operator jargon). Desk Radio, OBS idle, mid-track clock-kill removed, ffmpeg live remux `/radio/live.mp3` when on air. Icecast still optional.  
 **Operator ask:** No stray pages broadcasting; efficient when nobody is visiting; Banished-style wake page; full Radio in Ava Desk (local listen without Cloudflare); program feed = music + reports + chimes (not desktop audio); optional mic; fold pending work.
 
 ---
