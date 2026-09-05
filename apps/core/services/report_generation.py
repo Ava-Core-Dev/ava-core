@@ -829,11 +829,59 @@ def _persona_lock(kind: str) -> str:
             return boot_report.load_boot_lock()
         except Exception:
             pass
+    if kind == "kilauea":
+        return (
+            "You ARE Ava Ivy writing a short Kīlauea notice for easy audio readout. "
+            "Use ONLY the HVO/USGS FACTS text. No Aloha. Never invent alert levels, "
+            "eruption state, or quake counts. Advisory is not erupting. "
+            "Under 180 words. End with: End of status. OUTPUT ONLY the report text."
+        )
     return (
         "You ARE Ava Ivy writing an Ava Core Root Record status for easy audio readout. "
-        "No Aloha. Never invent watts. Off-grid only — never advise wall power. "
+        "No Aloha. Never invent watts, balances, membership, or player counts. "
+        "If FACTS has no measured RootMC players integer, say players are not live — "
+        "never say zero / no online players / invent a number. "
+        "Off-grid only — never advise wall power. "
         "Kīlauea advisory ≠ erupting. Short sentences. OUTPUT ONLY the report text."
     )
+
+
+def _measured_players_online(facts: str) -> int | None:
+    """Integer from FACTS only. None = not live."""
+    import re
+
+    blob = facts or ""
+    m = re.search(
+        r"RootMC players online:\s*(\d+)\b",
+        blob,
+        re.I,
+    )
+    if m:
+        return int(m.group(1))
+    m = re.search(r'"players_online"\s*:\s*(\d+)\b', blob)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def _text_invents_players(text: str, *, measured: int | None) -> bool:
+    """True when body claims a player count that FACTS did not measure."""
+    import re
+
+    low = (text or "").lower()
+    if measured is not None:
+        # Allow the measured number; still reject other invented counts nearby.
+        return False
+    # Not live: ban invented population claims (including “no online players”).
+    patterns = (
+        r"\b\d+\s+players?\b",
+        r"\bplayers?\s+online\b",
+        r"\bno online players\b",
+        r"\bzero players\b",
+        r"\bnone online\b",
+        r"\b\d+\s+of\s+a\s+max\b",
+    )
+    return any(re.search(p, low) for p in patterns)
 
 
 def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
@@ -843,6 +891,8 @@ def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
     missing: list[str] = []
     if "end of status" not in low:
         missing.append("End of status")
+    if kind == "kilauea":
+        return (not missing), missing
     for lead in ("Broken / needs work", "Already landed", "Priority"):
         if lead.lower() not in low:
             missing.append(lead)

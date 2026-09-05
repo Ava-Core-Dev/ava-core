@@ -151,7 +151,7 @@ def link_bundle(*, report_type: str = "morning") -> dict:
         "resources": pages,
         "note": (
             "Prefer these live pages over scraping internals. "
-            "Do not invent watts, balances, or eruption state."
+            "Do not invent watts, balances, eruption state, or player counts."
         ),
     }
 
@@ -405,12 +405,31 @@ def build_day_board() -> dict[str, Any]:
 
 def build_minecraft() -> dict[str, Any]:
     live = _state("minecraft-live.json")
+    players = None
+    if isinstance(live, dict) and live.get("players_online") is not None:
+        try:
+            players = int(live["players_online"])
+        except (TypeError, ValueError):
+            players = None
+    speakable = (
+        f"RootMC players online: {players}."
+        if players is not None
+        else "RootMC players: not live (no measured count)."
+    )
     return {
         "resource": "minecraft",
         "title": "Minecraft live",
         "as_of": _now_line(),
         "on_file": bool(live),
+        "players_online": players,
+        "players_live": players is not None,
+        "speakable": speakable,
         "snapshot": live if live else None,
+        "note": (
+            "players_online is RootMC RCON list count only. "
+            "null/missing means not live — never invent zero or any count. "
+            "Desk client ingame is not population."
+        ),
         "public": {
             "play": "https://play.rootmc.net/",
             "site": "https://rootmc.net/",
