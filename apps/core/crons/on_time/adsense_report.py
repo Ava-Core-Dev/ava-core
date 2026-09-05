@@ -1,4 +1,4 @@
-"""AdSense earnings report — twice daily: Core boot + end-of-day close (HST)."""
+"""AdSense earnings report — file snapshot only; Discord posting is off."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ HST = ZoneInfo("Pacific/Honolulu")
 
 # Suppress duplicate boot reports when uvicorn flaps (watchdog / brief restart).
 BOOT_COOLDOWN_S = int(os.getenv("ADSENSE_BOOT_COOLDOWN_S", str(30 * 60)))
+# Discord AdSense posts off unless explicitly re-enabled.
+POST_DISCORD = os.getenv("ADSENSE_POST_DISCORD", "0").lower() in {"1", "true", "yes", "on"}
 
 
 def _state_path() -> Path:
@@ -115,10 +117,12 @@ async def run(kind: str = "eod", *, force: bool = False, post: bool = True) -> d
         )
 
     posted = False
-    if post:
+    if post and POST_DISCORD:
         msg = adsense.format_discord(snap, label=label)
         r = await discord.post_message(_channel(), msg[:1900])
         posted = bool(r)
+    elif post and not POST_DISCORD:
+        log.debug("AdSense Discord skipped (ADSENSE_POST_DISCORD=0) kind=%s", kind)
 
     st = _load_state()
     st["last_kind"] = kind

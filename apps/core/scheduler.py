@@ -159,8 +159,8 @@ class Scheduler:
         s.add_job(self._run("system_perf"), CronTrigger(minute=6),
                   id="system-performance", name="System performance", misfire_grace_time=120)
 
-        # ── Player economy + Kīlauea multiplier (every 30 min) ───────────────
-        s.add_job(self._run("player_economy"), IntervalTrigger(minutes=30),
+        # ── Player economy + Kīlauea multiplier (once per hour) ──────────────
+        s.add_job(self._run("player_economy"), IntervalTrigger(minutes=60),
                   id="player-economy-report", name="Player economy", misfire_grace_time=180)
 
         # ── Morning report (10:00 generate) + 10:12 play ──────────────────────

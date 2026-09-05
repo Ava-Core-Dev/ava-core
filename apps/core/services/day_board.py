@@ -51,7 +51,7 @@ MUST_FIRE_INTERVAL = (
     {"id": "hurricane-tracker", "every": "15m", "manual": False, "note": "Storm slides"},
     {"id": "broadcast-loop", "every": "20s", "manual": False, "note": "OBS daily loop"},
     {"id": "minecraft-live", "every": "45s", "manual": False, "note": "In-game detect"},
-    {"id": "player-economy", "every": "30m", "manual": False, "note": "Gold snapshot"},
+    {"id": "player-economy", "every": "1h", "manual": False, "note": "Gold snapshot"},
     {"id": "stripe-poll", "every": "30m", "manual": False, "note": "Stripe desk snapshot"},
     {"id": "user-qrcodes", "every": "6h", "manual": False, "note": "QR backfill"},
     {"id": "account-import", "every": "6h", "manual": False, "note": "Identity import"},

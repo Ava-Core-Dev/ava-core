@@ -1,4 +1,4 @@
-"""AdMob network report — twice daily: Core boot + end-of-day close (HST)."""
+"""AdMob network report — file snapshot only; Discord posting is off."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 log = logging.getLogger("ava.cron.admob_report")
 HST = ZoneInfo("Pacific/Honolulu")
 BOOT_COOLDOWN_S = int(os.getenv("ADMOB_BOOT_COOLDOWN_S", str(30 * 60)))
+POST_DISCORD = os.getenv("ADMOB_POST_DISCORD", "0").lower() in {"1", "true", "yes", "on"}
 
 
 def _state_path() -> Path:
@@ -114,10 +115,12 @@ async def run(kind: str = "eod", *, force: bool = False, post: bool = True) -> d
         )
 
     posted = False
-    if post:
+    if post and POST_DISCORD:
         msg = admob.format_discord(snap, label=label)
         r = await discord.post_message(_channel(), msg[:1900])
         posted = bool(r)
+    elif post and not POST_DISCORD:
+        log.debug("AdMob Discord skipped (ADMOB_POST_DISCORD=0) kind=%s", kind)
 
     st = _load_state()
     st["last_kind"] = kind
