@@ -49,7 +49,7 @@ DELTA_SN = "R331ZAB5SG6S2858"
 DEFAULT_BASE = "https://api-a.ecoflow.com"
 
 # Hysteresis (watts). Dead band between ON and OFF thresholds.
-OFF_AT_W = 420.0
+OFF_AT_W = 300.0
 ON_AT_W = 200.0
 
 # Prefer not flapping around the 2-minute quota cadence.
