@@ -151,6 +151,7 @@ def _player_html() -> str:
   <div class="brand">Root Record Radio</div>
   <div id="status">Connecting…</div>
   <audio id="player" controls preload="none"></audio>
+  <p class="hint" style="opacity:.65;font-size:.8rem">Program bus · localhost</p>
   <p><a href="/radio">Wake page</a></p>
 <script>
 const player = document.getElementById('player');
@@ -163,7 +164,7 @@ es.addEventListener('play', e => {
   if (!data.src) return;
   player.src = data.src;
   player.play().catch(()=>{});
-  status.textContent = 'Playing: ' + (data.name || data.src.split('/').pop());
+  status.textContent = 'Playing: ' + (data.name || data.src.split('/').pop().split('?')[0]);
 });
 es.addEventListener('message', e => {
   try {
@@ -171,6 +172,10 @@ es.addEventListener('message', e => {
     if (data.type === 'connected') status.textContent = 'Ready';
   } catch {}
 });
+// Ask origin to re-announce current bed if already playing
+fetch('/api/radio/status').then(r=>r.json()).then(j=>{
+  if (j.on_air) fetch('/api/radio', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({on_air:true})});
+}).catch(()=>{});
 </script>
 </body>
 </html>"""
