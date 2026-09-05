@@ -678,8 +678,54 @@ def validate_prompt_package(pkg: dict, *, kind: str) -> dict:
     }
 
 
-def build_prompt_package(kind: str) -> dict:
-    """URLs + fetched context + live /data facts + kind operator FACTS for Grok/local."""
+def _nws_cloud_safe_lines() -> list[str]:
+    """Short NWS one-liners only — never full CAP / spoken body for cloud prompts."""
+    try:
+        from apps.core.services import nws_hawaii
+
+        lines = []
+        for line in nws_hawaii.facts_lines():
+            s = str(line or "").strip()
+            if not s:
+                continue
+            # Drop full spoken script / CAP dump lines.
+            if s.lower().startswith("nws county spoken script"):
+                continue
+            if len(s) > 240:
+                s = s[:237] + "…"
+            lines.append(s)
+        return lines[:24]
+    except Exception as e:
+        return [f"NWS Hawaii: unavailable ({type(e).__name__})."]
+
+
+def _scrub_nws_from_facts(text: str) -> str:
+    """Remove bulky NWS bodies from a facts block before cloud generation."""
+    out = text or ""
+    # Drop spoken script lines / long CAP blobs.
+    cleaned: list[str] = []
+    for line in out.splitlines():
+        low = line.lower()
+        if "nws county spoken script" in low:
+            continue
+        if "\"raw\"" in low or "\"description\"" in low and len(line) > 400:
+            continue
+        cleaned.append(line)
+    body = "\n".join(cleaned)
+    # Append safe short lines so weather context remains.
+    safe = _nws_cloud_safe_lines()
+    if safe:
+        body = (
+            body.rstrip()
+            + "\n\n=== NWS Hawaii (short local summary only; no CAP body) ===\n"
+            + "\n".join(safe)
+            + "\n"
+        )
+    return body
+
+
+def build_prompt_package(kind: str, *, for_cloud: bool = False) -> dict:
+    """URLs + fetched context + live /data facts + kind operator FACTS for cloud/local."""
     from apps.core.services import live_data_pages
 
     cfg = load()
@@ -690,6 +736,9 @@ def build_prompt_package(kind: str) -> dict:
         fetched.append(_fetch_url_text(str(url)))
     # Always include origin live facts (no public round-trip required).
     local_facts = live_data_pages.facts_block_for_report(report_type=kind)
+    if for_cloud:
+        # NWS bodies must never go to cloud generation.
+        local_facts = _scrub_nws_from_facts(local_facts)
     operator_facts = _kind_operator_facts(kind)
     # Single block handed to the model: live pages + spoken FACTS with Broken/landed/Priority.
     combined = local_facts
@@ -706,6 +755,8 @@ def build_prompt_package(kind: str) -> dict:
         "local_live_facts": combined,
         "operator_facts": operator_facts,
         "live_data_facts_only": local_facts,
+        "for_cloud": bool(for_cloud),
+        "nws_policy": "short_local_only" if for_cloud else "full_local_ok",
     }
     pkg["validation"] = validate_prompt_package(pkg, kind=kind)
     return pkg
@@ -790,17 +841,17 @@ def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
 def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     from apps.core.services import boot_report, xai
 
-    pkg = build_prompt_package(kind)
+    pkg = build_prompt_package(kind, for_cloud=True)
     val = pkg.get("validation") or validate_prompt_package(pkg, kind=kind)
     if not val.get("ok"):
         log.error(
-            "%s Grok blocked — incomplete package: %s",
+            "%s cloud blocked — incomplete package: %s",
             kind,
             val.get("detail"),
         )
         return {
             "ok": False,
-            "engine": "grok",
+            "engine": "cloud",
             "detail": val.get("detail") or "incomplete_package",
             "package": pkg,
             "validation": val,
@@ -830,7 +881,8 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
         f"{stamp_note}\n\n"
         "Use ONLY measured facts from the pages/blocks below. Do not invent.\n"
         "Broken / needs work, Already landed, and Priority ARE in the FACTS — "
-        "do not say you do not have them live.\n\n"
+        "do not say you do not have them live.\n"
+        "Never name third-party vendors or engines in the report text.\n\n"
         f"Context / discovery URLs:\n{urls}\n\n"
         f"Live data pages:\n{live_urls}\n"
         f"Link bundle pointers:\n{ctx_ptrs}\n"
@@ -845,7 +897,7 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     if not text or len(text.strip()) < 80:
         return {
             "ok": False,
-            "engine": "grok",
+            "engine": "cloud",
             "detail": "thin_or_empty",
             "package": pkg,
             "validation": val,
@@ -854,13 +906,13 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     sections_ok, section_missing = _text_has_required_sections(kind, scrubbed)
     if not sections_ok:
         log.error(
-            "%s Grok output rejected — missing sections %s",
+            "%s cloud output rejected — missing sections %s",
             kind,
             section_missing,
         )
         return {
             "ok": False,
-            "engine": "grok",
+            "engine": "cloud",
             "detail": "incomplete_output:" + ",".join(section_missing),
             "package": pkg,
             "validation": val,
@@ -869,7 +921,7 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
         }
     return {
         "ok": True,
-        "engine": "grok",
+        "engine": "cloud",
         "text": scrubbed,
         "include_timestamp": True,
         "package": pkg,
