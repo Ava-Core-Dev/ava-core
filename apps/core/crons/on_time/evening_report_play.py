@@ -1,4 +1,4 @@
-"""Evening report play — 17:28 HST. Queues current evening MP3 (no TTS spend)."""
+"""Evening report play — 17:28 HST. Queues current evening WAV (no TTS spend)."""
 
 from __future__ import annotations
 
@@ -13,10 +13,14 @@ async def run():
     from apps.core import config
     from apps.core.services import report_audio_manual, voice_events
 
-    current = config.GENERATED_DIR / "evening-report-current.mp3"
-    if current.is_file() and current.stat().st_size > 0:
+    current_wav = config.GENERATED_DIR / "evening-report-current.wav"
+    current_mp3 = config.GENERATED_DIR / "evening-report-current.mp3"
+    if (current_wav.is_file() and current_wav.stat().st_size > 0) or (
+        current_mp3.is_file() and current_mp3.stat().st_size > 0
+    ):
         play = await voice_events.play_report_mp3(
-            current,
+            current_wav,
+            current_mp3,
             name="status",
             kind="evening",
         )

@@ -13,15 +13,21 @@ async def run():
     from apps.core import config
     from apps.core.services import report_audio_manual, voice_events
 
-    current = config.GENERATED_DIR / "midday-report-current.mp3"
-    boot_cur = config.GENERATED_DIR / "midday-boot-current.mp3"
-    if current.is_file() and current.stat().st_size > 0:
+    current = config.GENERATED_DIR / "midday-report-current.wav"
+    current_mp3 = config.GENERATED_DIR / "midday-report-current.mp3"
+    boot_cur = config.GENERATED_DIR / "midday-boot-current.wav"
+    boot_mp3 = config.GENERATED_DIR / "midday-boot-current.mp3"
+    if (current.is_file() and current.stat().st_size > 0) or (
+        current_mp3.is_file() and current_mp3.stat().st_size > 0
+    ):
         play = await voice_events.play_report_mp3(
-            current, boot_cur, name="status", kind="midday"
+            current, current_mp3, boot_cur, boot_mp3, name="status", kind="midday"
         )
-    elif boot_cur.is_file() and boot_cur.stat().st_size > 0:
+    elif (boot_cur.is_file() and boot_cur.stat().st_size > 0) or (
+        boot_mp3.is_file() and boot_mp3.stat().st_size > 0
+    ):
         play = await voice_events.play_report_mp3(
-            boot_cur, name="status", kind="midday"
+            boot_cur, boot_mp3, name="status", kind="midday"
         )
     else:
         play = await report_audio_manual.play_scheduled("midday")
