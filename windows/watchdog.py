@@ -13,6 +13,7 @@ _DIR = Path(__file__).resolve().parent
 if str(_DIR) not in sys.path:
     sys.path.insert(0, str(_DIR))
 import net_gate  # noqa: E402
+import operator_purge  # noqa: E402
 
 
 CREATE_NO_WINDOW = 0x08000000
@@ -224,6 +225,10 @@ def _ensure_tunnel() -> None:
             stdin=subprocess.DEVNULL,
         )
 
+
+# Operator "Clear desk" purge — stay dark until windows/operator_purge.py --clear
+if operator_purge.is_active():
+    sys.exit(0)
 
 online = net_gate.internet_up()
 # Prefer real health for net_gate. Port-open alone hid hung origins from the gate.
