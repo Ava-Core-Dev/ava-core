@@ -279,14 +279,30 @@ def music_dir() -> Path:
 
 
 def list_music_tracks(root: Path | None = None) -> list[Path]:
-    """All audio files under the music tree (recursive). Does not invent files."""
+    """All audio files under the music tree (recursive). Does not invent files.
+
+    Skips tracks with a measured duration under MUSIC_MIN_DURATION_S (short
+    intros/stingers). Unknown duration is kept.
+    """
     base = root or music_dir()
     if not base.is_dir():
         return []
     out: list[Path] = []
+    skipped = 0
     for p in base.rglob("*"):
-        if p.is_file() and p.suffix.lower() in MUSIC_AUDIO_EXTS:
-            out.append(p)
+        if not (p.is_file() and p.suffix.lower() in MUSIC_AUDIO_EXTS):
+            continue
+        dur = _audio_file_duration_s(p)
+        if dur is not None and dur < MUSIC_MIN_DURATION_S:
+            skipped += 1
+            continue
+        out.append(p)
+    if skipped:
+        log.info(
+            "Music bed skipped short tracks  n=%s  min_s=%.0f",
+            skipped,
+            MUSIC_MIN_DURATION_S,
+        )
     return out
 
 
@@ -1112,6 +1128,9 @@ class StreamDirector:
         blend_proc: asyncio.subprocess.Process | None = None
         blend_pid: int | None = None
         started = time.monotonic()
+        end_reason = "unknown"
+        end_pid: int | None = None
+        past_wait_warned = False
         # Windows bed = winsound (sync full file). Overlap-blend + kill-at-wait_s
         # cut mid-track when the wall clock disagrees with the player, and
         # kill_stray races two AVA_MUSIC_BED PIDs. No blend on that path.
@@ -1126,8 +1145,6 @@ class StreamDirector:
             min_ok = max(5.0, blend_at) if not winsound_bed else max(5.0, wait_s * 0.85)
         else:
             min_ok = max(0.5, wait_s * 0.9)
-        # Soft overtime: never kill a still-playing winsound at wait_s (halfway cut).
-        overtime_s = wait_s + max(90.0, wait_s * 0.2)
 
         async def _spawn(target: Path) -> asyncio.subprocess.Process:
             return await asyncio.create_subprocess_exec(
@@ -1175,6 +1192,7 @@ class StreamDirector:
                 proc = self._music_proc
                 # Already played ~MUSIC_BLEND_S during previous track's overlap.
                 started = time.monotonic() - min(MUSIC_BLEND_S, wait_s * 0.2)
+                end_pid = self._music_proc_pid
                 log.info(
                     "Music bed continue after blend: %s  pid=%s  wait_s=%.1f",
                     path.name,
@@ -1185,13 +1203,17 @@ class StreamDirector:
                 # Optional orphan sweep (start / after hold). Skip on playlist
                 # advance — kill_stray is multi-second dead air on AVA-CORE.
                 if sweep_orphans:
-                    await _kill_stray_music_players_async()
+                    await _kill_stray_music_players_async(
+                        keep_pid=self._music_proc_pid
+                    )
                 if self._music_bed_held() or not self._music_enabled:
+                    end_reason = "held_before_spawn"
                     return False, False
                 proc = await _spawn(path)
                 self._music_proc = proc
                 try:
                     self._music_proc_pid = proc.pid
+                    end_pid = proc.pid
                 except Exception:
                     self._music_proc_pid = None
                 log.info(
@@ -1204,8 +1226,10 @@ class StreamDirector:
             while True:
                 if self._music_bed_held() or not self._music_enabled:
                     aborted = True
+                    end_reason = "hold" if self._music_bed_held() else "disabled"
                     break
                 if proc is None:
+                    end_reason = "no_proc"
                     break
                 elapsed = time.monotonic() - started
                 # Measured end reached: for winsound, keep listening until the
@@ -1213,19 +1237,26 @@ class StreamDirector:
                 if elapsed >= wait_s:
                     if proc.returncode is not None:
                         await _ensure_blend()
+                        end_reason = "natural_exit"
                         break
                     if winsound_bed:
-                        if elapsed >= overtime_s:
+                        if (
+                            not past_wait_warned
+                            and elapsed >= wait_s + MUSIC_WAIT_PAD_S
+                        ):
+                            past_wait_warned = True
                             log.warning(
-                                "Music bed overtime kill %s after %.1fs (wait_s=%.1f)",
+                                "Music bed past wait_s still playing  name=%s  "
+                                "wait_s=%.1f  elapsed=%.1f  pid=%s",
                                 path.name,
-                                elapsed,
                                 wait_s,
+                                elapsed,
+                                self._music_proc_pid,
                             )
-                            break
                         # Still playing past header length — wait for natural end.
                     else:
                         await _ensure_blend()
+                        end_reason = "wait_s_reached"
                         break
 
                 # Near end: start next track under the current one (short overlap).
@@ -1239,9 +1270,11 @@ class StreamDirector:
                         # Catch-up blend if the outgoing file ended before we polled
                         # the blend window — avoids cold-start silence.
                         await _ensure_blend()
+                        end_reason = "natural_exit"
                         break
                     if self._music_bed_held() or not self._music_enabled:
                         aborted = True
+                        end_reason = "hold" if self._music_bed_held() else "disabled"
                         break
                     # Early death — do not leave a blend orphan stacking.
                     if blend_proc is not None:
@@ -1259,17 +1292,21 @@ class StreamDirector:
                         path.name,
                     )
                     await asyncio.sleep(0.15)
-                    # Keep nothing — current already dead; sweep orphans only.
-                    await _kill_stray_music_players_async()
                     if self._music_bed_held() or not self._music_enabled:
                         aborted = True
+                        end_reason = "hold" if self._music_bed_held() else "disabled"
                         break
+                    # Spawn first, then sweep orphans while keeping the live PID.
                     proc = await _spawn(path)
                     self._music_proc = proc
                     try:
                         self._music_proc_pid = proc.pid
+                        end_pid = proc.pid
                     except Exception:
                         self._music_proc_pid = None
+                    await _kill_stray_music_players_async(
+                        keep_pid=self._music_proc_pid
+                    )
                     log.info(
                         "Music bed playing: %s  pid=%s  wait_s=%.1f  elapsed=%.1f",
                         path.name,
@@ -1281,6 +1318,7 @@ class StreamDirector:
 
                 if self._music_bed_held() or not self._music_enabled:
                     aborted = True
+                    end_reason = "hold" if self._music_bed_held() else "disabled"
                     if blend_proc is not None:
                         try:
                             if blend_proc.returncode is None:
@@ -1310,13 +1348,16 @@ class StreamDirector:
                 self._music_proc_pid = blend_pid
                 self._music_current = blend_into
                 handed_off = True
+                end_reason = "handoff"
                 blend_proc = None
             else:
+                end_reason = end_reason if end_reason != "unknown" else "natural_exit"
                 self._kill_music_proc()
         except Exception as e:
             log.warning("Music bed play failed (%s): %s", path.name, e)
             aborted = False
             handed_off = False
+            end_reason = "error"
         finally:
             if blend_proc is not None:
                 try:
@@ -1324,6 +1365,18 @@ class StreamDirector:
                         blend_proc.kill()
                 except Exception:
                     pass
+            exit_elapsed = time.monotonic() - started
+            log.info(
+                "Music bed track end  name=%s  wait_s=%.1f  pid=%s  "
+                "exit_elapsed=%.1f  reason=%s",
+                path.name,
+                wait_s,
+                end_pid if end_pid is not None else self._music_proc_pid,
+                exit_elapsed,
+                end_reason if not aborted else (
+                    end_reason if end_reason in ("hold", "disabled") else "hold"
+                ),
+            )
             if not handed_off:
                 if self._music_proc is not None:
                     self._kill_music_proc()
@@ -1546,9 +1599,66 @@ class StreamDirector:
             log.warning("OBS Ava Voice Bus play failed: %s", e)
 
     async def _play_local(self, path: Path | None) -> None:
-        """Play MP3 through desktop audio (PulseAudio/PipeWire) via subprocess."""
+        """Play report/chime through desktop audio.
+
+        Windows: WPF MediaPlayer is unreliable on AVA-CORE — convert to WAV
+        (ffmpeg) and play via winsound helper with AVA_VOICE_CLIP. Music must
+        already be held by `_play` (REPORT+) before this runs.
+        """
         if not path or not path.exists():
             await asyncio.sleep(2.0)
+            return
+
+        # Windows report/chime: winsound path (not WPF MediaPlayer).
+        if os.name == "nt":
+            wav = await asyncio.to_thread(_ensure_winsound_wav, path)
+            if wav is None:
+                log.warning(
+                    "Local voice clip: no WAV for %s — falling back to sleep",
+                    path.name,
+                )
+                await asyncio.sleep(self._estimate_duration(path))
+                return
+            cmd = _windows_play_voice_clip(wav)
+            env = dict(os.environ)
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    env=env,
+                    **_windows_hidden(),
+                )
+                measured = _audio_file_duration_s(wav) or _audio_file_duration_s(path)
+                timeout = max(8.0, (measured or self._estimate_duration(path)) + 8.0)
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=timeout)
+                except asyncio.TimeoutError:
+                    log.warning(
+                        "Local voice clip timeout (%.1fs) — killing player for %s",
+                        timeout,
+                        path.name,
+                    )
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                    try:
+                        await asyncio.wait_for(proc.wait(), timeout=3.0)
+                    except Exception:
+                        pass
+                log.debug(
+                    "Local voice clip done: %s (exit %s)",
+                    path.name,
+                    proc.returncode,
+                )
+            except Exception as e:
+                log.warning(
+                    "Local voice clip failed (%s): %s — falling back to sleep",
+                    cmd[0],
+                    e,
+                )
+                await asyncio.sleep(self._estimate_duration(path))
             return
 
         player_cmd = _find_audio_player()
@@ -1558,21 +1668,17 @@ class StreamDirector:
             await asyncio.sleep(duration)
             return
 
-        if player_cmd[-1] == "_AVA_PLAY_MP3_":
-            cmd = _windows_play_mp3(path)
-        else:
-            cmd = player_cmd + [str(path)]
+        cmd = player_cmd + [str(path)]
         env = dict(os.environ)
-        if os.name != "nt":
-            import pwd
-            try:
-                uid = pwd.getpwnam("ava-core").pw_uid
-            except KeyError:
-                uid = os.getuid()
-            pulse_sock = f"/run/user/{uid}/pulse/native"
-            if os.path.exists(pulse_sock):
-                env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
-            env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
+        import pwd
+        try:
+            uid = pwd.getpwnam("ava-core").pw_uid
+        except KeyError:
+            uid = os.getuid()
+        pulse_sock = f"/run/user/{uid}/pulse/native"
+        if os.path.exists(pulse_sock):
+            env.setdefault("PULSE_SERVER", f"unix:{pulse_sock}")
+        env.setdefault("XDG_RUNTIME_DIR", f"/run/user/{uid}")
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -1581,7 +1687,6 @@ class StreamDirector:
                 env=env,
                 **_windows_hidden(),
             )
-            # Cap wait so a hung MediaPlayer cannot leave music held after the clip.
             measured = _audio_file_duration_s(path)
             timeout = max(8.0, (measured or self._estimate_duration(path)) + 8.0)
             try:
