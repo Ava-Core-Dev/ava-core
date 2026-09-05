@@ -1193,6 +1193,31 @@
       <h3 class="cron-title">Providers</h3>
       <pre id="settings-providers" class="status"></pre>
     </section>
+
+    <section id="page-clear" class="page page-clear">
+      <div class="purge-stage">
+        <p class="purge-eyebrow">RootRecord · Ava</p>
+        <h2 class="purge-title">Clear desk</h2>
+        <p class="purge-copy">
+          Stops origin, Cloudflare tunnel, Task Scheduler Ava jobs, background Pythons,
+          Ollama, music players, Discord, and this Desk. Nothing Ava-owned comes back
+          until you resume.
+        </p>
+        <button type="button" id="purge-big-red" class="purge-big-red" disabled>
+          End everything
+        </button>
+        <label class="purge-confirm-label">
+          <input type="checkbox" id="purge-confirm" />
+          I want the PC to myself — kill Ava / RootRecord and Discord
+        </label>
+        <p class="purge-resume hint-inline">
+          Resume later:
+          <code>pythonw windows\operator_purge.py --clear</code>
+          then open Ava Desk (or wait for watchdog once tasks are enabled).
+        </p>
+        <pre id="purge-status" class="status"></pre>
+      </div>
+    </section>
   </main>
   <script src="app.js"></script>
 </body>

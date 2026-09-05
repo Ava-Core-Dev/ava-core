@@ -139,6 +139,8 @@ let runningOps = null;
 let runningOpsId = null;
 /** Guard: window-all-closed + before-quit both fire on Windows quit. */
 let deskCloseHandled = false;
+/** Operator Clear desk — skip soft music teardown; exit hard. */
+let operatorPurgeRunning = false;
 let lastDeskPage = "terminal";
 
 const DESK_ROOT = deskAvaRoot();
@@ -424,7 +426,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", (e) => {
-  if (deskCloseHandled) return;
+  if (deskCloseHandled || operatorPurgeRunning) return;
   e.preventDefault();
   void handleDeskClose("before-quit").finally(() => {
     app.exit(0);

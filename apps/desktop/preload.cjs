@@ -74,6 +74,7 @@ contextBridge.exposeInMainWorld("avaDesktop", {
   deskUiGet: () => ipcRenderer.invoke("ava:desk-ui-get"),
   deskUiSave: (patch) => ipcRenderer.invoke("ava:desk-ui-save", patch || {}),
   morningReportCheck: () => ipcRenderer.invoke("ava:morning-report-check"),
+  operatorPurge: () => ipcRenderer.invoke("ava:operator-purge"),
   gitStatus: () => ipcRenderer.invoke("ava:git-status"),
   gitCheck: () => ipcRenderer.invoke("ava:git-check"),
   gitPull: () => ipcRenderer.invoke("ava:git-pull"),

@@ -1419,3 +1419,106 @@ code { color: var(--accent); }
 }
 .bg-selected-row .name { flex: 1; font-size: 0.8rem; word-break: break-all; }
 
+/* Clear desk — operator purge */
+.tab.tab-purge {
+  border-color: rgba(220, 50, 50, 0.45);
+  color: #ffb4b4;
+}
+.tab.tab-purge.active {
+  background: rgba(160, 20, 20, 0.35);
+  border-color: rgba(255, 80, 80, 0.7);
+  color: #fff;
+}
+.page-clear {
+  min-height: calc(100vh - 8rem);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem 3rem;
+}
+.page-clear.active {
+  display: flex;
+}
+.purge-stage {
+  width: min(36rem, 100%);
+  text-align: center;
+}
+.purge-eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f87171;
+}
+.purge-title {
+  margin: 0 0 0.75rem;
+  font-family: Syne, "DM Sans", sans-serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  color: #fecaca;
+}
+.purge-copy {
+  margin: 0 auto 1.75rem;
+  max-width: 28rem;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+.purge-big-red {
+  display: block;
+  width: min(22rem, 100%);
+  margin: 0 auto 1.25rem;
+  padding: 1.35rem 1.5rem;
+  border: 3px solid #7f1d1d;
+  border-radius: 1.1rem;
+  background:
+    radial-gradient(120% 120% at 50% 0%, #ef4444 0%, #b91c1c 55%, #7f1d1d 100%);
+  color: #fff7f7;
+  font-family: Syne, "DM Sans", sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 18px 40px rgba(127, 29, 29, 0.45);
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+}
+.purge-big-red:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+  filter: brightness(1.06);
+}
+.purge-big-red:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+.purge-big-red:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+}
+.purge-confirm-label {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0 auto 1rem;
+  max-width: 26rem;
+  color: #fecaca;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+.purge-confirm-label input {
+  margin-top: 0.2rem;
+  width: auto;
+}
+.purge-resume {
+  margin: 0 auto;
+  max-width: 28rem;
+}
+.purge-resume code {
+  display: inline-block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+}
+
