@@ -122,8 +122,9 @@ def _recycle_hung_origin() -> bool:
     if not (_port_open() or _origin_process_present()):
         return False
     age = _youngest_origin_age_s()
-    # Warming up after a fresh spawn — give it time.
-    if age is not None and age < 90.0:
+    # Boot prelims (Kīlauea cloud generate, NWS, …) can run several minutes.
+    # Killing mid-boot caused public chat offline flaps.
+    if age is not None and age < 300.0:
         return False
     # Cooldown file so Task Scheduler ticks do not thrash.
     stamp = REPO / "data" / "state" / "watchdog-hung-recycle.json"
@@ -243,7 +244,7 @@ if _health_ok():
 
 # Still warming (young process, health not ready) — do not dual-spawn.
 age = _youngest_origin_age_s()
-if (not recycled) and _origin_process_present() and age is not None and age < 90.0:
+if (not recycled) and _origin_process_present() and age is not None and age < 300.0:
     sys.exit(0)
 
 # Process still listed after a failed/cooldown recycle — wait next tick.
@@ -289,7 +290,10 @@ log_f.flush()
 
 # pythonw -m uvicorn, never uvicorn.exe (console wrapper flashes a window).
 # stdout/stderr must be a file — DEVNULL hid every origin line after the 2:30 spawn.
-subprocess.Popen(
+    env = _with_jdk(os.environ.copy())
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    subprocess.Popen(
     [
         str(pythonw),
         "-m",
@@ -304,7 +308,7 @@ subprocess.Popen(
         "--no-access-log",
     ],
     cwd=str(REPO),
-    env=_with_jdk(os.environ.copy()),
+    env=env,
     creationflags=_SPAWN_FLAGS,
     startupinfo=si,
     stdout=log_f,

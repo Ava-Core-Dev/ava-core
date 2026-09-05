@@ -65,7 +65,9 @@ async def _fetch_hvo(client: httpx.AsyncClient) -> tuple[str, str]:
 
 async def run():
     global _last_hash
-    log.info("Kīlauea cron running  %s", datetime.now(timezone.utc).isoformat())
+    import asyncio
+
+    log.info("Kilauea cron running  %s", datetime.now(timezone.utc).isoformat())
     try:
         async with httpx.AsyncClient(timeout=20, headers=HVO_UA) as client:
             r = await client.get(USGS_QUAKE_URL)
@@ -107,6 +109,7 @@ async def run():
             factual = "\n".join(lines)
 
             # Notice-only Grok → text + WAV + blog when toggles/spend allow.
+            # Run sync generate off the event loop so /health and public chat stay alive.
             notice_out: dict = {}
             try:
                 from apps.core.services import report_generation
@@ -114,7 +117,8 @@ async def run():
                 # Inject HVO text into a temp facts note for the package.
                 notice_facts = config.DATA_DIR / "state" / "kilauea-notice-facts.txt"
                 notice_facts.write_text(factual[:6000], encoding="utf-8")
-                notice_out = report_generation.generate(
+                notice_out = await asyncio.to_thread(
+                    report_generation.generate,
                     "kilauea",
                     dry_run=False,
                     allow_tts=True,
@@ -123,7 +127,7 @@ async def run():
                     play_after=False,
                 )
             except Exception as e:
-                log.warning("Kīlauea notice generate failed: %s", e)
+                log.warning("Kilauea notice generate failed: %s", e)
                 notice_out = {"ok": False, "detail": type(e).__name__}
 
             system = (
@@ -137,8 +141,13 @@ async def run():
             if notice_out.get("ok") and notice_out.get("text"):
                 content = str(notice_out["text"])
             else:
-                content = synth.polish(
-                    "kilauea", system, user, factual=factual[:1900], channel="kilauea"
+                content = await asyncio.to_thread(
+                    synth.polish,
+                    "kilauea",
+                    system,
+                    user,
+                    factual=factual[:1900],
+                    channel="kilauea",
                 )
             body = (content or "").strip() or factual
             if not body.strip():
