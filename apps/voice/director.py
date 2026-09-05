@@ -1536,7 +1536,9 @@ class StreamDirector:
             log.debug("OBS auto-switch disabled — skipping connect")
             return False
         from apps.core import config
-        if not config.ENABLE_OBS:
+        from apps.core.services.obs_presence import obs_work_allowed
+
+        if not obs_work_allowed():
             return False
         if not config.OBS_WS_URL:
             return False

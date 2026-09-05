@@ -166,7 +166,9 @@ class ObsClient:
         url = config.OBS_WS_URL
         if not url:
             return False
-        if not config.ENABLE_OBS:
+        from apps.core.services.obs_presence import obs_work_allowed
+
+        if not obs_work_allowed():
             return False
         if _quiet_until and time.monotonic() < _quiet_until:
             return False
