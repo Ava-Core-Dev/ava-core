@@ -62,23 +62,31 @@ async def _play_midday_mp3(tts: dict | None) -> dict | None:
 
 async def run():
     log.info("Midday report cron (11:55 → noon)  %s", datetime.now(timezone.utc).isoformat())
-    from apps.core.services import midday_report, report_generation, reports
+    from apps.core.services import daily_report_board, midday_report, report_generation, reports
     from apps.core.services import reports as report_store
+
+    daily_report_board.ensure_today()
+    daily_report_board.mark_due()
 
     if not midday_report.midday_automation_enabled():
         log.info("Midday report automation OFF — prelims still refresh facts")
     prelim = await _refresh_prelims()
     log.info("midday prelims ok=%s", prelim.get("ok"))
 
+    settings = report_generation.type_settings("midday")
+    allow_tts = bool(settings.get("tts"))
     engine = report_generation.engine_for("midday")
     result = report_generation.generate(
-        "midday", dry_run=False, allow_tts=False
+        "midday", dry_run=False, allow_tts=allow_tts, update_board=True
     )
     if result.get("blocked"):
         log.error(
-            "Midday Grok BLOCKED incomplete package/output — no disarm/close/TTS fallback. detail=%s validation=%s",
+            "Midday cloud BLOCKED incomplete package/output — no disarm/close/TTS fallback. detail=%s validation=%s",
             result.get("detail"),
             result.get("validation"),
+        )
+        daily_report_board.mark_failed(
+            "midday", error=str(result.get("detail") or "blocked")
         )
         return {
             "ok": False,
@@ -98,26 +106,28 @@ async def run():
         result = {
             "engine": written.get("engine"),
             "dated": written.get("dated"),
+            "ok": bool(content),
         }
+        if content.strip():
+            daily_report_board.mark_done("midday", engine=str(result.get("engine") or "local"))
+        else:
+            daily_report_board.mark_failed("midday", error="empty_fallback")
 
     reports.queue_public_draft("summary", content, source=f"cron_midday_{engine}")
     report_store.write_current(content, kind="summary", source=f"cron_midday_{engine}")
     after = None
-    play = None
-    # Only disarm replay / close spend when we actually got full report text.
+    # Play deferred to midday_report_play (12:05). Still disarm / close spend on text OK.
     if content.strip() and result.get("ok", True) and not result.get("blocked"):
         after = _after_midday_success(
             engine=str(result.get("engine") or engine),
             content=content,
         )
-        play = await _play_midday_mp3(result.get("tts"))
     log.info(
-        "Midday report engine_req=%s engine=%s blog=%s tts=%s play=%s dated=%s after=%s blocked=%s",
+        "Midday report engine_req=%s engine=%s blog=%s tts=%s dated=%s after=%s blocked=%s",
         engine,
         result.get("engine"),
         (result.get("blog") or {}).get("ok"),
         (result.get("tts") or {}).get("skipped", result.get("tts")),
-        play,
         result.get("dated") or (result.get("files") or {}).get("dated"),
         after,
         result.get("blocked"),
@@ -126,6 +136,5 @@ async def run():
         "ok": bool(content.strip()) and not result.get("blocked"),
         "engine": result.get("engine") or engine,
         "tts": result.get("tts"),
-        "play": play,
         "after": after,
     }

@@ -22,49 +22,43 @@ async def _refresh_prelims() -> dict:
 
 async def run():
     log.info("Morning report cron  %s", datetime.now(timezone.utc).isoformat())
-    from apps.core.services import boot_report, report_generation, reports
+    from apps.core.services import boot_report, daily_report_board, report_generation, reports
     from apps.core.services import reports as report_store
+
+    daily_report_board.ensure_today()
+    daily_report_board.mark_due()
 
     if not boot_report.morning_automation_enabled():
         log.info("Morning report automation OFF — prelims still refresh facts")
     prelim = await _refresh_prelims()
     log.info("morning prelims ok=%s", prelim.get("ok"))
 
+    settings = report_generation.type_settings("morning")
+    allow_tts = bool(settings.get("tts"))
     engine = report_generation.engine_for("morning")
     result = report_generation.generate(
-        "morning", dry_run=False, allow_tts=False
+        "morning", dry_run=False, allow_tts=allow_tts, update_board=True
     )
     content = result.get("text") or ""
     if not content.strip():
         written = boot_report.write_boot_report(source="morning_cron_fallback")
         content = written.get("text") or ""
-        result = {"engine": written.get("engine"), "scrub": written.get("scrub")}
+        result = {"engine": written.get("engine"), "scrub": written.get("scrub"), "ok": bool(content)}
+        if content.strip():
+            daily_report_board.mark_done("morning", engine=str(result.get("engine") or "local"))
+        else:
+            daily_report_board.mark_failed("morning", error="empty_fallback")
 
     reports.queue_public_draft("morning", content, source=f"cron_{engine}")
     report_store.write_current(content, kind="morning", source=f"cron_{engine}")
-    play = None
-    tts = result.get("tts") or {}
-    if tts.get("ok"):
-        from apps.core.services import voice_events
-
-        play = await voice_events.play_report_mp3(
-            tts.get("current"),
-            tts.get("mp3"),
-            name="morning_report",
-            kind="morning",
-        )
-    else:
-        from apps.core.services import report_audio_manual
-
-        play = await report_audio_manual.play_scheduled("morning")
+    # Play deferred to morning_report_play (10:12) for generate/play slack.
     log.info(
-        "Morning report engine_req=%s engine=%s blog=%s tts=%s play=%s dated=%s",
+        "Morning report engine_req=%s engine=%s blog=%s tts=%s dated=%s",
         engine,
         result.get("engine"),
         (result.get("blog") or {}).get("ok"),
         (result.get("tts") or {}).get("skipped", result.get("tts")),
-        play,
-        result.get("dated"),
+        result.get("dated") or (result.get("files") or {}).get("dated"),
     )
 
 

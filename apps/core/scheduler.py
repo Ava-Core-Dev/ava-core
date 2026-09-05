@@ -41,10 +41,12 @@ def _job_wave(job_id: str) -> int:
         "vercel-builds", "account-import", "stripe-poll", "inbox-drain",
     }
     wave4 = {
-        "morning-report", "merged-morning-summary", "cursor-fallback",
+        "morning-report", "morning-report-play", "merged-morning-summary", "cursor-fallback",
         "economy-brief", "overnight-relay", "governance-daily", "governance-self-update",
         "api-prices", "day-reports-morning", "day-reports-midday", "day-reports-evening",
-        "code-review",
+        "code-review", "midday-report", "midday-report-play", "evening-report",
+        "evening-report-play", "evening-report-audio", "late-report", "late-report-play",
+        "daily-reports-catchup",
     }
     wave5 = {"adsense-eod", "admob-eod"}
     wave6 = {
@@ -148,25 +150,46 @@ class Scheduler:
         s.add_job(self._run("player_economy"), IntervalTrigger(minutes=30),
                   id="player-economy-report", name="Player economy", misfire_grace_time=180)
 
-        # ── Morning report (10:00 HST) ────────────────────────────────────────
+        # ── Morning report (10:00 generate) + 10:12 play ──────────────────────
         s.add_job(self._run("morning_report"), CronTrigger(hour=10, minute=0),
-                  id="morning-report", name="Morning report", misfire_grace_time=300)
+                  id="morning-report", name="Morning report", misfire_grace_time=600)
 
-        s.add_job(self._run("day_reports_morning"), CronTrigger(hour=10, minute=0),
+        s.add_job(self._run("morning_report_play"), CronTrigger(hour=10, minute=12),
+                  id="morning-report-play", name="Morning report play", misfire_grace_time=300)
+
+        s.add_job(self._run("day_reports_morning"), CronTrigger(hour=10, minute=15),
                   id="day-reports-morning", name="Morning slot reports", misfire_grace_time=300)
 
-        # Midday status prebuild (11:55 HST) — spoken/text presents as 12 noon. No Ara TTS here.
+        # Midday status prebuild (11:55 HST) — spoken/text presents as 12 noon.
         s.add_job(self._run("midday_report"), CronTrigger(hour=11, minute=55),
-                  id="midday-report", name="Midday status (11:55 → noon)", misfire_grace_time=300)
+                  id="midday-report", name="Midday status (11:55 → noon)", misfire_grace_time=600)
+
+        s.add_job(self._run("midday_report_play"), CronTrigger(hour=12, minute=5),
+                  id="midday-report-play", name="Midday report play", misfire_grace_time=300)
 
         s.add_job(self._run("day_reports_midday"), CronTrigger(hour=13, minute=0),
                   id="day-reports-midday", name="Midday slot reports", misfire_grace_time=300)
 
+        # Due-board catch-up (mandatory only; never late)
+        s.add_job(self._run("daily_reports_catchup"), CronTrigger(hour=14, minute=0),
+                  id="daily-reports-catchup", name="Daily reports catch-up", misfire_grace_time=600)
+
+        # Evening long-form 17:15 generate (+ play after stitch) / 17:28 play
+        s.add_job(self._run("evening_report"), CronTrigger(hour=17, minute=15),
+                  id="evening-report", name="Evening report (17:15)", misfire_grace_time=600)
+
+        s.add_job(self._run("evening_report_play"), CronTrigger(hour=17, minute=28),
+                  id="evening-report-play", name="Evening report play", misfire_grace_time=300)
+
         s.add_job(self._run("day_reports_evening"), CronTrigger(hour=18, minute=0),
                   id="day-reports-evening", name="Evening slot reports", misfire_grace_time=300)
 
-        s.add_job(self._run("evening_report_audio"), CronTrigger(hour=18, minute=5),
-                  id="evening-report-audio", name="Evening report MP3 (manual)", misfire_grace_time=300)
+        # Optional late report 22:00 / play 22:12 — never boot catch-up
+        s.add_job(self._run("late_report"), CronTrigger(hour=22, minute=0),
+                  id="late-report", name="Late report (optional)", misfire_grace_time=600)
+
+        s.add_job(self._run("late_report_play"), CronTrigger(hour=22, minute=12),
+                  id="late-report-play", name="Late report play", misfire_grace_time=300)
 
         # ── Merged morning summary (10:05 HST) ───────────────────────────────
         # Only cron that posts to #updates. Everything else → #automations.
