@@ -348,60 +348,9 @@ def kill_stray_music_players(
     deadline = time.monotonic() + 3.0
 
     if os.name == "nt":
-        ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
-        list_script = (
-            "Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | "
-            "Where-Object { $_.CommandLine -and "
-            "($_.Name -match '^(powershell|pwsh|python|pythonw|ffplay|ffmpeg)\\.exe$') "
-            "-and ($_.CommandLine -match 'AVA_MUSIC_BED') } | "
-            "ForEach-Object { $_.ProcessId }"
-        )
-        try:
-            out = subprocess.run(
-                [
-                    ps,
-                    "-NoProfile",
-                    "-WindowStyle",
-                    "Hidden",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-Command",
-                    list_script,
-                ],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                creationflags=CREATE_NO_WINDOW,
-            )
-        except Exception:
-            out = None
-        pids: list[int] = []
-        if out and out.stdout:
-            for line in out.stdout.splitlines():
-                line = line.strip()
-                if line.isdigit():
-                    pids.append(int(line))
-        for pid in pids:
-            if time.monotonic() > deadline:
-                break
-            if pid in spare:
-                continue
-            try:
-                # No /T — tree kill can take down related shells on this host.
-                subprocess.run(
-                    ["taskkill", "/PID", str(pid), "/F"],
-                    capture_output=True,
-                    timeout=2,
-                    creationflags=CREATE_NO_WINDOW,
-                )
-                killed += 1
-            except Exception:
-                pass
-        if killed:
-            logging.getLogger("ava.director").info(
-                "Music bed swept stray players  killed=%s", killed
-            )
-        return killed
+        # WMI/CIM and psutil cmdline scans hang this host and freeze /health.
+        # Tracked bed PID is killed in _kill_music_proc; skip process-table sweeps.
+        return 0
 
     try:
         import psutil
