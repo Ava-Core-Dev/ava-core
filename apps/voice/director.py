@@ -735,7 +735,7 @@ class StreamDirector:
                 elif not alive and not self._music_operator_hold:
                     if not self._music_hold:
                         self._music_current = None
-                self._music_proc_pid = os.getpid() if alive else None
+                self._music_proc_pid = snap.get("bed_pid") if alive else None
             except Exception:
                 alive = False
                 ducked = False
@@ -1167,12 +1167,13 @@ class StreamDirector:
                 if not ok:
                     end_reason = "play_failed"
                     return True, False
-            self._music_proc_pid = os.getpid()
+            self._music_proc_pid = desk_audio.bed_pid()
             log.info(
-                "Music bed playing (desk): %s  wait_s=%.1f  ducked=%s",
+                "Music bed playing (desk): %s  wait_s=%.1f  ducked=%s  pid=%s",
                 path.name,
                 wait_s,
                 desk_audio.is_ducked(),
+                self._music_proc_pid,
             )
             while True:
                 if self._music_operator_hold or not self._music_enabled:
