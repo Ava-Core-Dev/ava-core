@@ -1,12 +1,14 @@
-"""Report generation — Grok-from-URLs (week one) then local, with blog auto-save.
+"""Report generation — local or cloud text + local|cloud MP3, with blog auto-save.
 
 Toggle store: data/state/report-generation.json
-Live facts: /data/* pages + context URLs in the link bundle.
+Desk labels: Local | Cloud (internal cloud binding only). Scrub third-party names
+from spoken/public text. NWS bodies never enter cloud generation packages.
 """
 from __future__ import annotations
 
 import json
 import logging
+import re
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -20,6 +22,9 @@ HST = ZoneInfo("Pacific/Honolulu")
 
 STATE_PATH = config.DATA_DIR / "state" / "report-generation.json"
 MIDDAY_SPEND_WINDOW_PATH = config.DATA_DIR / "state" / "midday-grok-window.json"
+
+_ENGINE_ALIASES = {"grok": "cloud", "xai": "cloud", "ara": "cloud"}
+_MP3_ALIASES = {"grok": "cloud", "xai": "cloud", "ara": "cloud", "stitch": "local"}
 
 _DEFAULT_CONTEXT = [
     "https://avaivy.cloud/context",
@@ -49,8 +54,9 @@ _DEFAULT_FETCH = [
 ]
 
 _DEFAULT_REPORT = {
-    "engine": "grok",
-    "tts": False,
+    "engine": "local",
+    "mp3": "local",
+    "tts": True,
     "blog": True,
     "blog_brands": ["ava", "rootrecord"],
     "max_tokens": 1800,
@@ -58,24 +64,44 @@ _DEFAULT_REPORT = {
 }
 
 
+def normalize_engine(value: Any) -> str:
+    s = str(value or "local").strip().lower()
+    s = _ENGINE_ALIASES.get(s, s)
+    return s if s in {"local", "cloud"} else "local"
+
+
+def normalize_mp3(value: Any) -> str:
+    s = str(value or "local").strip().lower()
+    s = _MP3_ALIASES.get(s, s)
+    return s if s in {"local", "cloud"} else "local"
+
+
 def _default_config() -> dict:
+    daily = {
+        **_DEFAULT_REPORT,
+        "engine": "local",
+        "mp3": "local",
+        "tts": True,
+    }
     return {
-        "version": 1,
-        "week_of_grok": True,
+        "version": 2,
+        "week_of_grok": False,
         "week_note": (
-            "Accumulate published Grok reports + context so later local "
-            "generation has examples. Prefer engine=grok for morning/midday "
-            "until local is ready. Keep tts=false until text is right (~$0.10 Ara/success)."
+            "Per-type toggles: engine local|cloud and mp3 local|cloud. "
+            "Desk shows Local / Cloud only. Prefer local when cloud is unavailable. "
+            "NWS never uses cloud generation."
         ),
         "context_urls": list(_DEFAULT_CONTEXT),
         "fetch_urls": list(_DEFAULT_FETCH),
         "reports": {
-            "morning": {**_DEFAULT_REPORT, "engine": "grok", "tts": False},
-            "midday": {**_DEFAULT_REPORT, "engine": "grok", "tts": False},
-            "evening": {**_DEFAULT_REPORT, "engine": "local", "tts": False},
+            "morning": dict(daily),
+            "midday": dict(daily),
+            "evening": dict(daily),
+            "late": dict(daily),
             "hourly": {
                 **_DEFAULT_REPORT,
                 "engine": "local",
+                "mp3": "local",
                 "blog": False,
                 "tts": False,
                 "blog_brands": [],
@@ -83,6 +109,7 @@ def _default_config() -> dict:
             "slot": {
                 **_DEFAULT_REPORT,
                 "engine": "local",
+                "mp3": "local",
                 "blog": False,
                 "tts": False,
                 "blog_brands": [],
@@ -119,10 +146,13 @@ def ensure_config() -> dict:
     changed = False
     base = _default_config()
     if "version" not in cfg:
-        cfg["version"] = 1
+        cfg["version"] = 2
+        changed = True
+    elif int(cfg.get("version") or 1) < 2:
+        cfg["version"] = 2
         changed = True
     if "week_of_grok" not in cfg:
-        cfg["week_of_grok"] = True
+        cfg["week_of_grok"] = False
         changed = True
     if "week_note" not in cfg:
         cfg["week_note"] = base["week_note"]
@@ -160,6 +190,22 @@ def ensure_config() -> dict:
                 if field not in reports[kind]:
                     reports[kind][field] = deepcopy(val)
                     changed = True
+            # Migrate legacy grok → cloud for engine/mp3.
+            eng = reports[kind].get("engine")
+            if eng is not None:
+                norm = normalize_engine(eng)
+                if str(eng).strip().lower() != norm:
+                    reports[kind]["engine"] = norm
+                    changed = True
+            mp3 = reports[kind].get("mp3")
+            if mp3 is not None:
+                norm_m = normalize_mp3(mp3)
+                if str(mp3).strip().lower() != norm_m:
+                    reports[kind]["mp3"] = norm_m
+                    changed = True
+            elif "mp3" not in reports[kind]:
+                reports[kind]["mp3"] = "local"
+                changed = True
     if changed:
         return _write(cfg)
     return cfg
@@ -366,7 +412,11 @@ def patch(updates: dict) -> dict:
                 continue
             cur = reports.setdefault(str(kind), dict(_DEFAULT_REPORT))
             for k, v in row.items():
-                if k == "engine" and str(v).lower() not in {"grok", "local"}:
+                if k == "engine":
+                    cur[k] = normalize_engine(v)
+                    continue
+                if k == "mp3":
+                    cur[k] = normalize_mp3(v)
                     continue
                 cur[k] = v
     # Drop legacy dual-schema keys so one shape wins.
@@ -381,19 +431,32 @@ def type_settings(kind: str) -> dict:
     cfg = load()
     row = dict(_DEFAULT_REPORT)
     row.update((cfg.get("reports") or {}).get(kind) or {})
+    row["engine"] = normalize_engine(row.get("engine"))
+    row["mp3"] = normalize_mp3(row.get("mp3"))
     row["kind"] = kind
     return row
 
 
 def engine_for(kind: str) -> str:
-    return str(type_settings(kind).get("engine") or "grok").lower()
+    return normalize_engine(type_settings(kind).get("engine"))
+
+
+def mp3_for(kind: str) -> str:
+    return normalize_mp3(type_settings(kind).get("mp3"))
 
 
 def set_engine(kind: str, engine: str) -> dict:
-    engine = (engine or "").strip().lower()
-    if engine not in {"grok", "local"}:
-        raise ValueError("engine must be grok or local")
+    engine = normalize_engine(engine)
+    if engine not in {"local", "cloud"}:
+        raise ValueError("engine must be local or cloud")
     return patch({"reports": {kind: {"engine": engine}}})
+
+
+def set_mp3(kind: str, mp3: str) -> dict:
+    mp3 = normalize_mp3(mp3)
+    if mp3 not in {"local", "cloud"}:
+        raise ValueError("mp3 must be local or cloud")
+    return patch({"reports": {kind: {"mp3": mp3}}})
 
 
 def _spend_ok() -> bool:
@@ -405,12 +468,20 @@ def _spend_ok() -> bool:
 def resolve_engine(kind: str, *, offline: bool = False, force: str | None = None) -> str:
     if offline:
         return "local"
-    if force in {"grok", "local"}:
-        wanted = force
+    if force:
+        wanted = normalize_engine(force)
     else:
         wanted = engine_for(kind)
-    if wanted == "grok" and not _spend_ok():
-        log.info("%s: toggle=grok but spend halted — local", kind)
+    if wanted == "cloud" and not _spend_ok():
+        log.info("%s: toggle=cloud but spend halted — local", kind)
+        return "local"
+    return wanted
+
+
+def resolve_mp3(kind: str, *, force: str | None = None) -> str:
+    wanted = normalize_mp3(force) if force else mp3_for(kind)
+    if wanted == "cloud" and not _spend_ok():
+        log.info("%s: mp3=cloud but spend halted — local stitch", kind)
         return "local"
     return wanted
 

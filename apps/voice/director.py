@@ -956,7 +956,11 @@ class StreamDirector:
         self._music_hold = False
 
     def _kill_music_proc(self, *, keep_pid: int | None = None) -> None:
-        """Stop the bed player(s); optionally spare keep_pid (blend handoff)."""
+        """Stop the bed player(s); optionally spare keep_pid (blend handoff).
+
+        kill_stray always receives keep_pid when a live bed PID must survive
+        (blend peer). Intentional silence (hold/stop) omits keep so orphans die.
+        """
         proc = self._music_proc
         self._music_proc = None
         pid = self._music_proc_pid
@@ -981,19 +985,21 @@ class StreamDirector:
                             )
                         except Exception:
                             pass
+        # Prefer keep_pid arg; if sparing a peer and we still know a live pid, keep both.
+        spare = keep_pid
         # Never run CIM/psutil sweep on the asyncio thread — it wedges /health.
         try:
             import threading
 
             threading.Thread(
                 target=kill_stray_music_players,
-                kwargs={"keep_pid": keep_pid},
+                kwargs={"keep_pid": spare},
                 name="ava-music-kill-stray",
                 daemon=True,
             ).start()
         except Exception:
             try:
-                kill_stray_music_players(keep_pid=keep_pid)
+                kill_stray_music_players(keep_pid=spare)
             except Exception:
                 pass
 
@@ -1373,9 +1379,7 @@ class StreamDirector:
                 wait_s,
                 end_pid if end_pid is not None else self._music_proc_pid,
                 exit_elapsed,
-                end_reason if not aborted else (
-                    end_reason if end_reason in ("hold", "disabled") else "hold"
-                ),
+                end_reason,
             )
             if not handed_off:
                 if self._music_proc is not None:
