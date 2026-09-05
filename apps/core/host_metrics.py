@@ -231,7 +231,7 @@ _GPU_ENGINE_TYPES = frozenset(
 )
 
 
-def _pdh_counter_array(counter_path: str, *, wait_s: float = 0.25) -> list[tuple[str, float]]:
+def _pdh_counter_array(counter_path: str, *, wait_s: float = 0.75) -> list[tuple[str, float]]:
     """One PDH wildcard collect. Returns (instance_name, value) pairs."""
     if os.name != "nt":
         return []
@@ -241,6 +241,7 @@ def _pdh_counter_array(counter_path: str, *, wait_s: float = 0.25) -> list[tuple
     pdh = ctypes.windll.pdh
     PDH_FMT_DOUBLE = 0x00000200
     PDH_MORE_DATA = 0x800007D2
+    PDH_NO_DATA = 0x800007D5
 
     class PDH_FMT_COUNTERVALUE(ctypes.Structure):
         _fields_ = [
@@ -260,32 +261,60 @@ def _pdh_counter_array(counter_path: str, *, wait_s: float = 0.25) -> list[tuple
         return []
     try:
         h_counter = wintypes.HANDLE()
-        if pdh.PdhAddEnglishCounterW(h_query, counter_path, None, ctypes.byref(h_counter)) != 0:
-            return []
-        pdh.PdhCollectQueryData(h_query)
-        time.sleep(max(0.05, wait_s))
-        pdh.PdhCollectQueryData(h_query)
-        buf_size = wintypes.DWORD(0)
-        item_count = wintypes.DWORD(0)
-        st = pdh.PdhGetFormattedCounterArrayW(
-            h_counter, PDH_FMT_DOUBLE, ctypes.byref(buf_size), ctypes.byref(item_count), None
+        add = pdh.PdhAddEnglishCounterW(
+            h_query, counter_path, None, ctypes.byref(h_counter)
         )
-        # PDH_MORE_DATA comes back as a signed DWORD on this box.
-        if (st & 0xFFFFFFFF) != PDH_MORE_DATA or buf_size.value <= 0:
-            return []
-        buf = (ctypes.c_byte * buf_size.value)()
-        st = pdh.PdhGetFormattedCounterArrayW(
-            h_counter, PDH_FMT_DOUBLE, ctypes.byref(buf_size), ctypes.byref(item_count), buf
-        )
-        if (st & 0xFFFFFFFF) != 0 or item_count.value <= 0:
-            return []
-        items = ctypes.cast(buf, ctypes.POINTER(PDH_FMT_COUNTERVALUE_ITEM))
-        out: list[tuple[str, float]] = []
-        for i in range(item_count.value):
-            item = items[i]
-            if item.FmtValue.CStatus != 0 or not item.szName:
-                continue
-            out.append((str(item.szName), float(item.FmtValue.doubleValue)))
+        if add != 0:
+            # Localized install fallback.
+            if pdh.PdhAddCounterW(h_query, counter_path, None, ctypes.byref(h_counter)) != 0:
+                return []
+        pdh.PdhCollectQueryData(h_query)
+        time.sleep(max(0.2, wait_s))
+        pdh.PdhCollectQueryData(h_query)
+
+        def _read_array() -> list[tuple[str, float]]:
+            buf_size = wintypes.DWORD(0)
+            item_count = wintypes.DWORD(0)
+            st = pdh.PdhGetFormattedCounterArrayW(
+                h_counter,
+                PDH_FMT_DOUBLE,
+                ctypes.byref(buf_size),
+                ctypes.byref(item_count),
+                None,
+            )
+            code = st & 0xFFFFFFFF
+            if code == PDH_NO_DATA:
+                return []
+            if buf_size.value <= 0:
+                return []
+            # First call is usually MORE_DATA with the required buffer size.
+            if code not in (0, PDH_MORE_DATA):
+                return []
+            buf = (ctypes.c_byte * buf_size.value)()
+            st = pdh.PdhGetFormattedCounterArrayW(
+                h_counter,
+                PDH_FMT_DOUBLE,
+                ctypes.byref(buf_size),
+                ctypes.byref(item_count),
+                buf,
+            )
+            if (st & 0xFFFFFFFF) != 0 or item_count.value <= 0:
+                return []
+            items = ctypes.cast(buf, ctypes.POINTER(PDH_FMT_COUNTERVALUE_ITEM))
+            out: list[tuple[str, float]] = []
+            for i in range(item_count.value):
+                item = items[i]
+                if item.FmtValue.CStatus != 0 or not item.szName:
+                    continue
+                out.append((str(item.szName), float(item.FmtValue.doubleValue)))
+            return out
+
+        out = _read_array()
+        if not out:
+            # Second beat — first PDH sample is often empty.
+            time.sleep(0.35)
+            pdh.PdhCollectQueryData(h_query)
+            out = _read_array()
         return out
     except Exception:
         return []
@@ -318,12 +347,15 @@ def gpu_pct() -> float | None:
     global _gpu_cache
     now = time.time()
     ts, cached = _gpu_cache
-    if now - ts < _GPU_CACHE_S:
+    if now - ts < _GPU_CACHE_S and cached is not None:
         return cached
-    rows = _pdh_counter_array(r"\GPU Engine(*)\Utilization Percentage")
+    rows = _pdh_counter_array(r"\GPU Engine(*)\Utilization Percentage", wait_s=0.75)
     if not rows:
-        _gpu_cache = (now, cached)
-        return cached
+        # Do not bump success timestamp on miss — allow a quick retry next call.
+        # Keep a recent last-good briefly so jsonl does not go blank on one miss.
+        if cached is not None and now - ts < 90.0:
+            return cached
+        return None
     by_luid_eng: dict[tuple[str, str], float] = {}
     engines_by_luid: dict[str, set[str]] = {}
     for name, val in rows:
@@ -340,8 +372,9 @@ def gpu_pct() -> float | None:
         return sum(1 for n in names if n in _GPU_ENGINE_TYPES or n.startswith("compute"))
 
     if not engines_by_luid:
-        _gpu_cache = (now, cached)
-        return cached
+        if cached is not None and now - ts < 90.0:
+            return cached
+        return None
     luid = max(engines_by_luid, key=score)
     useful = [
         v
@@ -349,18 +382,53 @@ def gpu_pct() -> float | None:
         if lu == luid and (eng in _GPU_ENGINE_TYPES or eng.startswith("compute"))
     ]
     if not useful:
-        _gpu_cache = (now, cached)
-        return cached
+        if cached is not None and now - ts < 90.0:
+            return cached
+        return None
     pct = round(min(100.0, max(useful)), 1)
     _gpu_cache = (now, pct)
     return pct
 
 
-def npu_pct() -> float | None:
-    """NPU utilization if Windows exposes a PDH object. None on this PC today.
+def _npu_via_get_counter() -> float | None:
+    """PowerShell Get-Counter fallback. None when the NPU object is missing."""
+    if os.name != "nt":
+        return None
+    ps = shutil.which("powershell") or shutil.which("pwsh")
+    if not ps:
+        return None
+    script = (
+        "$ErrorActionPreference='Stop'; "
+        "try { "
+        "$c=Get-Counter -Counter '\\NPU Engine(*)\\Utilization Percentage' "
+        "-SampleInterval 1 -MaxSamples 1; "
+        "($c.CounterSamples | Measure-Object -Property CookedValue -Maximum).Maximum "
+        "} catch { '' }"
+    )
+    try:
+        out = subprocess.run(
+            [ps, "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+            capture_output=True,
+            text=True,
+            timeout=8,
+            creationflags=CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
+    except Exception:
+        return None
+    raw = (out.stdout or "").strip().splitlines()
+    if not raw:
+        return None
+    try:
+        return round(min(100.0, max(0.0, float(raw[-1]))), 1)
+    except ValueError:
+        return None
 
-    Task Manager can show NPU 0. typeperf has no NPU counter set here — do not
-    invent 0% from presence. Cached misses retry slowly.
+
+def npu_pct() -> float | None:
+    """NPU utilization if Windows exposes it. None when not sampled.
+
+    This PC (XDNA 2) has no ``NPU Engine`` PDH object in typeperf today — Task
+    Manager can still show a row. Do not invent 0% from presence alone.
     """
     global _npu_cache
     now = time.time()
@@ -369,17 +437,23 @@ def npu_pct() -> float | None:
         return cached
     if cached is None and now - ts < _NPU_MISS_RETRY_S and ts > 0:
         return None
-    rows = _pdh_counter_array(r"\NPU Engine(*)\Utilization Percentage", wait_s=0.15)
-    if not rows:
-        _npu_cache = (now, None)
-        return None
-    vals = [max(0.0, v) for _n, v in rows]
-    if not vals:
-        _npu_cache = (now, None)
-        return None
-    pct = round(min(100.0, max(vals)), 1)
-    _npu_cache = (now, pct)
-    return pct
+    for path in (
+        r"\NPU Engine(*)\Utilization Percentage",
+        r"\NPU(*)\Utilization Percentage",
+    ):
+        rows = _pdh_counter_array(path, wait_s=0.4)
+        if rows:
+            vals = [max(0.0, v) for _n, v in rows]
+            if vals:
+                pct = round(min(100.0, max(vals)), 1)
+                _npu_cache = (now, pct)
+                return pct
+    got = _npu_via_get_counter()
+    if got is not None:
+        _npu_cache = (now, got)
+        return got
+    _npu_cache = (now, None)
+    return None
 
 
 def snapshot(*, home: Path | None = None) -> dict[str, Any]:
