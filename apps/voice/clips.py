@@ -134,6 +134,9 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     Must re-encode. `-c copy` glues separate MPEG bitstreams; Discord (and
     many players) then only play the first clip — e.g. 1241414 starts with
     1.mp3 so you only hear “one”.
+
+    Skip inserted silence next to pause clips (comma_pause / period_pause /
+    section_pause) — those files are already open space.
     """
     if not clips:
         raise ValueError("No clips to concatenate")
@@ -141,21 +144,32 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     gap = SILENCE_MS / 1000.0
+    pause_names = {"comma_pause", "period_pause", "section_pause"}
+
+    def _is_pause(p: Path) -> bool:
+        return p.stem.lower() in pause_names
 
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
         list_file = tmpdir / "concat.txt"
+        need_silence = False
         with open(list_file, "w", encoding="utf-8") as f:
             for i, clip in enumerate(clips):
                 f.write(f"file '{_escape_concat_path(Path(clip))}'\n")
-                if i < len(clips) - 1 and SILENCE_MS > 0:
-                    f.write(f"file '{_escape_concat_path(tmpdir / 'silence.mp3')}'\n")
+                if i >= len(clips) - 1 or SILENCE_MS <= 0:
+                    continue
+                a = Path(clip)
+                b = Path(clips[i + 1])
+                if _is_pause(a) or _is_pause(b):
+                    continue
+                f.write(f"file '{_escape_concat_path(tmpdir / 'silence.mp3')}'\n")
+                need_silence = True
 
         ff = ffmpeg_bin()
         if not ff:
             raise FileNotFoundError("ffmpeg missing")
 
-        if SILENCE_MS > 0 and len(clips) > 1:
+        if need_silence:
             silence = tmpdir / "silence.mp3"
             _run(
                 [

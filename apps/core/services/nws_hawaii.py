@@ -412,9 +412,6 @@ async def stitch_and_play_local(
         kind=None,
     )
     return {"ok": bool(play_out.get("ok")), "stitch": stitch, "play": play_out, "mp3": str(dest)}
-        kind=None,
-    )
-    return {"ok": bool(play.get("ok")), "stitch": stitch, "play": play, "mp3": str(dest)}
 
 
 async def refresh(
@@ -453,7 +450,12 @@ async def refresh(
     by_county = _by_county(alerts)
     fp = fingerprint(alerts)
     changed = fp != str(prev.get("hash") or "")
-    should_speak = force_speak or (speak_on_change and changed) or reason == "boot"
+    # Boot: announce only if this hash was never spoken (or forced). Do not
+    # re-speak the same advisory on every origin recycle.
+    boot_needs = reason == "boot" and (
+        force_speak or str(prev.get("last_spoken_hash") or "") != fp
+    )
+    should_speak = bool(force_speak or (speak_on_change and changed) or boot_needs)
     spoken = build_spoken(by_county, reason="boot" if reason == "boot" else "update")
     paths = write_reports(
         alerts=alerts,
@@ -494,13 +496,13 @@ async def refresh(
     }
     save_state(state)
 
-    # Local audio every tick: restitch on change/boot/missing; else re-queue current.
-    # Never cloud / paid TTS for NWS.
+    # Restitch when products change; play only when announcing (not every 15m poll).
     play_out: dict[str, Any] | None = None
     try:
         play_out = await stitch_and_play_local(
             by_county=by_county,
-            force_restitch=bool(changed or force_speak or reason == "boot" or should_speak),
+            force_restitch=bool(changed or force_speak or should_speak),
+            play=should_speak,
         )
     except Exception as e:
         log.warning("NWS local stitch/play failed: %s", e)
