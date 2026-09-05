@@ -1744,15 +1744,15 @@ class StreamDirector:
     async def _play_local(self, path: Path | None) -> None:
         """Play report/chime through desktop audio.
 
-        Windows: WPF MediaPlayer is unreliable on AVA-CORE — convert to WAV
-        (ffmpeg) and play via winsound helper with AVA_VOICE_CLIP. Music must
-        already be held by `_play` (REPORT+) before this runs.
+        Windows: convert to WAV (ffmpeg) and play via desk_audio (pygame) at
+        VOICE_LEVEL while the bed stays ducked. Music must already be ducked by
+        `_play` (REPORT+) before this runs. Fallback: winsound helper.
         """
         if not path or not path.exists():
             await asyncio.sleep(2.0)
             return
 
-        # Windows report/chime: winsound path (not WPF MediaPlayer).
+        # Windows report/chime: pygame desk_audio (volume) preferred.
         if os.name == "nt":
             wav = await asyncio.to_thread(_ensure_winsound_wav, path)
             if wav is None:
@@ -1762,6 +1762,23 @@ class StreamDirector:
                 )
                 await asyncio.sleep(self._estimate_duration(path))
                 return
+            try:
+                from apps.voice import desk_audio
+
+                if desk_audio.ensure_mixer():
+                    ok = await asyncio.to_thread(desk_audio.play_voice, wav)
+                    log.debug(
+                        "Local voice clip done (desk): %s  ok=%s",
+                        path.name,
+                        ok,
+                    )
+                    return
+            except Exception as e:
+                log.warning(
+                    "desk_audio voice failed (%s): %s — winsound fallback",
+                    path.name,
+                    e,
+                )
             cmd = _windows_play_voice_clip(wav)
             env = dict(os.environ)
             try:
@@ -1867,6 +1884,14 @@ class StreamDirector:
         self._running = False
         self._music_enabled = False
         self._kill_music_proc()
+        if os.name == "nt":
+            try:
+                from apps.voice import desk_audio
+
+                desk_audio.stop_voice()
+                desk_audio.set_ducked(False)
+            except Exception:
+                pass
         if self._music_task and not self._music_task.done():
             self._music_task.cancel()
             try:
