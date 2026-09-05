@@ -107,7 +107,7 @@ def _safe_resolve(raw: str | Path | None) -> Path | None:
             p = p.resolve()
     except Exception:
         return None
-    if p.suffix.lower() != ".mp3" or not p.is_file():
+    if p.suffix.lower() not in {".mp3", ".wav"} or not p.is_file():
         return None
     allowed = _allowed_roots()
     for root in allowed:

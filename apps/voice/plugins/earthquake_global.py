@@ -44,13 +44,9 @@ class EarthquakeGlobalPlugin(Plugin):
         return self._make_voice(force=True)
 
     def on_hour(self) -> None:
-        log.info("Hourly global earthquake + volcano update")
+        log.info("Hourly global earthquake update — deferred to local earthquake_hourly cron")
         self._pull_quakes()
-        from apps.core.services import xai
-        if xai.grok_is_down():
-            log.info("Grok down — skip global quake voice this hour")
-            return
-        self._make_voice(force=False)
+        # Voice moved to apps.core.services.earthquake_hourly (clip WAV, no Grok TTS).
 
     def on_new_report(self, path: Path) -> None:
         pass
