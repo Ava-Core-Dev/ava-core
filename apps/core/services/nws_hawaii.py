@@ -278,6 +278,100 @@ def write_reports(
     }
 
 
+def _event_to_clip(event: str) -> str | None:
+    """Map CAP event title to a words/nws stem when present."""
+    from apps.voice.clips import _find_clip
+
+    raw = re.sub(r"[^a-z0-9]+", "_", (event or "").strip().lower()).strip("_")
+    if not raw:
+        return None
+    if _find_clip(raw):
+        return raw
+    return None
+
+
+def build_clip_script(by_county: dict[str, list[str]]) -> str:
+    """Space-separated local clip tokens for NWS rollup (no cloud)."""
+    from apps.voice.clips import _find_clip
+    from apps.voice.local_tts import clock_tokens
+
+    now = datetime.now(HST)
+    toks: list[str] = []
+    lead = "nws_hawaii_hazard_update" if _find_clip("nws_hawaii_hazard_update") else None
+    if lead:
+        toks.append(lead)
+    else:
+        toks += ["nws", "hawaii", "all_hazards", "update"]
+    toks += ["about"] + clock_tokens(now.hour, now.minute)
+    if _find_clip("comma_pause"):
+        toks.append("comma_pause")
+
+    any_active = False
+    for c in COUNTIES:
+        key = c["key"]
+        events = by_county.get(key) or []
+        if key == "kalawao" and not events:
+            continue
+        county_clip = f"{key}_county"
+        if not _find_clip(county_clip):
+            if key == "kalawao" and _find_clip("kalawao"):
+                county_clip = "kalawao"
+            else:
+                continue
+        toks.append(county_clip)
+        if events:
+            any_active = True
+            for ev in events:
+                clip = _event_to_clip(str(ev))
+                if clip:
+                    toks.append(clip)
+        else:
+            if _find_clip("no_alerts"):
+                toks.append("no_alerts")
+            elif _find_clip("no_active_warnings"):
+                toks.append("no_active_warnings")
+        if _find_clip("comma_pause"):
+            toks.append("comma_pause")
+
+    if any_active and _find_clip("high_surf_advisory_in_effect"):
+        # Prefer whole phrase when the dominant product is high surf; else in_effect glue.
+        toks.append("high_surf_advisory_in_effect")
+    elif any_active and _find_clip("in_effect"):
+        toks.append("in_effect")
+    if _find_clip("by_nws_honolulu"):
+        toks.append("by_nws_honolulu")
+    return " ".join(toks)
+
+
+async def stitch_and_play_local(
+    *,
+    by_county: dict[str, list[str]],
+    force_restitch: bool = False,
+) -> dict[str, Any]:
+    """Build/queue nws-hawaii-current.mp3 via local_tts. Never paid TTS."""
+    from apps.voice.local_tts import speak_script
+    from apps.core.services import voice_events
+
+    dest = config.GENERATED_DIR / "nws-hawaii-current.mp3"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    need = force_restitch or (not dest.is_file()) or dest.stat().st_size < 1000
+    stitch: dict[str, Any] = {"ok": True, "skipped_stitch": not need}
+    if need:
+        script = build_clip_script(by_county)
+        stitch = speak_script(script, dest)
+        stitch["script"] = script
+        if not stitch.get("ok"):
+            return {"ok": False, "detail": "stitch_failed", "stitch": stitch}
+    if not dest.is_file():
+        return {"ok": False, "detail": "mp3_missing", "stitch": stitch}
+    play = await voice_events.play_report_mp3(
+        dest,
+        name="nws_hawaii",
+        kind=None,
+    )
+    return {"ok": bool(play.get("ok")), "stitch": stitch, "play": play, "mp3": str(dest)}
+
+
 async def refresh(
     *,
     reason: str = "poll",
@@ -355,6 +449,18 @@ async def refresh(
     }
     save_state(state)
 
+    # Local audio every tick: restitch on change/boot/missing; else re-queue current.
+    # Never cloud / paid TTS for NWS.
+    play_out: dict[str, Any] | None = None
+    try:
+        play_out = await stitch_and_play_local(
+            by_county=by_county,
+            force_restitch=bool(changed or force_speak or reason == "boot" or should_speak),
+        )
+    except Exception as e:
+        log.warning("NWS local stitch/play failed: %s", e)
+        play_out = {"ok": False, "detail": str(e)[:160]}
+
     if should_speak and (changed or force_speak or reason == "boot"):
         try:
             from apps.core.services import reports
@@ -368,12 +474,13 @@ async def refresh(
             log.debug("NWS county draft queue skipped: %s", e)
 
     log.info(
-        "NWS Hawaii counties source=%s alerts=%d changed=%s speak=%s reason=%s",
+        "NWS Hawaii counties source=%s alerts=%d changed=%s speak=%s reason=%s play=%s",
         source,
         len(alerts),
         changed,
         should_speak,
         reason,
+        (play_out or {}).get("ok"),
     )
     return {
         "ok": True,
@@ -386,6 +493,7 @@ async def refresh(
         "hash": fp,
         "paths": paths,
         "reason": reason,
+        "play": play_out,
     }
 
 

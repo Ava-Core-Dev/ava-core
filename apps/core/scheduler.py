@@ -106,12 +106,14 @@ class Scheduler:
         s.add_job(self._run("noaa"), IntervalTrigger(minutes=60),
                   id="rr-noaa", name="NOAA weather", misfire_grace_time=180)
 
-        # ── NWS Hawaiʻi by-county hazards (15 min). Hash-gated speech. ────────
-        # Loose align with HFO AFD windows (~05/11/17 HST) via frequent poll;
-        # voice/draft only when product hash changes (or boot force).
-        s.add_job(self._run("nws_hawaii"), IntervalTrigger(minutes=15),
-                  id="nws-hawaii-counties", name="NWS Hawaii by county",
-                  misfire_grace_time=120)
+        # ── NWS Hawaiʻi by-county (local stitch+play). Offset from :00/:30 storms.
+        s.add_job(
+            self._run("nws_hawaii"),
+            CronTrigger(minute="7,22,37,52"),
+            id="nws-hawaii-counties",
+            name="NWS Hawaii by county",
+            misfire_grace_time=120,
+        )
 
         # ── Kīlauea (hourly). Hash ignores the clock so unchanged USGS/HVO
         #    does not republish. Grok/Cursor synthesis is a separate 2×/day drain.
@@ -123,27 +125,27 @@ class Scheduler:
         s.add_job(self._run("hourly_chime"), CronTrigger(minute="0,30"),
                   id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=90)
 
-        s.add_job(self._run("remaining_tasks"), CronTrigger(minute=30),
-                  id="remaining-tasks", name="Remaining tasks (:30, 4h window)", misfire_grace_time=90)
+        # After :30 chime — avoid stacking on the mark
+        s.add_job(self._run("remaining_tasks"), CronTrigger(minute=32),
+                  id="remaining-tasks", name="Remaining tasks (:32, 4h window)", misfire_grace_time=90)
 
-        # One-day morning-boot MP3 replay (:30 until noon HST). State file ends it.
-        s.add_job(self._run("morning_boot_replay"), CronTrigger(minute=30),
+        # One-day morning-boot MP3 replay (:32 until noon HST). State file ends it.
+        s.add_job(self._run("morning_boot_replay"), CronTrigger(minute=32),
                   id="morning-boot-replay",
-                  name="Morning boot MP3 replay (:30 until noon)",
+                  name="Morning boot MP3 replay (:32 until noon)",
                   misfire_grace_time=90)
 
         s.add_job(self._run_clip_prebuild, CronTrigger(minute=55),
                   id="hourly-clip-prebuild", name="Prebuild hourly clip reports", misfire_grace_time=120)
 
-        s.add_job(self._run("hourly_clip_reports"), CronTrigger(minute=0),
+        # Stagger :00 voice/data pile-up — chime alone at :00
+        s.add_job(self._run("hourly_clip_reports"), CronTrigger(minute=2),
                   id="hourly-clip-reports", name="Play hourly clip reports", misfire_grace_time=120)
 
-        # ── Hourly solar + weather (top of every hour) ────────────────────────
-        s.add_job(self._run("solar_weather"), CronTrigger(minute=0),
+        s.add_job(self._run("solar_weather"), CronTrigger(minute=4),
                   id="hourly-solar-weather", name="Hourly solar+weather", misfire_grace_time=120)
 
-        # ── System performance (top of every hour) ────────────────────────────
-        s.add_job(self._run("system_perf"), CronTrigger(minute=0),
+        s.add_job(self._run("system_perf"), CronTrigger(minute=6),
                   id="system-performance", name="System performance", misfire_grace_time=120)
 
         # ── Player economy + Kīlauea multiplier (every 30 min) ───────────────
@@ -191,19 +193,17 @@ class Scheduler:
         s.add_job(self._run("late_report_play"), CronTrigger(hour=22, minute=12),
                   id="late-report-play", name="Late report play", misfire_grace_time=300)
 
-        # ── Merged morning summary (10:05 HST) ───────────────────────────────
-        # Only cron that posts to #updates. Everything else → #automations.
-        s.add_job(self._run("merged_morning"), CronTrigger(hour=10, minute=5),
+        # After morning generate/play runway
+        s.add_job(self._run("merged_morning"), CronTrigger(hour=10, minute=20),
                   id="merged-morning-summary", name="Merged morning summary", misfire_grace_time=300)
 
-        # ── Grok-down Cursor drain (2×/day, not per scan) ────────────────────
-        s.add_job(self._run("cursor_fallback"), CronTrigger(hour="10,16", minute=12),
+        s.add_job(self._run("cursor_fallback"), CronTrigger(hour="10,16", minute=22),
                   id="cursor-fallback", name="Cursor report fallback", misfire_grace_time=600)
 
-        s.add_job(self._run("governance_daily"), CronTrigger(hour=10, minute=8),
+        s.add_job(self._run("governance_daily"), CronTrigger(hour=10, minute=23),
                   id="governance-daily", name="RootRecord governance daily", misfire_grace_time=300)
 
-        s.add_job(self._run("api_prices"), CronTrigger(hour=10, minute=10),
+        s.add_job(self._run("api_prices"), CronTrigger(hour=10, minute=25),
                   id="api-prices", name="Public API price catalog", misfire_grace_time=300)
 
         s.add_job(self._run("code_review"), CronTrigger(hour="11,17", minute=20),
@@ -226,11 +226,9 @@ class Scheduler:
         s.add_job(self._run_admob_eod, CronTrigger(hour=21, minute=5),
                   id="admob-eod", name="AdMob end-of-day report", misfire_grace_time=600)
 
-        # ── Late-night relay (22:00–05:00 HST, top of each hour) ─────────────
-        # No sleep gate — just a scheduled status check-in during late hours.
-        # All other crons keep running regardless of time.
+        # Late-night relay — :20 so it does not clash with late report at 22:00
         s.add_job(self._run("overnight"),
-                  CronTrigger(hour="22-23,0-5", minute=0),
+                  CronTrigger(hour="22-23,0-5", minute=20),
                   id="overnight-relay", name="Late-night relay", misfire_grace_time=300)
 
         s.add_job(self._run("broadcast_loop"), IntervalTrigger(seconds=20),

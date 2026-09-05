@@ -68,18 +68,29 @@ async def run() -> dict:
     except ValueError:
         until = now.replace(hour=12, minute=0, second=0, microsecond=0)
 
+    # Hard ceiling: never honor until past noon of that calendar day.
+    until_noon = until.replace(hour=12, minute=0, second=0, microsecond=0)
+    if until > until_noon:
+        until = until_noon
+
     if now >= until:
-        st["enabled"] = False
-        st["stopped_at"] = now.isoformat()
-        st["play_once"] = False
-        _save(st)
-        log.info("morning-boot replay stopped (past until %s)", until.isoformat())
-        return {"ok": True, "skipped": True, "reason": "past_until", "until": until.isoformat()}
+        return disarm(reason="past_until")
+
+    # Midday already landed today → disarm (even if until was wrong).
+    try:
+        from apps.core.services import daily_report_board
+
+        board = daily_report_board.ensure_today()
+        mid = (board.get("slots") or {}).get("midday") or {}
+        if str(mid.get("status") or "") == "done":
+            return disarm(reason="midday_ok")
+    except Exception as e:
+        log.debug("midday gate check skipped: %s", e)
 
     play_once = bool(st.get("play_once"))
-    # Scheduled fires are :30 only; manual/play_once may run any minute.
-    if not play_once and now.minute != 30:
-        return {"ok": True, "skipped": True, "reason": "not_:30"}
+    # Scheduled fires are :32 only (after :30 chime); play_once may run any minute.
+    if not play_once and now.minute != 32:
+        return {"ok": True, "skipped": True, "reason": "not_:32"}
 
     mp3 = Path(str(st.get("mp3") or ""))
     if not mp3.is_file():
@@ -88,6 +99,12 @@ async def run() -> dict:
     if not mp3.is_file():
         log.warning("morning-boot replay missing mp3")
         return {"ok": False, "detail": "mp3_missing"}
+
+    # Morning-boot only — refuse midday/evening filenames.
+    low = mp3.name.lower()
+    if "midday" in low or "evening" in low or "late-report" in low:
+        log.warning("morning-boot replay refused non-morning file %s", mp3.name)
+        return disarm(reason="wrong_mp3_type")
 
     from apps.voice.director import Priority, get_director
 
