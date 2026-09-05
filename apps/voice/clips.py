@@ -133,6 +133,8 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     Concatenate clips into one WAV (44.1 kHz 16-bit PCM mono).
 
     Must re-encode. `-c copy` fails across mixed containers (wav/mp3).
+    Every input is normalized to mono 44.1k first — mixing zip mono Ara
+    stems with stereo converts made numbers play in slow-mo.
 
     Skip inserted silence next to pause clips (comma_pause / period_pause /
     section_pause) — those files are already open space.
@@ -150,25 +152,50 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     def _is_pause(p: Path) -> bool:
         return p.stem.lower() in pause_names
 
+    ff = ffmpeg_bin()
+    if not ff:
+        raise FileNotFoundError("ffmpeg missing")
+
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
         list_file = tmpdir / "concat.txt"
         need_silence = False
+        norm_paths: list[Path] = []
+
+        def _normalize(src: Path, dest: Path) -> None:
+            result = _run(
+                [
+                    ff, "-y",
+                    "-i", str(Path(src).resolve()),
+                    "-acodec", "pcm_s16le",
+                    "-ar", "44100",
+                    "-ac", "1",
+                    str(dest),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0 or not dest.is_file():
+                raise RuntimeError(
+                    f"ffmpeg normalize failed for {src.name}:\n{result.stderr}"
+                )
+
+        for i, clip in enumerate(clips):
+            norm = tmpdir / f"n{i:04d}.wav"
+            _normalize(Path(clip), norm)
+            norm_paths.append(norm)
+
         with open(list_file, "w", encoding="utf-8") as f:
-            for i, clip in enumerate(clips):
-                f.write(f"file '{_escape_concat_path(Path(clip))}'\n")
-                if i >= len(clips) - 1 or SILENCE_MS <= 0:
+            for i, norm in enumerate(norm_paths):
+                f.write(f"file '{_escape_concat_path(norm)}'\n")
+                if i >= len(norm_paths) - 1 or SILENCE_MS <= 0:
                     continue
-                a = Path(clip)
+                a = Path(clips[i])
                 b = Path(clips[i + 1])
                 if _is_pause(a) or _is_pause(b):
                     continue
                 f.write(f"file '{_escape_concat_path(tmpdir / 'silence.wav')}'\n")
                 need_silence = True
-
-        ff = ffmpeg_bin()
-        if not ff:
-            raise FileNotFoundError("ffmpeg missing")
 
         if need_silence:
             silence = tmpdir / "silence.wav"
