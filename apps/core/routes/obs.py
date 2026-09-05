@@ -37,6 +37,12 @@ def _obs_browser(html: str) -> HTMLResponse:
     return HTMLResponse(html)
 
 
+def _idle_if_no_obs() -> HTMLResponse | None:
+    if not obs_process_running():
+        return HTMLResponse(_IDLE_OBS_HTML)
+    return None
+
+
 def broadcast_audio_event(event: dict):
     """Called by the voice director when a new track is ready."""
     try:
@@ -166,6 +172,8 @@ async def obs_audio_events(request: Request):
 
 @router.get("/hud", response_class=HTMLResponse)
 async def obs_hud():
+    if not obs_process_running():
+        return HTMLResponse(_IDLE_OBS_HTML)
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(f"""<!DOCTYPE html>
 <html lang="en">
@@ -240,6 +248,9 @@ refresh(); setInterval(refresh, 15000);
 
 @router.get("/lower-third", response_class=HTMLResponse)
 async def obs_lower_third():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/>
@@ -290,12 +301,18 @@ refresh(); setInterval(refresh, 8000);
 
 @router.get("/hurricane", response_class=HTMLResponse)
 async def obs_hurricane():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     path = Path(__file__).resolve().parent.parent / "templates" / "obs-hurricane.html"
     return HTMLResponse(path.read_text(encoding="utf-8") if path.is_file() else "<p>hurricane overlay missing</p>")
 
 
 @router.get("/reactions", response_class=HTMLResponse)
 async def obs_reactions():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
