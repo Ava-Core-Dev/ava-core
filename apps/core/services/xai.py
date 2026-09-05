@@ -192,6 +192,9 @@ def tts(text: str, out_path: Path, *, voice: str | None = None,
     if _spend_blocked():
         raise XAIError("Grok spend off (halt or spend_master).")
     spoken = text or ""
+    out_path = Path(out_path).resolve()
+    want_wav = out_path.suffix.lower() == ".wav"
+    # API returns mp3 reliably; convert to WAV when caller asks for .wav.
     payload = {
         "text": spoken,
         "voice_id": voice or config.TTS_VOICE,
@@ -201,9 +204,42 @@ def tts(text: str, out_path: Path, *, voice: str | None = None,
     }
     r = requests.post(TTS_URL, headers=_headers(), json=payload, timeout=timeout)
     _check(r, "tts")
-    out_path = out_path.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_bytes(r.content)
+    if want_wav:
+        import subprocess
+        import tempfile
+
+        from apps.voice.clips import ffmpeg_bin
+
+        ff = ffmpeg_bin()
+        if not ff:
+            raise XAIError("ffmpeg missing — cannot write WAV from cloud TTS")
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+            tmp.write(r.content)
+            tmp_mp3 = Path(tmp.name)
+        try:
+            cmd = [
+                ff, "-y", "-i", str(tmp_mp3),
+                "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "1",
+                str(out_path),
+            ]
+            kwargs: dict = {"capture_output": True, "timeout": 120}
+            import os
+            import sys
+
+            if sys.platform == "win32":
+                kwargs["creationflags"] = 0x08000000
+            result = subprocess.run(cmd, **kwargs)
+            if result.returncode != 0 or not out_path.is_file():
+                err = (result.stderr or b"")[-300:].decode("utf-8", errors="ignore")
+                raise XAIError(f"tts wav convert failed: {err or result.returncode}")
+        finally:
+            try:
+                tmp_mp3.unlink(missing_ok=True)
+            except OSError:
+                pass
+    else:
+        out_path.write_bytes(r.content)
     try:
         from apps.core.services import api_ledger
 

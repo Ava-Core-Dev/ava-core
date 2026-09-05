@@ -1439,13 +1439,13 @@ def _kind_identity_script(kind: str) -> str:
 
 
 def synthesize_local_mp3(kind: str, text: str) -> dict:
-    """Local clip stitch from report tokens, or reuse existing current MP3."""
+    """Local clip stitch from report tokens, or reuse existing current WAV."""
     from apps.voice.local_tts import speak_script
 
     now = datetime.now(HST)
     stamp = now.strftime("%Y%m%d-%H%M")
-    dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.mp3"
-    current = config.GENERATED_DIR / f"{kind}-report-current.mp3"
+    dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.wav"
+    current = config.GENERATED_DIR / f"{kind}-report-current.wav"
     config.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
 
     script = text_to_clip_tokens(text)
@@ -1458,11 +1458,19 @@ def synthesize_local_mp3(kind: str, text: str) -> dict:
             current.write_bytes(dest.read_bytes())
         except OSError:
             pass
+        # Drop stale MP3 current so play prefers WAV.
+        legacy = current.with_suffix(".mp3")
+        if legacy.is_file():
+            try:
+                legacy.unlink()
+            except OSError:
+                pass
         rel = f"audio/voice/generated/{dest.name}"
         return {
             "ok": True,
             "engine": "local",
             "mp3": str(dest),
+            "wav": str(dest),
             "current": str(current),
             "rel": rel,
             "script": script,
@@ -1471,19 +1479,21 @@ def synthesize_local_mp3(kind: str, text: str) -> dict:
             "chars": len(text or ""),
         }
 
-    # Fall back to existing current MP3 (play path without restitch).
-    if current.is_file() and current.stat().st_size > 0:
-        return {
-            "ok": True,
-            "engine": "local",
-            "mp3": str(current),
-            "current": str(current),
-            "rel": f"audio/voice/generated/{current.name}",
-            "reused": True,
-            "detail": built.get("detail") or "stitched_thin_reused_current",
-            "missing": built.get("missing") or [],
-            "script": script,
-        }
+    # Fall back to existing current WAV (or legacy MP3).
+    for cand in (current, current.with_suffix(".mp3")):
+        if cand.is_file() and cand.stat().st_size > 0:
+            return {
+                "ok": True,
+                "engine": "local",
+                "mp3": str(cand),
+                "wav": str(cand),
+                "current": str(cand),
+                "rel": f"audio/voice/generated/{cand.name}",
+                "reused": True,
+                "detail": built.get("detail") or "stitched_thin_reused_current",
+                "missing": built.get("missing") or [],
+                "script": script,
+            }
     return {
         "ok": False,
         "engine": "local",
@@ -1495,19 +1505,25 @@ def synthesize_local_mp3(kind: str, text: str) -> dict:
 
 
 def synthesize_mp3(kind: str, text: str) -> dict:
-    """Paid cloud TTS. Metered — only when toggle + allow_tts + spend open."""
+    """Paid cloud TTS → WAV current. Metered — only when toggle + allow_tts + spend open."""
     from apps.core.services import xai
 
     if not _spend_ok():
         return {"ok": False, "detail": "spend_halted", "skipped": True, "engine": "cloud"}
     now = datetime.now(HST)
     stamp = now.strftime("%Y%m%d-%H%M")
-    dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.mp3"
-    current = config.GENERATED_DIR / f"{kind}-report-current.mp3"
+    dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.wav"
+    current = config.GENERATED_DIR / f"{kind}-report-current.wav"
     try:
         config.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
         xai.tts(text, dest)
         current.write_bytes(dest.read_bytes())
+        legacy = current.with_suffix(".mp3")
+        if legacy.is_file():
+            try:
+                legacy.unlink()
+            except OSError:
+                pass
     except Exception as e:
         log.warning("report TTS failed: %s", e)
         return {"ok": False, "detail": type(e).__name__, "skipped": False, "engine": "cloud"}
@@ -1516,6 +1532,7 @@ def synthesize_mp3(kind: str, text: str) -> dict:
         "ok": True,
         "engine": "cloud",
         "mp3": str(dest),
+        "wav": str(dest),
         "current": str(current),
         "rel": rel,
         "chars": len(text),

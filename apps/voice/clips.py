@@ -130,11 +130,9 @@ def _escape_concat_path(path: Path) -> str:
 
 def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     """
-    Concatenate clips into one real MP3.
+    Concatenate clips into one WAV (44.1 kHz 16-bit PCM mono).
 
-    Must re-encode. `-c copy` glues separate MPEG bitstreams; Discord (and
-    many players) then only play the first clip — e.g. 1241414 starts with
-    1.mp3 so you only hear “one”.
+    Must re-encode. `-c copy` fails across mixed containers (wav/mp3).
 
     Skip inserted silence next to pause clips (comma_pause / period_pause /
     section_pause) — those files are already open space.
@@ -143,6 +141,8 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
         raise ValueError("No clips to concatenate")
 
     out_path = Path(out_path)
+    if out_path.suffix.lower() != ".wav":
+        out_path = out_path.with_suffix(".wav")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     gap = SILENCE_MS / 1000.0
     pause_names = {"comma_pause", "period_pause", "section_pause"}
@@ -163,7 +163,7 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
                 b = Path(clips[i + 1])
                 if _is_pause(a) or _is_pause(b):
                     continue
-                f.write(f"file '{_escape_concat_path(tmpdir / 'silence.mp3')}'\n")
+                f.write(f"file '{_escape_concat_path(tmpdir / 'silence.wav')}'\n")
                 need_silence = True
 
         ff = ffmpeg_bin()
@@ -171,13 +171,13 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
             raise FileNotFoundError("ffmpeg missing")
 
         if need_silence:
-            silence = tmpdir / "silence.mp3"
+            silence = tmpdir / "silence.wav"
             _run(
                 [
                     ff, "-y",
                     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
                     "-t", f"{gap:.3f}",
-                    "-c:a", "libmp3lame", "-q:a", "9",
+                    "-c:a", "pcm_s16le",
                     str(silence),
                 ],
                 capture_output=True,
@@ -189,11 +189,9 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
                 ff, "-y",
                 "-f", "concat", "-safe", "0",
                 "-i", str(list_file),
-                "-c:a", "libmp3lame",
+                "-c:a", "pcm_s16le",
                 "-ar", "44100",
                 "-ac", "1",
-                "-q:a", "2",
-                "-id3v2_version", "3",
                 str(out_path),
             ],
             capture_output=True,
@@ -285,15 +283,21 @@ def speak_number(n: int, out_path: Path) -> Path | None:
 
 
 def speak_time(hour: int, minute: int, out_path: Path) -> Path | None:
-    """Speak a time using pre-recorded time clips (time_HHMM.mp3)."""
+    """Speak a time using pre-recorded time clips (time_HHMM.wav preferred)."""
     name = f"time_{hour:02d}{minute:02d}"
-    p = TIME_DIR / f"{name}.mp3"
+    p = TIME_DIR / f"{name}.wav"
     if not p.exists():
-        log.warning("Time clip not found: %s", p)
+        p = TIME_DIR / f"{name}.mp3"
+    if not p.exists():
+        log.warning("Time clip not found: %s", name)
         return None
     import shutil
-    shutil.copy2(p, out_path)
-    return out_path
+    dest = Path(out_path)
+    if dest.suffix.lower() != ".wav":
+        dest = dest.with_suffix(".wav")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(p, dest)
+    return dest
 
 
 if __name__ == "__main__":

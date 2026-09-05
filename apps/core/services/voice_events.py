@@ -1,8 +1,9 @@
 """Queue a named local clip when a key process happens. No Grok.
 
 Missing files are logged so Grok can record them later. Cooldown per phrase.
-Also queues on-disk report MP3s (midday/morning) at REPORT priority — same class
+Also queues on-disk report audio (midday/morning) at REPORT priority — same class
 as morning-boot-replay: pause music bed, play file, resume. No re-TTS.
+Canonical current files are WAV; legacy MP3 still accepted.
 """
 from __future__ import annotations
 
@@ -40,14 +41,25 @@ def _clip_path(name: str) -> Path | None:
     return _find_clip(name)
 
 
-def _resolve_mp3(*candidates: str | Path | None) -> Path | None:
+def _resolve_audio(*candidates: str | Path | None) -> Path | None:
+    """First existing non-empty file. Prefer .wav sibling when both exist."""
     for raw in candidates:
         if not raw:
             continue
         p = Path(str(raw))
+        wav = p.with_suffix(".wav") if p.suffix else p
+        mp3 = p.with_suffix(".mp3") if p.suffix else p
+        if wav.is_file() and wav.stat().st_size > 0:
+            return wav
+        if mp3.is_file() and mp3.stat().st_size > 0:
+            return mp3
         if p.is_file() and p.stat().st_size > 0:
             return p
     return None
+
+
+# Back-compat alias
+_resolve_mp3 = _resolve_audio
 
 
 async def play_report_mp3(
@@ -55,18 +67,19 @@ async def play_report_mp3(
     name: str = "report",
     kind: str | None = None,
 ) -> dict:
-    """Queue an existing report MP3 at REPORT priority. No TTS spend.
+    """Queue an existing report WAV/MP3 at REPORT priority. No TTS spend.
 
     Same path class as morning-boot-replay: director.queue → music bed hold → play.
-    Prefer current symlink/copy first, then dated file.
+    Prefer current WAV first, then legacy MP3, then dated file.
     """
-    path = _resolve_mp3(*candidates)
+    path = _resolve_audio(*candidates)
     if path is None and kind:
-        path = _resolve_mp3(
+        path = _resolve_audio(
+            config.GENERATED_DIR / f"{kind}-report-current.wav",
             config.GENERATED_DIR / f"{kind}-report-current.mp3",
         )
     if path is None:
-        log.warning("report play missing mp3 name=%s kind=%s", name, kind)
+        log.warning("report play missing audio name=%s kind=%s", name, kind)
         return {"ok": False, "detail": "mp3_missing", "name": name, "kind": kind}
     try:
         from apps.voice.director import Priority, get_director
@@ -78,12 +91,13 @@ async def play_report_mp3(
             priority=Priority.REPORT,
             scene=None,
         )
-        log.info("report MP3 queued name=%s file=%s", label, path.name)
+        log.info("report audio queued name=%s file=%s", label, path.name)
         return {
             "ok": True,
             "played": True,
             "name": label,
             "mp3": str(path),
+            "wav": str(path),
             "file": path.name,
             "priority": "REPORT",
         }
