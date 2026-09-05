@@ -220,18 +220,32 @@ def status() -> dict:
     from apps.core.services import xai
 
     window = _read_midday_window()
+    reports = cfg.get("reports") or {}
+    # Normalized view for Desk Local|Cloud toggles.
+    normalized = {}
+    for kind, row in reports.items() if isinstance(reports, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        normalized[kind] = {
+            **row,
+            "engine": normalize_engine(row.get("engine")),
+            "mp3": normalize_mp3(row.get("mp3")),
+        }
     return {
         "ok": True,
         "path": str(STATE_PATH),
         "week_of_grok": bool(cfg.get("week_of_grok")),
         "week_note": cfg.get("week_note"),
-        "reports": cfg.get("reports") or {},
+        "reports": normalized or reports,
         "context_urls": cfg.get("context_urls") or [],
         "fetch_urls": cfg.get("fetch_urls") or [],
         "grok_halted": bool(xai.grok_is_down()),
+        "cloud_spend_ok": _spend_ok(),
         "midday_spend_window": window,
         "updated_at": cfg.get("updated_at"),
         "live_data_hub": "https://origin.avaivy.cloud/data",
+        "engines": ["local", "cloud"],
+        "mp3_modes": ["local", "cloud"],
     }
 
 
@@ -1262,31 +1276,8 @@ def generate(
             log.debug("board mark_done skipped: %s", e)
 
     if play_after:
-        tts = out.get("tts") or {}
-        try:
-            import asyncio
-
-            from apps.core.services import voice_events
-
-            async def _play():
-                return await voice_events.play_report_mp3(
-                    tts.get("current"),
-                    tts.get("mp3"),
-                    name=f"{kind}_report",
-                    kind=kind,
-                )
-
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = None
-            if loop and loop.is_running():
-                # Caller is async — they should await play themselves.
-                out["play_ deferred"] = True
-            else:
-                out["play"] = asyncio.run(_play())
-        except Exception as e:
-            out["play"] = {"ok": False, "detail": type(e).__name__}
+        out["play_deferred"] = True
+        out["play_hint"] = "await voice_events.play_report_mp3 after success"
 
     return out
 
@@ -1333,8 +1324,7 @@ def text_to_clip_tokens(text: str, *, max_tokens: int = 120) -> str:
             if len(bits) >= max_tokens:
                 break
             continue
-        # Numbers stay as digits for number clips.
-        if clean.isdigit() and _find_clip(clean) or clean.isdigit():
+        if clean.isdigit():
             bits.append(clean)
             if len(bits) >= max_tokens:
                 break
