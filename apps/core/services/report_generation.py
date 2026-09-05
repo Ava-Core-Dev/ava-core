@@ -206,6 +206,13 @@ def ensure_config() -> dict:
             elif "mp3" not in reports[kind]:
                 reports[kind]["mp3"] = "local"
                 changed = True
+            # Local stitch path: tts true does not spend when mp3=local.
+            if kind in {"morning", "midday", "evening", "late"}:
+                if normalize_mp3(reports[kind].get("mp3")) == "local" and not bool(
+                    reports[kind].get("tts")
+                ):
+                    reports[kind]["tts"] = True
+                    changed = True
     if changed:
         return _write(cfg)
     return cfg
