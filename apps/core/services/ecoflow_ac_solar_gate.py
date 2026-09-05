@@ -4,10 +4,10 @@ Gate on Delta PV input (``mppt.inWatts`` — same primary key as ``pack_power`` 
 ``pv_w``). ``pd.wattsInSum`` / ``pd.inWatts`` are total pack input and are
 logged only; they can include non-PV paths and are not the solar-fight signal.
 
-Rules (operator 2026-09-04):
-  - input ≥ 420 W → AC OFF (both packs take PV cleanly)
+Rules (operator 2026-09-05):
+  - input ≥ 300 W → AC OFF (both packs take PV cleanly)
   - input ≤ 200 W (incl. zero) → AC ON (AC out feeds River path; stops solar fight)
-  - 200–420 W dead band → no change
+  - 200–300 W dead band → no change
 
 Cron: hooked after ``ecoflow-quota`` (~2 min). Not a separate scheduler job.
 Disable: set ``enabled`` false in ``data/state/ecoflow-ac-solar-gate.json``
