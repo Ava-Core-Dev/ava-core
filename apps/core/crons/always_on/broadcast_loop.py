@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from apps.core import config
-
 log = logging.getLogger("ava.cron.broadcast_loop")
 
 
