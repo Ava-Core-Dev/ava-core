@@ -49,22 +49,23 @@ async def obs_audio_stream():
     Listens on SSE and auto-plays audio when signaled by the Stream Director.
     Idle when OBS is closed (no SSE).
     """
-    from apps.core.services.obs_presence import obs_process_running, obs_work_allowed
+    from apps.core.services.obs_presence import obs_process_running
 
-    if not obs_work_allowed() and not obs_process_running():
+    if not obs_process_running():
         return HTMLResponse(
             "<!DOCTYPE html><html><body style='margin:0;background:transparent'>"
             "<script>/* OBS closed — no audio bridge */</script></body></html>",
             status_code=200,
         )
+    return HTMLResponse("""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Ava Audio Stream</title>
 <style>
-  body {{ margin: 0; background: transparent; overflow: hidden; }}
-  #status {{ position: fixed; bottom: 4px; right: 8px; font: 10px monospace;
-             color: rgba(255,255,255,0.3); }}
+  body { margin: 0; background: transparent; overflow: hidden; }
+  #status { position: fixed; bottom: 4px; right: 8px; font: 10px monospace;
+             color: rgba(255,255,255,0.3); }
 </style>
 </head>
 <body>
@@ -79,41 +80,41 @@ let pausedTime = 0;
 
 const es = new EventSource((location.origin || '') + '/obs/audio-events');
 
-es.onopen = () => {{ status.textContent = 'Ava Audio — ready'; }};
-es.onerror = () => {{ status.textContent = 'Ava Audio — reconnecting…'; }};
+es.onopen = () => { status.textContent = 'Ava Audio — ready'; };
+es.onerror = () => { status.textContent = 'Ava Audio — reconnecting…'; };
 
-es.addEventListener('play', e => {{
+es.addEventListener('play', e => {
   const data = JSON.parse(e.data);
   const priority = data.priority ?? 1;
   const src = data.src;
 
-  if (!player.paused && priority > currentPriority) {{
+  if (!player.paused && priority > currentPriority) {
     // Pause current, save position for resume
     pausedSrc = player.src;
     pausedTime = player.currentTime;
     player.pause();
-  }}
+  }
 
   currentPriority = priority;
   player.src = src;
   player.currentTime = 0;
-  player.play().catch(() => {{}});
+  player.play().catch(() => {});
   status.textContent = 'Playing: ' + (data.name || src.split('/').pop());
-}});
+});
 
-player.addEventListener('ended', () => {{
+player.addEventListener('ended', () => {
   status.textContent = 'Ava Audio — ready';
   currentPriority = -1;
   // Resume paused track if any
-  if (pausedSrc) {{
+  if (pausedSrc) {
     player.src = pausedSrc;
     player.currentTime = pausedTime;
-    player.play().catch(() => {{}});
+    player.play().catch(() => {});
     pausedSrc = null;
     pausedTime = 0;
     status.textContent = 'Resuming…';
-  }}
-}});
+  }
+});
 </script>
 </body>
 </html>""")
@@ -121,7 +122,12 @@ player.addEventListener('ended', () => {{
 
 @router.get("/audio-events")
 async def obs_audio_events(request: Request):
-    """SSE endpoint — Stream Director pushes play events here."""
+    """SSE endpoint — Stream Director pushes play events here. No-op if OBS closed."""
+    from apps.core.services.obs_presence import obs_process_running
+
+    if not obs_process_running():
+        return Response(status_code=204)
+
     q: asyncio.Queue = asyncio.Queue(maxsize=20)
     _listeners.append(q)
 
@@ -137,7 +143,8 @@ async def obs_audio_events(request: Request):
                 except asyncio.TimeoutError:
                     yield ": keepalive\n\n"
         finally:
-            _listeners.remove(q)
+            if q in _listeners:
+                _listeners.remove(q)
 
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

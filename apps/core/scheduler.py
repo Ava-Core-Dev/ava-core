@@ -242,8 +242,12 @@ class Scheduler:
                   CronTrigger(hour="22-23,0-5", minute=20),
                   id="overnight-relay", name="Late-night relay", misfire_grace_time=300)
 
-        s.add_job(self._run("broadcast_loop"), IntervalTrigger(seconds=20),
-                  id="broadcast-loop", name="OBS daily loop rotator", misfire_grace_time=30)
+        # OBS daily rotator — only when feature flag on; still no-ops if OBS closed.
+        if config.ENABLE_OBS:
+            s.add_job(self._run("broadcast_loop"), IntervalTrigger(seconds=20),
+                      id="broadcast-loop", name="OBS daily loop rotator", misfire_grace_time=30)
+        else:
+            log.info("Skipping cron broadcast-loop (AVA_ENABLE_OBS=0)")
 
         s.add_job(self._run("minecraft_live"), IntervalTrigger(seconds=45),
                   id="minecraft-live", name="Minecraft in-game detect", misfire_grace_time=30)
