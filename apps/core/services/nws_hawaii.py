@@ -155,14 +155,25 @@ def build_spoken(
     *,
     stamp: str | None = None,
     reason: str = "update",
+    as_of: datetime | None = None,
+    alerts: list[dict] | None = None,
 ) -> str:
-    """Plain spoken script. Quiet counties get one short no-warning line."""
-    now = datetime.now(HST)
-    clock = stamp or now.strftime("%I:%M %p").lstrip("0").replace(" 0", " ")
+    """Plain spoken script. Clock = NWS product sent time when alerts exist — never wall-now."""
+    when = as_of or product_as_of(alerts or [])
+    if stamp and when is None:
+        # Legacy override only when no product timestamps.
+        clock = stamp
+        time_bit = f"about {clock} Hawaiian Standard Time"
+    elif when is not None:
+        clock = _hst_clock_label(when)
+        time_bit = f"as of {clock} Hawaiian Standard Time"
+    else:
+        clock = _hst_clock_label(datetime.now(HST))
+        time_bit = f"checked about {clock} Hawaiian Standard Time"
     lead = (
-        f"NWS Hawaii by county, about {clock} Hawaiian Standard Time."
+        f"NWS Hawaii by county, {time_bit}."
         if reason == "boot"
-        else f"NWS Hawaii hazard update, about {clock} Hawaiian Standard Time."
+        else f"NWS Hawaii hazard update, {time_bit}."
     )
     parts = [lead]
     any_active = False
@@ -182,6 +193,38 @@ def build_spoken(
             "No active National Weather Service watches or warnings for Honolulu, Hawaii, Maui, or Kauai counties.",
         ]
     return " ".join(parts)
+
+
+def _parse_nws_time(raw: str) -> datetime | None:
+    s = (raw or "").strip()
+    if not s:
+        return None
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def product_as_of(alerts: list[dict]) -> datetime | None:
+    """Newest CAP `sent` among alerts. None if empty/unparseable — never invent now."""
+    best: datetime | None = None
+    for a in alerts:
+        dt = _parse_nws_time(str(a.get("sent") or ""))
+        if dt is None:
+            continue
+        if best is None or dt > best:
+            best = dt
+    return best
+
+
+def _hst_clock_label(dt: datetime) -> str:
+    local = dt.astimezone(HST)
+    return local.strftime("%I:%M %p").lstrip("0").replace(" 0", " ")
 
 
 def fingerprint(alerts: list[dict]) -> str:
