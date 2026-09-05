@@ -151,8 +151,8 @@ def _player_html() -> str:
   <div class="brand">Root Record Radio</div>
   <div id="status">Connecting…</div>
   <audio id="player" controls preload="none"></audio>
-  <p class="hint" style="opacity:.65;font-size:.8rem">Program bus · localhost</p>
-  <p><a href="/radio">Wake page</a></p>
+  <p style="opacity:.65;font-size:.8rem;margin:0">Live from Root Record</p>
+  <p style="margin:0"><a href="/radio">Back</a></p>
 <script>
 const player = document.getElementById('player');
 const status = document.getElementById('status');
@@ -164,7 +164,7 @@ es.addEventListener('play', e => {
   if (!data.src) return;
   player.src = data.src;
   player.play().catch(()=>{});
-  status.textContent = 'Playing: ' + (data.name || data.src.split('/').pop().split('?')[0]);
+  status.textContent = data.name || 'Now playing';
 });
 es.addEventListener('message', e => {
   try {
@@ -172,9 +172,12 @@ es.addEventListener('message', e => {
     if (data.type === 'connected') status.textContent = 'Ready';
   } catch {}
 });
-// Ask origin to re-announce current bed if already playing
-fetch('/api/radio/status').then(r=>r.json()).then(j=>{
-  if (j.on_air) fetch('/api/radio', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({on_air:true})});
+fetch('/api/radio/now').then(r=>r.json()).then(j=>{
+  if (j && j.src) {
+    player.src = j.src;
+    player.play().catch(()=>{});
+    status.textContent = j.name || 'Now playing';
+  }
 }).catch(()=>{});
 </script>
 </body>
@@ -195,6 +198,56 @@ async def radio_listen():
     if not st.get("on_air"):
         return HTMLResponse(_banished_html())
     return HTMLResponse(_player_html())
+
+
+@router.get("/radio/live.mp3")
+async def radio_live_mp3():
+    """Progressive MP3 of the current program file (ffmpeg). On-air only."""
+    st = radio_svc.status()
+    if not st.get("on_air"):
+        return Response(status_code=404)
+    from apps.core.services import radio_encode
+
+    path = radio_encode.current_program_path()
+    if path is None:
+        return Response(status_code=204)
+
+    async def gen():
+        async for chunk in radio_encode.iter_mp3_for_file(path):
+            yield chunk
+
+    return StreamingResponse(
+        gen(),
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Content-Disposition": "inline; filename=rootrecord-radio.mp3",
+        },
+    )
+
+
+@router.get("/api/radio/now")
+async def api_radio_now():
+    """Public now-playing (no operator tooling)."""
+    st = radio_svc.status()
+    if not st.get("on_air"):
+        return {"ok": True, "on_air": False, "src": None, "name": None}
+    from apps.core.services import radio_encode
+
+    path = radio_encode.current_program_path()
+    src = None
+    name = None
+    if path is not None:
+        src = radio_svc.program_url_for_file(path)
+        name = path.name
+    return {
+        "ok": True,
+        "on_air": True,
+        "src": src or ("/radio/live.mp3" if path else None),
+        "live": "/radio/live.mp3" if path else None,
+        "name": name,
+    }
 
 
 @router.get("/radio/events")
