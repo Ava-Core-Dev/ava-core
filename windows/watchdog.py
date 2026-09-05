@@ -290,10 +290,10 @@ log_f.flush()
 
 # pythonw -m uvicorn, never uvicorn.exe (console wrapper flashes a window).
 # stdout/stderr must be a file — DEVNULL hid every origin line after the 2:30 spawn.
-    env = _with_jdk(os.environ.copy())
-    env.setdefault("PYTHONUTF8", "1")
-    env.setdefault("PYTHONIOENCODING", "utf-8")
-    subprocess.Popen(
+env = _with_jdk(os.environ.copy())
+env.setdefault("PYTHONUTF8", "1")
+env.setdefault("PYTHONIOENCODING", "utf-8")
+subprocess.Popen(
     [
         str(pythonw),
         "-m",
