@@ -1162,7 +1162,8 @@ class StreamDirector:
                 and Path(desk_audio.bed_path()).resolve() == path.resolve()
             )
             if not same:
-                if not desk_audio.play_bed(path):
+                ok = await asyncio.to_thread(desk_audio.play_bed, path)
+                if not ok:
                     end_reason = "play_failed"
                     return True, False
             self._music_proc_pid = os.getpid()
