@@ -98,6 +98,14 @@ def _default_config() -> dict:
             "midday": dict(daily),
             "evening": dict(daily),
             "late": dict(daily),
+            "kilauea": {
+                **_DEFAULT_REPORT,
+                "engine": "cloud",
+                "mp3": "cloud",
+                "tts": True,
+                "blog": True,
+                "max_tokens": 600,
+            },
             "hourly": {
                 **_DEFAULT_REPORT,
                 "engine": "local",
@@ -662,6 +670,23 @@ def validate_prompt_package(pkg: dict, *, kind: str) -> dict:
     live = bundle.get("live_data") if isinstance(bundle.get("live_data"), dict) else {}
     live_ids = {str(r.get("id") or "") for r in (live.get("resources") or []) if isinstance(r, dict)}
 
+    if kind == "kilauea":
+        # Notice-only: HVO/USGS facts block is enough; skip day-board / Broken markers.
+        if len(facts.strip()) < 200 and "kilauea" not in facts.lower():
+            missing.append("kilauea_facts_thin")
+        ok = not missing
+        return {
+            "ok": ok,
+            "kind": kind,
+            "missing": missing,
+            "facts_chars": len(facts),
+            "operator_facts_chars": len(op),
+            "fetched_chars": len(fetched),
+            "context_url_count": len(urls),
+            "live_resource_count": len(live_ids),
+            "detail": "complete" if ok else "incomplete_package:" + ",".join(missing[:12]),
+        }
+
     if len(facts.strip()) < 800:
         missing.append("local_live_facts_too_short")
     if kind in _REQUIRED_MARKERS and len(op.strip()) < 400:
@@ -936,6 +961,8 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
             'Open with noon clock: "about 12 noon Hawaiian Standard Time" '
             "(even if built at 11:55)."
         )
+    if kind == "kilauea":
+        stamp_note = "Open with a short Kīlauea notice stamp in Hawaiian Standard Time."
     # Full link list (not capped so hard that day-board / report-links drop off).
     url_list = list(bundle.get("context_urls") or [])
     urls = "\n".join(f"- {u}" for u in url_list[:48])
@@ -947,19 +974,39 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     for k, v in (live.get("context") or {}).items():
         ctx_ptrs += f"- {k}: {v}\n"
 
-    user = (
-        f"Write today's {kind} Ava Core Root Record full status.\n"
-        f"{stamp_note}\n\n"
-        "Use ONLY measured facts from the pages/blocks below. Do not invent.\n"
-        "Broken / needs work, Already landed, and Priority ARE in the FACTS — "
-        "do not say you do not have them live.\n"
-        "Never name third-party vendors or engines in the report text.\n\n"
-        f"Context / discovery URLs:\n{urls}\n\n"
-        f"Live data pages:\n{live_urls}\n"
-        f"Link bundle pointers:\n{ctx_ptrs}\n"
-        f"Fetched context:\n{pkg['fetched_markdown'][:24000]}\n\n"
-        f"Origin live facts + kind operator FACTS:\n{pkg['local_live_facts'][:28000]}\n"
+    facts_blob = str(pkg.get("local_live_facts") or "")
+    measured_players = _measured_players_online(facts_blob)
+    players_rule = (
+        f"RootMC players online measured: {measured_players}. You may state that count."
+        if measured_players is not None
+        else (
+            "RootMC players are NOT live in FACTS. Say players are not live or omit. "
+            "Never invent online counts, max, wallet totals, or 'no online players'."
+        )
     )
+
+    if kind == "kilauea":
+        user = (
+            "Write a short Kīlauea notice from FACTS only.\n"
+            f"{stamp_note}\n"
+            "No invented numbers. End with End of status.\n\n"
+            f"FACTS:\n{facts_blob[:12000]}\n"
+        )
+    else:
+        user = (
+            f"Write today's {kind} Ava Core Root Record full status.\n"
+            f"{stamp_note}\n\n"
+            "Use ONLY measured facts from the pages/blocks below. Do not invent.\n"
+            f"{players_rule}\n"
+            "Broken / needs work, Already landed, and Priority ARE in the FACTS — "
+            "do not say you do not have them live.\n"
+            "Never name third-party vendors or engines in the report text.\n\n"
+            f"Context / discovery URLs:\n{urls}\n\n"
+            f"Live data pages:\n{live_urls}\n"
+            f"Link bundle pointers:\n{ctx_ptrs}\n"
+            f"Fetched context:\n{pkg['fetched_markdown'][:24000]}\n\n"
+            f"Origin live facts + kind operator FACTS:\n{facts_blob[:28000]}\n"
+        )
     messages = [
         {"role": "system", "content": _persona_lock(kind)},
         {"role": "user", "content": user},
@@ -985,6 +1032,17 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
             "ok": False,
             "engine": "cloud",
             "detail": "incomplete_output:" + ",".join(section_missing),
+            "package": pkg,
+            "validation": val,
+            "text_rejected": scrubbed[:500],
+            "blocked": True,
+        }
+    if kind != "kilauea" and _text_invents_players(scrubbed, measured=measured_players):
+        log.error("%s cloud output rejected — invented player counts", kind)
+        return {
+            "ok": False,
+            "engine": "cloud",
+            "detail": "invented_player_counts",
             "package": pkg,
             "validation": val,
             "text_rejected": scrubbed[:500],
