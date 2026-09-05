@@ -43,7 +43,8 @@ class OpenMeteoPlugin(Plugin):
         return self._make_voice(force=True)
 
     def on_hour(self) -> None:
-        self._make_voice(force=True)
+        # No DB on this plugin; Grok TTS soft-disabled — local clips own desk audio.
+        log.info("Hourly Open-Meteo — voice skipped (Grok TTS soft-disabled; use local clip services)")
 
     def on_new_report(self, path: Path) -> None:
         pass
@@ -76,37 +77,12 @@ class OpenMeteoPlugin(Plugin):
         return lines
 
     def _make_voice(self, force: bool = False) -> Path | None:
-        if config.VOICE_MODE == "disabled":
-            return None
-        from apps.core.services import xai
-        if xai.grok_is_down():
-            log.info("Grok down — skip Open-Meteo grok voice")
-            return None
-        lines = self._fetch()
-        if not lines:
-            return None
-        spoken = self._summarize("\n".join(lines))
-        if not spoken:
-            return None
-        log.info("Open-Meteo Ara script:\n%s", spoken)
-
-        stamp = datetime.now(HST).strftime("%Y-%m-%dT%H")
-        archive = config.GENERATED_DIR / f"open-meteo-{stamp}.mp3"
-        current = config.GENERATED_DIR / "OpenMeteo_Current.mp3"
-        try:
-            self._tts(spoken, archive)
-            import shutil
-            shutil.copy2(archive, current)
-            log.info("Saved OpenMeteo_Current.mp3")
-            try:
-                from ava_core.mp4_converter import convert_if_needed
-                convert_if_needed(current)
-            except Exception:
-                pass
-            return current
-        except Exception as e:
-            log.error("TTS failed: %s", e)
-            return None
+        # Soft-disable paid Grok/xAI TTS — no OpenMeteo_Current.mp3 writes.
+        log.info(
+            "Grok/xAI TTS soft-disabled — skip OpenMeteo_Current.mp3; "
+            "use local clip services instead"
+        )
+        return None
 
     def _summarize(self, raw: str) -> str | None:
         from ava_core.xai_client import chat, XAIError

@@ -68,16 +68,16 @@ class YouTubeStatsPlugin(Plugin):
         return self._maybe_voice(force=True)
 
     def on_hour(self) -> None:
-        # Light hourly check; real change detection happens in tick/poll
+        # Stats poll only — Grok TTS soft-disabled (local clips own desk audio).
         self._poll()
-        self._maybe_voice(force=False)
+        log.info("Hourly YouTube stats — voice skipped (Grok TTS soft-disabled; use local clip services)")
 
     def tick(self) -> None:
         now = time.time()
         if now - self._last_poll >= 15 * 60:
             self._poll()
             self._last_poll = now
-            self._maybe_voice(force=False)
+            # Voice soft-disabled; keep DB snapshots only.
 
     # ------------------------------------------------------------------
     def _init_db(self) -> None:
@@ -201,57 +201,12 @@ class YouTubeStatsPlugin(Plugin):
         return lines
 
     def _maybe_voice(self, force: bool = False) -> Path | None:
-        if config.VOICE_MODE == "disabled":
-            return None
-        from apps.core.services import xai
-        if xai.grok_is_down():
-            log.info("Grok down — skip YouTube grok voice")
-            return None
-        if not self.api_key or not self.channel_ids:
-            log.warning("YouTube plugin not configured (missing key or channel IDs)")
-            return None
-
-        changes = self._detect_changes()
-        if not changes and not force:
-            log.info("No YouTube changes – skipping voice report")
-            return None
-
-        # Even on force, use the latest numbers
-        if not changes:
-            for cid in self.channel_ids:
-                latest, _ = self._latest_and_previous(cid)
-                if latest:
-                    changes.append(
-                        f"{latest.get('title') or cid}: "
-                        f"{latest['subscriber_count']:,} subscribers, "
-                        f"{latest['view_count']:,} views, "
-                        f"{latest['video_count']} videos."
-                    )
-
-        raw = "\n".join(changes)
-        spoken = self._summarize(raw)
-        if not spoken:
-            return None
-
-        log.info("YouTube Ara script:\n%s", spoken)
-
-        stamp = datetime.now(HST).strftime("%Y-%m-%dT%H")
-        archive = config.GENERATED_DIR / f"youtube-{stamp}.mp3"
-        current = config.GENERATED_DIR / "YouTube_Current.mp3"
-        try:
-            self._tts(spoken, archive)
-            import shutil
-            shutil.copy2(archive, current)
-            log.info("Saved YouTube_Current.mp3")
-            try:
-                from ava_core.mp4_converter import convert_if_needed
-                convert_if_needed(current)
-            except Exception:
-                pass
-            return current
-        except Exception as e:
-            log.error("TTS failed: %s", e)
-            return None
+        # Soft-disable paid Grok/xAI TTS — SQLite polls stay; no Current.mp3 writes.
+        log.info(
+            "Grok/xAI TTS soft-disabled — skip YouTube_Current.mp3; "
+            "use local clip services instead"
+        )
+        return None
 
     def _summarize(self, raw: str) -> str | None:
         from ava_core.xai_client import chat, XAIError

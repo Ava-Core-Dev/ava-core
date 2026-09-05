@@ -198,55 +198,12 @@ class NWSWeatherPlugin(Plugin):
     # Voice report (≤ 30 s target)
     # ------------------------------------------------------------------
     def _make_voice_report(self, force: bool = False) -> Path | None:
-        from apps.core.services import xai
-        if xai.grok_is_down():
-            log.info("Grok down — skip NWS grok voice")
-            return None
-        if config.VOICE_MODE == "disabled":
-            log.info("VOICE_MODE=disabled – skipping NWS voice")
-            return None
-
-        rows = self._latest_summary_rows()
-        if not rows:
-            log.warning("No forecast rows yet – pulling once")
-            self._pull_all()
-            rows = self._latest_summary_rows()
-            if not rows:
-                return None
-
-        # Build a compact text block for Grok
-        lines = []
-        for r in rows:
-            lines.append(
-                f"{r['location']} ({r['island']}): {r.get('period_name','now')} "
-                f"{r.get('temperature')}{r.get('temperature_unit','F')}, "
-                f"wind {r.get('wind_speed','?')}, {r.get('short_forecast','')}"
-            )
-        raw_block = "\n".join(lines)
-
-        spoken = self._summarize(raw_block)
-        if not spoken:
-            return None
-
-        log.info("NWS Ara script:\n%s", spoken)
-
-        stamp = datetime.now(HST).strftime("%Y-%m-%dT%H")
-        archive = config.GENERATED_DIR / f"nws-hawaii-{stamp}.mp3"
-        current = config.GENERATED_DIR / "NWS_Hawaii_Current.mp3"
-        try:
-            self._tts(spoken, archive)
-            import shutil
-            shutil.copy2(archive, current)
-            log.info("Saved NWS_Hawaii_Current.mp3")
-            try:
-                from ava_core.mp4_converter import convert_if_needed
-                convert_if_needed(current)
-            except Exception:
-                pass
-            return current
-        except Exception as e:
-            log.error("TTS failed: %s", e)
-            return None
+        # Soft-disable paid Grok/xAI TTS — SQLite pulls stay; no Current.mp3 writes.
+        log.info(
+            "Grok/xAI TTS soft-disabled — skip NWS_Hawaii_Current.mp3; "
+            "use local clip services (apps.core.services.nws_hawaii) instead"
+        )
+        return None
 
     def _summarize(self, raw: str) -> str | None:
         from ava_core.xai_client import chat, XAIError
