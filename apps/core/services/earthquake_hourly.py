@@ -107,6 +107,34 @@ def _mag_token(mag: float | None) -> list[str]:
     return bits
 
 
+def _mag_buckets(events: list[dict]) -> list[tuple[int, int]]:
+    """(rounded_mag, count) ascending. Skips unreadable mags."""
+    from collections import Counter
+
+    counts: Counter[int] = Counter()
+    for e in events:
+        try:
+            mag = float(e.get("mag"))
+        except (TypeError, ValueError):
+            continue
+        n = int(round(mag))
+        if n < 1:
+            continue
+        counts[n] += 1
+    return sorted(counts.items(), key=lambda t: t[0])
+
+
+def _bucket_bits(buckets: list[tuple[int, int]]) -> list[str]:
+    """Speak counts per magnitude — not one 'magnitude N' per quake."""
+    bits: list[str] = []
+    for mag, count in buckets:
+        if count < 1:
+            continue
+        bits.append(str(int(count)))
+        bits += _mag_token(float(mag))
+    return bits
+
+
 async def _fetch(params: dict) -> list[dict]:
     q = dict(params)
     q.setdefault("format", "geojson")
@@ -174,30 +202,26 @@ def build_clip_script(bundle: dict, *, now: datetime | None = None) -> str:
             bits.append(stem)
     bits += clock_tokens(now.hour, now.minute)
 
-    hi = list(bundle.get("hawaii") or [])[:_MAX_HI]
-    if hi:
+    # Hawaii: counts by magnitude (e.g. "3 magnitude 2") — never spam one line per quake.
+    hi = list(bundle.get("hawaii") or [])
+    hi_buckets = _mag_buckets(hi)
+    if hi_buckets:
         if _find_clip("hawaii"):
             bits.append("hawaii")
-        for e in hi:
-            bits += _mag_token(e.get("mag"))
-            tok = _place_token(str(e.get("place") or ""))
-            if tok:
-                bits.append(tok)
+        bits += _bucket_bits(hi_buckets[:_MAX_HI])
     else:
         if _find_clip("hawaii") and _find_clip("quiet"):
             bits += ["hawaii", "quiet"]
 
-    glob = list(bundle.get("global") or [])[:_MAX_GLOBAL]
-    if glob:
+    # Global: same rollup (M≥4.5 feed). Cap distinct magnitude buckets.
+    glob = list(bundle.get("global") or [])
+    glob_buckets = _mag_buckets(glob)
+    if glob_buckets:
         if _find_clip("global"):
             bits.append("global")
         if _find_clip("earthquakes"):
             bits.append("earthquakes")
-        for e in glob:
-            bits += _mag_token(e.get("mag"))
-            tok = _place_token(str(e.get("place") or ""))
-            if tok:
-                bits.append(tok)
+        bits += _bucket_bits(glob_buckets[:_MAX_GLOBAL])
 
     if _find_clip("end_of_status"):
         bits.append("end_of_status")
