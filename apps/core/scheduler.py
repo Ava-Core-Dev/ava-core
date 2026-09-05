@@ -312,6 +312,12 @@ class Scheduler:
         await hourly_clip_reports.prebuild()
 
     @staticmethod
+    async def _eq_poll_m2():
+        from apps.core.crons.since_last_fire import earthquake_hourly
+
+        await earthquake_hourly.run(reason="poll", force=False)
+
+    @staticmethod
     def _run(name: str):
         """Return an async callable that imports and runs a cron module by name.
         Writes start/finish records to ava_cron MySQL tables (matching old Node.js schema)."""

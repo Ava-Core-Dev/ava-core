@@ -15,22 +15,16 @@ async def run(*, reason: str = "hourly", force: bool = False):
     )
     from apps.core.services import earthquake_hourly
 
-    # Poll path (interval): only announce when new local M≥2.0.
-    # Hourly path: always rebuild + announce.
-    play = reason == "hourly" or force
     out = await earthquake_hourly.build_and_maybe_play(
         reason=reason,
         force=force,
-        play=play or reason == "poll",
+        play=True,
     )
-    # On poll, build_and_maybe_play already announces only for fresh M≥2 or hourly.
-    if reason == "poll":
-        # Re-run logic: play flag true but announce only if fresh_m2 inside service.
-        pass
     log.info(
-        "EQ hourly done ok=%s announce=%s m2=%s",
+        "EQ hourly done ok=%s announce=%s m2=%s wav=%s",
         out.get("ok"),
         out.get("announce"),
         out.get("fresh_local_m2"),
+        out.get("wav"),
     )
     return out
