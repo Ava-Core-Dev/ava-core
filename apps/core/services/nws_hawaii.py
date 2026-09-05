@@ -269,16 +269,24 @@ def write_reports(
     spoken: str,
     source: str,
     changed: bool,
+    as_of: datetime | None = None,
 ) -> dict[str, str]:
     """Write markdown + spoken text under Media reports."""
     reports = config.REPORTS_DIR
     reports.mkdir(parents=True, exist_ok=True)
     now = datetime.now(HST)
     stamp = now.strftime("%Y-%m-%dT%H%M")
+    when = as_of or product_as_of(alerts)
+    as_of_line = (
+        f"NWS product as of: {when.astimezone(HST).strftime('%Y-%m-%d %H:%M')} Hawaiian Standard Time"
+        if when is not None
+        else "NWS product as of: (none — quiet or untimed)"
+    )
     lines = [
         "# NWS Hawaii by county",
         "",
         f"Sampled: {now.strftime('%Y-%m-%d %H:%M')} Hawaiian Standard Time",
+        as_of_line,
         f"Source: {source}",
         f"Changed: {str(changed).lower()}",
         "",
@@ -333,16 +341,22 @@ def _event_to_clip(event: str) -> str | None:
     return None
 
 
-def build_clip_script(by_county: dict[str, list[str]]) -> str:
+def build_clip_script(
+    by_county: dict[str, list[str]],
+    *,
+    as_of: datetime | None = None,
+    alerts: list[dict] | None = None,
+) -> str:
     """Space-separated local clip tokens for NWS rollup (no cloud).
 
+    Clock tokens use NWS product `sent` time when available — never boot wall clock.
     No silent pause clips — word files already carry tails, and concat adds a
     short gap. Shared products are spoken once, then counties, not four times.
     """
     from apps.voice.clips import _find_clip
     from apps.voice.local_tts import clock_tokens
 
-    now = datetime.now(HST)
+    when = as_of or product_as_of(alerts or [])
     toks: list[str] = []
     lead = "nws_hawaii_hazard_update" if _find_clip("nws_hawaii_hazard_update") else None
     if lead:
@@ -351,9 +365,19 @@ def build_clip_script(by_county: dict[str, list[str]]) -> str:
         for t in ("nws", "hawaii", "all_hazards", "update"):
             if _find_clip(t):
                 toks.append(t)
-    if _find_clip("about"):
-        toks.append("about")
-    toks += clock_tokens(now.hour, now.minute)
+    if when is not None:
+        # Prefer “as of” / issued wording over lying with “about <now>”.
+        if _find_clip("as_of"):
+            toks.append("as_of")
+        elif _find_clip("issued"):
+            toks.append("issued")
+        elif _find_clip("about"):
+            toks.append("about")
+        local = when.astimezone(HST)
+        toks += clock_tokens(local.hour, local.minute)
+    elif _find_clip("about"):
+        # Quiet board: no product clock — skip inventing a fake issue time in clips.
+        pass
 
     # Group counties by event set so we do not repeat the same advisory 4×.
     groups: dict[tuple[str, ...], list[str]] = {}
