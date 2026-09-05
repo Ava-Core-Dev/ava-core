@@ -1,6 +1,6 @@
 """
-Local clip engine — concatenates pre-recorded MP3 clips via ffmpeg.
-Ported from voice/report_speaker.py and voice/ara_grok_report.py.
+Local clip engine — concatenates pre-recorded clips via ffmpeg.
+Canonical output: WAV 44.1 kHz 16-bit PCM. Prefers .wav stems over .mp3.
 No API calls. Used for deterministic content (numbers, time, status phrases).
 """
 
@@ -57,7 +57,7 @@ def ffmpeg_bin() -> str | None:
 def _number_to_clips(n: int) -> list[str]:
     """
     Decompose integer n into clip filenames.
-    Prefers a direct clip file (e.g. '1000000.mp3') over decomposing into
+    Prefers a direct clip file (e.g. '1000000.wav') over decomposing into
     sub-words, so large number clips recorded by Ara play naturally.
     """
     if n < 0:
@@ -66,7 +66,7 @@ def _number_to_clips(n: int) -> list[str]:
         return ["0"]
 
     # If there's a direct clip for this exact number, use it
-    if (NUMBERS_DIR / f"{n}.mp3").exists():
+    if (NUMBERS_DIR / f"{n}.wav").exists() or (NUMBERS_DIR / f"{n}.mp3").exists():
         return [str(n)]
 
     clips: list[str] = []
@@ -99,8 +99,9 @@ def _number_to_clips(n: int) -> list[str]:
 
 
 def _find_clip(name: str) -> Path | None:
-    """Search numbers/ first so 1.mp3 is the digit, not a word collision.
+    """Search numbers/ first so 1.wav is the digit, not a word collision.
 
+    Prefers .wav over .mp3 when both exist (canonical desk format).
     Also checks words/nws/ (NWS All Hazards) and words/ecoflow/ (AC solar-gate
     pack) after flat words/ so existing weather/number clips keep priority and
     each pack stays a separable subtree.
@@ -116,7 +117,7 @@ def _find_clip(name: str) -> Path | None:
         ASSETS_DIR,
     )
     for directory in search_dirs:
-        for ext in (".mp3", ".wav"):
+        for ext in (".wav", ".mp3"):
             p = directory / (name + ext)
             if p.exists():
                 return p
