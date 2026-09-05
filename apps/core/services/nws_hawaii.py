@@ -291,7 +291,11 @@ def _event_to_clip(event: str) -> str | None:
 
 
 def build_clip_script(by_county: dict[str, list[str]]) -> str:
-    """Space-separated local clip tokens for NWS rollup (no cloud)."""
+    """Space-separated local clip tokens for NWS rollup (no cloud).
+
+    No silent pause clips — word files already carry tails, and concat adds a
+    short gap. Shared products are spoken once, then counties, not four times.
+    """
     from apps.voice.clips import _find_clip
     from apps.voice.local_tts import clock_tokens
 
@@ -301,15 +305,19 @@ def build_clip_script(by_county: dict[str, list[str]]) -> str:
     if lead:
         toks.append(lead)
     else:
-        toks += ["nws", "hawaii", "all_hazards", "update"]
-    toks += ["about"] + clock_tokens(now.hour, now.minute)
-    if _find_clip("comma_pause"):
-        toks.append("comma_pause")
+        for t in ("nws", "hawaii", "all_hazards", "update"):
+            if _find_clip(t):
+                toks.append(t)
+    if _find_clip("about"):
+        toks.append("about")
+    toks += clock_tokens(now.hour, now.minute)
 
-    any_active = False
+    # Group counties by event set so we do not repeat the same advisory 4×.
+    groups: dict[tuple[str, ...], list[str]] = {}
+    quiet: list[str] = []
     for c in COUNTIES:
         key = c["key"]
-        events = by_county.get(key) or []
+        events = [str(e) for e in (by_county.get(key) or [])]
         if key == "kalawao" and not events:
             continue
         county_clip = f"{key}_county"
@@ -318,35 +326,51 @@ def build_clip_script(by_county: dict[str, list[str]]) -> str:
                 county_clip = "kalawao"
             else:
                 continue
-        toks.append(county_clip)
-        if events:
-            any_active = True
-            for ev in events:
-                clip = _event_to_clip(str(ev))
+        if not events:
+            quiet.append(county_clip)
+            continue
+        sig = tuple(sorted(events))
+        groups.setdefault(sig, []).append(county_clip)
+
+    if not groups and quiet:
+        if _find_clip("no_active_watches_or_warnings"):
+            toks.append("no_active_watches_or_warnings")
+        elif _find_clip("no_active_warnings"):
+            toks.append("no_active_warnings")
+        elif _find_clip("no_alerts"):
+            toks.append("no_alerts")
+    else:
+        for sig, counties in groups.items():
+            for ev in sig:
+                clip = _event_to_clip(ev)
                 if clip:
                     toks.append(clip)
-        else:
-            if _find_clip("no_alerts"):
-                toks.append("no_alerts")
-            elif _find_clip("no_active_warnings"):
-                toks.append("no_active_warnings")
-        if _find_clip("comma_pause"):
-            toks.append("comma_pause")
+            if _find_clip("in_effect"):
+                toks.append("in_effect")
+            toks.extend(counties)
+        # Quiet counties only if some other county is active (skip all-quiet case above).
+        if groups and quiet:
+            for county_clip in quiet:
+                toks.append(county_clip)
+                if _find_clip("no_alerts"):
+                    toks.append("no_alerts")
 
-    if any_active and _find_clip("high_surf_advisory_in_effect"):
-        # Prefer whole phrase when the dominant product is high surf; else in_effect glue.
-        toks.append("high_surf_advisory_in_effect")
-    elif any_active and _find_clip("in_effect"):
-        toks.append("in_effect")
     if _find_clip("by_nws_honolulu"):
         toks.append("by_nws_honolulu")
-    return " ".join(toks)
+    # Drop consecutive dupes.
+    out: list[str] = []
+    for t in toks:
+        if out and out[-1] == t:
+            continue
+        out.append(t)
+    return " ".join(out)
 
 
 async def stitch_and_play_local(
     *,
     by_county: dict[str, list[str]],
     force_restitch: bool = False,
+    play: bool = True,
 ) -> dict[str, Any]:
     """Build/queue nws-hawaii-current.mp3 via local_tts. Never paid TTS."""
     from apps.voice.local_tts import speak_script
@@ -362,11 +386,32 @@ async def stitch_and_play_local(
         stitch["script"] = script
         if not stitch.get("ok"):
             return {"ok": False, "detail": "stitch_failed", "stitch": stitch}
+        # Keep public current copy in sync (tight stitch, no stale short file).
+        try:
+            import shutil
+
+            pub = Path(config.AUDIO_CURRENT_DIR) / "nws-hawaii-current.mp3"
+            pub.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(dest, pub)
+        except Exception:
+            pass
+        # Drop stale WAV so winsound reconverts from the new MP3 (no padded ghost).
+        try:
+            wav = dest.with_suffix(".wav")
+            if wav.is_file():
+                wav.unlink()
+        except Exception:
+            pass
     if not dest.is_file():
         return {"ok": False, "detail": "mp3_missing", "stitch": stitch}
-    play = await voice_events.play_report_mp3(
+    if not play:
+        return {"ok": True, "stitch": stitch, "play": {"ok": True, "skipped": True}, "mp3": str(dest)}
+    play_out = await voice_events.play_report_mp3(
         dest,
         name="nws_hawaii",
+        kind=None,
+    )
+    return {"ok": bool(play_out.get("ok")), "stitch": stitch, "play": play_out, "mp3": str(dest)}
         kind=None,
     )
     return {"ok": bool(play.get("ok")), "stitch": stitch, "play": play, "mp3": str(dest)}
