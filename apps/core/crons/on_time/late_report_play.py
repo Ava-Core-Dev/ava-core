@@ -23,7 +23,7 @@ async def run():
     play = await voice_events.play_report_mp3(
         mp3,
         current,
-        name="late_report",
+        name="status",
         kind="late",
     )
     log.info("late play=%s", play)

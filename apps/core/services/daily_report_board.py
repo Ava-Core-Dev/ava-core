@@ -395,7 +395,7 @@ async def run_due(
             play_out = await voice_events.play_report_mp3(
                 tts.get("current"),
                 tts.get("mp3"),
-                name=f"{kind}_report",
+                name="status",
                 kind=kind,
             )
             if play_out.get("ok") and play_out.get("mp3"):

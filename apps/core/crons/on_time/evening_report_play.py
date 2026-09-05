@@ -17,7 +17,7 @@ async def run():
     if current.is_file() and current.stat().st_size > 0:
         play = await voice_events.play_report_mp3(
             current,
-            name="evening_report",
+            name="status",
             kind="evening",
         )
     else:

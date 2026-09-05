@@ -17,11 +17,11 @@ async def run():
     boot_cur = config.GENERATED_DIR / "midday-boot-current.mp3"
     if current.is_file() and current.stat().st_size > 0:
         play = await voice_events.play_report_mp3(
-            current, boot_cur, name="midday_report", kind="midday"
+            current, boot_cur, name="status", kind="midday"
         )
     elif boot_cur.is_file() and boot_cur.stat().st_size > 0:
         play = await voice_events.play_report_mp3(
-            boot_cur, name="midday_report", kind="midday"
+            boot_cur, name="status", kind="midday"
         )
     else:
         play = await report_audio_manual.play_scheduled("midday")

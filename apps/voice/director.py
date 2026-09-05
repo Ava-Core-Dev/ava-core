@@ -345,7 +345,7 @@ def kill_stray_music_players(
     spare: set[int] = set(keep_pids or ())
     if keep_pid is not None:
         spare.add(int(keep_pid))
-    deadline = time.monotonic() + 8.0
+    deadline = time.monotonic() + 3.0
 
     if os.name == "nt":
         ps = shutil.which("powershell") or shutil.which("pwsh") or "powershell"
@@ -370,7 +370,7 @@ def kill_stray_music_players(
                 ],
                 capture_output=True,
                 text=True,
-                timeout=8,
+                timeout=2,
                 creationflags=CREATE_NO_WINDOW,
             )
         except Exception:
@@ -391,7 +391,7 @@ def kill_stray_music_players(
                 subprocess.run(
                     ["taskkill", "/PID", str(pid), "/F"],
                     capture_output=True,
-                    timeout=3,
+                    timeout=2,
                     creationflags=CREATE_NO_WINDOW,
                 )
                 killed += 1
@@ -1058,14 +1058,15 @@ class StreamDirector:
                 self._music_index = i
                 if not self._music_enabled or not self._running:
                     return
+                was_held = False
                 while self._music_bed_held():
+                    was_held = True
                     continue_existing = False
                     await asyncio.sleep(0.1)
                     if not self._music_enabled or not self._running:
                         return
-                # Cold start / first track after hold cleared at loop top.
-                if not continue_existing:
-                    await asyncio.sleep(0.05)
+                if was_held:
+                    await asyncio.sleep(MUSIC_RESUME_AFTER_VOICE_S)
                 if not path.is_file():
                     continue_existing = False
                     i += 1

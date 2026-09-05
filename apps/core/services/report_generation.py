@@ -1294,39 +1294,115 @@ generate_report = generate
 
 
 _MULTIWORD_PHRASES = (
+    "hawaii_pacific_solar_root_server",
+    "hawaiian_standard_time",
+    "here_are_the_local_solar_and_system_statistics",
+    "phrase_all_systems_running",
+    "phrase_overnight_relay",
+    "phrase_system_performance",
+    "phrase_device_startup",
+    "phrase_server_offline",
+    "phrase_server_online",
+    "phrase_net_down",
+    "phrase_net_up",
+    "state_of_charge",
+    "miles_per_hour",
+    "km_per_hour",
+    "not_erupting",
+    "partly_cloudy",
+    "mostly_cloudy",
+    "scattered_showers",
+    "isolated_showers",
+    "trade_winds",
+    "wind_advisory",
     "end_of_status",
+    "already_landed",
     "root_record",
+    "root_server",
     "ava_core",
     "ava_ivy",
-    "hawaiian_standard_time",
-    "already_landed",
-    "hawaii_pacific_solar_root_server",
-    "root_server",
     "this_is",
-    "partly_cloudy",
-    "state_of_charge",
+    "npu_load",
+    "i_gpu_load",
 )
 
+# Map prose leftovers → existing clip stems (skip if None).
+_WORD_ALIASES: dict[str, str | None] = {
+    "hawaiian": "hawaiian_standard_time",
+    "standard": None,  # covered by hawaiian_standard_time
+    "time": None,
+    "hst": "hawaiian_standard_time",
+    "overnight": "night",
+    "summary": "status",
+    "health": "status",
+    "brain": "system",
+    "device": "system",
+    "models": "system",
+    "boot": "system",
+    "restore": "update",
+    "restored": "update",
+    "gap": "hours",
+    "mph": "miles_per_hour",
+    "capacity": "battery",
+    "packs": "battery",
+    "pack": "battery",
+    "net": "online",
+    "gate": None,
+    "county": None,
+    "sample": None,
+    "true": None,
+    "false": None,
+    "paid": None,
+    "chat": "voice",
+    "site": None,
+    "warm": None,
+    "sun": "solar",
+    "keep": None,
+    "after": None,
+    "klauea": "kilauea",
+    "rootrecord": "root_record",
+    "avaivy": "ava_core",
+    "reaches": None,
+    "open": None,
+    "mode": None,
+    "clip": "voice",
+    "fresh": None,
+    "weighted": None,
+    "h": "hours",
+    "ondevice": "system",
+    "ondemand": None,
+}
 
-def text_to_clip_tokens(text: str, *, max_tokens: int = 120) -> str:
+
+def text_to_clip_tokens(text: str, *, max_tokens: int = 180) -> str:
     """Map scrubbed report prose → space-separated local clip stems."""
     from apps.voice.clips import _find_clip
 
     raw = (text or "").lower()
     raw = re.sub(r"[^\w\sʻ'`\-]", " ", raw)
     raw = raw.replace("ʻ", "").replace("'", "")
-    # Prefer known multiword stems.
-    for phrase in _MULTIWORD_PHRASES:
+    raw = raw.replace("on-device", " system ").replace("on device", " system ")
+    # Prefer known multiword stems (longest first).
+    for phrase in sorted(_MULTIWORD_PHRASES, key=len, reverse=True):
         spaced = phrase.replace("_", " ")
         if spaced in raw:
             raw = raw.replace(spaced, f" {phrase} ")
+        if phrase in raw and f" {phrase} " not in f" {raw} ":
+            raw = raw.replace(phrase, f" {phrase} ")
     raw = raw.replace("kīlauea", "kilauea").replace("kilauea", "kilauea")
     bits: list[str] = []
     for tok in raw.split():
         clean = re.sub(r"[^a-z0-9_]", "", tok)
         if not clean:
             continue
+        if clean in _WORD_ALIASES:
+            mapped = _WORD_ALIASES[clean]
+            if not mapped:
+                continue
+            clean = mapped
         if _find_clip(clean):
+            if bits and bits[-1] == clean:
+                continue
             bits.append(clean)
             if len(bits) >= max_tokens:
                 break
@@ -1344,26 +1420,16 @@ def _kind_identity_script(kind: str) -> str:
 
     now = datetime.now(HST)
     bits: list[str] = []
-    for tok in ("this_is", "this", "is", "the", "ava_core", "ava", "core", "root_record", "status", "for"):
-        if _find_clip(tok) or tok.isdigit():
-            if tok in {"this", "is"} and "this_is" in bits:
-                continue
-            bits.append(tok)
-            if tok == "this_is":
-                break
-    bits += [t for t in date_tokens(now) if _find_clip(t) or t.isdigit()]
-    bits.append("about")
-    bits += [t for t in clock_tokens(now.hour, now.minute)]
-    kind_tok = {
-        "morning": "morning",
-        "midday": "midday",
-        "evening": "evening",
-        "late": "late",
-    }.get(kind, "report")
-    for tok in (kind_tok, "report", "end_of_status", "end"):
+    # Desk/spoken name is status — not "morning report" for catch-up or latest file.
+    for tok in ("this_is", "ava_core", "root_record", "status"):
         if _find_clip(tok):
             bits.append(tok)
-    # Dedupe consecutive.
+    bits += [t for t in date_tokens(now) if _find_clip(t) or t.isdigit()]
+    if _find_clip("about"):
+        bits.append("about")
+    bits += [t for t in clock_tokens(now.hour, now.minute)]
+    if _find_clip("end_of_status"):
+        bits.append("end_of_status")
     out: list[str] = []
     for b in bits:
         if out and out[-1] == b:

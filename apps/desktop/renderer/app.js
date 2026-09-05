@@ -2917,16 +2917,13 @@ function paintAudioNow(st) {
   } else {
     lines.push(`<div class="audio-line muted">Voice director idle</div>`);
   }
-  if (music.track) {
-    const state = music.playing
-      ? "playing"
-      : music.held
-        ? "held"
-        : "listed";
+  if (music.track && music.playing) {
     lines.push(
       `<div class="audio-line" style="margin-top:0.45rem">Bed · <span class="audio-name">${escapeHtml(music.track)}</span>` +
-        `<span class="audio-pill ${music.playing ? "on" : music.held ? "warn" : ""}">${state}</span></div>`,
+        `<span class="audio-pill on">playing</span></div>`,
     );
+  } else if (music.held) {
+    lines.push(`<div class="audio-line muted" style="margin-top:0.35rem">Bed held for voice</div>`);
   } else {
     lines.push(`<div class="audio-line muted" style="margin-top:0.35rem">No bed track</div>`);
   }
@@ -2982,10 +2979,11 @@ function paintAudioBed(st) {
   if (m.operator_paused) pills.push(`<span class="audio-pill warn">operator pause</span>`);
   else if (m.hold) pills.push(`<span class="audio-pill warn">voice hold</span>`);
   if (m.single_bed) pills.push(`<span class="audio-pill on">single bed</span>`);
+  const nowTrack = m.current && m.player_pid != null ? m.current : "—";
   const pid = m.player_pid != null ? `pid ${m.player_pid}` : "no player";
   host.innerHTML = `
     <div class="audio-line">${pills.join(" ")}</div>
-    <div class="audio-line">Now · <span class="audio-name">${escapeHtml(m.current || "—")}</span></div>
+    <div class="audio-line">Now · <span class="audio-name">${escapeHtml(nowTrack)}</span></div>
     <div class="audio-line">Next · ${escapeHtml(m.next || "—")}</div>
     <div class="muted">${escapeHtml(String(m.tracks ?? 0))} tracks · ${escapeHtml(pid)}</div>
     <div class="muted">${escapeHtml(m.dir || "")}</div>

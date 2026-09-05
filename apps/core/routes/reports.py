@@ -227,7 +227,7 @@ async def report_generation_run(body: ReportGenRunIn, request: Request):
         out["play"] = await voice_events.play_report_mp3(
             tts.get("current"),
             tts.get("mp3"),
-            name=f"{body.kind}_report",
+            name="status",
             kind=str(body.kind or "report"),
         )
     return out
@@ -250,7 +250,7 @@ async def report_generation_play_mp3(body: ReportPlayIn, request: Request):
     return await voice_events.play_report_mp3(
         body.mp3,
         config.GENERATED_DIR / f"{kind}-report-current.mp3",
-        name=f"{kind}_report",
+        name="status",
         kind=kind,
     )
 
