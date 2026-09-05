@@ -438,6 +438,8 @@ async def stitch_and_play_local(
     by_county: dict[str, list[str]],
     force_restitch: bool = False,
     play: bool = True,
+    as_of: datetime | None = None,
+    alerts: list[dict] | None = None,
 ) -> dict[str, Any]:
     """Build/queue nws-hawaii-current.wav via local_tts. Never paid TTS."""
     from apps.voice.local_tts import speak_script
@@ -453,8 +455,9 @@ async def stitch_and_play_local(
     )
     stitch: dict[str, Any] = {"ok": True, "skipped_stitch": not need}
     if need:
-        script = build_clip_script(by_county)
-        stitch = speak_script(script, dest)
+        script = build_clip_script(by_county, as_of=as_of, alerts=alerts)
+        # Tight concat — clip tails already leave space; 50ms gaps sound choppy.
+        stitch = speak_script(script, dest, silence_ms=0)
         stitch["script"] = script
         if not stitch.get("ok"):
             return {"ok": False, "detail": "stitch_failed", "stitch": stitch}
@@ -505,12 +508,20 @@ async def refresh(
     force_speak: bool = False,
     speak_on_change: bool = True,
 ) -> dict[str, Any]:
-    """Poll API, update state, write reports. Speak text on boot or product change."""
+    """Poll API, update state, write reports. Speak only after a verified pull.
+
+    Boot / change announce rules:
+    - API must succeed this call (no announce from disk-only stale state).
+    - Clock spoken = newest CAP `sent`, never wall-clock now.
+    - Boot speaks only when hash is new vs last_spoken_hash (or force).
+    - last_spoken_* updates only after a successful restitch+play.
+    """
     prev = load_state()
     alerts, source = await fetch_alerts()
     api_ok = source == "api.weather.gov"
     if not api_ok:
         # Smallest ship: record failure; scrape left for a later Grok path.
+        # Do NOT announce — would replay stale warnings with a fake “now” clock.
         out = {
             "ok": False,
             "source": source,
@@ -519,6 +530,8 @@ async def refresh(
             "reason": reason,
             "alerts": [],
             "changed": False,
+            "pull_verified": False,
+            "spoken": None,
         }
         prev.update(
             {
@@ -527,35 +540,46 @@ async def refresh(
                 "scrape_needed": True,
                 "last_poll_at": datetime.now(timezone.utc).isoformat(),
                 "last_poll_reason": reason,
+                "pull_verified": False,
             }
         )
         save_state(prev)
+        log.warning("NWS Hawaii pull failed source=%s — no announce", source)
         return out
 
     by_county = _by_county(alerts)
     fp = fingerprint(alerts)
     changed = fp != str(prev.get("hash") or "")
+    as_of = product_as_of(alerts)
     # Boot: announce only if this hash was never spoken (or forced). Do not
     # re-speak the same advisory on every origin recycle.
     boot_needs = reason == "boot" and (
         force_speak or str(prev.get("last_spoken_hash") or "") != fp
     )
     should_speak = bool(force_speak or (speak_on_change and changed) or boot_needs)
-    spoken = build_spoken(by_county, reason="boot" if reason == "boot" else "update")
+    spoken = build_spoken(
+        by_county,
+        reason="boot" if reason == "boot" else "update",
+        as_of=as_of,
+        alerts=alerts,
+    )
     paths = write_reports(
         alerts=alerts,
         by_county=by_county,
         spoken=spoken,
         source=source,
         changed=changed,
+        as_of=as_of,
     )
 
     now_iso = datetime.now(timezone.utc).isoformat()
     now_hst = datetime.now(HST).isoformat()
+    as_of_iso = as_of.isoformat() if as_of is not None else None
     state = {
         "ok": True,
         "source": source,
         "scrape_needed": False,
+        "pull_verified": True,
         "hash": fp,
         "alert_count": len(alerts),
         "by_county": by_county,
@@ -570,56 +594,102 @@ async def refresh(
             for a in alerts
         ],
         "spoken": spoken,
+        "product_as_of": as_of_iso,
         "last_poll_at": now_iso,
         "last_poll_hst": now_hst,
         "last_poll_reason": reason,
         "last_changed_at": now_iso if changed else prev.get("last_changed_at"),
-        "last_spoken_at": now_iso if should_speak else prev.get("last_spoken_at"),
-        "last_spoken_reason": reason if should_speak else prev.get("last_spoken_reason"),
-        "last_spoken_hash": fp if should_speak else prev.get("last_spoken_hash"),
+        # Keep prior spoken markers until announce succeeds.
+        "last_spoken_at": prev.get("last_spoken_at"),
+        "last_spoken_reason": prev.get("last_spoken_reason"),
+        "last_spoken_hash": prev.get("last_spoken_hash"),
         "reports": paths,
     }
     save_state(state)
 
     # Restitch when products change; play only when announcing (not every 15m poll).
+    # Speaking requires a fresh restitch after this verified pull — never play a
+    # leftover wav from a prior clock/script.
     play_out: dict[str, Any] | None = None
-    try:
-        play_out = await stitch_and_play_local(
-            by_county=by_county,
-            force_restitch=bool(changed or force_speak or should_speak),
-            play=should_speak,
-        )
-    except Exception as e:
-        log.warning("NWS local stitch/play failed: %s", e)
-        play_out = {"ok": False, "detail": str(e)[:160]}
-
-    if should_speak and (changed or force_speak or reason == "boot"):
+    if should_speak:
         try:
-            from apps.core.services import reports
-
-            reports.queue_public_draft(
-                "weather",
-                spoken,
-                source=f"nws_hawaii_{reason}",
+            play_out = await stitch_and_play_local(
+                by_county=by_county,
+                force_restitch=True,
+                play=True,
+                as_of=as_of,
+                alerts=alerts,
             )
         except Exception as e:
-            log.debug("NWS county draft queue skipped: %s", e)
+            log.warning("NWS local stitch/play failed: %s", e)
+            play_out = {"ok": False, "detail": str(e)[:160]}
+        announced = bool(play_out and play_out.get("ok") and play_out.get("stitch", {}).get("ok", True))
+        if announced and play_out.get("detail") == "stitch_failed":
+            announced = False
+        if announced and not (play_out.get("stitch") or {}).get("ok", True):
+            announced = False
+        # stitch skipped shouldn't happen with force_restitch; treat missing ok as fail
+        stitch_ok = (play_out or {}).get("stitch", {})
+        if isinstance(stitch_ok, dict) and stitch_ok.get("ok") is False:
+            announced = False
+        play_ok = bool((play_out or {}).get("play", {}).get("ok")) if play_out else False
+        # play_report_mp3 ok lives at top-level ok
+        announced = bool(play_out and play_out.get("ok"))
+        if announced:
+            state["last_spoken_at"] = now_iso
+            state["last_spoken_reason"] = reason
+            state["last_spoken_hash"] = fp
+            state["last_spoken_product_as_of"] = as_of_iso
+            save_state(state)
+            try:
+                from apps.core.services import reports
+
+                reports.queue_public_draft(
+                    "weather",
+                    spoken,
+                    source=f"nws_hawaii_{reason}",
+                )
+            except Exception as e:
+                log.debug("NWS county draft queue skipped: %s", e)
+        else:
+            log.warning(
+                "NWS Hawaii verified pull but announce failed — not marking spoken hash reason=%s play=%s",
+                reason,
+                play_out,
+            )
+    else:
+        # Still refresh the on-disk wav when products changed (no play).
+        if changed:
+            try:
+                play_out = await stitch_and_play_local(
+                    by_county=by_county,
+                    force_restitch=True,
+                    play=False,
+                    as_of=as_of,
+                    alerts=alerts,
+                )
+            except Exception as e:
+                log.warning("NWS restitch (no play) failed: %s", e)
+                play_out = {"ok": False, "detail": str(e)[:160]}
 
     log.info(
-        "NWS Hawaii counties source=%s alerts=%d changed=%s speak=%s reason=%s play=%s",
+        "NWS Hawaii counties source=%s alerts=%d changed=%s speak=%s reason=%s as_of=%s play=%s",
         source,
         len(alerts),
         changed,
         should_speak,
         reason,
+        as_of_iso,
         (play_out or {}).get("ok"),
     )
     return {
         "ok": True,
         "source": source,
+        "pull_verified": True,
         "alerts": len(alerts),
         "changed": changed,
-        "spoken": spoken if should_speak else None,
+        "product_as_of": as_of_iso,
+        "spoken": spoken if should_speak and (play_out or {}).get("ok") else None,
         "spoken_always": spoken,
         "by_county": by_county,
         "hash": fp,
