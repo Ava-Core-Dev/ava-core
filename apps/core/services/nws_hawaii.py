@@ -563,6 +563,8 @@ async def refresh(
         as_of=as_of,
         alerts=alerts,
     )
+    clip_script = build_clip_script(by_county, as_of=as_of, alerts=alerts)
+    script_changed = clip_script != str(prev.get("last_stitch_script") or "")
     paths = write_reports(
         alerts=alerts,
         by_county=by_county,
@@ -603,14 +605,15 @@ async def refresh(
         "last_spoken_at": prev.get("last_spoken_at"),
         "last_spoken_reason": prev.get("last_spoken_reason"),
         "last_spoken_hash": prev.get("last_spoken_hash"),
+        "last_stitch_script": prev.get("last_stitch_script"),
         "reports": paths,
     }
     save_state(state)
 
-    # Restitch when products change; play only when announcing (not every 15m poll).
-    # Speaking requires a fresh restitch after this verified pull — never play a
-    # leftover wav from a prior clock/script.
+    # Restitch on product change, announce, OR clip-script change (e.g. clock
+    # wording fix while CAP hash unchanged). Play only when announcing.
     play_out: dict[str, Any] | None = None
+    need_restitch = bool(should_speak or changed or script_changed or force_speak)
     if should_speak:
         try:
             play_out = await stitch_and_play_local(
@@ -632,6 +635,7 @@ async def refresh(
             state["last_spoken_reason"] = reason
             state["last_spoken_hash"] = fp
             state["last_spoken_product_as_of"] = as_of_iso
+            state["last_stitch_script"] = clip_script
             save_state(state)
             try:
                 from apps.core.services import reports
@@ -649,20 +653,21 @@ async def refresh(
                 reason,
                 play_out,
             )
-    else:
-        # Still refresh the on-disk wav when products changed (no play).
-        if changed:
-            try:
-                play_out = await stitch_and_play_local(
-                    by_county=by_county,
-                    force_restitch=True,
-                    play=False,
-                    as_of=as_of,
-                    alerts=alerts,
-                )
-            except Exception as e:
-                log.warning("NWS restitch (no play) failed: %s", e)
-                play_out = {"ok": False, "detail": str(e)[:160]}
+    elif need_restitch:
+        try:
+            play_out = await stitch_and_play_local(
+                by_county=by_county,
+                force_restitch=True,
+                play=False,
+                as_of=as_of,
+                alerts=alerts,
+            )
+            if play_out and play_out.get("ok"):
+                state["last_stitch_script"] = clip_script
+                save_state(state)
+        except Exception as e:
+            log.warning("NWS restitch (no play) failed: %s", e)
+            play_out = {"ok": False, "detail": str(e)[:160]}
 
     log.info(
         "NWS Hawaii counties source=%s alerts=%d changed=%s speak=%s reason=%s as_of=%s play=%s",
