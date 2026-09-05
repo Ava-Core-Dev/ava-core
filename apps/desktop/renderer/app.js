@@ -67,7 +67,46 @@ document.querySelectorAll(".tab").forEach((btn) => {
       refreshGovernance();
       refreshLedger();
     }
+    if (btn.dataset.page === "clear") syncPurgeButton();
   });
+});
+
+function syncPurgeButton() {
+  const btn = $("purge-big-red");
+  const box = $("purge-confirm");
+  if (!btn || !box) return;
+  btn.disabled = !box.checked || btn.dataset.busy === "1";
+}
+
+$("purge-confirm")?.addEventListener("change", () => syncPurgeButton());
+
+$("purge-big-red")?.addEventListener("click", async () => {
+  const btn = $("purge-big-red");
+  const st = $("purge-status");
+  const box = $("purge-confirm");
+  if (!btn || !box?.checked || !window.avaDesktop?.operatorPurge) return;
+  if (btn.dataset.busy === "1") return;
+  btn.dataset.busy = "1";
+  btn.disabled = true;
+  btn.textContent = "Ending…";
+  if (st) {
+    st.textContent =
+      "Writing purge flag, disabling Ava Task Scheduler jobs, stopping processes…";
+  }
+  try {
+    const res = await window.avaDesktop.operatorPurge();
+    if (st) {
+      const killed = Array.isArray(res?.killed) ? res.killed.length : 0;
+      st.textContent = res?.ok
+        ? `Done. Killed ${killed} process group(s). Desk is closing.\nResume: ${res.resume || "pythonw windows\\\\operator_purge.py --clear"}`
+        : `Purge reported a problem: ${res?.detail || "unknown"}\n${JSON.stringify(res, null, 2).slice(0, 1200)}`;
+    }
+  } catch (err) {
+    if (st) st.textContent = `Purge failed: ${err?.message || err}`;
+    btn.dataset.busy = "0";
+    btn.textContent = "End everything";
+    syncPurgeButton();
+  }
 });
 
 function paintDeskLifecycleStatus(payload) {
