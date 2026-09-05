@@ -145,6 +145,81 @@ let lastDeskPage = "terminal";
 
 const DESK_ROOT = deskAvaRoot();
 
+function runOperatorPurgeScript(args = []) {
+  const python =
+    [
+      path.join(DESK_ROOT, ".venv", "Scripts", "python.exe"),
+      path.join(DESK_ROOT, ".venv", "Scripts", "pythonw.exe"),
+    ].find((p) => fs.existsSync(p)) || "python";
+  const script = path.join(DESK_ROOT, "windows", "operator_purge.py");
+  return new Promise((resolve) => {
+    let out = "";
+    let err = "";
+    let settled = false;
+    const finish = (payload) => {
+      if (settled) return;
+      settled = true;
+      resolve(payload);
+    };
+    try {
+      const child = spawn(python, [script, ...args], {
+        cwd: DESK_ROOT,
+        env: { ...process.env, AVA_HOME: DESK_ROOT },
+        windowsHide: true,
+      });
+      const timer = setTimeout(() => {
+        try {
+          child.kill();
+        } catch {
+          /* ignore */
+        }
+        finish({ ok: false, detail: "purge_timeout" });
+      }, 45000);
+      child.stdout?.on("data", (chunk) => {
+        out += String(chunk);
+      });
+      child.stderr?.on("data", (chunk) => {
+        err += String(chunk);
+      });
+      child.on("error", (e) => {
+        clearTimeout(timer);
+        finish({ ok: false, detail: e?.message || String(e) });
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        let parsed = null;
+        try {
+          const start = out.indexOf("{");
+          const end = out.lastIndexOf("}");
+          if (start >= 0 && end > start) {
+            parsed = JSON.parse(out.slice(start, end + 1));
+          }
+        } catch {
+          parsed = null;
+        }
+        if (parsed && typeof parsed === "object") {
+          finish(parsed);
+          return;
+        }
+        finish({
+          ok: code === 0,
+          detail: code === 0 ? "ok" : `exit_${code}`,
+          raw: (out || err || "").slice(0, 800),
+        });
+      });
+    } catch (e) {
+      finish({ ok: false, detail: e?.message || String(e) });
+    }
+  });
+}
+
+/** Opening Desk again clears sticky purge and brings Ava tasks/origin back. */
+async function clearOperatorPurgeOnOpen() {
+  const status = await runOperatorPurgeScript(["--status", "--json"]);
+  if (!status?.active) return { ok: true, cleared: false };
+  return runOperatorPurgeScript(["--clear", "--json"]);
+}
+
 function nodeBin() {
   const home = os.homedir();
   const candidates = [
@@ -388,6 +463,14 @@ if (!app.requestSingleInstanceLock()) {
 app.whenReady().then(async () => {
   if (!app.hasSingleInstanceLock()) return;
   deskCloseHandled = false;
+  // Reopening Desk undoes Clear desk purge (tasks + origin) — no manual --clear.
+  if (!operatorPurgeRunning) {
+    try {
+      await clearOperatorPurgeOnOpen();
+    } catch (err) {
+      console.error("operator purge clear-on-open failed:", err?.message || err);
+    }
+  }
   // Start Ava Core + Voice with the GUI. Closing the window does not stop origin.
   try {
     await startAvaSession();
@@ -406,12 +489,16 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       deskCloseHandled = false;
-      startAvaSession().finally(() => {
-        createWindow();
-        setTimeout(() => {
-          restoreDeskSession().catch(() => {});
-        }, 1500);
-      });
+      clearOperatorPurgeOnOpen()
+        .catch(() => {})
+        .finally(() => {
+          startAvaSession().finally(() => {
+            createWindow();
+            setTimeout(() => {
+              restoreDeskSession().catch(() => {});
+            }, 1500);
+          });
+        });
     }
   });
   loadDesktopEnv()
@@ -1045,75 +1132,7 @@ ipcMain.handle("ava:morning-report-check", async () =>
 ipcMain.handle("ava:operator-purge", async () => {
   operatorPurgeRunning = true;
   deskCloseHandled = true;
-  const python =
-    [
-      path.join(DESK_ROOT, ".venv", "Scripts", "python.exe"),
-      path.join(DESK_ROOT, ".venv", "Scripts", "pythonw.exe"),
-    ].find((p) => fs.existsSync(p)) || "python";
-  const script = path.join(DESK_ROOT, "windows", "operator_purge.py");
-  const result = await new Promise((resolve) => {
-    let out = "";
-    let err = "";
-    let settled = false;
-    const finish = (payload) => {
-      if (settled) return;
-      settled = true;
-      resolve(payload);
-    };
-    try {
-      const child = spawn(python, [script, "--json"], {
-        cwd: DESK_ROOT,
-        env: { ...process.env, AVA_HOME: DESK_ROOT },
-        windowsHide: true,
-      });
-      const timer = setTimeout(() => {
-        try {
-          child.kill();
-        } catch {
-          /* ignore */
-        }
-        finish({
-          ok: false,
-          detail: "purge_timeout",
-          note: "Flag/tasks may still be set — check data/logs/operator-purge.log",
-        });
-      }, 45000);
-      child.stdout?.on("data", (chunk) => {
-        out += String(chunk);
-      });
-      child.stderr?.on("data", (chunk) => {
-        err += String(chunk);
-      });
-      child.on("error", (e) => {
-        clearTimeout(timer);
-        finish({ ok: false, detail: e?.message || String(e) });
-      });
-      child.on("close", (code) => {
-        clearTimeout(timer);
-        let parsed = null;
-        try {
-          const start = out.indexOf("{");
-          const end = out.lastIndexOf("}");
-          if (start >= 0 && end > start) {
-            parsed = JSON.parse(out.slice(start, end + 1));
-          }
-        } catch {
-          parsed = null;
-        }
-        if (parsed && typeof parsed === "object") {
-          finish(parsed);
-          return;
-        }
-        finish({
-          ok: code === 0,
-          detail: code === 0 ? "purged" : `exit_${code}`,
-          raw: (out || err || "").slice(0, 800),
-        });
-      });
-    } catch (e) {
-      finish({ ok: false, detail: e?.message || String(e) });
-    }
-  });
+  const result = await runOperatorPurgeScript(["--json"]);
 
   // Hard exit after purge (music/origin already stopped). Delay so renderer can show status.
   setTimeout(() => {

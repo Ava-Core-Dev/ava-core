@@ -98,7 +98,7 @@ $("purge-big-red")?.addEventListener("click", async () => {
     if (st) {
       const killed = Array.isArray(res?.killed) ? res.killed.length : 0;
       st.textContent = res?.ok
-        ? `Done. Killed ${killed} process group(s). Desk is closing.\nResume: ${res.resume || "pythonw windows\\\\operator_purge.py --clear"}`
+        ? `Done. Killed ${killed} process group(s). Desk is closing.\nOpen Ava Desk again when you want Ava back.`
         : `Purge reported a problem: ${res?.detail || "unknown"}\n${JSON.stringify(res, null, 2).slice(0, 1200)}`;
     }
   } catch (err) {
