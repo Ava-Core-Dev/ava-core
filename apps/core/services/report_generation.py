@@ -627,6 +627,14 @@ def _kind_operator_facts(kind: str) -> str:
             from apps.core.services import boot_report
 
             return boot_report.build_facts(source="report_generation_grok")
+        if kind == "kilauea":
+            notice = config.DATA_DIR / "state" / "kilauea-notice-facts.txt"
+            if notice.is_file():
+                return notice.read_text(encoding="utf-8")[:6000]
+            sit = config.DATA_DIR / "state" / "kilauea-situation.json"
+            if sit.is_file():
+                return sit.read_text(encoding="utf-8")[:4000]
+            return "Kīlauea notice facts not live."
     except Exception as e:
         log.warning("%s operator facts failed: %s", kind, e)
         return f"[operator facts unavailable: {type(e).__name__}]"
