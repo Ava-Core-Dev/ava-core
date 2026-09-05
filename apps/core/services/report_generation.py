@@ -890,6 +890,8 @@ def _persona_lock(kind: str) -> str:
         "No Aloha. Never invent watts, balances, membership, or player counts. "
         "If FACTS has no measured RootMC players integer, say players are not live — "
         "never say zero / no online players / invent a number. "
+        "Never invent storm names, categories, distances, or wind speeds — "
+        "only repeat what FACTS already states. If a hazard is not in FACTS, omit it. "
         "Off-grid only — never advise wall power. "
         "Kīlauea advisory ≠ erupting. Short sentences. OUTPUT ONLY the report text."
     )
@@ -1034,6 +1036,7 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
             f"{stamp_note}\n\n"
             "Use ONLY measured facts from the pages/blocks below. Do not invent.\n"
             f"{players_rule}\n"
+            "Storms/hazards: only name what FACTS lists. Do not invent Category, nm, or mph.\n"
             "Broken / needs work, Already landed, and Priority ARE in the FACTS — "
             "do not say you do not have them live.\n"
             "Never name third-party vendors or engines in the report text.\n\n"
