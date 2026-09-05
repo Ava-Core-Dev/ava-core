@@ -17,10 +17,24 @@ from .. import config
 
 router = APIRouter(prefix="/obs")
 api_router = APIRouter(prefix="/api/obs")
+from apps.core.services.obs_presence import obs_process_running
+
 log = logging.getLogger("ava.obs")
 
 # Shared event queue — audio events broadcast to all SSE listeners
 _listeners: list[asyncio.Queue] = []
+
+_IDLE_OBS_HTML = (
+    "<!DOCTYPE html><html><body style='margin:0;background:transparent'>"
+    "<script>/* OBS closed — overlay idle */</script></body></html>"
+)
+
+
+def _obs_browser(html: str) -> HTMLResponse:
+    """OBS Browser Source pages stay dark when OBS is not open."""
+    if not obs_process_running():
+        return HTMLResponse(_IDLE_OBS_HTML)
+    return HTMLResponse(html)
 
 
 def broadcast_audio_event(event: dict):

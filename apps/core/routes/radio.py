@@ -113,8 +113,7 @@ async function wake() {{
       location.replace('/radio/listen');
       return;
     }}
-    hint.textContent = j.on_air ? 'On air' : 'Station idle — Desk can flip On air';
-    if (j.on_air) location.replace('/radio/listen');
+    hint.textContent = 'Station idle — open Ava Desk → Radio → On air';
   }} catch (e) {{
     hint.textContent = 'Origin quiet — try again in a moment';
   }}
@@ -180,10 +179,7 @@ es.addEventListener('message', e => {
 @router.get("/radio", response_class=HTMLResponse)
 async def radio_home():
     st = radio_svc.status()
-    if st.get("on_air") or st.get("serving_public"):
-        # Still show wake briefly then player — Banished first paint when cold
-        if not st.get("on_air") and st.get("visitor_awake"):
-            return HTMLResponse(_banished_html())
+    if st.get("on_air"):
         return HTMLResponse(_player_html())
     return HTMLResponse(_banished_html())
 
@@ -191,7 +187,7 @@ async def radio_home():
 @router.get("/radio/listen", response_class=HTMLResponse)
 async def radio_listen():
     st = radio_svc.status()
-    if not (st.get("on_air") or st.get("serving_public")):
+    if not st.get("on_air"):
         return HTMLResponse(_banished_html())
     return HTMLResponse(_player_html())
 
@@ -199,7 +195,7 @@ async def radio_listen():
 @router.get("/radio/events")
 async def radio_events(request: Request):
     st = radio_svc.status()
-    if not (st.get("on_air") or st.get("local_playback") or st.get("serving_public")):
+    if not (st.get("on_air") or st.get("local_playback")):
         return Response(status_code=204)
 
     q: asyncio.Queue = asyncio.Queue(maxsize=32)
@@ -212,7 +208,7 @@ async def radio_events(request: Request):
                 if await request.is_disconnected():
                     break
                 st2 = radio_svc.load()
-                if not (st2.get("on_air") or st2.get("local_playback") or radio_svc.visitor_awake()):
+                if not (st2.get("on_air") or st2.get("local_playback")):
                     break
                 try:
                     msg = await asyncio.wait_for(q.get(), timeout=25)

@@ -90,9 +90,8 @@ def visitor_awake() -> bool:
 
 
 def serving_public() -> bool:
-    """Public player may stream program (on air, or brief wake window)."""
-    st = load()
-    return bool(st.get("on_air")) or visitor_awake()
+    """Public program stream only when intentionally on air."""
+    return bool(load().get("on_air"))
 
 
 def tool_status() -> dict[str, Any]:
@@ -131,8 +130,9 @@ def status() -> dict[str, Any]:
         "visitor_awake": visitor_awake(),
         "serving_public": serving_public(),
         "tools": tools,
-        "listen_local": f"http://127.0.0.1:{config.AVA_PORT}/radio",
+        "listen_local": f"http://127.0.0.1:{config.AVA_PORT}/radio/listen",
         "events_local": f"http://127.0.0.1:{config.AVA_PORT}/radio/events",
+        "wake_page": f"http://127.0.0.1:{config.AVA_PORT}/radio",
     }
 
 

@@ -290,6 +290,7 @@ for _route in (
     "review",
     "vercel_builds",
     "site_backgrounds",
+    "radio",
 ):
     try:
         _mod = importlib.import_module(f".routes.{_route}", __package__)

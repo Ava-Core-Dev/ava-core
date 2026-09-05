@@ -1625,6 +1625,12 @@ class StreamDirector:
             broadcast_audio_event(item.to_sse())
         except Exception:
             pass
+        try:
+            from apps.core.services import radio as radio_svc
+
+            radio_svc.broadcast_program_event(item.to_sse())
+        except Exception:
+            pass
 
     def register_listener(self, q: asyncio.Queue) -> None:
         self._sse_listeners.append(q)
