@@ -270,7 +270,8 @@ async def build_and_maybe_play(
     script = build_clip_script(bundle)
     stitch = {"ok": True, "skipped": True}
     if should_announce or changed or not dest.is_file():
-        stitch = speak_script(script, dest)
+        # Tight gaps — magnitude buckets are short tokens.
+        stitch = speak_script(script, dest, silence_ms=0)
         stitch["script"] = script
         # Drop legacy mp3
         legacy = dest.with_suffix(".mp3")
