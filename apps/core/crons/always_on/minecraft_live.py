@@ -19,8 +19,14 @@ def _parse_players_online(text: str) -> int | None:
     raw = (text or "").strip()
     if not raw:
         return None
-    low = raw.lower()
-    # "There are 2 of a max of 20 players online: foo, bar"
+    # Strip legacy § color codes (Essentials / Paper style).
+    clean = re.sub(r"§.", "", raw)
+    low = clean.lower()
+    # EssentialsX / Paper: "Online (0):" or "Online (2): name, name"
+    m = re.search(r"online\s*\((\d+)\)", low)
+    if m:
+        return int(m.group(1))
+    # Vanilla: "There are 2 of a max of 20 players online: foo, bar"
     m = re.search(r"there are\s+(\d+)\s+of\s+a\s+max", low)
     if m:
         return int(m.group(1))
@@ -28,7 +34,7 @@ def _parse_players_online(text: str) -> int | None:
     if m:
         return int(m.group(1))
     if "players online" in low:
-        head = raw.split(":", 1)[0]
+        head = clean.split(":", 1)[0]
         for tok in head.split():
             if tok.isdigit():
                 return int(tok)
