@@ -1017,9 +1017,12 @@ def generate(
     *,
     dry_run: bool = True,
     force_engine: str | None = None,
+    force_mp3: str | None = None,
     allow_tts: bool = False,
     publish: bool | None = None,
     offline: bool = False,
+    update_board: bool = True,
+    play_after: bool = False,
 ) -> dict:
     """Main entry used by crons + /api/reports/generation/run.
 
@@ -1028,21 +1031,23 @@ def generate(
     """
     kind = (kind or "morning").strip().lower()
     settings = type_settings(kind)
-    wanted = force_engine or engine_for(kind)
+    wanted = normalize_engine(force_engine) if force_engine else engine_for(kind)
     engine = resolve_engine(kind, offline=offline, force=force_engine)
+    wanted_mp3 = normalize_mp3(force_mp3) if force_mp3 else mp3_for(kind)
+    mp3_mode = resolve_mp3(kind, force=force_mp3)
     max_tokens = int(settings.get("max_tokens") or 1800)
 
     if dry_run:
         pkg = None
         try:
-            pkg = build_prompt_package(kind)
+            pkg = build_prompt_package(kind, for_cloud=(engine == "cloud"))
         except Exception as e:
             pkg = {"error": type(e).__name__}
         fetched_n = 0
         if isinstance(pkg, dict) and pkg.get("fetched_markdown"):
             fetched_n = len(str(pkg.get("fetched_markdown")))
         val = (pkg or {}).get("validation") if isinstance(pkg, dict) else None
-        # Optional offline stub preview (no Ollama/Grok) so operators can see shape.
+        # Optional offline stub preview (no Ollama/cloud) so operators can see shape.
         preview = ""
         preview_engine = None
         if offline:
@@ -1056,16 +1061,21 @@ def generate(
             "engine": preview_engine or engine,
             "engine_would": engine,
             "wanted_engine": wanted,
+            "mp3_would": mp3_mode,
+            "wanted_mp3": wanted_mp3,
             "include_timestamp": False if offline else (engine != "local" or not offline),
             "text": preview or None,
             "text_preview": (preview[:500] + ("…" if len(preview) > 500 else "")) if preview else None,
             "settings": {
                 "engine": settings.get("engine"),
+                "mp3": settings.get("mp3"),
                 "tts": settings.get("tts"),
                 "blog": settings.get("blog"),
                 "blog_brands": settings.get("blog_brands"),
             },
-            "tts_would": bool(settings.get("tts")) and allow_tts and _spend_ok(),
+            "tts_would": bool(settings.get("tts"))
+            and allow_tts
+            and (mp3_mode == "local" or _spend_ok()),
             "blog_would": bool(settings.get("blog"))
             if publish is None
             else bool(publish),
@@ -1080,26 +1090,37 @@ def generate(
                 "dry_run — no Media write, no blog, no TTS"
                 + ("; offline stub text included" if offline else "; no model call")
             ),
-            "grok_spend_ok": _spend_ok(),
+            "cloud_spend_ok": _spend_ok(),
+            "grok_spend_ok": _spend_ok(),  # back-compat
         }
 
-    if engine == "grok":
+    if update_board and kind in {"morning", "midday", "evening", "late"}:
+        try:
+            from apps.core.services import daily_report_board
+
+            daily_report_board.ensure_today()
+            daily_report_board.mark_running(kind)
+        except Exception as e:
+            log.debug("board mark_running skipped: %s", e)
+
+    if engine == "cloud":
         gen = _generate_grok(kind, max_tokens=max_tokens)
         if not gen.get("ok"):
             # Incomplete package / rejected output: fail loud — do not publish thin garbage
-            # or burn TTS. Local fallback only when Grok was thin_or_empty (API miss),
+            # or burn TTS. Local fallback only when cloud was thin_or_empty (API miss),
             # not when the package itself was incomplete.
             if gen.get("blocked"):
                 log.error(
-                    "%s Grok blocked — no publish/TTS (%s)",
+                    "%s cloud blocked — no publish/TTS (%s)",
                     kind,
                     gen.get("detail"),
                 )
-                return {
+                out_blocked = {
                     "ok": False,
                     "kind": kind,
-                    "engine": "grok",
+                    "engine": "cloud",
                     "wanted_engine": settings.get("engine"),
+                    "wanted_mp3": wanted_mp3,
                     "dry_run": False,
                     "detail": gen.get("detail"),
                     "validation": gen.get("validation"),
@@ -1109,7 +1130,17 @@ def generate(
                     "tts": {"ok": False, "skipped": True, "detail": "blocked_incomplete"},
                     "text_preview": gen.get("text_rejected"),
                 }
-            log.warning("%s Grok thin — local fallback", kind)
+                if update_board and kind in {"morning", "midday", "evening", "late"}:
+                    try:
+                        from apps.core.services import daily_report_board
+
+                        daily_report_board.mark_failed(
+                            kind, error=str(gen.get("detail") or "blocked")
+                        )
+                    except Exception:
+                        pass
+                return out_blocked
+            log.warning("%s cloud thin — local fallback", kind)
             gen = _generate_local(kind, offline=False)
             engine = str(gen.get("engine") or "local")
     else:
@@ -1117,6 +1148,10 @@ def generate(
         engine = str(gen.get("engine") or engine)
 
     text = str(gen.get("text") or "").strip()
+    from apps.core.services import boot_report
+
+    if text:
+        text = boot_report.scrub_spoken(text).strip()
     stamped = bool(gen.get("include_timestamp"))
     preview = text[:500] + ("…" if len(text) > 500 else "")
     source_urls = list(gen.get("source_urls") or [])
@@ -1129,12 +1164,15 @@ def generate(
         "kind": kind,
         "engine": engine,
         "wanted_engine": settings.get("engine"),
+        "wanted_mp3": wanted_mp3,
+        "mp3_mode": mp3_mode,
         "include_timestamp": stamped,
         "dry_run": False,
         "text_preview": preview,
         "validation": gen.get("validation"),
         "settings": {
             "engine": settings.get("engine"),
+            "mp3": settings.get("mp3"),
             "tts": settings.get("tts"),
             "blog": settings.get("blog"),
             "blog_brands": settings.get("blog_brands"),
@@ -1145,6 +1183,13 @@ def generate(
     }
     if not text:
         out["detail"] = "empty"
+        if update_board and kind in {"morning", "midday", "evening", "late"}:
+            try:
+                from apps.core.services import daily_report_board
+
+                daily_report_board.mark_failed(kind, error="empty")
+            except Exception:
+                pass
         return out
 
     files = _write_files(kind, text, stamped=stamped)
@@ -1167,9 +1212,18 @@ def generate(
         out["blog"] = blog
 
     tts_toggle = bool(settings.get("tts"))
-    if allow_tts and tts_toggle and _spend_ok():
-        tts = synthesize_mp3(kind, text)
-        out["tts"] = tts
+    if allow_tts and tts_toggle:
+        if mp3_mode == "local":
+            tts = synthesize_local_mp3(kind, text)
+            out["tts"] = tts
+        else:
+            tts = synthesize_mp3(kind, text)
+            if not tts.get("ok"):
+                # Cloud voice blocked/failed → local stitch fallback.
+                log.info("%s cloud mp3 failed (%s) — local stitch", kind, tts.get("detail"))
+                tts = synthesize_local_mp3(kind, text)
+                tts["fallback_from"] = "cloud"
+            out["tts"] = tts
         if tts.get("ok") and out.get("blog", {}).get("ok"):
             from apps.core.services import report_blog
 
@@ -1182,8 +1236,6 @@ def generate(
                 source_urls=source_urls or None,
                 sync=True,
             )
-    elif allow_tts and tts_toggle:
-        out["tts"] = {"ok": False, "skipped": True, "detail": "spend_or_engine"}
     else:
         out["tts"] = {
             "ok": False,
@@ -1191,7 +1243,50 @@ def generate(
             "detail": "tts_off_or_not_allowed",
             "toggle": tts_toggle,
             "allow_tts": allow_tts,
+            "mp3_mode": mp3_mode,
         }
+
+    if update_board and kind in {"morning", "midday", "evening", "late"}:
+        try:
+            from apps.core.services import daily_report_board
+
+            tts = out.get("tts") or {}
+            mp3_path = tts.get("current") or tts.get("mp3")
+            # Text success marks done even if MP3 skipped (play cron can use prior file).
+            daily_report_board.mark_done(
+                kind,
+                mp3=str(mp3_path) if mp3_path else None,
+                engine=str(engine),
+            )
+        except Exception as e:
+            log.debug("board mark_done skipped: %s", e)
+
+    if play_after:
+        tts = out.get("tts") or {}
+        try:
+            import asyncio
+
+            from apps.core.services import voice_events
+
+            async def _play():
+                return await voice_events.play_report_mp3(
+                    tts.get("current"),
+                    tts.get("mp3"),
+                    name=f"{kind}_report",
+                    kind=kind,
+                )
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                # Caller is async — they should await play themselves.
+                out["play_ deferred"] = True
+            else:
+                out["play"] = asyncio.run(_play())
+        except Exception as e:
+            out["play"] = {"ok": False, "detail": type(e).__name__}
 
     return out
 
@@ -1200,12 +1295,148 @@ def generate(
 generate_report = generate
 
 
+_MULTIWORD_PHRASES = (
+    "end_of_status",
+    "root_record",
+    "ava_core",
+    "ava_ivy",
+    "hawaiian_standard_time",
+    "already_landed",
+    "hawaii_pacific_solar_root_server",
+    "root_server",
+    "this_is",
+    "partly_cloudy",
+    "state_of_charge",
+)
+
+
+def text_to_clip_tokens(text: str, *, max_tokens: int = 120) -> str:
+    """Map scrubbed report prose → space-separated local clip stems."""
+    from apps.voice.clips import _find_clip
+
+    raw = (text or "").lower()
+    raw = re.sub(r"[^\w\sʻ'`\-]", " ", raw)
+    raw = raw.replace("ʻ", "").replace("'", "")
+    # Prefer known multiword stems.
+    for phrase in _MULTIWORD_PHRASES:
+        spaced = phrase.replace("_", " ")
+        if spaced in raw:
+            raw = raw.replace(spaced, f" {phrase} ")
+    raw = raw.replace("kīlauea", "kilauea").replace("kilauea", "kilauea")
+    bits: list[str] = []
+    for tok in raw.split():
+        clean = re.sub(r"[^a-z0-9_]", "", tok)
+        if not clean:
+            continue
+        if _find_clip(clean):
+            bits.append(clean)
+            if len(bits) >= max_tokens:
+                break
+            continue
+        # Numbers stay as digits for number clips.
+        if clean.isdigit() and _find_clip(clean) or clean.isdigit():
+            bits.append(clean)
+            if len(bits) >= max_tokens:
+                break
+    return " ".join(bits)
+
+
+def _kind_identity_script(kind: str) -> str:
+    from apps.voice.clips import _find_clip
+    from apps.voice.local_tts import clock_tokens, date_tokens
+
+    now = datetime.now(HST)
+    bits: list[str] = []
+    for tok in ("this_is", "this", "is", "the", "ava_core", "ava", "core", "root_record", "status", "for"):
+        if _find_clip(tok) or tok.isdigit():
+            if tok in {"this", "is"} and "this_is" in bits:
+                continue
+            bits.append(tok)
+            if tok == "this_is":
+                break
+    bits += [t for t in date_tokens(now) if _find_clip(t) or t.isdigit()]
+    bits.append("about")
+    bits += [t for t in clock_tokens(now.hour, now.minute)]
+    kind_tok = {
+        "morning": "morning",
+        "midday": "midday",
+        "evening": "evening",
+        "late": "late",
+    }.get(kind, "report")
+    for tok in (kind_tok, "report", "end_of_status", "end"):
+        if _find_clip(tok):
+            bits.append(tok)
+    # Dedupe consecutive.
+    out: list[str] = []
+    for b in bits:
+        if out and out[-1] == b:
+            continue
+        out.append(b)
+    return " ".join(out)
+
+
+def synthesize_local_mp3(kind: str, text: str) -> dict:
+    """Local clip stitch from report tokens, or reuse existing current MP3."""
+    from apps.voice.local_tts import speak_script
+
+    now = datetime.now(HST)
+    stamp = now.strftime("%Y%m%d-%H%M")
+    dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.mp3"
+    current = config.GENERATED_DIR / f"{kind}-report-current.mp3"
+    config.GENERATED_DIR.mkdir(parents=True, exist_ok=True)
+
+    script = text_to_clip_tokens(text)
+    if script.count(" ") < 7:
+        script = _kind_identity_script(kind)
+
+    built = speak_script(script, dest)
+    if built.get("ok") and dest.is_file() and dest.stat().st_size > 0:
+        try:
+            current.write_bytes(dest.read_bytes())
+        except OSError:
+            pass
+        rel = f"audio/voice/generated/{dest.name}"
+        return {
+            "ok": True,
+            "engine": "local",
+            "mp3": str(dest),
+            "current": str(current),
+            "rel": rel,
+            "script": script,
+            "clips": built.get("clips"),
+            "missing": built.get("missing") or [],
+            "chars": len(text or ""),
+        }
+
+    # Fall back to existing current MP3 (play path without restitch).
+    if current.is_file() and current.stat().st_size > 0:
+        return {
+            "ok": True,
+            "engine": "local",
+            "mp3": str(current),
+            "current": str(current),
+            "rel": f"audio/voice/generated/{current.name}",
+            "reused": True,
+            "detail": built.get("detail") or "stitched_thin_reused_current",
+            "missing": built.get("missing") or [],
+            "script": script,
+        }
+    return {
+        "ok": False,
+        "engine": "local",
+        "detail": built.get("detail") or "local_stitch_failed",
+        "missing": built.get("missing") or [],
+        "script": script,
+        "skipped": False,
+    }
+
+
 def synthesize_mp3(kind: str, text: str) -> dict:
-    """Paid Ara/xAI TTS. Metered — only when toggle + allow_tts + spend open."""
+    """Paid cloud TTS. Metered — only when toggle + allow_tts + spend open."""
     from apps.core.services import xai
 
     if not _spend_ok():
-        return {"ok": False, "detail": "spend_halted", "skipped": True}
+        return {"ok": False, "detail": "spend_halted", "skipped": True, "engine": "cloud"}
     now = datetime.now(HST)
     stamp = now.strftime("%Y%m%d-%H%M")
     dest = config.GENERATED_DIR / f"{kind}-report-{stamp}.mp3"
@@ -1216,6 +1447,13 @@ def synthesize_mp3(kind: str, text: str) -> dict:
         current.write_bytes(dest.read_bytes())
     except Exception as e:
         log.warning("report TTS failed: %s", e)
-        return {"ok": False, "detail": type(e).__name__, "skipped": False}
+        return {"ok": False, "detail": type(e).__name__, "skipped": False, "engine": "cloud"}
     rel = f"audio/voice/generated/{dest.name}"
-    return {"ok": True, "mp3": str(dest), "current": str(current), "rel": rel, "chars": len(text)}
+    return {
+        "ok": True,
+        "engine": "cloud",
+        "mp3": str(dest),
+        "current": str(current),
+        "rel": rel,
+        "chars": len(text),
+    }
