@@ -627,6 +627,11 @@ def _kind_operator_facts(kind: str) -> str:
             from apps.core.services import boot_report
 
             return boot_report.build_facts(source="report_generation_grok")
+        if kind in {"evening", "late"}:
+            # Same operator board as morning so Broken / Already landed / Priority stay live.
+            from apps.core.services import boot_report
+
+            return boot_report.build_facts(source=f"report_generation_{kind}")
         if kind == "kilauea":
             notice = config.DATA_DIR / "state" / "kilauea-notice-facts.txt"
             if notice.is_file():
@@ -653,6 +658,17 @@ _REQUIRED_MARKERS = {
         "Already landed",
         "Priority:",
         "Kīlauea",
+    ),
+    "evening": (
+        "Broken / needs work",
+        "Already landed",
+        "Priority:",
+        "Kīlauea",
+    ),
+    "late": (
+        "Broken / needs work",
+        "Already landed",
+        "Priority:",
     ),
 }
 
