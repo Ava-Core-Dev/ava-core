@@ -82,6 +82,9 @@ export default {
       return proxyToOrigin(request, {
         originUrl: origin,
         timeoutMs: chat ? 60000 : 8000,
+        // Desk recycle blips: one quiet retry before the offline stub.
+        retries: chat ? 1 : 0,
+        bodyText: chat ? JSON.stringify(snapshot) : undefined,
         offlineFallback: async () => {
           if (chat) {
             return Response.json({
