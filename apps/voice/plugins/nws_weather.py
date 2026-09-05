@@ -76,12 +76,8 @@ class NWSWeatherPlugin(Plugin):
         return self._make_voice_report(force=True)
 
     def on_hour(self) -> None:
-        now = datetime.now(HST)
-        # Data is refreshed by the 15-min logic; voice at 5 & 17
-        if now.hour in (5, 17) and self._last_voice_hour != now.hour:
-            self._last_voice_hour = now.hour
-            log.info("Scheduled NWS voice report at %02d:00 HST", now.hour)
-            self._make_voice_report(force=True)
+        # Data is refreshed by the 15-min tick; Grok TTS soft-disabled (local clips own voice).
+        log.info("Hourly NWS tick — voice skipped (Grok TTS soft-disabled; use local clip services)")
 
     def on_new_report(self, path: Path) -> None:
         pass  # independent of solar/system reports
@@ -95,8 +91,7 @@ class NWSWeatherPlugin(Plugin):
 
         if not self._boot_done:
             self._boot_done = True
-            log.info("Boot-time NWS voice report")
-            self._make_voice_report(force=True)
+            log.info("Boot-time NWS — data path only; Grok TTS soft-disabled")
 
     # ------------------------------------------------------------------
     # SQLite

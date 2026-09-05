@@ -47,8 +47,8 @@ class KilaueaReportPlugin(Plugin):
         return self._generate(force=force)
 
     def on_hour(self) -> None:
-        # Check once an hour – only rebuilds if content changed
-        self._generate(force=False)
+        # Voice moved off paid Grok TTS; local clip / report services own desk audio.
+        log.info("Hourly Kilauea update — Grok TTS soft-disabled (no Kilauea_Current.mp3)")
 
     def on_new_report(self, path: Path) -> None:
         # Ignore solar/system reports – this plugin is independent
@@ -56,57 +56,12 @@ class KilaueaReportPlugin(Plugin):
 
     # ------------------------------------------------------------------
     def _generate(self, force: bool = False):
-        if config.VOICE_MODE == "disabled":
-            log.info("VOICE_MODE=disabled – skipping Kilauea report")
-            return None
-        from apps.core.services import xai
-        if xai.grok_is_down():
-            log.info("Grok down — skip Kilauea grok voice")
-            return None
-
-        current_mp3 = config.GENERATED_DIR / "Kilauea_Current.mp3"
-        state_file = config.GENERATED_DIR / ".kilauea_last_hash"
-
-        try:
-            notice_id, raw_text = self._fetch_latest_notice()
-        except Exception as e:
-            log.error("Failed to fetch HVO notice: %s", e)
-            return None
-
-        content_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()[:16]
-
-        # Skip if nothing changed and the MP3 already exists
-        if not force and current_mp3.exists() and state_file.exists():
-            if state_file.read_text().strip() == content_hash:
-                log.info("Kilauea content unchanged – keeping existing MP3")
-                return current_mp3
-
-        log.info("New/changed Kilauea notice (%s) – generating voice report", notice_id)
-
-        # Ask Grok for a short spoken summary
-        spoken = self._summarize_with_grok(raw_text)
-        if not spoken:
-            return None
-
-        log.info("Ara script:\n%s", spoken)
-
-        # TTS
-        stamp = datetime.now().strftime("%Y-%m-%dT%H")
-        archive = config.GENERATED_DIR / f"kilauea-{stamp}.mp3"
-        try:
-            self._tts(spoken, archive)
-            shutil.copy2(archive, current_mp3)
-            state_file.write_text(content_hash)
-            log.info("Saved Kilauea_Current.mp3  (+ archive %s)", archive.name)
-            try:
-                from ava_core.mp4_converter import convert_if_needed
-                convert_if_needed(current_mp3)
-            except Exception:
-                pass
-            return current_mp3
-        except Exception as e:
-            log.error("TTS failed: %s", e)
-            return None
+        # Soft-disable paid Grok/xAI TTS — keep plugin loaded; no Current.mp3 writes.
+        log.info(
+            "Grok/xAI TTS soft-disabled — skip Kilauea_Current.mp3; "
+            "use local clip services (report/clip stitch) instead"
+        )
+        return None
 
     # ------------------------------------------------------------------
     def _fetch_latest_notice(self) -> tuple[str, str]:

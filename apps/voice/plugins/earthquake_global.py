@@ -148,31 +148,12 @@ class EarthquakeGlobalPlugin(Plugin):
         }
 
     def _make_voice(self, force: bool = False) -> Path | None:
-        if config.VOICE_MODE == "disabled":
-            return None
-        summary = self._summary()
-        spoken = self._summarize(summary)
-        if not spoken:
-            return None
-        log.info("Global EQ/Volcano Ara script:\n%s", spoken)
-
-        stamp = datetime.now(HST).strftime("%Y-%m-%dT%H")
-        archive = config.GENERATED_DIR / f"earthquake-global-{stamp}.mp3"
-        current = config.GENERATED_DIR / "Earthquake_Global_Current.mp3"
-        try:
-            self._tts(spoken, archive)
-            import shutil
-            shutil.copy2(archive, current)
-            log.info("Saved Earthquake_Global_Current.mp3")
-            try:
-                from ava_core.mp4_converter import convert_if_needed
-                convert_if_needed(current)
-            except Exception:
-                pass
-            return current
-        except Exception as e:
-            log.error("TTS failed: %s", e)
-            return None
+        # Soft-disable paid Grok/xAI TTS — local clip services own desk audio.
+        log.info(
+            "Grok/xAI TTS soft-disabled — skip Earthquake_Global_Current.mp3; "
+            "use local clip services (apps.core.services.earthquake_hourly) instead"
+        )
+        return None
 
     def _summarize(self, summary: dict) -> str | None:
         from ava_core.xai_client import chat, XAIError
