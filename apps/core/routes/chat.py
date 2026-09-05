@@ -24,7 +24,14 @@ FREE_LIVE_PER_IP = guests_svc.FREE_LIVE
 LOGGED_IN_LIVE = guests_svc.MEMBER_LIVE
 _SURFACES = frozenset({"public", "rootmc", "kilauea"})
 LOGIN_URL = "https://rootrecord.cloud/account"
-MEMBERSHIP_REPLY = guests_svc.MEMBERSHIP_REPLY
+MEMBERSHIP_REPLY = (
+    "You've used your three free talks for today. "
+    "Sign in at rootrecord.cloud/account to keep going."
+)
+MEMBER_CAP_REPLY = (
+    "You've hit today's signed-in talk cap on this desk. "
+    "Come back tomorrow, or use Status and Solar meanwhile."
+)
 
 
 def _db() -> Path:
@@ -70,12 +77,67 @@ def _client_ip(request: Request) -> str:
     return (xff.split(",")[0].strip() if xff else request.client.host if request.client else "unknown")
 
 
+_PORTAL_ME = "https://rootrecord-api-account.rootrecord.workers.dev/api/auth/me"
+_token_cache: dict[str, tuple[float, bool]] = {}
+_TOKEN_TTL_S = 300.0
+
+
+def _portal_token_ok(token: str) -> bool:
+    """Validate Root Record portal Bearer against account worker. Cached briefly."""
+    import time
+
+    tok = (token or "").strip()
+    if len(tok) < 16:
+        return False
+    now = time.monotonic()
+    hit = _token_cache.get(tok)
+    if hit and now < hit[0]:
+        return hit[1]
+    ok = False
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            _PORTAL_ME,
+            headers={
+                "Authorization": f"Bearer {tok}",
+                "User-Agent": "AvaIvy-origin-chat/1.0",
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            ok = 200 <= int(resp.status) < 300
+    except Exception:
+        ok = False
+    _token_cache[tok] = (now + _TOKEN_TTL_S, ok)
+    if len(_token_cache) > 500:
+        for k in list(_token_cache.keys())[:100]:
+            _token_cache.pop(k, None)
+    return ok
+
+
 def _has_session(request: Request) -> bool:
-    return bool(
-        request.cookies.get("ava_session")
-        or request.cookies.get("rr_web_session")
-        or request.headers.get("x-ava-session")
-    )
+    """True when the visitor is a signed-in Root Record account for chat caps.
+
+    AuthBar stores the portal token in localStorage and (after fix) an ava_session
+    cookie. ChatWidget sends Authorization: Bearer. Cookie-only presence without
+    a validated token is not enough — that was the signed-in-but-capped bug.
+    """
+    if (request.headers.get("x-ava-session") or "").strip():
+        return True
+    auth = (request.headers.get("authorization") or "").strip()
+    if auth.lower().startswith("bearer ") and _portal_token_ok(auth[7:].strip()):
+        return True
+    for name in ("ava_session", "rr_web_session"):
+        raw = (request.cookies.get(name) or "").strip()
+        if not raw:
+            continue
+        if _portal_token_ok(raw):
+            return True
+        # Legacy rr_web_session (non-portal) still counts as signed in.
+        if name == "rr_web_session" and len(raw) >= 8:
+            return True
+    return False
 
 
 class ChatRequest(BaseModel):
@@ -182,11 +244,12 @@ async def api_chat(req: ChatRequest, request: Request):
                     pass
             return _chat_response(
                 {
-                    "reply": MEMBERSHIP_REPLY,
+                    "reply": MEMBER_CAP_REPLY if member else MEMBERSHIP_REPLY,
                     "brain": "limit",
                     "surface": surface,
                     "login": LOGIN_URL,
                     "remaining": 0,
+                    "member": member,
                 },
                 sid=sid,
                 set_sid=set_sid,
