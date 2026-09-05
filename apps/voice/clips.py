@@ -43,6 +43,13 @@ def ffmpeg_bin() -> str | None:
     found = shutil.which("ffmpeg")
     if found:
         return found
+    local = os.environ.get("LOCALAPPDATA", "")
+    if local:
+        root = Path(local) / "Microsoft" / "WinGet" / "Packages"
+        if root.is_dir():
+            for p in root.glob("Gyan.FFmpeg*/ffmpeg-*/bin/ffmpeg.exe"):
+                if p.is_file():
+                    return str(p)
     try:
         import imageio_ffmpeg
 
