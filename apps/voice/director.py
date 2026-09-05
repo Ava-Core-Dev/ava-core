@@ -39,6 +39,8 @@ MUSIC_AUDIO_EXTS = {
 MUSIC_BLEND_S = 2.5
 # Tiny slop past wave-header length only — was +1.0s and left dead air after natural end.
 MUSIC_WAIT_PAD_S = 0.05
+# After a report/chime ends: wait this long, then start the bed (no orphan sweep).
+MUSIC_RESUME_AFTER_VOICE_S = 1.0
 # Skip short intros / stingers from the shuffled bed playlist.
 MUSIC_MIN_DURATION_S = 60.0
 
@@ -767,13 +769,23 @@ class StreamDirector:
         return bool(self._music_hold or self._music_operator_hold)
 
     def get_status(self) -> dict:
+        # Truth: dead player handles must not report as playing.
+        proc = self._music_proc
+        if proc is not None and proc.returncode is not None:
+            self._music_proc = None
+            self._music_proc_pid = None
+            proc = None
+        alive = proc is not None and proc.returncode is None
+        if not alive:
+            self._music_proc_pid = None
+            # Ghost Now track with no player — clear unless voice hold still owns silence.
+            if not self._music_bed_held():
+                self._music_current = None
+
         voice_now = self._item_dict(self._current)
         music_track = self._music_current.name if self._music_current else None
         music_playing = bool(
-            self._music_enabled
-            and music_track
-            and self._music_proc is not None
-            and not self._music_bed_held()
+            self._music_enabled and music_track and alive and not self._music_bed_held()
         )
         queue = self._peek_queue()
         return {
@@ -785,7 +797,7 @@ class StreamDirector:
             "currently_playing": {
                 "voice": voice_now,
                 "music": {
-                    "track": music_track,
+                    "track": music_track if music_playing else None,
                     "playing": music_playing,
                     "held": self._music_bed_held(),
                 },
@@ -800,12 +812,12 @@ class StreamDirector:
                 "hold": self._music_hold,
                 "operator_paused": self._music_operator_hold,
                 "tracks": self._music_tracks_n,
-                "current": music_track,
+                "current": music_track if music_playing else None,
                 "next": self._music_next_name(),
                 "index": self._music_index,
                 "dir": str(music_dir()),
                 "single_bed": True,
-                "player_pid": self._music_proc_pid,
+                "player_pid": self._music_proc_pid if alive else None,
                 "loop_alive": bool(
                     self._music_task is not None and not self._music_task.done()
                 ),
@@ -912,6 +924,8 @@ class StreamDirector:
             )
         self._music_hold = True
         self._kill_music_proc()
+        # Do not keep a ghost "Now" track while the player is dead.
+        self._music_current = None
 
     @staticmethod
     def _priority_holds_music(priority: int) -> bool:
@@ -1046,9 +1060,12 @@ class StreamDirector:
                     return
                 while self._music_bed_held():
                     continue_existing = False
-                    await asyncio.sleep(0.25)
+                    await asyncio.sleep(0.1)
                     if not self._music_enabled or not self._running:
                         return
+                # Cold start / first track after hold cleared at loop top.
+                if not continue_existing:
+                    await asyncio.sleep(0.05)
                 if not path.is_file():
                     continue_existing = False
                     i += 1
@@ -1063,18 +1080,20 @@ class StreamDirector:
                     sweep_orphans=False,
                 )
                 continue_existing = False
-                # Voice / operator interrupt: wait for clear, then restart same track.
+                # Voice / operator interrupt: wait for clear, then start bed after 1s.
+                # Do not orphan-sweep here — CIM scan was multi-second dead air.
                 if not finished and self._music_bed_held():
                     while self._music_bed_held():
-                        await asyncio.sleep(0.25)
+                        await asyncio.sleep(0.1)
                         if not self._music_enabled or not self._running:
                             return
+                    await asyncio.sleep(MUSIC_RESUME_AFTER_VOICE_S)
                     if path.is_file() and self._music_enabled and self._running:
                         finished, handed_off = await self._play_music_track(
                             path,
                             blend_into=nxt,
                             continue_existing=False,
-                            sweep_orphans=True,
+                            sweep_orphans=False,
                         )
                 if handed_off and nxt is not None:
                     continue_existing = True
