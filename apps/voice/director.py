@@ -1176,6 +1176,12 @@ class StreamDirector:
                 desk_audio.is_ducked(),
                 self._music_proc_pid,
             )
+            try:
+                from apps.core.services import radio as radio_svc
+
+                radio_svc.announce_program_file(path)
+            except Exception:
+                pass
             while True:
                 if self._music_operator_hold or not self._music_enabled:
                     aborted = True
@@ -1232,7 +1238,7 @@ class StreamDirector:
                 self._music_proc_pid = None
                 if aborted:
                     self._music_current = None
-                elif end_reason in ("natural_exit", "forced_advance", "error", "play_failed"):
+                elif end_reason in ("natural_exit", "stuck_force", "error", "play_failed"):
                     self._music_current = None
         return (not aborted), False
 

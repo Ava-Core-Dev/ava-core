@@ -279,4 +279,17 @@ async def api_radio_patch(body: RadioPatch):
     if st.get("mic_armed") and not st.get("tools", {}).get("ffmpeg"):
         st = {**st, "mic_note": "Mic flag set — needs ffmpeg + named device before encode"}
 
+    # If on air and a bed is already playing, push it to listeners now
+    if st.get("on_air") or st.get("local_playback"):
+        try:
+            from apps.voice.director import get_director
+            from apps.core.services import radio as radio_svc
+
+            d = get_director()
+            cur = (d.get_status().get("music") or {}).get("current")
+            if cur:
+                radio_svc.announce_program_file(cur)
+        except Exception:
+            pass
+
     return st

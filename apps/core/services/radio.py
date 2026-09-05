@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import time
 from pathlib import Path
@@ -95,7 +96,7 @@ def serving_public() -> bool:
 
 
 def tool_status() -> dict[str, Any]:
-    ffmpeg = shutil.which("ffmpeg") or ""
+    ffmpeg = _which_media("ffmpeg")
     icecast = shutil.which("icecast") or shutil.which("icecast2") or ""
     liquidsoap = shutil.which("liquidsoap") or ""
     return {
@@ -110,15 +111,63 @@ def tool_status() -> dict[str, Any]:
             "icecast+ffmpeg"
             if (ffmpeg and icecast)
             else "origin_file_sse"
-            if True
-            else "off"
         ),
         "desktop_loopback": False,
         "note": (
-            "Install Icecast2 + ffmpeg for a classic mount. "
-            "Until then, on-air uses origin file URLs + SSE (program bus only)."
+            "Install Icecast2 for a classic mount. "
+            "ffmpeg is enough for local remux; on-air uses origin file URLs + SSE until Icecast."
+            if ffmpeg
+            else "Install ffmpeg (winget Gyan.FFmpeg) + Icecast2 for encode."
         ),
     }
+
+
+def _which_media(name: str) -> str:
+    found = shutil.which(name) or ""
+    if found:
+        return found
+    # Winget Gyan.FFmpeg often lands here; origin may start before PATH refresh.
+    root = Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Packages"
+    if root.is_dir():
+        for p in root.glob(f"Gyan.FFmpeg*/ffmpeg-*/bin/{name}.exe"):
+            if p.is_file():
+                return str(p)
+    return ""
+
+
+def program_url_for_file(path: Path | str) -> str | None:
+    """HTTP URL for a program-bus file (public media or generated). Never desktop capture."""
+    from urllib.parse import quote
+
+    p = Path(path)
+    if not p.is_file():
+        return None
+    try:
+        rel = p.resolve().relative_to(Path(config.PUBLIC_MEDIA).resolve())
+        q = quote(str(rel).replace("\\", "/"))
+        return f"http://127.0.0.1:{config.AVA_PORT}/api/media/public/file?path={q}"
+    except Exception:
+        pass
+    try:
+        gen = Path(config.GENERATED_DIR).resolve()
+        rel = p.resolve().relative_to(gen)
+        q = quote(str(rel).replace("\\", "/"))
+        return f"http://127.0.0.1:{config.AVA_PORT}/data/generated/{q}"
+    except Exception:
+        return None
+
+
+def announce_program_file(path: Path | str, *, name: str = "") -> None:
+    src = program_url_for_file(path)
+    if not src:
+        return
+    broadcast_program_event(
+        {
+            "src": src,
+            "name": name or Path(path).name,
+            "priority": 1,
+        }
+    )
 
 
 def status() -> dict[str, Any]:
