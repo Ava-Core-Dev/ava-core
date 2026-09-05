@@ -145,7 +145,7 @@ def publish_report_post(
         "slug": slug,
         "posts": written,
         "public_urls": [
-            f"https://avaivy.cloud/blog/{slug}" if w["brand"] == "ava" else f"https://rootrecord.online/blog/{slug}"
+            f"https://avaivy.cloud/blog/{slug}" if w["brand"] == "ava" else f"https://rootrecord.cloud/blog/{slug}"
             for w in written
         ],
         "sync_ran": False,

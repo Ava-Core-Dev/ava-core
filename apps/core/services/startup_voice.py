@@ -4,7 +4,7 @@ Downtime under 60s → satellite_connection.mp3.
 Longer (and past the 30m spam gate, or first boot) → phrase_all_systems_running.
 
 phrase_device_startup.mp3 is the old "Root Record is online. I'm back." line.
-Do not use it for origin recycle — leftover house AC is Starlink, not this clip.
+Do not use it for origin recycle — that clip is not an AC-load label.
 """
 
 from __future__ import annotations

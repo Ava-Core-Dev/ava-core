@@ -9,7 +9,7 @@ router = APIRouter()
 SITES = {
     "rootmc": "https://rootmc.net/blog/",
     "ava": "https://avaivy.cloud/blog",
-    "rootrecord": "https://rootrecord.online/blog",
+    "rootrecord": "https://rootrecord.cloud/blog",
 }
 
 
@@ -22,7 +22,7 @@ async def blog_index():
         "timeline": {
             "rootmc": "https://rootmc.net/timeline/",
             "ava": "https://avaivy.cloud/timeline",
-            "rootrecord": "https://rootrecord.online/timeline",
+            "rootrecord": "https://rootrecord.cloud/timeline",
         },
         "inbox": "media/documents/reports/inbox/",
         "templates": "media/documents/reports/templates/",
