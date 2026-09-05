@@ -3071,13 +3071,21 @@ function paintAudioPending(st) {
 async function refreshAudioPage() {
   const meta = $("audio-meta");
   if (!$("page-audio")) return;
-  if (meta) meta.textContent = "Loading audio status…";
+  if (meta) meta.textContent = "Loading radio…";
   try {
-    const res = await fetch(`${brainBaseUrl()}/api/voice/status`, {
-      cache: "no-store",
-      headers: operatorHeaders(),
-    });
-    const st = await res.json();
+    const [voiceRes, radioRes] = await Promise.all([
+      fetch(`${brainBaseUrl()}/api/voice/status`, {
+        cache: "no-store",
+        headers: operatorHeaders(),
+      }),
+      fetch(`${brainBaseUrl()}/api/radio/status`, {
+        cache: "no-store",
+        headers: operatorHeaders(),
+      }),
+    ]);
+    const st = await voiceRes.json();
+    const radio = await radioRes.json().catch(() => ({}));
+    paintRadioControls(radio);
     if (!st?.ok) {
       if (meta) meta.textContent = st?.detail || "voice status unavailable";
       $("audio-status").textContent = JSON.stringify(st, null, 2);
@@ -3086,11 +3094,13 @@ async function refreshAudioPage() {
     const m = st.music || {};
     if (meta) {
       meta.textContent = [
+        radio?.on_air ? "ON AIR" : "off air",
+        radio?.local_playback ? "local on" : "local off",
+        radio?.mic_armed ? "mic armed" : null,
         st.running ? "director running" : "director idle",
         m.enabled ? "bed on" : "bed off",
         m.operator_paused ? "operator pause" : m.hold ? "voice hold" : null,
         `queue ${st.queue_depth ?? 0}`,
-        m.single_bed ? "single bed" : null,
       ]
         .filter(Boolean)
         .join(" · ");
@@ -3102,12 +3112,96 @@ async function refreshAudioPage() {
     $("audio-status").textContent = "";
     ensureCronLive();
     ensureAudioLive();
+    ensureRadioDeskPlayer(radio);
   } catch (err) {
     if (meta) meta.textContent = String(err.message || err);
     if ($("audio-status")) {
       $("audio-status").textContent =
         `Origin must be up on ${lastBrainUrl || "127.0.0.1:8787"} — Settings → Connection`;
     }
+  }
+}
+
+function paintRadioControls(radio) {
+  if (!radio || radio.ok === false) return;
+  const local = $("radio-local");
+  const onair = $("radio-onair");
+  const mic = $("radio-mic");
+  const live = $("radio-mic-live");
+  const tools = $("radio-tools");
+  const open = $("audio-open-local");
+  if (local && document.activeElement !== local) local.checked = !!radio.local_playback;
+  if (onair && document.activeElement !== onair) onair.checked = !!radio.on_air;
+  if (mic && document.activeElement !== mic) mic.checked = !!radio.mic_armed;
+  if (live) live.classList.toggle("hidden", !radio.mic_armed);
+  if (tools) {
+    const t = radio.tools || {};
+    tools.textContent = [
+      t.encoder_ready ? "Icecast+ffmpeg ready" : "Encoder: origin file SSE (no Icecast yet)",
+      t.ffmpeg ? "ffmpeg ok" : "ffmpeg missing",
+      t.icecast ? "icecast ok" : "icecast missing",
+      "desktop loopback OFF",
+    ].join(" · ");
+  }
+  if (open && radio.wake_page) {
+    open.href = radio.wake_page.includes("127.0.0.1")
+      ? radio.wake_page
+      : `${brainBaseUrl().replace(/\/$/, "")}/radio`;
+  }
+}
+
+let radioDeskEs = null;
+function ensureRadioDeskPlayer(radio) {
+  const player = $("radio-desk-player");
+  if (!player) return;
+  const want = !!(radio && (radio.local_playback || radio.on_air));
+  if (!want) {
+    if (radioDeskEs) {
+      try {
+        radioDeskEs.close();
+      } catch {
+        /* ignore */
+      }
+      radioDeskEs = null;
+    }
+    return;
+  }
+  if (radioDeskEs) return;
+  const url = `${brainBaseUrl().replace(/\/$/, "")}/radio/events`;
+  radioDeskEs = new EventSource(url);
+  radioDeskEs.addEventListener("play", (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      if (!data.src) return;
+      player.src = data.src.startsWith("http")
+        ? data.src
+        : `${brainBaseUrl().replace(/\/$/, "")}${data.src}`;
+      player.play().catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
+async function patchRadio(partial) {
+  $("audio-status").textContent = "radio…";
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/radio`, {
+      method: "POST",
+      headers: { ...operatorHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify(partial),
+    });
+    const j = await res.json();
+    paintRadioControls(j);
+    if (partial.local_playback === true) {
+      window.avaDesktop?.deskUiSave?.({ musicWanted: true }).catch(() => {});
+    } else if (partial.local_playback === false) {
+      window.avaDesktop?.deskUiSave?.({ musicWanted: false }).catch(() => {});
+    }
+    $("audio-status").textContent = j?.mic_note || "";
+    await refreshAudioPage();
+  } catch (err) {
+    $("audio-status").textContent = String(err.message || err);
   }
 }
 
@@ -3127,11 +3221,12 @@ async function audioMusicAction(action) {
         musicWanted: true,
         musicTrack: j?.music?.current || j?.currently_playing?.music?.track || null,
       }).catch(() => {});
+      await patchRadio({ local_playback: true });
+      return;
     } else if (a === "stop" || a === "pause") {
-      // Intentional operator off/pause — do not auto-resume on next Desk start.
-      // Desk close stop is separate: main process peeks before stop and keeps
-      // musicWanted when the bed was live.
       window.avaDesktop?.deskUiSave?.({ musicWanted: false }).catch(() => {});
+      await patchRadio({ local_playback: false });
+      return;
     }
     await refreshAudioPage();
   } catch (err) {
@@ -3155,6 +3250,11 @@ function wireAudioPage() {
   $("audio-music-pause")?.addEventListener("click", () => audioMusicAction("pause"));
   $("audio-music-resume")?.addEventListener("click", () => audioMusicAction("resume"));
   $("audio-music-start")?.addEventListener("click", () => audioMusicAction("start"));
+  $("radio-local")?.addEventListener("change", (e) =>
+    patchRadio({ local_playback: !!e.target.checked }),
+  );
+  $("radio-onair")?.addEventListener("change", (e) => patchRadio({ on_air: !!e.target.checked }));
+  $("radio-mic")?.addEventListener("change", (e) => patchRadio({ mic_armed: !!e.target.checked }));
   $("audio-chime-now")?.addEventListener("click", async () => {
     $("audio-status").textContent = "chime…";
     try {
