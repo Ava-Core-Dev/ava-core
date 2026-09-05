@@ -1148,6 +1148,7 @@ class StreamDirector:
         started = time.monotonic()
         end_reason = "unknown"
         aborted = False
+        self._desk_past_wait_warned = False
         try:
             if not desk_audio.ensure_mixer():
                 log.warning("Music bed: desk_audio mixer unavailable — skip %s", path.name)
@@ -1188,14 +1189,30 @@ class StreamDirector:
                     end_reason = "natural_exit"
                     break
                 elapsed = time.monotonic() - started
-                # Soft gate: if stream still busy far past header, keep waiting.
-                if elapsed >= wait_s + 30.0:
+                # Never kill mid-track on the clock — that was the audible cutout.
+                # Only warn; advance when pygame/helper reports not busy.
+                if (
+                    elapsed >= wait_s + MUSIC_WAIT_PAD_S
+                    and not getattr(self, "_desk_past_wait_warned", False)
+                ):
+                    self._desk_past_wait_warned = True
                     log.warning(
-                        "Music bed desk past wait+30s still busy  name=%s  wait_s=%.1f",
+                        "Music bed desk past wait_s still busy  name=%s  "
+                        "wait_s=%.1f  elapsed=%.1f — waiting for natural end",
                         path.name,
                         wait_s,
+                        elapsed,
                     )
-                    end_reason = "forced_advance"
+                # Stuck guard: 3× duration still busy (pygame hang) — then advance.
+                if wait_s > 5.0 and elapsed >= max(wait_s * 3.0, wait_s + 180.0):
+                    log.warning(
+                        "Music bed desk stuck — forcing advance  name=%s  "
+                        "wait_s=%.1f  elapsed=%.1f",
+                        path.name,
+                        wait_s,
+                        elapsed,
+                    )
+                    end_reason = "stuck_force"
                     await asyncio.to_thread(desk_audio.stop_bed)
                     break
                 await asyncio.sleep(0.15)
