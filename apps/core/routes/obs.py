@@ -347,6 +347,9 @@ poll(); setInterval(poll, 800);
 
 @router.get("/quake-overlay", response_class=HTMLResponse)
 async def obs_quake_overlay():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
@@ -805,6 +808,9 @@ async def obs_solar_public():
 
 @router.get("/solar-dashboard", response_class=HTMLResponse)
 async def obs_solar_dashboard():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     path = Path(__file__).resolve().parent.parent / "templates" / "obs-solar.html"
     html = path.read_text(encoding="utf-8") if path.is_file() else "<p>solar overlay missing</p>"
@@ -886,41 +892,62 @@ def _template_html(name: str) -> str:
 
 @router.get("/kilauea-cam", response_class=HTMLResponse)
 async def obs_kilauea_cam():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     return HTMLResponse(_template_html("obs-kilauea-cam.html"))
 
 
 @router.get("/weather-board", response_class=HTMLResponse)
 async def obs_weather_board():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(_template_html("obs-weather.html").replace("__ORIGIN__", origin))
 
 
 @router.get("/economy-board", response_class=HTMLResponse)
 async def obs_economy_board():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(_template_html("obs-economy.html").replace("__ORIGIN__", origin))
 
 
 @router.get("/goals-report", response_class=HTMLResponse)
 async def obs_goals_report():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(_template_html("obs-goals.html").replace("__ORIGIN__", origin))
 
 
 @router.get("/dev-updates", response_class=HTMLResponse)
 async def obs_dev_updates():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(_template_html("obs-dev-updates.html").replace("__ORIGIN__", origin))
 
 
 @router.get("/quake-global", response_class=HTMLResponse)
 async def obs_quake_global():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(_template_html("obs-quake-global.html").replace("__ORIGIN__", origin))
 
 
 @router.get("/quake-island", response_class=HTMLResponse)
 async def obs_quake_island():
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
     return HTMLResponse(_template_html("obs-quake-island.html").replace("__ORIGIN__", origin))
 
@@ -1018,6 +1045,9 @@ async def api_obs_weather_desk():
 @router.get("/hawaii-ir", response_class=HTMLResponse)
 async def obs_hawaii_ir():
     """Full-bleed Hawaii IR loop for OBS (CEF-friendly wrapper around the NWS GIF)."""
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     return HTMLResponse(
         """<!DOCTYPE html>
 <html><head><meta charset="UTF-8"/><title>Hawaii IR</title>
