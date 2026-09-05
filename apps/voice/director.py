@@ -1755,15 +1755,16 @@ class StreamDirector:
     async def _play_local(self, path: Path | None) -> None:
         """Play report/chime through desktop audio.
 
-        Windows: convert to WAV (ffmpeg) and play via desk_audio (pygame) at
-        VOICE_LEVEL while the bed stays ducked. Music must already be ducked by
-        `_play` (REPORT+) before this runs. Fallback: winsound helper.
+        Windows: convert to WAV (ffmpeg) and play via winsound helper. Music is
+        already ducked by desk_audio (pygame mixer.music) — do not also load
+        long clips into pygame.Sound (holds the GIL / wedges uvicorn).
         """
         if not path or not path.exists():
             await asyncio.sleep(2.0)
             return
 
-        # Windows report/chime: pygame desk_audio (volume) preferred.
+        # Windows report/chime: winsound path (voice level is system volume;
+        # relative duck comes from music at MUSIC_DUCKED).
         if os.name == "nt":
             wav = await asyncio.to_thread(_ensure_winsound_wav, path)
             if wav is None:
@@ -1773,23 +1774,6 @@ class StreamDirector:
                 )
                 await asyncio.sleep(self._estimate_duration(path))
                 return
-            try:
-                from apps.voice import desk_audio
-
-                if desk_audio.ensure_mixer():
-                    ok = await asyncio.to_thread(desk_audio.play_voice, wav)
-                    log.debug(
-                        "Local voice clip done (desk): %s  ok=%s",
-                        path.name,
-                        ok,
-                    )
-                    return
-            except Exception as e:
-                log.warning(
-                    "desk_audio voice failed (%s): %s — winsound fallback",
-                    path.name,
-                    e,
-                )
             cmd = _windows_play_voice_clip(wav)
             env = dict(os.environ)
             try:
