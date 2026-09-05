@@ -128,7 +128,12 @@ def _escape_concat_path(path: Path) -> str:
     return str(path.resolve()).replace("'", r"'\''")
 
 
-def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
+def concatenate_clips(
+    clips: list[Path],
+    out_path: Path,
+    *,
+    silence_ms: int | None = None,
+) -> Path:
     """
     Concatenate clips into one WAV (44.1 kHz 16-bit PCM mono).
 
@@ -138,6 +143,8 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
 
     Skip inserted silence next to pause clips (comma_pause / period_pause /
     section_pause) — those files are already open space.
+
+    silence_ms: override SILENCE_MS (use 0 for dense NWS/radio packs).
     """
     if not clips:
         raise ValueError("No clips to concatenate")
@@ -146,7 +153,8 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
     if out_path.suffix.lower() != ".wav":
         out_path = out_path.with_suffix(".wav")
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    gap = SILENCE_MS / 1000.0
+    gap_ms = SILENCE_MS if silence_ms is None else max(0, int(silence_ms))
+    gap = gap_ms / 1000.0
     pause_names = {"comma_pause", "period_pause", "section_pause"}
 
     def _is_pause(p: Path) -> bool:
@@ -188,7 +196,7 @@ def concatenate_clips(clips: list[Path], out_path: Path) -> Path:
         with open(list_file, "w", encoding="utf-8") as f:
             for i, norm in enumerate(norm_paths):
                 f.write(f"file '{_escape_concat_path(norm)}'\n")
-                if i >= len(norm_paths) - 1 or SILENCE_MS <= 0:
+                if i >= len(norm_paths) - 1 or gap_ms <= 0:
                     continue
                 a = Path(clips[i])
                 b = Path(clips[i + 1])

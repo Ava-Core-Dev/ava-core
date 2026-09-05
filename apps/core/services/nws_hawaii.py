@@ -623,18 +623,10 @@ async def refresh(
         except Exception as e:
             log.warning("NWS local stitch/play failed: %s", e)
             play_out = {"ok": False, "detail": str(e)[:160]}
-        announced = bool(play_out and play_out.get("ok") and play_out.get("stitch", {}).get("ok", True))
-        if announced and play_out.get("detail") == "stitch_failed":
-            announced = False
-        if announced and not (play_out.get("stitch") or {}).get("ok", True):
-            announced = False
-        # stitch skipped shouldn't happen with force_restitch; treat missing ok as fail
-        stitch_ok = (play_out or {}).get("stitch", {})
-        if isinstance(stitch_ok, dict) and stitch_ok.get("ok") is False:
-            announced = False
-        play_ok = bool((play_out or {}).get("play", {}).get("ok")) if play_out else False
-        # play_report_mp3 ok lives at top-level ok
         announced = bool(play_out and play_out.get("ok"))
+        stitch_meta = (play_out or {}).get("stitch") if isinstance(play_out, dict) else None
+        if isinstance(stitch_meta, dict) and stitch_meta.get("ok") is False:
+            announced = False
         if announced:
             state["last_spoken_at"] = now_iso
             state["last_spoken_reason"] = reason
@@ -720,6 +712,8 @@ def facts_lines() -> list[str]:
     spoken = str(st.get("spoken") or "").strip()
     if spoken:
         lines.append(f"NWS county spoken script: {spoken}")
+    if st.get("product_as_of"):
+        lines.append(f"NWS county product as of: {st.get('product_as_of')}.")
     if st.get("last_poll_hst"):
         lines.append(f"NWS county last poll: {st.get('last_poll_hst')}.")
     return lines
