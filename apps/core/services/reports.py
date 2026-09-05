@@ -197,12 +197,21 @@ def status_board() -> dict:
         due_today.append(row)
         recurring.append({**row, "lastKey": current.get("name") or "", "lastAt": current.get("mtimeMs") or 0})
 
+    daily_due = None
+    try:
+        from apps.core.services import daily_report_board
+
+        daily_due = daily_report_board.status()
+    except Exception as e:
+        daily_due = {"ok": False, "detail": type(e).__name__}
+
     return {
         "ok": True,
         "hstDay": now.strftime("%Y-%m-%d"),
         "asleep": False,
         "current": current,
         "dueToday": due_today,
+        "dailyReportsDue": daily_due,
         "recurring": recurring,
         "generated": generated,
     }

@@ -130,7 +130,30 @@ class ReportGenRunIn(BaseModel):
     allow_tts: bool = False
     publish: bool | None = None
     force_engine: str | None = None
+    force_mp3: str | None = None
     offline: bool = False
+    play: bool = False
+
+
+@router.get("/due")
+@router.get("/due-board")
+async def daily_reports_due_board():
+    """HST day due ledger for morning/midday/evening/late."""
+    from apps.core.services import daily_report_board
+
+    return daily_report_board.status()
+
+
+@router.post("/due/catchup")
+async def daily_reports_catchup_now(request: Request):
+    """Run oldest mandatory due/failed (never late). Local only."""
+    if not _allow_mutate(request):
+        return JSONResponse({"ok": False, "detail": "local_only"}, status_code=403)
+    from apps.core.services import daily_report_board
+
+    daily_report_board.ensure_today()
+    daily_report_board.mark_due()
+    return await daily_report_board.run_due(play=True, allow_tts=True)
 
 
 @router.get("/generation")
@@ -160,6 +183,15 @@ async def report_generation_patch(body: ReportGenPatchIn, request: Request):
                 m["blog"] = m.pop("auto_blog")
             if "brands" in m and "blog_brands" not in m:
                 m["blog_brands"] = m.pop("brands")
+            # Legacy grok → cloud for engine/mp3.
+            if "engine" in m:
+                from apps.core.services.report_generation import normalize_engine
+
+                m["engine"] = normalize_engine(m["engine"])
+            if "mp3" in m:
+                from apps.core.services.report_generation import normalize_mp3
+
+                m["mp3"] = normalize_mp3(m["mp3"])
             mapped[kind] = m
         patch["reports"] = mapped
     if body.week_of_grok is not None:
@@ -184,12 +216,14 @@ async def report_generation_run(body: ReportGenRunIn, request: Request):
         body.kind,
         dry_run=bool(body.dry_run),
         force_engine=body.force_engine,
+        force_mp3=body.force_mp3,
         allow_tts=bool(body.allow_tts),
         publish=body.publish,
         offline=bool(body.offline),
+        update_board=not bool(body.dry_run),
     )
     tts = (out or {}).get("tts") or {}
-    if not body.dry_run and tts.get("ok"):
+    if not body.dry_run and (body.play or tts.get("ok")):
         out["play"] = await voice_events.play_report_mp3(
             tts.get("current"),
             tts.get("mp3"),
