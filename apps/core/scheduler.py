@@ -142,6 +142,17 @@ class Scheduler:
         s.add_job(self._run("hourly_clip_reports"), CronTrigger(minute=2),
                   id="hourly-clip-reports", name="Play hourly clip reports", misfire_grace_time=120)
 
+        # Local EQ WAV: on the hour + poll for new local M≥2.0
+        s.add_job(self._run("earthquake_hourly"), CronTrigger(minute=8),
+                  id="earthquake-hourly", name="Earthquake hourly local WAV", misfire_grace_time=180)
+        s.add_job(
+            self._eq_poll_m2,
+            IntervalTrigger(minutes=10),
+            id="earthquake-m2-poll",
+            name="Earthquake local M≥2 poll",
+            misfire_grace_time=120,
+        )
+
         s.add_job(self._run("solar_weather"), CronTrigger(minute=4),
                   id="hourly-solar-weather", name="Hourly solar+weather", misfire_grace_time=120)
 

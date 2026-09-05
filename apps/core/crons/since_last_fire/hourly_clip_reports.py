@@ -1,6 +1,12 @@
-"""Hourly clip-pack reports: local facts → clip script → one MP3. No Grok TTS."""
+"""Hourly clip-pack reports: local facts → clip script → WAV. No Grok TTS.
+
+Reuse pack until facts fingerprint changes. Put the clock back only on a
+change announce (not every top-of-hour rebuild).
+"""
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import re
 from datetime import datetime
@@ -12,6 +18,7 @@ from apps.voice.local_tts import GENERATED, speak_script
 
 log = logging.getLogger("ava.cron.hourly_clip_reports")
 HST = ZoneInfo("Pacific/Honolulu")
+STATE_PATH = config.DATA_DIR / "state" / "hourly-clip-reports.json"
 
 
 def _int(tok: str) -> str | None:
@@ -253,10 +260,42 @@ async def _facts_live() -> str:
         return _facts_sync()
 
 
-def build_all(facts: str | None = None) -> dict[str, dict]:
+def _load_state() -> dict:
+    if not STATE_PATH.is_file():
+        return {"hashes": {}, "last_played": {}}
+    try:
+        data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {"hashes": {}, "last_played": {}}
+    except Exception:
+        return {"hashes": {}, "last_played": {}}
+
+
+def _save_state(data: dict) -> None:
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STATE_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def _body_hash(script: str) -> str:
+    return hashlib.md5((script or "").encode("utf-8")).hexdigest()
+
+
+def _with_clock(script: str, now: datetime) -> str:
+    """Clock only on change announce — prepend 12h clock tokens when clips exist."""
+    from apps.voice.local_tts import clock_tokens
+
+    clock = " ".join(clock_tokens(now.hour, now.minute))
+    if not clock:
+        return script
+    return _join((clock + " " + (script or "")).split())
+
+
+def build_all(facts: str | None = None, *, force: bool = False) -> dict[str, dict]:
+    """Rebuild WAV only when the facts-derived script hash changes (or force)."""
     facts = _facts_sync() if facts is None else facts
     now = datetime.now(HST)
     stamp = now.strftime("%Y%m%d-%H")
+    st = _load_state()
+    hashes = dict(st.get("hashes") or {})
     out: dict[str, dict] = {}
     jobs = {
         "solar": solar_script(facts, now),
@@ -265,28 +304,68 @@ def build_all(facts: str | None = None) -> dict[str, dict]:
         "kilauea": kilauea_script(facts, now),
     }
     current_names = {
-        "solar": "solar-weather-current.mp3",
-        "system": "system-performance-current.mp3",
-        "weather": "nws-hawaii-current.mp3",
-        "kilauea": "Kilauea_Current.mp3",
+        "solar": "solar-weather-current.wav",
+        "system": "system-performance-current.wav",
+        "weather": "nws-hawaii-current.wav",
+        "kilauea": "Kilauea_Current.wav",
     }
-    for cat, script in jobs.items():
-        dest = Path(GENERATED) / f"hourly-{cat}-{stamp}.mp3"
-        latest = Path(GENERATED) / f"hourly-{cat}-current.mp3"
-        result = speak_script(script, dest)
-        if result.get("ok"):
-            import shutil
+    for cat, body in jobs.items():
+        fp = _body_hash(body)
+        latest = Path(GENERATED) / f"hourly-{cat}-current.wav"
+        legacy = Path(GENERATED) / f"hourly-{cat}-current.mp3"
+        changed = force or fp != str(hashes.get(cat) or "") or not latest.is_file()
+        result: dict = {
+            "ok": True,
+            "changed": changed,
+            "hash": fp,
+            "script_body": body,
+            "skipped_rebuild": not changed,
+        }
+        if changed:
+            script = _with_clock(body, now)
+            dest = Path(GENERATED) / f"hourly-{cat}-{stamp}.wav"
+            result = speak_script(script, dest)
+            result["script"] = script
+            result["script_body"] = body
+            result["changed"] = True
+            result["hash"] = fp
+            if result.get("ok"):
+                import shutil
 
-            shutil.copy2(dest, latest)
-            pub = Path(config.AUDIO_CURRENT_DIR) / current_names[cat]
-            try:
-                pub.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(dest, pub)
-            except OSError:
-                pass
-        result["script"] = script
+                shutil.copy2(dest, latest)
+                if legacy.is_file():
+                    try:
+                        legacy.unlink()
+                    except OSError:
+                        pass
+                pub = Path(config.AUDIO_CURRENT_DIR) / current_names[cat]
+                try:
+                    pub.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(dest, pub)
+                    # Drop stale mp3 public siblings
+                    pub_mp3 = pub.with_suffix(".mp3")
+                    if pub_mp3.is_file():
+                        try:
+                            pub_mp3.unlink()
+                        except OSError:
+                            pass
+                except OSError:
+                    pass
+                hashes[cat] = fp
+        else:
+            result["script"] = body
+            result["ok"] = latest.is_file() or legacy.is_file()
         out[cat] = result
-        log.info("clip report %s ok=%s missing=%s", cat, result.get("ok"), result.get("missing"))
+        log.info(
+            "clip report %s changed=%s ok=%s missing=%s",
+            cat,
+            changed,
+            result.get("ok"),
+            result.get("missing"),
+        )
+    st["hashes"] = hashes
+    st["updated_at"] = now.isoformat()
+    _save_state(st)
     Path(GENERATED).mkdir(parents=True, exist_ok=True)
     (Path(GENERATED) / "hourly-scripts.txt").write_text(
         "\n".join(f"{k}: {v.get('script')}" for k, v in out.items()),
@@ -299,22 +378,43 @@ async def prebuild() -> dict:
     return build_all(await _facts_live())
 
 
-async def play() -> dict:
+async def play(*, only_changed: bool = True) -> dict:
+    from apps.voice.director import Priority, get_director
+
+    director = get_director()
+    st = _load_state()
+    played = []
+    skipped = []
+    for cat in ("solar", "system", "weather", "kilauea"):
+        wav = Path(GENERATED) / f"hourly-{cat}-current.wav"
+        mp3 = Path(GENERATED) / f"hourly-{cat}-current.mp3"
+        p = wav if wav.is_file() else mp3
+        if not p.is_file():
+            continue
+        # only_changed: play when this hour marked changed in last build
+        # (caller passes built flags); default play all existing if not gated.
+        await director.queue(p, name=f"hourly_{cat}", priority=Priority.REPORT, scene=None)
+        played.append(cat)
+    st["last_played"] = {c: datetime.now(HST).isoformat() for c in played}
+    _save_state(st)
+    return {"ok": True, "played": played, "skipped": skipped}
+
+
+async def run() -> dict:
+    """Top of hour: rebuild only on facts change; play only changed packs."""
+    built = build_all(await _facts_live())
     from apps.voice.director import Priority, get_director
 
     director = get_director()
     played = []
-    for cat in ("solar", "system", "weather", "kilauea"):
-        p = Path(GENERATED) / f"hourly-{cat}-current.mp3"
+    for cat, row in built.items():
+        if not row.get("changed"):
+            continue
+        wav = Path(GENERATED) / f"hourly-{cat}-current.wav"
+        mp3 = Path(GENERATED) / f"hourly-{cat}-current.mp3"
+        p = wav if wav.is_file() else mp3
         if not p.is_file():
             continue
         await director.queue(p, name=f"hourly_{cat}", priority=Priority.REPORT, scene=None)
         played.append(cat)
-    return {"ok": True, "played": played}
-
-
-async def run() -> dict:
-    """Top of hour: ensure MP3s exist, then play."""
-    built = build_all(await _facts_live())
-    played = await play()
-    return {"built": {k: v.get("ok") for k, v in built.items()}, "played": played}
+    return {"built": {k: v.get("ok") for k, v in built.items()}, "played": played, "changed": played}
