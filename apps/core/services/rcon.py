@@ -30,12 +30,20 @@ DESTRUCTIVE = (
     "whitelist off", "kill @a", "gamerule", "difficulty", "save-off",
 )
 
-_quiet_until = 0.0
+_quiet_until: dict[str, float] = {}
 _QUIET_S = 600.0
 
 
 class RconError(Exception):
     pass
+
+
+def clear_backoff(target: str | None = None) -> None:
+    """Operator/agent helper: clear quiet window for one target or all."""
+    if target is None:
+        _quiet_until.clear()
+        return
+    _quiet_until.pop(str(target).strip().lower(), None)
 
 
 def _packet(req_id: int, kind: int, body: str) -> bytes:
@@ -88,7 +96,8 @@ async def execute(
         return {"ok": False, "reason": "target", "detail": str(e)}
 
     global _quiet_until
-    if _quiet_until and time.monotonic() < _quiet_until:
+    until = float(_quiet_until.get(name) or 0.0)
+    if until and time.monotonic() < until:
         return {"ok": False, "reason": "error", "target": name, "detail": "rcon_backoff"}
 
     if is_destructive(cmd) and not allow:
@@ -104,11 +113,11 @@ async def execute(
             _run(cmd, name, host, port, password), timeout=timeout
         )
     except asyncio.TimeoutError:
-        _quiet_until = time.monotonic() + _QUIET_S
+        _quiet_until[name] = time.monotonic() + _QUIET_S
         return {"ok": False, "reason": "timeout", "target": name,
                 "detail": f"no response from {host}:{port} in {timeout}s"}
     except Exception as e:  # connection refused, auth failure, protocol error
-        _quiet_until = time.monotonic() + _QUIET_S
+        _quiet_until[name] = time.monotonic() + _QUIET_S
         log.warning("RCON %s failed: %s — quiet %ss", name, e, int(_QUIET_S))
         return {"ok": False, "reason": "error", "target": name, "detail": str(e)}
 
