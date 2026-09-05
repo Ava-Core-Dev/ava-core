@@ -42,11 +42,56 @@ def _health_ok() -> bool:
         return False
 
 
+def _origin_pids() -> list[int]:
+    """PIDs for uvicorn apps.core (and music bed helpers when recycling hung stack)."""
+    try:
+        import psutil
+    except Exception:
+        return []
+    out: list[int] = []
+    try:
+        for p in psutil.process_iter(["pid", "cmdline", "create_time"]):
+            parts = p.info.get("cmdline") or []
+            if not parts or (len(parts) > 1 and parts[1] == "-c"):
+                continue
+            cmd = " ".join(parts).lower()
+            if "uvicorn" in cmd and "apps.core" in cmd:
+                out.append(int(p.info["pid"]))
+            elif "play_music_bed" in cmd:
+                out.append(int(p.info["pid"]))
+    except Exception:
+        return out
+    return out
+
+
+def _youngest_origin_age_s() -> float | None:
+    """Seconds since newest uvicorn apps.core started. None if none."""
+    try:
+        import psutil
+        import time as _time
+    except Exception:
+        return None
+    ages: list[float] = []
+    try:
+        now = _time.time()
+        for p in psutil.process_iter(["cmdline", "create_time"]):
+            parts = p.info.get("cmdline") or []
+            if not parts:
+                continue
+            cmd = " ".join(parts).lower()
+            if "uvicorn" in cmd and "apps.core" in cmd:
+                ages.append(max(0.0, now - float(p.info.get("create_time") or now)))
+    except Exception:
+        return None
+    return min(ages) if ages else None
+
+
 def _origin_process_present() -> bool:
     """True if a uvicorn origin is already running (even while :8787 is briefly unbound).
 
     Agents that kill+respawn race the watchdog; spawning a second origin causes
-    kill storms and public holding. Presence alone means do not spawn.
+    kill storms and public holding. Presence alone means do not spawn — unless
+    health is dark (hung port-open stack); see _recycle_hung_origin.
     """
     try:
         import psutil
@@ -64,6 +109,68 @@ def _origin_process_present() -> bool:
     except Exception:
         return False
     return False
+
+
+def _recycle_hung_origin() -> bool:
+    """Kill origin when port/process exist but /health fails (wedged event loop).
+
+    Public chat Worker then returns the offline stub. Watchdog used to treat
+    port-open as healthy and never respawned. Returns True if a kill ran.
+    """
+    if _health_ok():
+        return False
+    if not (_port_open() or _origin_process_present()):
+        return False
+    age = _youngest_origin_age_s()
+    # Warming up after a fresh spawn — give it time.
+    if age is not None and age < 90.0:
+        return False
+    # Cooldown file so Task Scheduler ticks do not thrash.
+    stamp = REPO / "data" / "state" / "watchdog-hung-recycle.json"
+    try:
+        import json
+        import time as _time
+
+        stamp.parent.mkdir(parents=True, exist_ok=True)
+        if stamp.is_file():
+            prev = json.loads(stamp.read_text(encoding="utf-8"))
+            last = float(prev.get("at_unix") or 0)
+            if _time.time() - last < 120.0:
+                return False
+        stamp.write_text(
+            json.dumps(
+                {
+                    "at_unix": _time.time(),
+                    "at": datetime.now(timezone.utc).isoformat(),
+                    "reason": "health_fail_port_or_process_present",
+                    "pids": _origin_pids(),
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
+    for pid in _origin_pids():
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                capture_output=True,
+                creationflags=CREATE_NO_WINDOW,
+                startupinfo=_quiet_startupinfo(),
+                timeout=15,
+            )
+        except Exception:
+            pass
+    # Brief wait so :8787 unbinds before spawn.
+    try:
+        import time as _time
+
+        _time.sleep(2)
+    except Exception:
+        pass
+    return True
 
 
 CF_EXES = (
@@ -118,16 +225,33 @@ def _ensure_tunnel() -> None:
 
 
 online = net_gate.internet_up()
-origin_up = _health_ok() or _port_open() or _origin_process_present()
+# Prefer real health for net_gate. Port-open alone hid hung origins from the gate.
+origin_up = _health_ok()
 decision = net_gate.tick(online=online, origin_up=origin_up)
 if not decision.get("allow_origin"):
     sys.exit(0)
 
 _ensure_tunnel()
 
-if _health_ok() or _port_open() or _origin_process_present():
+# Hung: process/port up but /health dark → kill once, then spawn below.
+_recycle_hung_origin()
+
+if _health_ok():
     if decision.get("restart_desk"):
         net_gate.start_desk()
+    sys.exit(0)
+
+# Still warming (young process, health not ready) — do not dual-spawn.
+age = _youngest_origin_age_s()
+if _origin_process_present() and age is not None and age < 90.0:
+    sys.exit(0)
+
+# Process present + health dark + already recycled / cooldown: wait next tick.
+if _origin_process_present() and not _port_open():
+    # Dying — next tick will spawn.
+    sys.exit(0)
+if _origin_process_present() and _port_open() and not _health_ok():
+    # Recycle on cooldown or failed — avoid second parent.
     sys.exit(0)
 
 
