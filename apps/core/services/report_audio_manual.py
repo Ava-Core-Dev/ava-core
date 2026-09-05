@@ -13,7 +13,7 @@ from pathlib import Path
 
 log = logging.getLogger("ava.report_audio_manual")
 
-KINDS = ("morning", "midday", "evening")
+KINDS = ("morning", "midday", "evening", "late")
 STATE_NAME = "report-audio-manual.json"
 
 
