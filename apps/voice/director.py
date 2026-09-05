@@ -873,13 +873,26 @@ class StreamDirector:
             # Silence leftovers from dead uvicorn / double spawn before first track.
             await _kill_stray_music_players_async()
             self._music_enabled = True
-            # Never clear a live report/chime hold — starting the bed under a REPORT
-            # used to unmute the bed on top of Ara and drown the clip.
+            # Never unduck under a live report — bed stays quiet under Ava.
             voice_busy = self._voice_busy_for_music()
             if voice_busy:
                 self._music_hold = True
+                if os.name == "nt":
+                    try:
+                        from apps.voice import desk_audio
+
+                        desk_audio.set_ducked(True)
+                    except Exception:
+                        pass
             else:
                 self._music_hold = False
+                if os.name == "nt":
+                    try:
+                        from apps.voice import desk_audio
+
+                        desk_audio.set_ducked(False)
+                    except Exception:
+                        pass
             self._music_operator_hold = False
             self._music_task = asyncio.create_task(self._music_loop(), name="ava-music-bed")
             log.info(
@@ -891,15 +904,23 @@ class StreamDirector:
             return {"ok": True, "tracks": len(tracks), "dir": str(music_dir())}
 
     def _hold_music(self) -> None:
-        """Pause bed for reports / chimes / alerts (kill current track process)."""
+        """Duck bed under reports / chimes / alerts (do not kill on Windows)."""
         if not self._music_hold:
             log.info(
-                "Music bed hold for voice  was=%s",
+                "Music bed duck for voice  was=%s",
                 self._music_current.name if self._music_current else None,
             )
         self._music_hold = True
+        if os.name == "nt":
+            try:
+                from apps.voice import desk_audio
+
+                desk_audio.set_ducked(True)
+            except Exception as e:
+                log.warning("desk_audio duck failed: %s", e)
+            return
+        # Non-Windows: legacy kill-on-hold.
         self._kill_music_proc()
-        # Do not keep a ghost "Now" track while the player is dead.
         self._music_current = None
 
     @staticmethod
@@ -935,19 +956,35 @@ class StreamDirector:
         return False
 
     def _release_music_if_idle(self) -> None:
-        """Clear voice hold when no REPORT+ item is current, paused, or queued."""
+        """Clear voice duck when no REPORT+ item is current, paused, or queued."""
         if self._voice_busy_for_music():
             return
         if self._music_hold:
-            log.info("Music bed resume")
+            log.info("Music bed unduck (idle restore)")
         self._music_hold = False
+        if os.name == "nt":
+            try:
+                from apps.voice import desk_audio
+
+                desk_audio.set_ducked(False)
+            except Exception:
+                pass
 
     def _kill_music_proc(self, *, keep_pid: int | None = None) -> None:
         """Stop the bed player(s); optionally spare keep_pid (blend handoff).
 
-        kill_stray always receives keep_pid when a live bed PID must survive
-        (blend peer). Intentional silence (hold/stop) omits keep so orphans die.
+        Windows desk_audio: stop the pygame bed channel. Subprocess path still
+        kills tracked PIDs. kill_stray always receives keep_pid when a live bed
+        PID must survive (blend peer). Intentional silence (hold/stop) omits
+        keep so orphans die.
         """
+        if os.name == "nt":
+            try:
+                from apps.voice import desk_audio
+
+                desk_audio.stop_bed()
+            except Exception:
+                pass
         proc = self._music_proc
         self._music_proc = None
         pid = self._music_proc_pid
@@ -993,10 +1030,10 @@ class StreamDirector:
     async def _music_loop(self) -> None:
         """Shuffle all recursive tracks, play through, reshuffle, repeat.
 
-        Windows winsound bed: play each file to process exit (no overlap blend;
-        killing at measured wait_s cut mid-track). Other platforms may briefly
-        overlap the next file (MUSIC_BLEND_S). Inter-track advance does not call
-        kill_stray (multi-second on this PC).
+        Windows: pygame desk_audio keeps the bed playing under voice (duck).
+        Only operator pause stops the channel. Other platforms may briefly
+        overlap the next file (MUSIC_BLEND_S). Inter-track advance does not
+        call kill_stray (multi-second on this PC).
         """
         continue_existing = False
         while self._music_enabled and self._running:
@@ -1026,7 +1063,18 @@ class StreamDirector:
             if not force:
                 random.shuffle(tracks)
             self._music_playlist = list(tracks)
-            log.info("Music bed shuffle  n=%s", len(tracks))
+            folders = sorted(
+                {
+                    p.parent.name
+                    for p in tracks
+                    if p.parent.name and p.parent != music_dir()
+                }
+            )
+            log.info(
+                "Music bed shuffle  n=%s  folders=%s",
+                len(tracks),
+                ",".join(folders) if folders else "(root)",
+            )
             i = 0
             while i < len(tracks):
                 path = tracks[i]
@@ -1034,7 +1082,8 @@ class StreamDirector:
                 if not self._music_enabled or not self._running:
                     return
                 was_held = False
-                while self._music_bed_held():
+                # Operator pause only — voice duck must not stall the playlist.
+                while self._music_operator_hold:
                     was_held = True
                     continue_existing = False
                     await asyncio.sleep(0.1)
@@ -1056,10 +1105,9 @@ class StreamDirector:
                     sweep_orphans=False,
                 )
                 continue_existing = False
-                # Voice / operator interrupt: wait for clear, then start bed after 1s.
-                # Do not orphan-sweep here — CIM scan was multi-second dead air.
-                if not finished and self._music_bed_held():
-                    while self._music_bed_held():
+                # Operator interrupt: wait for clear, then start bed after 1s.
+                if not finished and self._music_operator_hold:
+                    while self._music_operator_hold:
                         await asyncio.sleep(0.1)
                         if not self._music_enabled or not self._running:
                             return
@@ -1076,6 +1124,88 @@ class StreamDirector:
                     i += 1
                     continue
                 i += 1
+
+    async def _play_music_track_desk(
+        self,
+        path: Path,
+        *,
+        continue_existing: bool = False,
+    ) -> tuple[bool, bool]:
+        """Windows in-process bed via pygame (volume duck under Ava)."""
+        from apps.voice import desk_audio
+
+        self._music_current = path
+        wait_s = _music_wait_seconds(path)
+        started = time.monotonic()
+        end_reason = "unknown"
+        aborted = False
+        try:
+            if not desk_audio.ensure_mixer():
+                log.warning("Music bed: desk_audio mixer unavailable — skip %s", path.name)
+                await asyncio.sleep(2.0)
+                return True, False
+            if self._music_operator_hold or not self._music_enabled:
+                end_reason = "held_before_spawn"
+                return False, False
+            same = (
+                continue_existing
+                and desk_audio.bed_busy()
+                and desk_audio.bed_path() is not None
+                and Path(desk_audio.bed_path()).resolve() == path.resolve()
+            )
+            if not same:
+                if not desk_audio.play_bed(path):
+                    end_reason = "play_failed"
+                    return True, False
+            self._music_proc_pid = os.getpid()
+            log.info(
+                "Music bed playing (desk): %s  wait_s=%.1f  ducked=%s",
+                path.name,
+                wait_s,
+                desk_audio.is_ducked(),
+            )
+            while True:
+                if self._music_operator_hold or not self._music_enabled:
+                    aborted = True
+                    end_reason = (
+                        "operator_pause" if self._music_operator_hold else "disabled"
+                    )
+                    desk_audio.stop_bed()
+                    break
+                if not desk_audio.bed_busy():
+                    end_reason = "natural_exit"
+                    break
+                elapsed = time.monotonic() - started
+                # Soft gate: if channel still busy far past header, keep waiting.
+                if elapsed >= wait_s + 30.0:
+                    log.warning(
+                        "Music bed desk past wait+30s still busy  name=%s  wait_s=%.1f",
+                        path.name,
+                        wait_s,
+                    )
+                    end_reason = "forced_advance"
+                    desk_audio.stop_bed()
+                    break
+                await asyncio.sleep(0.15)
+        except Exception as e:
+            log.warning("Music bed desk play failed (%s): %s", path.name, e)
+            aborted = False
+            end_reason = "error"
+        finally:
+            log.info(
+                "Music bed track end  name=%s  wait_s=%.1f  exit_elapsed=%.1f  reason=%s",
+                path.name,
+                wait_s,
+                time.monotonic() - started,
+                end_reason,
+            )
+            if aborted or not desk_audio.bed_busy():
+                self._music_proc_pid = None
+                if aborted:
+                    self._music_current = None
+                elif end_reason in ("natural_exit", "forced_advance", "error", "play_failed"):
+                    self._music_current = None
+        return (not aborted), False
 
     async def _play_music_track(
         self,
@@ -1095,6 +1225,11 @@ class StreamDirector:
         duration clock is satisfied (unless held). Near the end, optionally spawn
         blend_into for a short overlap, then kill only the outgoing player.
         """
+        if os.name == "nt":
+            return await self._play_music_track_desk(
+                path, continue_existing=continue_existing
+            )
+
         self._music_current = path
         wait_s = _music_wait_seconds(path)
         player_cmd = _find_audio_player()
@@ -1517,9 +1652,20 @@ class StreamDirector:
                 self._release_music_if_idle()
 
     async def _play(self, item: AudioItem) -> None:
-        # REPORT+ (chime / report / critical / startup phrase) holds the bed.
-        if self._priority_holds_music(int(getattr(item, "priority", 0) or 0)):
+        # REPORT+ (chime / report / critical / startup phrase) ducks the bed.
+        holds = self._priority_holds_music(int(getattr(item, "priority", 0) or 0))
+        if holds:
             self._hold_music()
+            # 1s lead-in at ducked volume before Ava speaks.
+            lead = 1.0
+            if os.name == "nt":
+                try:
+                    from apps.voice.desk_audio import DUCK_LEAD_S
+
+                    lead = float(DUCK_LEAD_S)
+                except Exception:
+                    lead = 1.0
+            await asyncio.sleep(lead)
 
         if self._current and item.priority > self._current.priority:
             self._paused = self._current
