@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05 (HST)  
 **Machine:** AVA-CORE · live tree `C:\Users\rootr\ava`  
-**Status:** Plan only — not built yet (except items marked DONE below)  
+**Status:** Phase 1 shipping (2026-09-05) — Desk Radio + Banished wake + OBS idle gates. Icecast/ffmpeg not on PATH yet (origin file SSE). Mic = armed flag only.  
 **Operator ask:** No stray pages broadcasting; efficient when nobody is visiting; Banished-style wake page; full Radio in Ava Desk (local listen without Cloudflare); program feed = music + reports + chimes (not desktop audio); optional mic; fold pending work.
 
 ---
