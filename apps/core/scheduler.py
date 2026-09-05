@@ -127,7 +127,7 @@ class Scheduler:
 
         # After :30 chime — avoid stacking on the mark
         s.add_job(self._run("remaining_tasks"), CronTrigger(minute=32),
-                  id="remaining-tasks", name="Remaining tasks (:32, 4h window)", misfire_grace_time=90)
+                  id="remaining-tasks", name="Remaining tasks (:32, 1h + failed due)", misfire_grace_time=90)
 
         # One-day morning-boot MP3 replay (:32 until noon HST). State file ends it.
         s.add_job(self._run("morning_boot_replay"), CronTrigger(minute=32),
@@ -262,9 +262,9 @@ class Scheduler:
         s.add_job(self._run("account_import"), IntervalTrigger(hours=6),
                   id="account-import", name="Identity + membership import", misfire_grace_time=300)
 
-        # ── D1 ← host MySQL (every 5 min) ────────────────────────────────────
-        s.add_job(self._run("d1_sync"), IntervalTrigger(minutes=5),
-                  id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=120)
+        # ── D1 ← host MySQL (throttled). Full wallet rewrite every 5m burned free tier.
+        s.add_job(self._run("d1_sync"), IntervalTrigger(hours=6),
+                  id="d1-sync", name="MySQL → D1 Minecraft cache", misfire_grace_time=600)
 
         s.add_job(self._run("inbox_drain"), IntervalTrigger(minutes=5),
                   id="inbox-drain", name="CF offline inbox → local", misfire_grace_time=120)

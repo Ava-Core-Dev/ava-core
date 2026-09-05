@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -116,15 +117,33 @@ async def _ensure_schema(db_id: str) -> None:
 
 
 async def run() -> None:
+    """Push Minecraft edge cache to D1.
+
+    Not related to local Ava reports. Free-tier rows_written is burned by
+    rewriting every wallet row — keep balances rare; status is cheap.
+    """
     db_id = config.CF_D1_ROOTMC_DB_ID
     if not db_id:
         log.warning("CF_D1_ROOTMC_DB_ID unset — skip D1 sync")
         return
 
+    # Soft pause until free-tier reset (UTC midnight) when env set, or state flag.
+    pause_until = (os.getenv("AVA_D1_SYNC_PAUSE_UNTIL") or "").strip()
+    state_path = config.DATA_DIR / "state" / "d1-sync.json"
+    st: dict = {}
+    if state_path.is_file():
+        try:
+            st = json.loads(state_path.read_text(encoding="utf-8-sig"))
+            if not isinstance(st, dict):
+                st = {}
+        except Exception:
+            st = {}
+    if st.get("pause_balances_until_utc"):
+        pause_until = pause_until or str(st.get("pause_balances_until_utc"))
+
     await _ensure_schema(db_id)
     now = datetime.now(timezone.utc).isoformat()
 
-    # Server status from the Python core's own probe
     from apps.core.routes import minecraft as mc_routes
 
     status = await mc_routes.minecraft_status()
@@ -146,6 +165,39 @@ async def run() -> None:
              online=excluded.online, updated_at=excluded.updated_at, detail=excluded.detail""",
         ["live", live_on, now, str(status.get("live", {}))[:500]],
     )
+
+    # Near free-tier cap: skip wallet rewrite until UTC day rolls (operator email 2026-09-04).
+    skip_balances = False
+    if pause_until:
+        try:
+            until = datetime.fromisoformat(pause_until.replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) < until:
+                skip_balances = True
+        except ValueError:
+            pass
+    # Default soft pause through the notified reset if no explicit flag yet.
+    if not pause_until:
+        # Cap warning reset: 2026-09-05 00:00:00 UTC
+        soft = datetime(2026, 9, 5, 0, 0, 0, tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) < soft:
+            skip_balances = True
+            st["pause_balances_until_utc"] = soft.isoformat()
+            st["pause_reason"] = "free_tier_rows_written_83pct"
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            state_path.write_text(json.dumps(st, indent=2) + "\n", encoding="utf-8")
+
+    if skip_balances:
+        await d1.query(
+            db_id,
+            """INSERT INTO sync_meta (name, updated_at, row_count, ok, detail)
+               VALUES (?, ?, ?, 1, ?)
+               ON CONFLICT(name) DO UPDATE SET
+                 updated_at=excluded.updated_at, row_count=excluded.row_count,
+                 ok=1, detail=excluded.detail""",
+            ["player_balances", now, int(st.get("last_balance_count") or 0), "balances paused — D1 free-tier cap"],
+        )
+        log.warning("D1 sync: server_status only — wallet rows paused until free-tier reset")
+        return
 
     balances: list[dict] = []
     for sql in (
@@ -183,4 +235,8 @@ async def run() -> None:
              ok=1, detail=excluded.detail""",
         ["player_balances", now, n, f"host sync {n} wallets"],
     )
+    st["last_balance_count"] = n
+    st["last_balance_sync_utc"] = now
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(json.dumps(st, indent=2) + "\n", encoding="utf-8")
     log.info("D1 sync wrote %d balances + server_status", n)

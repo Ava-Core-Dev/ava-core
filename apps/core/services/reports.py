@@ -40,7 +40,7 @@ _REPORT_JOBS = (
     ("late-report", "Late report (optional)", "22:00 HST"),
     ("late-report-play", "Late report play", "22:12 HST"),
     ("overnight-relay", "Late-night relay", "overnight"),
-    ("remaining-tasks", "Remaining tasks", "every :30 · next 4h"),
+    ("remaining-tasks", "Remaining tasks", "every :32 · next 1h + failed due"),
 )
 
 

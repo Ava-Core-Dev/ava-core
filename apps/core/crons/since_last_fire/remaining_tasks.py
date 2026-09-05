@@ -1,9 +1,9 @@
-"""Every :30 HST: remaining clocked work in the next 4 hours, plus drafts you must approve.
+"""Every :32 HST: remaining clocked work in the next 1 hour, plus failed/due
+daily reports, plus drafts you must approve.
 
-Does not list interval jobs. Does not play items more than 4 hours ahead.
-Uses local clips only. Missing phrase files are skipped, not invented by Grok.
-Lead: phrase_remaining_tasks. Manual drafts: phrase_manual_drafts. Slot due lines
-use the day-board phrase ids (phrase_*_slot and report phrases).
+Does not list interval jobs. Does not play clock items more than 1 hour ahead
+(except failed/due daily reports, which stay listed until done).
+Uses local clips only.
 """
 from __future__ import annotations
 

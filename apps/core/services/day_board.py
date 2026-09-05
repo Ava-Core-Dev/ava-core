@@ -1,8 +1,8 @@
-"""Daily task board: what must fire, when reports land, what's left in 4 hours.
+"""Daily task board: what must fire, when reports land, what's left in 1 hour.
 
 Clock times are HST. Interval jobs keep running; remaining-task voice only
-lists clocked reports, slot functions not yet fired, and operator leftovers.
-Does not call Grok.
+lists clocked reports within the hour, plus any failed/due daily reports,
+and operator leftovers. Does not call cloud text APIs.
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from apps.core import config
 log = logging.getLogger("ava.day_board")
 HST = ZoneInfo("Pacific/Honolulu")
 
-LOOKAHEAD_H = 4
+LOOKAHEAD_H = 1
 STATE_PATH = config.DATA_DIR / "state" / "day-board.json"
 REMAINING_PATH = config.DATA_DIR / "state" / "remaining-tasks.json"
 
@@ -44,7 +44,7 @@ MUST_FIRE_INTERVAL = (
     {"id": "ecoflow-quota", "every": "2m", "manual": False, "note": "Pack watts and percent"},
     {"id": "host-sample", "every": "1m", "manual": False, "note": "CPU RAM for the desk"},
     {"id": "kilauea-cams", "every": "5m", "manual": False, "note": "V1 V2 V3 stills"},
-    {"id": "d1-sync", "every": "5m", "manual": False, "note": "MySQL to D1 cache"},
+    {"id": "d1-sync", "every": "6h", "manual": False, "note": "MySQL to D1 cache (throttled)"},
     {"id": "inbox-drain", "every": "5m", "manual": False, "note": "Offline inbox to local"},
     {"id": "vercel-builds", "every": "5m", "manual": False, "note": "Build logs to docs"},
     {"id": "nhc-media", "every": "10m", "manual": False, "note": "EPAC and CPAC maps"},
@@ -69,7 +69,7 @@ MUST_FIRE_HOURLY = (
     {"id": "time-chime", "when": ":00 and :30", "manual": False, "note": "Bell plus clock"},
 )
 
-# Named daily clock jobs (HST). remaining-tasks speaks these if due within 4h.
+# Named daily clock jobs (HST). remaining-tasks speaks these if due within 1h.
 CLOCK_JOBS = (
     {
         "id": "day-reports-morning",
@@ -377,6 +377,42 @@ def remaining(*, lookahead_h: int = LOOKAHEAD_H, now: datetime | None = None) ->
                 "note": "On the hour until morning",
             }
         )
+
+    # Failed / still-due daily reports (same HST day) — always include, even past 1h window.
+    try:
+        from apps.core.services import daily_report_board
+
+        board = daily_report_board.ensure_today()
+        daily_report_board.mark_due()
+        board = daily_report_board.ensure_today()
+        for slot, row in (board.get("slots") or {}).items():
+            if not isinstance(row, dict):
+                continue
+            st = str(row.get("status") or "")
+            if st not in ("due", "failed"):
+                continue
+            phrase = {
+                "morning": "phrase_morning_report",
+                "midday": "midday_report",
+                "evening": "evening",
+                "late": "late",
+            }.get(slot, "reports")
+            items.append(
+                {
+                    "id": f"daily-report-{slot}",
+                    "label": f"{slot} report still due ({st})",
+                    "manual": False,
+                    "due": now.isoformat(),
+                    "hour": now.hour,
+                    "minute": now.minute,
+                    "phrase": phrase,
+                    "function": None,
+                    "note": "Failed or overdue — still owed today",
+                    "failed_or_due": True,
+                }
+            )
+    except Exception as e:
+        log.debug("daily report due merge skipped: %s", e)
 
     seen: set[str] = set()
     uniq: list[dict] = []
