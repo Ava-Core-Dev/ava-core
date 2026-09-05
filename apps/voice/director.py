@@ -827,6 +827,14 @@ class StreamDirector:
         self._music_operator_hold = False
         self._music_hold = False
         set_music_bed_wanted(False)
+        if os.name == "nt":
+            try:
+                from apps.voice import desk_audio
+
+                desk_audio.set_ducked(False)
+                desk_audio.stop_voice()
+            except Exception:
+                pass
         self._kill_music_proc()
         task = self._music_task
         self._music_task = None
