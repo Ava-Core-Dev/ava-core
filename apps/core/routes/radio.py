@@ -21,9 +21,9 @@ WAKE_LINES = [
     "Root Record · Hawaiʻi",
     "Waiting for the board…",
     "Solar desk warms up when you visit.",
-    "Program bus only — not this PC’s speakers.",
-    "Music, reports, and chimes when on air.",
+    "Music, reports, and chimes — when we’re on air.",
     "Ava keeps the lights low until you arrive.",
+    "From the islands — Root Record Radio.",
 ]
 
 
@@ -113,9 +113,9 @@ async function wake() {{
       location.replace('/radio/listen');
       return;
     }}
-    hint.textContent = 'Station idle — open Ava Desk → Radio → On air';
+    hint.textContent = 'Station is quiet — check back soon.';
   }} catch (e) {{
-    hint.textContent = 'Origin quiet — try again in a moment';
+    hint.textContent = 'Taking a moment — try again shortly.';
   }}
 }}
 wake();
