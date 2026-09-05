@@ -1045,11 +1045,83 @@ async function refreshReports() {
     }
 
     $("reports-status").textContent = "";
+    await refreshReportGenToggles();
     await refreshReportAudioManual();
     if (typeof tickCountdowns === "function") tickCountdowns();
     if (typeof ensureCronLive === "function") ensureCronLive();
   } catch (e) {
     meta.textContent = String(e?.message || e);
+  }
+}
+
+async function refreshReportGenToggles() {
+  const host = $("reports-gen-toggles");
+  const statusEl = $("reports-gen-status");
+  if (!host) return;
+  try {
+    const res = await fetch(`${brainBaseUrl()}/api/reports/generation`, { cache: "no-store" });
+    const st = await res.json();
+    const reports = st?.reports || st?.config?.reports || {};
+    const kinds = ["morning", "midday", "evening", "late", "hourly", "slot"].filter((k) => reports[k]);
+    const labels = {
+      morning: "Morning",
+      midday: "Midday",
+      evening: "Evening",
+      late: "Late",
+      hourly: "Hourly",
+      slot: "Slot",
+    };
+    host.innerHTML = "";
+    for (const kind of kinds) {
+      const rowCfg = reports[kind] || {};
+      const row = document.createElement("div");
+      row.className = "cron-row report-row";
+      const eng = document.createElement("select");
+      eng.title = "Text engine";
+      for (const v of ["local", "cloud"]) {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v === "local" ? "Text: Local" : "Text: Cloud";
+        if ((rowCfg.engine || "local") === v) o.selected = true;
+        eng.appendChild(o);
+      }
+      const mp3 = document.createElement("select");
+      mp3.title = "MP3 path";
+      for (const v of ["local", "cloud"]) {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v === "local" ? "MP3: Local" : "MP3: Cloud";
+        if ((rowCfg.mp3 || "local") === v) o.selected = true;
+        mp3.appendChild(o);
+      }
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.textContent = "Save";
+      saveBtn.className = "primary";
+      saveBtn.onclick = async () => {
+        if (statusEl) statusEl.textContent = "Saving…";
+        const r = await fetch(`${brainBaseUrl()}/api/reports/generation`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            reports: { [kind]: { engine: eng.value, mp3: mp3.value } },
+          }),
+        });
+        const out = await r.json();
+        if (statusEl) statusEl.textContent = out?.ok ? `Saved ${kind}` : JSON.stringify(out);
+        await refreshReportGenToggles();
+      };
+      row.innerHTML = `<div><strong>${labels[kind] || kind}</strong></div>`;
+      const controls = document.createElement("div");
+      controls.className = "row wrap";
+      controls.appendChild(eng);
+      controls.appendChild(mp3);
+      controls.appendChild(saveBtn);
+      row.appendChild(controls);
+      host.appendChild(row);
+    }
+  } catch (e) {
+    host.innerHTML = `<div class="muted">${escapeHtml(String(e?.message || e))}</div>`;
   }
 }
 
@@ -1067,7 +1139,7 @@ async function refreshReportAudioManual() {
       return;
     }
     const cands = st.candidates || [];
-    const labels = { morning: "Morning (10:00)", midday: "Noon (11:55)", evening: "Evening (18:05)" };
+    const labels = { morning: "Morning (10:00)", midday: "Noon (11:55)", evening: "Evening (17:15)", late: "Late (22:00)" };
     host.innerHTML = "";
     for (const kind of st.kinds || ["morning", "midday", "evening"]) {
       const slot = (st.slots || {})[kind] || {};

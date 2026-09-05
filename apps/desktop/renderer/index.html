@@ -735,8 +735,14 @@
         </div>
       </div>
       <div class="reports-manual" style="margin-top:1.25rem">
+        <h3 class="cron-title">Report path (Local / Cloud)</h3>
+        <p class="hint-inline">Per type: text engine and MP3 path. Labels are Local or Cloud only — never vendor names. NWS stays local.</p>
+        <div id="reports-gen-toggles" class="cron-table"></div>
+        <pre id="reports-gen-status" class="status"></pre>
+      </div>
+      <div class="reports-manual" style="margin-top:1.25rem">
         <h3 class="cron-title">Report audio (manual MP3)</h3>
-        <p class="hint-inline">Pick existing morning / noon / evening MP3s. With <strong>Auto-play</strong> on, cron plays that file on schedule — no Ara spend. Ara TTS stays off while costs are high.</p>
+        <p class="hint-inline">Pick existing morning / noon / evening MP3s. With <strong>Auto-play</strong> on, cron plays that file on schedule — no cloud voice spend while Local is selected.</p>
         <div id="reports-audio-manual" class="cron-table"></div>
         <pre id="reports-audio-status" class="status"></pre>
       </div>
