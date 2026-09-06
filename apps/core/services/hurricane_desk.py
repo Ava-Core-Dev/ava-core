@@ -357,54 +357,73 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", raw).strip("_")
 
 
+def _have(name: str) -> bool:
+    from apps.voice.clips import _find_clip
+
+    return _find_clip(name) is not None
+
+
+def _push(bits: list[str], *names: str) -> None:
+    for name in names:
+        if name is None or name == "":
+            continue
+        if re.fullmatch(r"-?\d+", name) or _have(name):
+            bits.append(name)
+
+
 def _name_tokens(name: str) -> list[str]:
     slug = _slug(name)
-    if not slug or slug in {"unnamed", "invest"}:
+    if not slug or slug in {"unnamed", "invest", "unknown"}:
         return []
-    return [f"storm_{slug}"]
+    for cand in (f"storm_{slug}", slug):
+        if _have(cand):
+            return [cand]
+    return []
 
 
 def _class_before(label: str) -> str:
     blob = (label or "").lower()
     if "typhoon" in blob:
-        return "hawaii_named_typhoon_before"
+        return "nearest_named_typhoon_before"
     if "cyclone" in blob and "tropical storm" not in blob:
-        return "hawaii_named_cyclone_before"
+        return "nearest_named_cyclone_before"
     if "hurricane" in blob:
-        return "hawaii_named_hurricane_before"
+        return "nearest_named_hurricane_before"
     if "tropical storm" in blob:
-        return "hawaii_ts_before"
+        return "nearest_tropical_storm_before"
     if "depression" in blob:
-        return "hawaii_td_before"
+        return "nearest_tropical_depression_before"
     if "remnant" in blob:
-        return "hawaii_remnant_before"
-    return "hawaii_disturbance_before"
+        return "nearest_remnant_before"
+    return "nearest_disturbance_before"
 
 
 def _class_slot(label: str) -> str | None:
     blob = (label or "").lower()
     if "category 5" in blob or "cat 5" in blob:
-        return "slot_class_cat5"
+        return "class_category_five_hurricane"
     if "category 4" in blob or "cat 4" in blob:
-        return "slot_class_cat4"
+        return "class_category_four_hurricane"
     if "category 3" in blob or "major" in blob:
-        return "slot_class_major"
+        return "class_major_hurricane"
     if "category 2" in blob:
-        return "slot_class_cat2"
+        return "class_category_two_hurricane"
     if "category 1" in blob:
-        return "slot_class_cat1"
+        return "class_category_one_hurricane"
     if "super typhoon" in blob:
-        return "slot_class_super"
+        return "class_super_typhoon"
     if "typhoon" in blob:
-        return "slot_class_typhoon"
+        return "class_typhoon"
     if "cyclone" in blob and "tropical storm" not in blob:
-        return "slot_class_cyclone"
+        return "class_cyclone"
     if "tropical storm" in blob:
-        return "slot_class_ts"
+        return "class_tropical_storm"
     if "depression" in blob:
-        return "slot_class_td"
+        return "class_tropical_depression"
     if "hurricane" in blob:
-        return "slot_class_hurricane"
+        return "class_hurricane"
+    if "invest" in blob:
+        return "class_invest"
     return None
 
 
@@ -414,66 +433,104 @@ def _county_watch_clips(trop: list[dict[str, Any]]) -> list[str]:
     ).lower()
     bits = []
     if any(k in blob for k in ("kauai", "kauaʻi", "lihue", "līhuʻe")):
-        bits.append("hawaii_watch_kauai_01")
+        bits.append("watch_covers_kauai")
     if any(k in blob for k in ("oahu", "oʻahu", "honolulu")):
-        bits.append("hawaii_watch_oahu_01")
+        bits.append("watch_covers_oahu")
     if "maui" in blob:
-        bits.append("hawaii_watch_maui_01")
+        bits.append("watch_covers_maui_county")
     if any(k in blob for k in ("hawaii county", "hawaiʻi island", "big island", "hilo", "kona")):
-        bits.append("hawaii_watch_big_01")
+        bits.append("watch_covers_hawaii_island")
+    return bits
+
+
+def _hazard_clips(trop: list[dict[str, Any]]) -> list[str]:
+    blob = " ".join(str(p.get("event") or "") for p in trop).lower()
+    bits = []
+    if "hurricane warning" in blob:
+        bits.append("hazard_hurricane_warning")
+    elif "hurricane watch" in blob:
+        bits.append("hazard_hurricane_watch")
+    if "tropical storm warning" in blob:
+        bits.append("hazard_tropical_storm_warning")
+    elif "tropical storm watch" in blob:
+        bits.append("hazard_tropical_storm_watch")
     return bits
 
 
 def clip_script(hawaii: dict, globe: dict) -> str:
-    """Stem + slot + number ids. Missing WAVs are skipped at stitch time."""
-    bits = ["opener_10", "hawaii_title_01"]
+    """Ara pack ids in words/hurricane plus existing number clips."""
+    bits: list[str] = []
+    _push(bits, "show_id_root_record_radio", "show_id_hurricane_global_desk", "nearest_hurricane_title")
     trop = hawaii.get("nws_tropical") or []
     if hawaii.get("present"):
-        bits.append(_class_before(str(hawaii.get("label") or "")))
-        bits.extend(_name_tokens(str(hawaii.get("name") or "")))
-        slot = _class_slot(str(hawaii.get("label") or ""))
-        if slot:
-            bits.append(slot)
+        _push(bits, _class_before(str(hawaii.get("label") or "")))
+        for tok in _name_tokens(str(hawaii.get("name") or "")):
+            _push(bits, tok)
+        _push(bits, _class_slot(str(hawaii.get("label") or "")))
+        _push(bits, BASIN_AFTER.get(str(hawaii.get("basin") or "").lower()[:2]))
         nm = hawaii.get("nm")
         if nm is not None:
-            bits.append("hawaii_dist_before")
-            bits.append(str(int(nm)))
-            bits.append("slot_unit_nm")
-            bits.append("hawaii_from_before")
+            _push(bits, "located_about_before", str(int(nm)), "unit_nautical_miles", "hawaii_from_before")
             island = str(hawaii.get("island") or "")
             folded = _slug(island)
             slot_isle = ISLAND_SLOTS.get(island.lower()) or ISLAND_SLOTS.get(folded)
             if not slot_isle and "lihu" in folded:
-                slot_isle = "slot_island_lihue"
-            bits.append(slot_isle or "honolulu")
+                slot_isle = "island_lihue"
+            _push(bits, slot_isle or "island_honolulu")
         compass = str(hawaii.get("bearing") or "").lower()
         if compass in COMPASS_SLOTS:
-            bits.append(COMPASS_SLOTS[compass])
+            _push(bits, COMPASS_SLOTS[compass])
         kt = hawaii.get("knots")
         if kt is not None:
-            bits.append("wind_before")
-            bits.append(str(int(kt)))
-            bits.append("slot_unit_knots")
-        if trop:
-            bits.append("hawaii_watches_active_01")
-            bits.extend(_county_watch_clips(trop))
+            _push(bits, "maximum_sustained_winds_before", str(int(kt)), "unit_knots")
+        mb = hawaii.get("pressure_mb")
+        if mb is not None:
+            _push(bits, "minimum_pressure_before", str(int(mb)), "millibars_after")
+        move_c = str(hawaii.get("movement_compass") or "").lower()
+        move_kt = hawaii.get("movement_kt")
+        if move_kt == 0:
+            _push(bits, "motion_nearly_stationary_hawaii")
+        elif move_c in COMPASS_SLOTS:
+            _push(bits, "moving_before", COMPASS_SLOTS[move_c])
+            if move_kt is not None:
+                _push(bits, str(int(move_kt)), "unit_knots")
+        try:
+            dist = int(hawaii.get("nm") or 0)
+        except (TypeError, ValueError):
+            dist = 0
+        if dist >= 800:
+            _push(bits, "impact_far_offshore", "impact_no_expected_hawaii")
+        elif dist >= 400:
+            _push(bits, "impact_no_expected_hawaii")
         else:
-            bits.append("hawaii_watches_none_01")
-        bits.append("hawaii_monitor_01")
-    else:
-        bits.append("hawaii_no_named_01")
-        bits.append("hawaii_watches_none_01" if not trop else "hawaii_watches_active_01")
+            _push(bits, "impact_monitor_forecasts")
         if trop:
-            bits.extend(_county_watch_clips(trop))
-        bits.append("opener_04")
+            _push(bits, "watches_warnings_in_effect_hawaii")
+            for tok in _county_watch_clips(trop) + _hazard_clips(trop):
+                _push(bits, tok)
+        else:
+            _push(bits, "no_tropical_watches_hawaii")
+        _push(bits, "nws_honolulu_official")
+    else:
+        _push(bits, "no_named_storms_whole")
+        if trop:
+            _push(bits, "watches_warnings_in_effect_hawaii")
+            for tok in _county_watch_clips(trop) + _hazard_clips(trop):
+                _push(bits, tok)
+        else:
+            _push(bits, "no_tropical_watches_hawaii")
+        _push(bits, "quiet_board_whole")
     n = globe.get("count")
     if not n:
-        bits.append("global_quiet_01")
+        _push(bits, "global_quiet_whole")
     else:
-        bits.append("global_around_before")
-        bits.append(str(int(n)))
-        bits.append("global_systems_after")
-    bits.append("signoff_01")
+        _push(bits, "global_around_world_before", str(int(n)), "tropical_systems_on_board_after")
+    by_basin = globe.get("by_basin") or {}
+    if isinstance(by_basin, dict):
+        for code, quiet in BASIN_QUIET.items():
+            if not int(by_basin.get(code) or 0):
+                _push(bits, quiet)
+    _push(bits, "signoff_pacific_root_server", "signoff_root_record_radio")
     return " ".join(bits)
 
 
