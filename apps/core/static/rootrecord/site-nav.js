@@ -153,10 +153,27 @@
     ul.appendChild(li);
   }
 
+  function ensureRadioNav() {
+    const nav = document.querySelector(".site-nav");
+    if (!nav || nav.querySelector('a[href="/radio"], a[data-nav-radio]')) return;
+    const a = document.createElement("a");
+    a.href = "/radio";
+    a.textContent = "Radio";
+    a.setAttribute("data-nav-radio", "1");
+    a.setAttribute("data-testid", "nav-radio");
+    if (location.pathname === "/radio" || location.pathname.indexOf("/radio/") === 0) {
+      a.setAttribute("aria-current", "page");
+    }
+    const auth = nav.querySelector(".nav-auth-guest, .nav-auth-user");
+    if (auth) nav.insertBefore(a, auth);
+    else nav.appendChild(a);
+  }
+
   window.addEventListener("DOMContentLoaded", () => {
     syncNavSignedIn();
     syncLifetimeNav();
     ensureFooterTesterRewardsLink();
+    ensureRadioNav();
     ensureNavSignOut();
     void probeWebSession().then(() => {
       syncNavSignedIn();

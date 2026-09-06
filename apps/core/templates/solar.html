@@ -272,6 +272,7 @@
         <a href="https://rootrecord.cloud/kilauea" target="_top" data-match="/kilauea">Kīlauea</a>
         <a href="https://rootrecord.cloud/weather" target="_top" data-match="/weather">Weather</a>
         <a href="https://rootmc.net/" target="_top" data-match="/rootmc">RootMC</a>
+        <a href="https://rootrecord.cloud/radio" target="_top" data-match="/radio">Radio</a>
         <a href="https://rootrecord.cloud/feedback" target="_top" data-match="/feedback">Feedback</a>
         <a href="#averages">Averages</a>
       </nav>
@@ -435,6 +436,8 @@ const path = location.pathname.replace(/\/$/, "") || "/";
   else home.setAttribute("href", "https://rootrecord.cloud/");
   const status = document.querySelector('.nav a[data-match="/status"]');
   if (status && ON_AVA_SITE) status.setAttribute("href", "https://avaivy.cloud/status");
+  const radio = document.querySelector('.nav a[data-match="/radio"]');
+  if (radio && ON_AVA_SITE) radio.setAttribute("href", "https://avaivy.cloud/radio");
 })();
 document.querySelectorAll(".nav a[data-match]").forEach((a) => {
   const m = a.getAttribute("data-match");
