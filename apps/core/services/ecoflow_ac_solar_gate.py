@@ -134,6 +134,28 @@ def save_state(state: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
+def _overlay_operator_flags(state: dict[str, Any]) -> None:
+    """Keep Desk toggles if quota evaluate started before a save."""
+    path = state_path()
+    if not path.is_file():
+        return
+    try:
+        disk = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if not isinstance(disk, dict):
+        return
+    if "enabled" in disk:
+        state["enabled"] = bool(disk["enabled"])
+    if "soc_keep_ac_on" in disk:
+        state["soc_keep_ac_on"] = bool(disk["soc_keep_ac_on"])
+
+
+def _save_eval(state: dict[str, Any]) -> None:
+    _overlay_operator_flags(state)
+    save_state(state)
+
+
 def _quota_path(sn: str = DELTA_SN) -> Path:
     return config.DATA_DIR / "ecoflow" / "quota" / f"{sn}.json"
 
@@ -430,10 +452,19 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         soc_keep_on=soc_keep_on,
     )
 
+    prev_ac = state.get("last_ac_enabled")
     state["last_input_w"] = input_w
     state["last_total_in_w"] = total_in
     state["last_soc"] = soc
     state["last_ac_enabled"] = 1 if ac_on else (0 if ac_on is False else None)
+    if ac_on is True:
+        state["manual_ac_off"] = False
+    elif (
+        prev_ac == 1
+        and ac_on is False
+        and str(state.get("last_action") or "") != "off"
+    ):
+        state["manual_ac_off"] = True
     state["desired_ac"] = desired
     state["decision_reason"] = soc_reason or ("watt_" + (desired or "hold"))
     state["soc_keep_ac_on"] = soc_keep_on
@@ -449,7 +480,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         report["would"] = "hold_dead_band"
         state["last_decision"] = "hold_dead_band"
         state["last_skip_reason"] = None
-        save_state(state)
+        _save_eval(state)
         log.info(
             "ac-solar-gate hold dead-band input=%.0fW total_in=%.0fW soc=%s ac=%s",
             input_w,
