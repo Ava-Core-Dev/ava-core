@@ -346,7 +346,20 @@ async def radio_events(request: Request):
 
 @router.get("/api/radio/status")
 async def api_radio_status():
-    return radio_svc.status()
+    st = radio_svc.status()
+    try:
+        from apps.voice import desk_audio
+
+        snap = desk_audio.status()
+        st = {
+            **st,
+            "desk_muted": bool(snap.get("muted")),
+            "bed_busy": bool(snap.get("bed_busy")),
+            "bed_path": snap.get("bed_path"),
+        }
+    except Exception:
+        pass
+    return st
 
 
 class RadioPatch(BaseModel):
@@ -434,6 +447,16 @@ async def api_radio_patch(body: RadioPatch):
             except Exception:
                 pass
         st = radio_svc.status()
+        try:
+            snap = desk_audio.status()
+            st = {
+                **st,
+                "desk_muted": bool(snap.get("muted")),
+                "bed_busy": bool(snap.get("bed_busy")),
+                "bed_path": snap.get("bed_path"),
+            }
+        except Exception:
+            pass
     except Exception as e:
         log.warning("radio bed sync: %s", e)
         st = {**st, "bed_sync_detail": str(e)[:160]}
