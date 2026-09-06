@@ -1,5 +1,5 @@
 {
-  "note": "Ara may record these exact spoken_text lines as phrase_id.wav. No placeholders.",
+  "note": "Ara records these exact lines. No placeholders. Never say product — that is NWS office jargon, not the storm.",
   "dir": "Media/public/audio/words/hurricane",
   "phrases": [
     {"id": "opener_01", "say": "This is the Hurricane Global Desk from Root Record Radio."},
@@ -48,8 +48,8 @@
     {"id": "hawaii_watch_oahu_01", "say": "Watch or warning covers Oʻahu."},
     {"id": "hawaii_watch_maui_01", "say": "Watch or warning covers Maui County."},
     {"id": "hawaii_watch_big_01", "say": "Watch or warning covers Hawaiʻi Island."},
-    {"id": "hawaii_marine_01", "say": "Marine and high-surf products may accompany this system."},
-    {"id": "hawaii_wind_01", "say": "Wind products may be linked if the system nears."},
+    {"id": "hawaii_marine_01", "say": "Marine and high-surf advisories may accompany this system."},
+    {"id": "hawaii_wind_01", "say": "Wind advisories may be linked if the system nears."},
     {"id": "hawaii_no_impact_01", "say": "No direct impact expected for Hawaiʻi at this time."},
     {"id": "hawaii_monitor_01", "say": "Continue to monitor official forecasts from NWS Honolulu."},
     {"id": "hawaii_far_01", "say": "Nearest system remains far from the islands."},
