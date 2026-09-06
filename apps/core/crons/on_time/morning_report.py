@@ -30,6 +30,15 @@ async def run():
 
     if not boot_report.morning_automation_enabled():
         log.info("Morning report automation OFF — prelims still refresh facts")
+    freshness = boot_report.report_metrics_fresh_within(max_age_s=3600)
+    if not freshness["ok"]:
+        log.warning("Morning report skipped: stale metrics older than 1 hour: %s", freshness["stale"])
+        try:
+            from apps.core.services import daily_report_board
+            daily_report_board.mark_failed("morning", error="stale_metrics")
+        except Exception:
+            pass
+        return {"ok": False, "skipped": True, "detail": "stale_metrics", "freshness": freshness}
     prelim = await _refresh_prelims()
     log.info("morning prelims ok=%s", prelim.get("ok"))
 

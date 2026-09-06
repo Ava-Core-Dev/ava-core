@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -374,6 +375,103 @@ def set_morning_automation(enabled: bool, *, reason: str) -> dict:
 def morning_automation_enabled() -> bool:
     row = _read_json(automation_flag_path())
     return bool(row.get("enabled"))
+
+
+def _read_timestamp_age_s(value: object) -> float | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)):
+        v = float(value)
+        if v > 10_000_000_000:
+            v /= 1000.0
+        return max(0.0, time.time() - v)
+    s = str(value).strip()
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            dt = datetime.strptime(s, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return max(0.0, time.time() - dt.timestamp())
+
+
+def report_metrics_fresh_within(*, max_age_s: int = 3600) -> dict:
+    """Return stale state files / metrics older than the allowed freshness window.
+
+    Morning reports should not generate when any required live fact is older than
+    one hour. This blocks stale bot output from booted sessions with old disk data.
+    """
+    state_dir = config.DATA_DIR / "state"
+    candidates = {
+        "net-gate": state_dir / "net-gate.json",
+        "uptime-marker": state_dir / "uptime-marker.json",
+        "startup-voice": state_dir / "startup-voice.json",
+        "grok-status": state_dir / "grok-status.json",
+        "kilauea-alert": state_dir / "kilauea-alert.json",
+        "minecraft-live": state_dir / "minecraft-live.json",
+        "nws-hawaii": state_dir / "nws-hawaii.json",
+    }
+    stale: list[str] = []
+    checked: list[dict] = []
+    now = time.time()
+    for key, path in candidates.items():
+        age_s = None
+        if path.is_file():
+            data = _read_json(path)
+            if isinstance(data, dict):
+                for candidate in (
+                    data.get("updated_at"),
+                    data.get("last_poll_hst"),
+                    data.get("restored_at"),
+                    data.get("updated"),
+                    data.get("at"),
+                ):
+                    age = _read_timestamp_age_s(candidate)
+                    if age is not None:
+                        age_s = age
+                        break
+            if age_s is None:
+                try:
+                    age_s = max(0.0, now - path.stat().st_mtime)
+                except OSError:
+                    age_s = None
+        else:
+            age_s = max_age_s + 1
+        age_s = float(age_s) if age_s is not None else float("inf")
+        fresh = bool(age_s <= max_age_s)
+        checked.append({"key": key, "age_s": int(age_s), "fresh": fresh})
+        if not fresh:
+            stale.append(key)
+
+    try:
+        from apps.core.services import db_facts
+        from apps.core.services.data_layout import host_history_path
+
+        host_path = host_history_path()
+        host_age = None
+        if host_path.is_file():
+            row = db_facts.last_jsonl_obj(host_path)
+            if row is not None:
+                host_age = _read_timestamp_age_s(row.get("at"))
+        if host_age is None:
+            host_age = float("inf")
+        checked.append({"key": "host-metrics", "age_s": int(host_age), "fresh": bool(host_age <= max_age_s)})
+        if host_age > max_age_s:
+            stale.append("host-metrics")
+    except Exception:
+        pass
+
+    return {
+        "ok": not stale,
+        "stale": stale,
+        "checked": checked,
+        "max_age_s": int(max_age_s),
+    }
 
 
 def build_facts(*, source: str = "boot") -> str:
