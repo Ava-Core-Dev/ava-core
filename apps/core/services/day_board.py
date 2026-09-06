@@ -44,6 +44,9 @@ MUST_FIRE_INTERVAL = (
     {"id": "ecoflow-quota", "every": "2m", "manual": False, "note": "Pack watts and percent"},
     {"id": "host-sample", "every": "1m", "manual": False, "note": "CPU RAM for the desk"},
     {"id": "kilauea-cams", "every": "5m", "manual": False, "note": "V1 V2 V3 stills"},
+    {"id": "d1-sync", "every": "6h", "manual": False, "note": "MySQL to D1 cache (throttled)"},
+    {"id": "inbox-drain", "every": "5m", "manual": False, "note": "Offline inbox to local"},
+    {"id": "vercel-builds", "every": "5m", "manual": False, "note": "Build logs to docs"},
     {"id": "broadcast-loop", "every": "20s", "manual": False, "note": "OBS daily loop"},
     {"id": "minecraft-live", "every": "45s", "manual": False, "note": "In-game detect"},
     {"id": "player-economy", "every": "1h", "manual": False, "note": "Gold snapshot"},
@@ -62,6 +65,9 @@ MUST_FIRE_HOURLY = (
     {"id": "hourly-clip-reports", "when": ":00", "manual": False, "note": "Play hourly clip packs"},
     {"id": "hourly-clip-prebuild", "when": ":55", "manual": False, "note": "Build next hour clips"},
     {"id": "time-chime", "when": ":00 and :30", "manual": False, "note": "Bell plus clock"},
+    {"id": "hurricane-fetch", "when": "05:40 09:40 12:40 16:40 20:40", "manual": False, "note": "NHC RAMMB JTWC fetch"},
+    {"id": "hurricane-desk", "when": "05:50 09:50 12:50 16:55 20:50", "manual": False, "note": "Hurricane desk text"},
+    {"id": "hurricane-radio", "when": "06:35 13:12 17:02", "manual": False, "note": "Hurricane desk on radio"},
 )
 
 # Named daily clock jobs (HST). remaining-tasks speaks these if due within 1h.
