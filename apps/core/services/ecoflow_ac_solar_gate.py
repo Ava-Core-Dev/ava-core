@@ -436,6 +436,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
     state["last_ac_enabled"] = 1 if ac_on else (0 if ac_on is False else None)
     state["desired_ac"] = desired
     state["decision_reason"] = soc_reason or ("watt_" + (desired or "hold"))
+    state["soc_keep_ac_on"] = soc_keep_on
     state["soc_keep_ac_on_above"] = soc_keep
     state["soc_usual_rules_below"] = soc_usual
     state["gate_key"] = GATE_KEY
@@ -575,6 +576,30 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
 async def run_after_quota(*, execute: bool = True) -> dict[str, Any]:
     """Called from ecoflow-quota after a fresh live_snapshot write."""
     return evaluate(execute=execute)
+
+
+def operator_status() -> dict[str, Any]:
+    st = load_state()
+    return {
+        "ok": True,
+        "enabled": bool(st.get("enabled", True)),
+        "soc_keep_ac_on": bool(st.get("soc_keep_ac_on", True)),
+        "soc_keep_ac_on_above": st.get("soc_keep_ac_on_above") or SOC_KEEP_AC_ON_ABOVE,
+        "last_decision": st.get("last_decision"),
+        "last_soc": st.get("last_soc"),
+        "decision_reason": st.get("decision_reason"),
+        "last_skip_reason": st.get("last_skip_reason"),
+    }
+
+
+def patch_operator(*, enabled: bool | None = None, soc_keep_ac_on: bool | None = None) -> dict[str, Any]:
+    st = load_state()
+    if enabled is not None:
+        st["enabled"] = bool(enabled)
+    if soc_keep_ac_on is not None:
+        st["soc_keep_ac_on"] = bool(soc_keep_ac_on)
+    save_state(st)
+    return operator_status()
 
 
 def main(argv: list[str] | None = None) -> int:

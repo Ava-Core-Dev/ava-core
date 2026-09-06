@@ -1099,6 +1099,28 @@ def _audio_pending_jobs() -> list[dict]:
     return out
 
 
+class EcoflowGateBody(BaseModel):
+    enabled: bool | None = None
+    soc_keep_ac_on: bool | None = None
+
+
+@router.get("/ecoflow/ac-gate")
+async def ecoflow_ac_gate_get():
+    from apps.core.services import ecoflow_ac_solar_gate
+
+    return ecoflow_ac_solar_gate.operator_status()
+
+
+@router.post("/ecoflow/ac-gate")
+async def ecoflow_ac_gate_post(body: EcoflowGateBody):
+    from apps.core.services import ecoflow_ac_solar_gate
+
+    return ecoflow_ac_solar_gate.patch_operator(
+        enabled=body.enabled,
+        soc_keep_ac_on=body.soc_keep_ac_on,
+    )
+
+
 class VoiceMusicBody(BaseModel):
     action: str = Field(..., description="pause | resume | start | stop")
 

@@ -703,7 +703,7 @@ def facts_lines() -> list[str]:
         return ["NWS Hawaii by county: no state file yet."]
     lines = [
         f"NWS Hawaii by county source: {st.get('source') or 'unknown'}.",
-        f"NWS Hawaii alert products on file: {st.get('alert_count', 0)}.",
+        f"NWS Hawaii alerts on file: {st.get('alert_count', 0)}.",
     ]
     by = st.get("by_county") if isinstance(st.get("by_county"), dict) else {}
     for c in COUNTIES:
@@ -718,7 +718,7 @@ def facts_lines() -> list[str]:
     if spoken:
         lines.append(f"NWS county spoken script: {spoken}")
     if st.get("product_as_of"):
-        lines.append(f"NWS county product as of: {st.get('product_as_of')}.")
+        lines.append(f"NWS county alerts as of: {st.get('product_as_of')}.")
     if st.get("last_poll_hst"):
         lines.append(f"NWS county last poll: {st.get('last_poll_hst')}.")
     return lines
