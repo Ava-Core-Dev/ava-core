@@ -81,7 +81,7 @@ def parse_sidecar(audio: Path) -> dict[str, str]:
         stem = stem.replace("_", " ").replace("-", " ").strip()
         title = stem or "Untitled"
     if len(description) > 280:
-        description = description[:277].rstrip() + "…"
+        description = description[:277].rstrip() + "..."
     folder = audio.parent.name if audio.parent.name else ""
     return {
         "title": title[:120],
