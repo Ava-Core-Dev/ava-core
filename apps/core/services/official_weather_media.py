@@ -172,7 +172,7 @@ async def apply_obs_scenes() -> dict:
         dwell = {}
         for scene, slug in SCENES:
             if scene not in existing:
-                await obs.try_req("CreateScene", {"sceneName": scene})
+                continue
             url, kind = ASSETS[slug]
             name = f"Official {slug}"
             current = _current(slug, kind)

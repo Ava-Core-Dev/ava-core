@@ -421,6 +421,8 @@ async def _fit(obs: ObsClient, scene: str, source: str, w: int = 1920, h: int = 
                 "alignment": 5,
                 "positionX": 0.0,
                 "positionY": 0.0,
+                "scaleX": 1.0,
+                "scaleY": 1.0,
             },
         },
     )
