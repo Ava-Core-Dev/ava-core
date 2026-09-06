@@ -23,7 +23,8 @@ PUBLIC_KINDS = {"morning", "summary", "solar", "weather", "kilauea"}
 CURRENT_MD_NAME = "morning-report-current.md"
 QUEUE_DIR_NAME = "queue"
 _REPORT_JOBS = (
-    ("morning-report", "Morning report", "10:00 HST"),
+    ("report-readiness", "Report readiness poll", "every 5 min · before each slot"),
+    ("morning-report", "Morning report final retry", "10:00 HST · fallback"),
     ("morning-report-play", "Morning report play", "10:12 HST"),
     ("merged-morning-summary", "Merged morning summary", "10:05 HST"),
     ("day-reports-morning", "Morning slot reports", "10:15 HST"),
