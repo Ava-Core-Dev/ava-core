@@ -285,9 +285,6 @@ class Scheduler:
         s.add_job(self._sample_host, IntervalTrigger(minutes=1),
                   id="host-sample", name="Host CPU/RAM sample", misfire_grace_time=45)
 
-        s.add_job(self._run("nhc_media"), IntervalTrigger(minutes=10),
-                  id="nhc-media", name="NHC EPAC + CPAC forecast graphics", misfire_grace_time=90)
-
         s.add_job(self._run("log_cleanup"), CronTrigger(hour=4, minute=20),
                   id="log-cleanup", name="Delete log files older than 7 days", misfire_grace_time=300)
 

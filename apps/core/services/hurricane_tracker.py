@@ -616,7 +616,9 @@ async def apply_hurricane_kit(obs: Any | None = None) -> dict:
     )
     from apps.core.services.nhc_media import apply_nhc_obs_scenes, current_files
 
-    data = await refresh_storms()
+    data = load_storms()
+    if not (data.get("storms") or []):
+        data = await refresh_storms()
     own = obs is None
     if own:
         obs = ObsClient()
