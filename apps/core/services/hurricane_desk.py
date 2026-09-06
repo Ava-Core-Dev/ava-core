@@ -427,7 +427,40 @@ def _class_slot(label: str) -> str | None:
     return None
 
 
+def _watch_products(trop: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out = []
+    for p in trop:
+        ev = str(p.get("event") or "").lower()
+        if "watch" in ev or "warning" in ev:
+            out.append(p)
+    return out
+
+
+def _statement_products(trop: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    out = []
+    for p in trop:
+        ev = str(p.get("event") or "").lower()
+        if "statement" in ev:
+            out.append(p)
+    return out
+
+
 def _county_watch_clips(trop: list[dict[str, Any]]) -> list[str]:
+    blob = " ".join(
+        f"{p.get('event') or ''} {p.get('counties') or ''}" for p in trop
+    ).lower()
+    bits = []
+    if any(k in blob for k in ("kauai", "kauaʻi", "lihue", "līhuʻe")):
+        bits.append("watch_covers_kauai")
+    if any(k in blob for k in ("oahu", "oʻahu")) or (
+        "honolulu" in blob and "watch" in blob
+    ):
+        bits.append("watch_covers_oahu")
+    if "maui" in blob:
+        bits.append("watch_covers_maui_county")
+    if any(k in blob for k in ("hawaii county", "hawaiʻi island", "big island")):
+        bits.append("watch_covers_hawaii_island")
+    return bits
     blob = " ".join(
         f"{p.get('event') or ''} {p.get('counties') or ''}" for p in trop
     ).lower()
@@ -504,19 +537,27 @@ def clip_script(hawaii: dict, globe: dict) -> str:
             _push(bits, "impact_no_expected_hawaii")
         else:
             _push(bits, "impact_monitor_forecasts")
-        if trop:
+        watchy = _watch_products(trop)
+        stated = _statement_products(trop)
+        if watchy:
             _push(bits, "watches_warnings_in_effect_hawaii")
-            for tok in _county_watch_clips(trop) + _hazard_clips(trop):
+            for tok in _county_watch_clips(watchy) + _hazard_clips(watchy):
                 _push(bits, tok)
+        elif stated:
+            _push(bits, "tropical_cyclone_local_statement")
         else:
             _push(bits, "no_tropical_watches_hawaii")
         _push(bits, "nws_honolulu_official")
     else:
         _push(bits, "no_named_storms_whole")
-        if trop:
+        watchy = _watch_products(trop)
+        stated = _statement_products(trop)
+        if watchy:
             _push(bits, "watches_warnings_in_effect_hawaii")
-            for tok in _county_watch_clips(trop) + _hazard_clips(trop):
+            for tok in _county_watch_clips(watchy) + _hazard_clips(watchy):
                 _push(bits, tok)
+        elif stated:
+            _push(bits, "tropical_cyclone_local_statement")
         else:
             _push(bits, "no_tropical_watches_hawaii")
         _push(bits, "quiet_board_whole")
