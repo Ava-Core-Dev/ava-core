@@ -12,7 +12,7 @@ from typing import Any
 from apps.core import config
 
 AVA = config.AVA_HOME
-POSTS = AVA / "Media" / "documents" / "reports" / "posts"
+POSTS = config.REPORTS_DIR / "posts"
 USGS_DAY = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
 USGS_ALL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
 USGS_HAWAII = (
@@ -22,6 +22,7 @@ USGS_HAWAII = (
 )
 QUAKE_CACHE = config.DATA_DIR / "state" / "obs-quake-feed.json"
 SITE_LABELS = {
+    "alex": "alexrs94.site",
     "ava": "avaivy.cloud",
     "rootrecord": "rootrecord.online",
     "rootmc": "rootmc.net",
@@ -60,7 +61,7 @@ def _post_date(meta: dict[str, str], path: Path) -> str:
 
 def _iter_blog_posts() -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    for brand in ("ava", "rootrecord", "rootmc"):
+    for brand in ("alex", "ava", "rootrecord", "rootmc"):
         root = POSTS / brand
         if not root.is_dir():
             continue
