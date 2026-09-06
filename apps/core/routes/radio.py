@@ -267,6 +267,14 @@ async def api_radio_now(request: Request):
     return _now_payload(request)
 
 
+@router.get("/api/hurricane/desk")
+@router.get("/api/radio/hurricane")
+async def api_hurricane_desk_public():
+    from apps.core.services import hurricane_desk
+
+    return hurricane_desk.public_payload()
+
+
 @router.get("/api/radio/session")
 async def api_radio_session(request: Request):
     identity = await asyncio.to_thread(

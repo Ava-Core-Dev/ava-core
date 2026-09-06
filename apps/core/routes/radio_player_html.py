@@ -112,6 +112,7 @@ def player_html(*, brand: str = "Root Record Radio", site_label: str = "RootReco
       <a class="top-up" id="top-up" href="https://rootrecord.cloud/root-units">Top Up</a>
     </div>
     <div class="banner" id="banner"></div>
+    <p id="hurricane-line" style="opacity:.75;font-size:.88rem;line-height:1.4;margin:0"></p>
     <div class="meta-row">
       <button type="button" class="fb-open" id="fb-open">Share a thought</button>
     </div>
@@ -445,11 +446,14 @@ fbBackdrop.addEventListener('click', (e) => {{ if (e.target === fbBackdrop) clos
 fbSpeak.addEventListener('click', startSpeak);
 document.getElementById('fb-send').addEventListener('click', sendFeedback);
 
-refreshSession().then(() => {{
-  paintSession();
-  refreshNow();
-  heartbeat();
-}});
+async function refreshHurricane() {{
+  try {{
+    const j = await fetch('/api/hurricane/desk', {{ cache: 'no-store' }}).then(r => r.json());
+    const el = document.getElementById('hurricane-line');
+    if (!el) return;
+    el.textContent = (j && j.hawaii) ? j.hawaii : '';
+  }} catch (e) {{}}
+}}
 const es = new EventSource('/radio/events');
 es.onerror = () => {{ status.textContent = 'Holding the line…'; }};
 es.addEventListener('play', e => {{

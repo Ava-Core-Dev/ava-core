@@ -40,6 +40,8 @@ const PUBLIC_EXACT = new Set([
   "/api/radio/now",
   "/api/radio/steering",
   "/api/radio/session",
+  "/api/hurricane/desk",
+  "/api/radio/hurricane",
 ]);
 
 /** Read-only families. Writes under these are still refused by method. */
