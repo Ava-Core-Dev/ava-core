@@ -1070,7 +1070,13 @@ class StreamDirector:
                 await asyncio.sleep(30)
                 continue
             if not force:
-                random.shuffle(tracks)
+                # Listener likes/dislikes steer reshuffle weight (radio_catalog).
+                try:
+                    from apps.core.services import radio_catalog
+
+                    tracks = radio_catalog.weighted_order(tracks)
+                except Exception:
+                    random.shuffle(tracks)
             self._music_playlist = list(tracks)
             folders = sorted(
                 {

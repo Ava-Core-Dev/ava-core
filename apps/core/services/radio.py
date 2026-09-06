@@ -140,7 +140,7 @@ def _which_media(name: str) -> str:
 
 
 def program_url_for_file(path: Path | str) -> str | None:
-    """HTTP URL for a program-bus file (public media or generated). Never desktop capture."""
+    """Same-origin URL for a program-bus file. Never desktop capture."""
     from urllib.parse import quote
 
     p = Path(path)
@@ -149,14 +149,14 @@ def program_url_for_file(path: Path | str) -> str | None:
     try:
         rel = p.resolve().relative_to(Path(config.PUBLIC_MEDIA).resolve())
         q = quote(str(rel).replace("\\", "/"))
-        return f"http://127.0.0.1:{config.AVA_PORT}/api/media/public/file?path={q}"
+        return f"/api/media/public/file?path={q}"
     except Exception:
         pass
     try:
         gen = Path(config.GENERATED_DIR).resolve()
         rel = p.resolve().relative_to(gen)
         q = quote(str(rel).replace("\\", "/"))
-        return f"http://127.0.0.1:{config.AVA_PORT}/data/generated/{q}"
+        return f"/data/generated/{q}"
     except Exception:
         return None
 
@@ -171,11 +171,23 @@ def announce_program_file(path: Path | str, *, name: str = "") -> None:
             pass
     if not src and not p.is_file():
         return
+    meta: dict = {}
+    try:
+        from apps.core.services import radio_catalog
+
+        meta = radio_catalog.public_meta(p)
+    except Exception:
+        meta = {"title": name or p.stem, "description": "", "id": p.name}
     broadcast_program_event(
         {
             "src": src or "/radio/live.mp3",
             "live": "/radio/live.mp3",
-            "name": name or p.name,
+            "name": meta.get("title") or name or p.stem,
+            "title": meta.get("title") or name or p.stem,
+            "description": meta.get("description") or "",
+            "id": meta.get("id") or p.name,
+            "likes": meta.get("likes") or 0,
+            "dislikes": meta.get("dislikes") or 0,
             "priority": 1,
         }
     )
