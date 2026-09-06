@@ -223,8 +223,12 @@ def hawaii_block(storms: list[dict[str, Any]], nws: dict[str, Any]) -> dict[str,
     if trop:
         bits = []
         for p in trop:
-            counties = ", ".join(p.get("counties") or []) or "Hawaiʻi"
-            bits.append(f"{p.get('event')} for {counties}")
+            counties = p.get("counties") or []
+            if isinstance(counties, list):
+                county_s = ", ".join(str(c) for c in counties) or "Hawaiʻi"
+            else:
+                county_s = str(counties) or "Hawaiʻi"
+            bits.append(f"{p.get('event')} for {county_s}")
         watch = " NWS Honolulu: " + "; ".join(bits) + "."
     else:
         watch = " No tropical watches or warnings for Hawaiʻi in the last NWS pull."
@@ -232,6 +236,20 @@ def hawaii_block(storms: list[dict[str, Any]], nws: dict[str, Any]) -> dict[str,
     spoken = (
         f"{title}. {label} {name} is about {nmi} nautical miles from {island}.{bear}{wind}{watch}"
     )
+    mb = near.get("mb")
+    try:
+        pressure = int(round(float(mb))) if mb is not None else None
+    except (TypeError, ValueError):
+        pressure = None
+    try:
+        move_kt = int(round(float(near.get("movement_kt")))) if near.get("movement_kt") is not None else None
+    except (TypeError, ValueError):
+        move_kt = None
+    move_dir = near.get("movement_dir")
+    try:
+        move_compass = _compass(float(move_dir)) if move_dir is not None else None
+    except (TypeError, ValueError):
+        move_compass = None
     return {
         "title": title,
         "present": True,
@@ -242,6 +260,9 @@ def hawaii_block(storms: list[dict[str, Any]], nws: dict[str, Any]) -> dict[str,
         "bearing_deg": bearing,
         "bearing": compass,
         "knots": kt,
+        "pressure_mb": pressure,
+        "movement_kt": move_kt,
+        "movement_compass": move_compass,
         "storm_id": near.get("id"),
         "basin": near.get("basin"),
         "spoken": spoken,
@@ -284,22 +305,48 @@ def global_block(storms: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 ISLAND_SLOTS = {
-    "honolulu": "slot_island_honolulu",
-    "hilo": "slot_island_hilo",
-    "lihue": "slot_island_lihue",
-    "līhuʻe": "slot_island_lihue",
-    "kona": "slot_island_kona",
+    "honolulu": "island_honolulu",
+    "hilo": "island_hilo",
+    "lihue": "island_lihue",
+    "kona": "island_kona",
+    "kauai": "island_kauai",
+    "oahu": "island_oahu",
+    "maui": "island_maui",
 }
 
 COMPASS_SLOTS = {
-    "north": "slot_compass_n",
-    "northeast": "slot_compass_ne",
-    "east": "slot_compass_e",
-    "southeast": "slot_compass_se",
-    "south": "slot_compass_s",
-    "southwest": "slot_compass_sw",
-    "west": "slot_compass_w",
-    "northwest": "slot_compass_nw",
+    "north": "compass_north",
+    "northeast": "compass_northeast",
+    "east": "compass_east",
+    "southeast": "compass_southeast",
+    "south": "compass_south",
+    "southwest": "compass_southwest",
+    "west": "compass_west",
+    "northwest": "compass_northwest",
+    "north-northeast": "compass_north_northeast",
+    "east-northeast": "compass_east_northeast",
+    "east-southeast": "compass_east_southeast",
+    "south-southeast": "compass_south_southeast",
+    "south-southwest": "compass_south_southwest",
+    "west-southwest": "compass_west_southwest",
+    "west-northwest": "compass_west_northwest",
+    "north-northwest": "compass_north_northwest",
+}
+
+BASIN_AFTER = {
+    "al": "in_the_north_atlantic_after",
+    "ep": "in_the_eastern_pacific_after",
+    "cp": "in_the_central_pacific_after",
+    "wp": "in_the_western_pacific_after",
+}
+
+BASIN_QUIET = {
+    "al": "basin_quiet_north_atlantic",
+    "ep": "basin_quiet_eastern_north_pacific",
+    "cp": "basin_quiet_central_pacific",
+    "wp": "basin_quiet_western_pacific",
+    "io": "basin_quiet_north_indian",
+    "sh": "basin_quiet_south_pacific",
 }
 
 
