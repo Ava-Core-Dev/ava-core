@@ -659,6 +659,18 @@ async def apply_weather_radar(obs: ObsClient | None = None) -> dict:
             await _enable_item(obs, scene, name, vis)
         await _enable_item(obs, WEATHER_BOARD, "NWS Hawaii", True)
         await _fit(obs, WEATHER_BOARD, "NWS Hawaii")
+        official_graphic = config.PUBLIC_MEDIA / "images" / "weather" / "official" / "north_pacific_graphic-current.gif"
+        if official_graphic.is_file():
+            await _ensure_input(
+                obs,
+                WEATHER_BOARD,
+                "NWS Official Graphic",
+                "image_source",
+                {"file": str(official_graphic)},
+            )
+            await _fit(obs, WEATHER_BOARD, "NWS Official Graphic")
+            await _enable_item(obs, WEATHER_BOARD, "NWS Hawaii", False)
+            await _enable_item(obs, WEATHER_BOARD, "NWS Official Graphic", True)
         stretched = await _stretch_all(obs) if own else 0
         return {"ok": True, "stretched": stretched, "topics": [WEATHER_BOARD, STORM_DESK]}
     finally:
