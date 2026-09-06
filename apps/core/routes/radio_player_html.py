@@ -54,6 +54,36 @@ def player_html(*, brand: str = "Root Record Radio", site_label: str = "RootReco
   }}
   .top-up.show{{display:inline-block;}}
   a{{color:var(--ring);}}
+  .fb-open{{
+    appearance:none;border:1px solid var(--line);background:transparent;
+    color:var(--muted);padding:.4rem .75rem;border-radius:6px;cursor:pointer;font-size:.85rem;
+  }}
+  .fb-open:hover{{color:var(--ink);border-color:var(--ring);}}
+  .fb-backdrop{{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;
+    align-items:flex-end;justify-content:center;padding:1rem;
+  }}
+  .fb-backdrop.show{{display:flex;}}
+  .fb-modal{{
+    width:min(28rem,100%);background:#14151a;border:1px solid var(--line);border-radius:12px;
+    padding:1.15rem 1.2rem 1.25rem;box-shadow:0 18px 50px rgba(0,0,0,.45);
+  }}
+  .fb-modal h2{{font-family:Georgia,"Iowan Old Style",serif;font-size:1.25rem;margin:0 0 .35rem;font-weight:500;}}
+  .fb-modal p{{margin:0 0 .85rem;color:var(--muted);font-size:.9rem;line-height:1.45;}}
+  .fb-modal label{{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 .3rem;}}
+  .fb-modal textarea,.fb-modal input{{
+    width:100%;margin:0 0 .75rem;padding:.6rem .65rem;border-radius:6px;
+    border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--ink);font:inherit;
+  }}
+  .fb-modal textarea{{min-height:6.5rem;resize:vertical;}}
+  .fb-actions{{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;}}
+  .fb-actions button{{
+    appearance:none;border:1px solid rgba(196,165,116,.35);background:rgba(255,255,255,.04);
+    color:var(--ink);padding:.5rem .9rem;border-radius:6px;cursor:pointer;font-size:.88rem;
+  }}
+  .fb-actions button.primary{{border-color:var(--ring);background:rgba(196,165,116,.15);}}
+  .fb-actions button.listening{{border-color:var(--ok);color:var(--ok);}}
+  .fb-status{{font-size:.82rem;color:var(--muted);min-height:1.2em;margin:.55rem 0 0;}}
 </style>
 </head>
 <body>

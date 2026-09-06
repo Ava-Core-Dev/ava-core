@@ -417,25 +417,39 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
     input_w = float(quota.get("input_w") or 0.0)
     total_in = float(quota.get("total_in_w") or 0.0)
     ac_on = quota.get("ac_on")
-    desired = decide(input_w, off_at=off_at, on_at=on_at)
+    soc = _soc_float(quota.get("soc"))
+    desired, soc_reason = decide_with_soc(
+        input_w,
+        soc,
+        off_at=off_at,
+        on_at=on_at,
+        soc_keep_above=soc_keep,
+    )
 
     state["last_input_w"] = input_w
     state["last_total_in_w"] = total_in
+    state["last_soc"] = soc
     state["last_ac_enabled"] = 1 if ac_on else (0 if ac_on is False else None)
     state["desired_ac"] = desired
+    state["decision_reason"] = soc_reason or ("watt_" + (desired or "hold"))
+    state["soc_keep_ac_on_above"] = soc_keep
+    state["soc_usual_rules_below"] = soc_usual
     state["gate_key"] = GATE_KEY
     state["last_decision_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
 
     report["decision"] = desired
+    report["decision_reason"] = state["decision_reason"]
+    report["soc"] = soc
     if desired is None:
         report["would"] = "hold_dead_band"
         state["last_decision"] = "hold_dead_band"
         state["last_skip_reason"] = None
         save_state(state)
         log.info(
-            "ac-solar-gate hold dead-band input=%.0fW total_in=%.0fW ac=%s",
+            "ac-solar-gate hold dead-band input=%.0fW total_in=%.0fW soc=%s ac=%s",
             input_w,
             total_in,
+            soc,
             ac_on,
         )
         return report
