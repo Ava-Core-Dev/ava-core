@@ -96,6 +96,13 @@ DEFAULT_MODE_DWELL_S = {
 }
 
 
+def _first_existing(*paths: Path) -> Path | None:
+    for path in paths:
+        if path.is_file():
+            return path
+    return None
+
+
 def _rotate_state_path() -> Path:
     return config.DATA_DIR / "state" / "obs-rotate.json"
 
@@ -744,8 +751,14 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
     dev_img = media / "images" / "thumbnails" / "video devupdate.jpg"
     nws = media / "video" / "current" / "nws-hawaii-current.mp4"
     quake = media / "video" / "current" / "earthquake-global-current.mp4"
-    solar_mp3 = media / "audio" / "current" / "solar-weather-current.mp3"
-    eco_mp3 = media / "audio" / "current" / "system-performance-current.mp3"
+    solar_audio = _first_existing(
+        media / "audio" / "current" / "solar-weather-current.mp3",
+        media / "audio" / "current" / "solar-weather-current.wav",
+    )
+    eco_audio = _first_existing(
+        media / "audio" / "current" / "system-performance-current.mp3",
+        media / "audio" / "current" / "system-performance-current.wav",
+    )
 
     obs = ObsClient()
     if not await obs.connect():
@@ -790,6 +803,22 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                     "clear_on_media_end": False,
                 },
                 audio=True,
+            )
+            await _fit(obs, WEATHER_BOARD, "NWS Hawaii")
+        else:
+            await _ensure_input(
+                obs,
+                WEATHER_BOARD,
+                "NWS Hawaii",
+                "browser_source",
+                {
+                    "url": f"{origin}/obs/weather-board",
+                    "width": 1920,
+                    "height": 1080,
+                    "shutdown": False,
+                    "restart_when_active": True,
+                    "css": "body { margin: 0; overflow: hidden; background: #000; }",
+                },
             )
             await _fit(obs, WEATHER_BOARD, "NWS Hawaii")
         await apply_weather_radar(obs)
@@ -847,7 +876,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             {"file": str(still_solar)},
         )
         await _fit(obs, SOLAR_DASHBOARD, "Solar Still")
-        if solar_mp3.is_file():
+        if solar_audio:
             await _ensure_input(
                 obs,
                 SOLAR_DASHBOARD,
@@ -855,7 +884,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 "ffmpeg_source",
                 {
                     "is_local_file": True,
-                    "local_file": str(solar_mp3),
+                    "local_file": str(solar_audio),
                     "looping": True,
                     "close_when_inactive": False,
                     "clear_on_media_end": False,
@@ -886,7 +915,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
             {"file": str(goals_img if goals_img.is_file() else thumb)},
         )
         await _fit(obs, ECONOMY_BOARD, "Economy Still")
-        if eco_mp3.is_file():
+        if eco_audio:
             await _ensure_input(
                 obs,
                 ECONOMY_BOARD,
@@ -894,7 +923,7 @@ async def setup_daily_broadcast(*, start_stream: bool = False) -> dict:
                 "ffmpeg_source",
                 {
                     "is_local_file": True,
-                    "local_file": str(eco_mp3),
+                    "local_file": str(eco_audio),
                     "looping": True,
                     "close_when_inactive": False,
                     "clear_on_media_end": False,
@@ -1111,6 +1140,7 @@ async def apply_current_scene_media() -> dict:
     cur_a = media / "audio" / "current"
     cur_v = media / "video" / "current"
     reports = media / "audio" / "reports"
+    statement = reports / "ava_full_statement_ara.mp3"
     dev_src = reports / "ava_dev_update_account_redesign_ara.mp3"
     dev_cur = cur_a / "dev-update-current.mp3"
     if dev_src.is_file() and not dev_cur.exists():
@@ -1121,13 +1151,14 @@ async def apply_current_scene_media() -> dict:
             shutil.copy2(dev_src, dev_cur)
     desk = cur_a / "hourly-desk-current.mp3"
     parts = [
-        cur_a / "solar-weather-current.mp3",
-        cur_a / "Kilauea_Current.mp3",
-        cur_a / "nws-hawaii-current.mp3",
-        cur_a / "earthquake-global-current.mp3",
-        cur_a / "ara-report-current.mp3",
-        cur_a / "system-performance-current.mp3",
+        _first_existing(cur_a / "solar-weather-current.mp3", cur_a / "solar-weather-current.wav"),
+        _first_existing(cur_a / "Kilauea_Current.mp3", cur_a / "Kilauea_Current.wav"),
+        _first_existing(cur_a / "nws-hawaii-current.mp3", cur_a / "nws-hawaii-current.wav"),
+        _first_existing(cur_a / "earthquake-global-current.mp3"),
+        _first_existing(cur_a / "ara-report-current.mp3"),
+        _first_existing(cur_a / "system-performance-current.mp3", cur_a / "system-performance-current.wav"),
     ]
+    parts = [p for p in parts if p is not None]
     existing = [p for p in parts if p.is_file()]
     concat_list = desk.with_suffix(".concat.txt")
     linux_concat = False
@@ -1159,15 +1190,20 @@ async def apply_current_scene_media() -> dict:
     wired: dict[str, str] = {}
     try:
         jobs = [
-            (WEATHER_BOARD, "NWS Hawaii", cur_v / "nws-hawaii-current.mp4", True),
-            (KILAUEA_WATCH, "Kilauea Audio", cur_a / "Kilauea_Current.mp3", False),
-            (SOLAR_DASHBOARD, "Solar Audio", cur_a / "solar-weather-current.mp3", False),
+            (KILAUEA_WATCH, "Kilauea Audio", _first_existing(cur_a / "Kilauea_Current.mp3", cur_a / "Kilauea_Current.wav"), False),
+            (SOLAR_DASHBOARD, "Solar Audio", _first_existing(cur_a / "solar-weather-current.mp3", cur_a / "solar-weather-current.wav"), False),
             (ECONOMY_BOARD, "Economy Audio", desk if desk.is_file() else cur_a / "ara-report-current.mp3", False),
             (ECONOMY_BOARD, "Economy Video", cur_v / "ara-report-current.mp4", True),
             (GOALS_REPORT, "Goals Audio", statement if statement.is_file() else cur_a / "Morning_Broadcast_Current.mp3", False),
             (DEV_UPDATES, "Dev Audio", dev_cur if dev_cur.exists() else reports / "ava_intro_what_she_does_ara.mp3", False),
         ]
+        nws_video = cur_v / "nws-hawaii-current.mp4"
+        if nws_video.is_file():
+            jobs.insert(0, (WEATHER_BOARD, "NWS Hawaii", nws_video, True))
         for scene, name, path, vis in jobs:
+            if path is None:
+                wired[name] = "missing"
+                continue
             if not path.is_file():
                 wired[name] = "missing"
                 continue

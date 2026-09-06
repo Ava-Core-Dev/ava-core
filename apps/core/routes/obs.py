@@ -172,7 +172,10 @@ async def obs_audio_events(request: Request):
 
 @router.get("/speaking-overlay", response_class=HTMLResponse)
 async def obs_speaking_overlay():
-        """Transparent OBS overlay for queued speech and active playback."""
+    """Transparent OBS overlay for queued speech and active playback."""
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
         return HTMLResponse("""<!doctype html><html><head><meta charset='utf-8'><style>
             html,body{margin:0;background:transparent;overflow:hidden}
             #box{position:fixed;right:28px;bottom:28px;padding:10px 16px;border-radius:8px;
@@ -858,6 +861,9 @@ async def obs_overlay_shared_asset(asset_name: str):
 @router.get("/card/{board}/{card}", response_class=HTMLResponse)
 async def obs_overlay_card(board: str, card: str):
     """Isolated board card — one OBS Browser Source per element."""
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     b = Path(board).name
     c = Path(card).name
     path = _overlays_root() / b / f"{c}.html"
@@ -870,6 +876,9 @@ async def obs_overlay_card(board: str, card: str):
 @router.get("/cards", response_class=HTMLResponse)
 async def obs_overlay_cards_index():
     """Human-readable index of every isolated overlay card."""
+    idle = _idle_if_no_obs()
+    if idle:
+        return idle
     root = _overlays_root()
     cat = root / "catalog.json"
     origin = f"http://127.0.0.1:{config.AVA_PORT}"
