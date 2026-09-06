@@ -982,6 +982,8 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
             "Storms/hazards: only name what FACTS lists. Do not invent Category, nm, or mph.\n"
             "Broken / needs work, Already landed, and Priority ARE in the FACTS — "
             "do not say you do not have them live.\n"
+            "Required exact section lead-ins: Broken / needs work. Already landed. Priority:. "
+            "Include all three labels exactly, even when the section says none.\n"
             "Never name third-party vendors or engines in the report text.\n\n"
             f"Context / discovery URLs:\n{urls}\n\n"
             f"Live data pages:\n{live_urls}\n"
