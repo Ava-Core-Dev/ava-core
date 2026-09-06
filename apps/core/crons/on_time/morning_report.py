@@ -26,10 +26,20 @@ async def run():
     from apps.core.services import reports as report_store
 
     daily_report_board.ensure_today()
+    morning_slot = daily_report_board.get_slot("morning") or {}
+    if morning_slot.get("status") == "done":
+        log.info("Morning report already generated today — skip duplicate run")
+        return {"ok": True, "skipped": True, "detail": "already_done"}
     daily_report_board.mark_due()
 
     if not boot_report.morning_automation_enabled():
         log.info("Morning report automation OFF — prelims still refresh facts")
+    prelim = await _refresh_prelims()
+    log.info("morning prelims ok=%s", prelim.get("ok"))
+    if not prelim.get("ok"):
+        log.warning("Morning report skipped: prelim refresh failed")
+        daily_report_board.mark_failed("morning", error="prelims_failed")
+        return {"ok": False, "skipped": True, "detail": "prelims_failed", "prelim": prelim}
     freshness = boot_report.report_metrics_fresh_within(max_age_s=3600)
     if not freshness["ok"]:
         log.warning("Morning report skipped: stale metrics older than 1 hour: %s", freshness["stale"])
@@ -39,8 +49,6 @@ async def run():
         except Exception:
             pass
         return {"ok": False, "skipped": True, "detail": "stale_metrics", "freshness": freshness}
-    prelim = await _refresh_prelims()
-    log.info("morning prelims ok=%s", prelim.get("ok"))
 
     settings = report_generation.type_settings("morning")
     allow_tts = bool(settings.get("tts"))

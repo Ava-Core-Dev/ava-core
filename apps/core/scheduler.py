@@ -170,6 +170,9 @@ class Scheduler:
         s.add_job(self._run("morning_report"), CronTrigger(hour=10, minute=0),
                   id="morning-report", name="Morning report", misfire_grace_time=600)
 
+        s.add_job(self._run("morning_report"), CronTrigger(hour="0-9", minute="*/5"),
+              id="morning-report-readiness", name="Morning report readiness", misfire_grace_time=300)
+
         s.add_job(self._run("morning_report_play"), CronTrigger(hour=10, minute=12),
                   id="morning-report-play", name="Morning report play", misfire_grace_time=300)
 
