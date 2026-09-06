@@ -93,6 +93,7 @@ def load_state() -> dict[str, Any]:
         "cooldown_s": DEFAULT_COOLDOWN_S,
         "off_at_w": OFF_AT_W,
         "on_at_w": ON_AT_W,
+        "soc_keep_ac_on": True,
         "soc_keep_ac_on_above": SOC_KEEP_AC_ON_ABOVE,
         "soc_usual_rules_below": SOC_USUAL_RULES_BELOW,
         "gate_key": GATE_KEY,
@@ -212,6 +213,7 @@ def decide_with_soc(
     off_at: float = OFF_AT_W,
     on_at: float = ON_AT_W,
     soc_keep_above: float = SOC_KEEP_AC_ON_ABOVE,
+    soc_keep_on: bool = True,
 ) -> tuple[str | None, str | None]:
     """Watt decide, then SOC overlay.
 
@@ -221,7 +223,7 @@ def decide_with_soc(
     watt rules alone apply.
     """
     watt = decide(input_w, off_at=off_at, on_at=on_at)
-    if soc is not None and soc > float(soc_keep_above):
+    if soc_keep_on and soc is not None and soc > float(soc_keep_above):
         return "on", "soc_keep_on"
     return watt, None
 
@@ -418,12 +420,14 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
     total_in = float(quota.get("total_in_w") or 0.0)
     ac_on = quota.get("ac_on")
     soc = _soc_float(quota.get("soc"))
+    soc_keep_on = bool(state.get("soc_keep_ac_on", True))
     desired, soc_reason = decide_with_soc(
         input_w,
         soc,
         off_at=off_at,
         on_at=on_at,
         soc_keep_above=soc_keep,
+        soc_keep_on=soc_keep_on,
     )
 
     state["last_input_w"] = input_w
