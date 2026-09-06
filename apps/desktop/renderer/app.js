@@ -4078,14 +4078,24 @@ async function saveGitSyncPrefsForm() {
 }
 
 function paintDeskFeatures(radio, gate) {
-  if (radio && radio.ok !== false) {
-    if ($("feat-hurricane-radio")) $("feat-hurricane-radio").checked = radio.hurricane_on_radio !== false;
-    if ($("feat-voice-inserts")) $("feat-voice-inserts").checked = radio.voice_inserts !== false;
-    if ($("feat-feedback-popup")) $("feat-feedback-popup").checked = radio.feedback_popup !== false;
+  if (radio && radio.ok === true) {
+    if ($("feat-hurricane-radio") && typeof radio.hurricane_on_radio === "boolean") {
+      $("feat-hurricane-radio").checked = radio.hurricane_on_radio;
+    }
+    if ($("feat-voice-inserts") && typeof radio.voice_inserts === "boolean") {
+      $("feat-voice-inserts").checked = radio.voice_inserts;
+    }
+    if ($("feat-feedback-popup") && typeof radio.feedback_popup === "boolean") {
+      $("feat-feedback-popup").checked = radio.feedback_popup;
+    }
   }
-  if (gate && gate.ok !== false) {
-    if ($("feat-ecoflow-gate")) $("feat-ecoflow-gate").checked = gate.enabled !== false;
-    if ($("feat-ecoflow-soc")) $("feat-ecoflow-soc").checked = gate.soc_keep_ac_on !== false;
+  if (gate && gate.ok === true) {
+    if ($("feat-ecoflow-gate") && typeof gate.enabled === "boolean") {
+      $("feat-ecoflow-gate").checked = gate.enabled;
+    }
+    if ($("feat-ecoflow-soc") && typeof gate.soc_keep_ac_on === "boolean") {
+      $("feat-ecoflow-soc").checked = gate.soc_keep_ac_on;
+    }
   }
 }
 
