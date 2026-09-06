@@ -139,6 +139,14 @@ async def _from_api() -> tuple[list[dict], list[dict], str] | None:
 
 
 def hurricane_line() -> str:
+    try:
+        from apps.core.services import hurricane_desk
+
+        pub = hurricane_desk.public_payload()
+        if pub.get("hawaii"):
+            return str(pub["hawaii"])
+    except Exception:
+        pass
     from apps.core.services.hurricane_tracker import load_storms
 
     data = load_storms()
@@ -155,33 +163,28 @@ def hurricane_line() -> str:
             nmi = None
         if nmi is None:
             continue
-        if nmi <= 1500 or s.get("focus") == "hawaii":
-            near.append((nmi, s))
+        near.append((nmi, s))
     near.sort(key=lambda x: x[0])
     if not near:
         n = int(data.get("count") or 0)
         return (
-            f"Hurricanes near Hawaiʻi: none inside 1500 nm. "
-            f"NHC worldwide count {n}. Sample {ts or 'unknown'}."
+            "Nearest Hurricane from a Hawaiian island: none mapped. "
+            f"Worldwide count {n}. Sample {ts or 'unknown'}."
         )
-    bits = []
-    for nmi, s in near[:3]:
-        name = s.get("name") or s.get("id") or "storm"
-        label = s.get("label") or s.get("class") or "cyclone"
-        hi = s.get("hawaii_nm") if isinstance(s.get("hawaii_nm"), dict) else {}
-        if hi.get("Kona") is not None:
-            dist = f"{int(round(float(hi['Kona'])))} nm from Kona"
-        elif hi.get("Hilo") is not None:
-            dist = f"{int(round(float(hi['Hilo'])))} nm from Hilo"
-        else:
-            dist = f"{int(round(nmi))} nm from Hawaiʻi"
-        mph = s.get("mph")
-        try:
-            wind = f", {int(round(float(mph)))} mph" if mph is not None else ""
-        except (TypeError, ValueError):
-            wind = ""
-        bits.append(f"{label} {name}, {dist}{wind}")
-    return "Hurricanes: " + "; ".join(bits) + (f". Sample {ts}." if ts else ".")
+    nmi, s = near[0]
+    name = s.get("name") or s.get("id") or "storm"
+    label = s.get("label") or s.get("class") or "cyclone"
+    hi = s.get("hawaii_nm") if isinstance(s.get("hawaii_nm"), dict) else {}
+    island = "Hawaiʻi"
+    dist_nm = int(round(nmi))
+    if hi:
+        island, d = min(hi.items(), key=lambda kv: float(kv[1] or 9e9))
+        dist_nm = int(round(float(d)))
+    return (
+        f"Nearest Hurricane from a Hawaiian island: {label} {name}, "
+        f"{dist_nm} nm from {island}."
+        + (f" Sample {ts}." if ts else "")
+    )
 
 
 def weather_lines_sync() -> list[str]:

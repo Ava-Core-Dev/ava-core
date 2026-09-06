@@ -454,6 +454,12 @@ async function refreshHurricane() {{
     el.textContent = (j && j.hawaii) ? j.hawaii : '';
   }} catch (e) {{}}
 }}
+refreshSession().then(() => {{
+  paintSession();
+  refreshNow();
+  heartbeat();
+  refreshHurricane();
+}});
 const es = new EventSource('/radio/events');
 es.onerror = () => {{ status.textContent = 'Holding the line…'; }};
 es.addEventListener('play', e => {{
@@ -468,6 +474,7 @@ es.addEventListener('play', e => {{
 player.addEventListener('ended', () => playLive({{}}, true));
 setInterval(refreshNow, 40000);
 setInterval(heartbeat, 20000);
+setInterval(refreshHurricane, 120000);
 </script>
 </body>
 </html>"""
