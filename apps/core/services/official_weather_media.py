@@ -56,6 +56,21 @@ def _clean_hls(text: str) -> str:
     return text.strip() + "\n"
 
 
+def _hls_statement(html: str) -> str:
+    match = re.search(r'["\']([^"\']*HLS[^"\']*\.xml)["\']', html, re.I)
+    feed_url = "https://www.weather.gov" + match.group(1) if match and match.group(1).startswith("/") else (match.group(1) if match else "")
+    if feed_url:
+        try:
+            feed = requests.get(feed_url, headers={"User-Agent": UA}, timeout=45)
+            feed.raise_for_status()
+            text = re.sub(r"<[^>]+>", " ", feed.text)
+            return _clean_hls(text)
+        except Exception as exc:
+            log.warning("HLS XML fetch failed: %s", exc)
+    text = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.I | re.S)
+    return _clean_hls(re.sub(r"<[^>]+>", " ", text))
+
+
 def _archive(files: dict[str, bytes]) -> None:
     ARCHIVE.mkdir(parents=True, exist_ok=True)
     entries: dict[str, bytes] = {}
@@ -102,6 +117,7 @@ def run() -> dict:
             data = response.content
             ext = "html" if kind == "page" else kind
             dated_name = f"{slug}-{stamp}.{ext}"
+            ARCHIVE.mkdir(parents=True, exist_ok=True)
             _current(slug, kind).write_bytes(data)
             (ARCHIVE / dated_name).write_bytes(data)
             downloaded[slug] = {"url": url, "bytes": len(data), "current": str(_current(slug, kind))}
@@ -112,7 +128,7 @@ def run() -> dict:
     try:
         hls_response = requests.get(HLS_URL, headers={"User-Agent": UA}, timeout=45)
         hls_response.raise_for_status()
-        hls_text = _clean_hls(hls_response.text)
+        hls_text = _hls_statement(hls_response.text)
         hls_path = config.REPORTS_DIR / "NWS_Official_statement.txt"
         prior = hls_path.read_text(encoding="utf-8") if hls_path.is_file() else ""
         changed = hashlib.sha256(prior.encode()).hexdigest() != hashlib.sha256(hls_text.encode()).hexdigest()
