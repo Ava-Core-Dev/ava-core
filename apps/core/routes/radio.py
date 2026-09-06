@@ -354,12 +354,17 @@ async def api_radio_patch(body: RadioPatch):
     if st.get("on_air") or st.get("local_playback"):
         try:
             from apps.voice.director import get_director
+            from apps.voice import desk_audio
 
-            d = get_director()
-            cur = (d.get_status().get("music") or {}).get("current")
-            if cur:
-                radio_svc.announce_program_file(cur)
-                radio_svc.patch(last_track=str(cur))
+            path = desk_audio.bed_path()
+            if path is None:
+                d = get_director()
+                # Prefer absolute path from director internals when available
+                cur = getattr(d, "_music_current", None)
+                if cur is not None:
+                    path = cur
+            if path is not None:
+                radio_svc.announce_program_file(path)
         except Exception:
             pass
 
