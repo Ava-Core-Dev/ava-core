@@ -180,7 +180,7 @@ def announce_program_file(path: Path | str, *, name: str = "") -> None:
         meta = {"title": name or p.stem, "description": "", "id": p.name}
     broadcast_program_event(
         {
-            "src": src or "/radio/live.mp3",
+            "src": "/radio/live.mp3",
             "live": "/radio/live.mp3",
             "name": meta.get("title") or name or p.stem,
             "title": meta.get("title") or name or p.stem,

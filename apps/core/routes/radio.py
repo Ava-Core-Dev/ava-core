@@ -198,14 +198,22 @@ async def radio_live_mp3():
         gen(),
         media_type="audio/mpeg",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-store, no-cache",
             "X-Accel-Buffering": "no",
-            "Content-Disposition": "inline; filename=rootrecord-radio.mp3",
+            "Accept-Ranges": "none",
+            "Content-Disposition": "inline; filename=pacific-root-radio.mp3",
         },
     )
 
 
-def _now_payload() -> dict[str, Any]:
+def _bearer(request: Request) -> str:
+    auth = (request.headers.get("authorization") or "").strip()
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+    return ""
+
+
+def _now_payload(request: Request | None = None) -> dict[str, Any]:
     st = radio_svc.status()
     if not st.get("on_air"):
         return {"ok": True, "on_air": False, "src": None, "title": None, "description": None}
@@ -213,14 +221,20 @@ def _now_payload() -> dict[str, Any]:
 
     path = radio_encode.current_program_path()
     meta: dict[str, Any] = {}
-    src = None
     if path is not None:
-        src = radio_svc.program_url_for_file(path)
         meta = radio_catalog.public_meta(path)
+    skip_for_you = False
+    if request is not None:
+        identity = radio_access.resolve_identity(token=_bearer(request))
+        if identity.get("member") and meta.get("id"):
+            skip_for_you = radio_access.is_blacklisted(
+                identity["account_id"], str(meta.get("id") or "")
+            )
+    # Live remux only — never hand out the source media URL.
     return {
         "ok": True,
         "on_air": True,
-        "src": src or ("/radio/live.mp3" if path else None),
+        "src": "/radio/live.mp3" if path else None,
         "live": "/radio/live.mp3" if path else None,
         "name": meta.get("title"),
         "title": meta.get("title"),
@@ -229,14 +243,67 @@ def _now_payload() -> dict[str, Any]:
         "likes": meta.get("likes") or 0,
         "dislikes": meta.get("dislikes") or 0,
         "tags": meta.get("tags") or "",
+        "skip_for_you": skip_for_you,
         "steering": radio_catalog.steering_public().get("note"),
     }
 
 
 @router.get("/api/radio/now")
-async def api_radio_now():
+async def api_radio_now(request: Request):
     """Public now-playing (title/description — not raw filenames)."""
-    return _now_payload()
+    return _now_payload(request)
+
+
+@router.get("/api/radio/session")
+async def api_radio_session(request: Request):
+    identity = await asyncio.to_thread(
+        radio_access.resolve_identity, token=_bearer(request)
+    )
+    return {"ok": True, **radio_access.public_session_payload(identity)}
+
+
+class RadioHeartbeat(BaseModel):
+    guest: str = Field("", max_length=80)
+    playing: bool = True
+
+
+@router.post("/api/radio/heartbeat")
+async def api_radio_heartbeat(body: RadioHeartbeat, request: Request):
+    identity = await asyncio.to_thread(
+        radio_access.resolve_identity,
+        token=_bearer(request),
+        guest_id=body.guest,
+    )
+    session = radio_access.public_session_payload(identity)
+    if identity.get("member"):
+        tick = radio_access.member_tick(
+            identity["account_id"],
+            balance=int(identity.get("balance") or 0),
+            seconds=20.0 if body.playing else 0.0,
+        )
+        return {
+            "ok": True,
+            "member": True,
+            "allowed": True,
+            "session": {**session, "balance": tick.get("balance"), "top_up": tick.get("top_up")},
+            **tick,
+        }
+    tick = radio_access.guest_tick(body.guest or "anon", seconds=20.0 if body.playing else 0.0)
+    return {"ok": True, "member": False, "session": session, **tick}
+
+
+class RadioSkip(BaseModel):
+    id: str = Field(..., min_length=1, max_length=500)
+
+
+@router.post("/api/radio/skip")
+async def api_radio_skip(body: RadioSkip, request: Request):
+    identity = await asyncio.to_thread(
+        radio_access.resolve_identity, token=_bearer(request)
+    )
+    if not identity.get("member"):
+        return {"ok": False, "need_login": True, "detail": "member"}
+    return radio_access.blacklist_track(identity["account_id"], body.id)
 
 
 @router.get("/api/radio/steering")
@@ -305,16 +372,23 @@ async def api_radio_wake():
 
 @router.post("/api/radio/vote")
 async def api_radio_vote(body: RadioVote, request: Request):
-    voter = (body.voter or "").strip()
-    if not voter:
-        voter = secrets.token_hex(8)
+    identity = await asyncio.to_thread(
+        radio_access.resolve_identity, token=_bearer(request)
+    )
+    if not identity.get("member"):
+        return {"ok": False, "need_login": True, "detail": "member"}
+    voter = identity.get("account_id") or (body.voter or "").strip() or secrets.token_hex(8)
     site = (body.site or _host(request) or "")[:80]
-    return radio_catalog.cast_vote(
+    out = radio_catalog.cast_vote(
         track_id=body.id,
         vote=body.vote,
-        voter=voter,
+        voter=str(voter)[:80],
         site=site,
     )
+    if body.vote.strip().lower() == "dislike" and identity.get("member"):
+        radio_access.blacklist_track(identity["account_id"], body.id)
+        out = {**out, "skipped_for_you": True}
+    return out
 
 
 @router.post("/api/radio")
@@ -347,6 +421,7 @@ async def api_radio_patch(body: RadioPatch):
                 desk_audio.set_ducked(False)
                 desk_audio.set_muted(False)
             else:
+                # On air without Local — bed runs, speakers silent.
                 desk_audio.set_muted(True)
         else:
             d.pause_music_bed()

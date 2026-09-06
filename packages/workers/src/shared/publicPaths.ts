@@ -39,6 +39,7 @@ const PUBLIC_EXACT = new Set([
   "/context.md",
   "/api/radio/now",
   "/api/radio/steering",
+  "/api/radio/session",
 ]);
 
 /** Read-only families. Writes under these are still refused by method. */
@@ -228,7 +229,9 @@ export function isPublicWrite(method: string, path: string): boolean {
     path === "/api/feedback" ||
     path === "/api/chat" ||
     path === "/api/radio/wake" ||
-    path === "/api/radio/vote"
+    path === "/api/radio/vote" ||
+    path === "/api/radio/heartbeat" ||
+    path === "/api/radio/skip"
   );
 }
 
