@@ -62,9 +62,11 @@ def push_insert(path: Path | str, *, name: str = "") -> None:
 
 def clear_insert(*, path: Path | str | None = None) -> None:
     """Clear insert; if path set, only clear when it still matches."""
-    global _insert_path, _insert_name
+    global _insert_path, _insert_name, _generation
     with _lock:
-        if path is not None and _insert_path is not None:
+        if _insert_path is None:
+            return
+        if path is not None:
             try:
                 if Path(path).resolve() != _insert_path:
                     return
@@ -72,7 +74,6 @@ def clear_insert(*, path: Path | str | None = None) -> None:
                 return
         _insert_path = None
         _insert_name = ""
-        global _generation
         _generation += 1
     log.info("radio insert off")
 

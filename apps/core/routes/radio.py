@@ -219,12 +219,23 @@ def _now_payload(request: Request | None = None) -> dict[str, Any]:
         return {"ok": True, "on_air": False, "src": None, "title": None, "description": None}
     from apps.core.services import radio_encode
 
+    insert = radio_encode.insert_active()
     path = radio_encode.current_program_path()
     meta: dict[str, Any] = {}
     if path is not None:
-        meta = radio_catalog.public_meta(path)
+        if insert:
+            meta = {
+                "title": insert.get("name") or Path(path).stem,
+                "description": "Live desk — report or chime",
+                "id": Path(path).name,
+                "likes": 0,
+                "dislikes": 0,
+                "tags": "desk",
+            }
+        else:
+            meta = radio_catalog.public_meta(path)
     skip_for_you = False
-    if request is not None:
+    if request is not None and not insert:
         identity = radio_access.resolve_identity(token=_bearer(request))
         if identity.get("member") and meta.get("id"):
             skip_for_you = radio_access.is_blacklisted(
@@ -244,6 +255,7 @@ def _now_payload(request: Request | None = None) -> dict[str, Any]:
         "dislikes": meta.get("dislikes") or 0,
         "tags": meta.get("tags") or "",
         "skip_for_you": skip_for_you,
+        "insert": bool(insert),
         "steering": radio_catalog.steering_public().get("note"),
     }
 
