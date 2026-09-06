@@ -900,7 +900,7 @@ def _text_has_required_sections(kind: str, text: str) -> tuple[bool, list[str]]:
         missing.append("Broken / needs work")
     if not _has("already landed"):
         missing.append("Already landed")
-    if not _has("priority:", "priority —", "priority -", "priority\n", "priority "):
+    if not _has("priority:", "priority —", "priority -", "priority\n", "priority ", "priority."):
         missing.append("Priority")
     # Only fail when Broken / Already landed still claim "not live" (the noon bug).
     for section in ("broken / needs work", "broken/needs work", "already landed"):
