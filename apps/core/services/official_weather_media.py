@@ -180,6 +180,21 @@ async def apply_obs_scenes() -> dict:
             else:
                 await _ensure_input(obs, scene, name, "image_source", {"file": str(_current(slug, kind)), "unload": False})
             await _fit(obs, scene, name)
+            await _ensure_input(
+                obs,
+                scene,
+                "Ava Speaking Overlay",
+                "browser_source",
+                {
+                    "url": "http://127.0.0.1:8787/obs/speaking-overlay",
+                    "width": 1920,
+                    "height": 1080,
+                    "shutdown": False,
+                    "restart_when_active": False,
+                    "css": "body { margin: 0; overflow: hidden; background: transparent; }",
+                },
+            )
+            await _fit(obs, scene, "Ava Speaking Overlay")
             created.append(scene)
             dwell[scene] = 10
         save_rotation_config(mode_dwell_s={"official": 10}, scene_dwell_s=dwell)

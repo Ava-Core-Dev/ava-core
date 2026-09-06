@@ -170,6 +170,26 @@ async def obs_audio_events(request: Request):
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+@router.get("/speaking-overlay", response_class=HTMLResponse)
+async def obs_speaking_overlay():
+        """Transparent OBS overlay for queued speech and active playback."""
+        return HTMLResponse("""<!doctype html><html><head><meta charset='utf-8'><style>
+            html,body{margin:0;background:transparent;overflow:hidden}
+            #box{position:fixed;right:28px;bottom:28px;padding:10px 16px;border-radius:8px;
+                background:rgba(5,12,15,.78);color:#9fffc2;font:600 24px 'Segoe UI',sans-serif;
+                letter-spacing:.02em;text-shadow:0 1px 2px #000;opacity:.92}
+            .now{color:#fff2a8}
+        </style></head><body><div id='box'>Speaking in 00:00</div><script>
+            const box=document.getElementById('box'); let timer=null; let endAt=0;
+            const fmt=n=>{n=Math.max(0,Math.ceil(n));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0')};
+            const idle=()=>{box.className='';box.textContent='Speaking in 00:00'};
+            const speak=(seconds)=>{clearInterval(timer);box.className='now';box.textContent='Speaking Now';endAt=Date.now()+Math.max(1,seconds)*1000;timer=setInterval(()=>{if(Date.now()>=endAt){clearInterval(timer);idle()}},500)};
+            const es=new EventSource((location.origin||'')+'/obs/audio-events');
+            es.addEventListener('play',e=>{try{const d=JSON.parse(e.data);const a=new Audio(d.src);a.addEventListener('loadedmetadata',()=>speak(a.duration||10),{once:true});a.load();speak(10)}catch(_){speak(10)}});
+            idle();
+        </script></body></html>""")
+
+
 @router.get("/hud", response_class=HTMLResponse)
 async def obs_hud():
     if not obs_process_running():
