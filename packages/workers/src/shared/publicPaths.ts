@@ -37,6 +37,8 @@ const PUBLIC_EXACT = new Set([
   "/ai.txt",
   "/robots.txt",
   "/context.md",
+  "/api/radio/now",
+  "/api/radio/steering",
 ]);
 
 /** Read-only families. Writes under these are still refused by method. */
@@ -47,6 +49,7 @@ const PUBLIC_PREFIX = [
   "/api/photos/file/",
   "/api/geography/",
   "/api/media/public",
+  "/radio",
   "/earthquakes/",
   "/weather/",
   "/news/",
@@ -107,6 +110,8 @@ const PUBLIC_PAGES = new Set([
   "/chat",
   "/roadmap",
   "/context",
+  "/radio",
+  "/radio/listen",
   "/account/emails",
   "/products/rootunits",
   "/discord-verify.js",
@@ -218,7 +223,23 @@ export function isReadMethod(method: string): boolean {
 /** Visitor writes allowed when the origin is dark (offline inbox). */
 export function isPublicWrite(method: string, path: string): boolean {
   if (method !== "POST") return false;
-  return path === "/feedback" || path === "/api/feedback" || path === "/api/chat";
+  return (
+    path === "/feedback" ||
+    path === "/api/feedback" ||
+    path === "/api/chat" ||
+    path === "/api/radio/wake" ||
+    path === "/api/radio/vote"
+  );
+}
+
+/** Long-lived radio stream / SSE — Workers must not abort after a few seconds. */
+export function isRadioStreamPath(path: string): boolean {
+  return (
+    path === "/radio/live.mp3" ||
+    path === "/radio/events" ||
+    path.startsWith("/radio/live.mp3?") ||
+    path.startsWith("/radio/events?")
+  );
 }
 
 /** Trailing slash off, so `/status/` and `/status` are one page. */
