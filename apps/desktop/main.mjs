@@ -321,23 +321,30 @@ async function handleDeskClose(reason) {
     }
     const existing = loadDeskUiState(DESK_ROOT);
     const peek = await peekMusicBedStatus();
-    // Close stops playback + clears music-bed-wanted.txt so origin recycle stays
-    // quiet — but desk-ui must remember resume intent. Only wipe musicWanted when
-    // the operator intentionally paused/stopped this session. If status is already
-    // silent (prior desk close), keep the previous desk-ui flag.
+    // Speakers intent only — on-air bed must not set musicWanted (that unmuted Desk).
+    let radioLocal = false;
+    try {
+      const rr = await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio/status`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      const rj = await rr.json().catch(() => ({}));
+      radioLocal = Boolean(rj?.local_playback);
+    } catch {
+      radioLocal = Boolean(existing.radioLocal);
+    }
     let musicWanted;
     if (peek.operatorPaused && !peek.playing) {
       musicWanted = false;
-    } else if (peek.musicWanted || peek.playing) {
+    } else if (radioLocal) {
       musicWanted = true;
-    } else if (peek.ambiguous) {
-      musicWanted = Boolean(existing.musicWanted);
     } else {
+      // On air alone keeps the bed for the stream; Desk speakers stay off.
       musicWanted = false;
     }
     saveDeskUiState(
       {
         musicWanted,
+        radioLocal,
         musicTrack: peek.musicTrack || existing.musicTrack || null,
         closedAt: new Date().toISOString(),
         closeReason: reason,
@@ -370,13 +377,46 @@ async function restoreDeskSession() {
     ui,
     morning,
   });
-  if (ui.musicWanted) {
+  // Only restore unmuted local speakers when radioLocal / musicWanted for speakers.
+  // On-air bed is owned by radio state — do not unmute Desk on open.
+  if (ui.musicWanted && ui.radioLocal !== false) {
+    // Legacy desk-ui without radioLocal: only restore if musicWanted was for speakers.
+    // If radioLocal is explicitly false, skip.
+  }
+  if (ui.radioLocal || (ui.musicWanted && ui.radioLocal == null && ui.musicWanted)) {
+    // Prefer explicit radioLocal; fall back to old musicWanted only when radioLocal unset
+  }
+  const wantSpeakers = ui.radioLocal === true || (ui.radioLocal == null && ui.musicWanted === true);
+  if (wantSpeakers) {
     const music = await restoreMusicBedIfWanted(true);
     sendOps("ava:desk-lifecycle", {
       phase: "music-restore",
       music,
       track: ui.musicTrack || null,
     });
+    // Align radio.local_playback with restored speakers
+    try {
+      await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ local_playback: true }),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch {
+      /* ignore */
+    }
+  } else {
+    // Ensure muted if on air without local
+    try {
+      await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ local_playback: false }),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch {
+      /* ignore */
+    }
   }
   return { ui, morning };
 }
