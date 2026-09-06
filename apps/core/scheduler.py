@@ -35,7 +35,10 @@ def get_scheduler() -> "Scheduler | None":
 def _job_wave(job_id: str) -> int:
     """Minimum AVA_CRON_WAVE required to register this job. Heartbeat is always 1."""
     wave1 = {"heartbeat", "rr-noaa", "rr-kilauea", "ecoflow-quota", "host-sample", "log-cleanup"}
-    wave2 = {"kilauea-cams", "nhc-media", "hurricane-tracker", "hourly-solar-weather", "system-performance"}
+    wave2 = {
+        "kilauea-cams", "hourly-solar-weather", "system-performance",
+        "hurricane-fetch", "hurricane-desk", "hurricane-radio", "hurricane-obs",
+    }
     wave3 = {
         "minecraft-live", "d1-sync", "player-economy-report", "user-qrcodes",
         "vercel-builds", "account-import", "stripe-poll", "inbox-drain",
@@ -252,8 +255,25 @@ class Scheduler:
         s.add_job(self._run("minecraft_live"), IntervalTrigger(seconds=45),
                   id="minecraft-live", name="Minecraft in-game detect", misfire_grace_time=30)
 
-        s.add_job(self._run("hurricane_tracker"), IntervalTrigger(minutes=15),
-                  id="hurricane-tracker", name="Hurricane tracker slides", misfire_grace_time=120)
+        # Hurricane desk — staged so fetch / build / radio / OBS never share a minute
+        # with chimes, clip reports, or morning/midday/evening generate+play.
+        s.add_job(self._run("hurricane_fetch"), CronTrigger(hour="5,9,12,16,20", minute=40),
+                  id="hurricane-fetch", name="Hurricane fetch NHC/RAMMB/JTWC", misfire_grace_time=180)
+        s.add_job(self._run("hurricane_desk"), CronTrigger(hour="5,9,12,20", minute=50),
+                  id="hurricane-desk", name="Hurricane desk text + WAV", misfire_grace_time=180)
+        s.add_job(self._run("hurricane_desk"), CronTrigger(hour=16, minute=55),
+                  id="hurricane-desk-evening", name="Hurricane desk evening build", misfire_grace_time=180)
+        s.add_job(self._run("hurricane_radio"), CronTrigger(hour=6, minute=35),
+                  id="hurricane-radio-am", name="Hurricane desk on radio (06:35)", misfire_grace_time=180)
+        s.add_job(self._run("hurricane_radio"), CronTrigger(hour=13, minute=12),
+                  id="hurricane-radio-mid", name="Hurricane desk on radio (13:12)", misfire_grace_time=180)
+        s.add_job(self._run("hurricane_radio"), CronTrigger(hour=17, minute=2),
+                  id="hurricane-radio-pm", name="Hurricane desk on radio (17:02)", misfire_grace_time=180)
+        if config.ENABLE_OBS:
+            s.add_job(self._run("hurricane_obs"), CronTrigger(hour="6,17", minute=10),
+                      id="hurricane-obs", name="Hurricane OBS slides", misfire_grace_time=120)
+        else:
+            log.info("Skipping cron hurricane-obs (AVA_ENABLE_OBS=0)")
 
         s.add_job(self._run("kilauea_cams"), IntervalTrigger(minutes=5),
                   id="kilauea-cams", name="Kīlauea V1/V2/V3 embed refresh", misfire_grace_time=90)
