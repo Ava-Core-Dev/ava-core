@@ -483,6 +483,60 @@ def _music_wanted_path() -> Path:
         return Path.home() / "ava" / "data" / "state" / "music-bed-wanted.txt"
 
 
+def _music_bed_lock_path() -> Path:
+    try:
+        from apps.core import config
+
+        return Path(config.DATA_DIR) / "state" / "music-bed.lock"
+    except Exception:
+        return Path.home() / "ava" / "data" / "state" / "music-bed.lock"
+
+
+def _acquire_music_bed_lock():
+    path = _music_bed_lock_path()
+    handle = None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handle = path.open("a+b")
+        handle.seek(0, os.SEEK_END)
+        if handle.tell() == 0:
+            handle.write(b"0")
+            handle.flush()
+        handle.seek(0)
+        if os.name == "nt":
+            import msvcrt
+
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return handle
+    except (OSError, ImportError):
+        if handle is not None:
+            handle.close()
+        return None
+
+
+def _release_music_bed_lock(handle) -> None:
+    if handle is None:
+        return
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    except (OSError, ImportError):
+        pass
+    finally:
+        handle.close()
+
+
 def set_music_bed_wanted(on: bool) -> None:
     """Persist operator intent so origin recycle can restart the bed."""
     path = _music_wanted_path()
@@ -673,6 +727,7 @@ class StreamDirector:
         self._music_index: int = -1
         self._music_tracks_n = 0
         self._music_start_lock = asyncio.Lock()
+        self._music_bed_lock_file = None
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -933,6 +988,15 @@ class StreamDirector:
                     "tracks": len(tracks),
                     "dir": str(music_dir()),
                     "swept": swept,
+                }
+            self._music_bed_lock_file = _acquire_music_bed_lock()
+            if self._music_bed_lock_file is None:
+                log.info("Music bed already owned by another AVA process")
+                return {
+                    "ok": True,
+                    "detail": "already_owned",
+                    "tracks": len(tracks),
+                    "dir": str(music_dir()),
                 }
             # Silence leftovers from dead uvicorn / double spawn before first track.
             await _kill_stray_music_players_async()
@@ -2045,6 +2109,8 @@ class StreamDirector:
             except (asyncio.CancelledError, Exception):
                 pass
         self._music_task = None
+        _release_music_bed_lock(self._music_bed_lock_file)
+        self._music_bed_lock_file = None
         if self._obs_ws:
             await self._obs_ws.close()
 
