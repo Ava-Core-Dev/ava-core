@@ -340,15 +340,6 @@ BASIN_AFTER = {
     "wp": "in_the_western_pacific_after",
 }
 
-BASIN_QUIET = {
-    "al": "basin_quiet_north_atlantic",
-    "ep": "basin_quiet_eastern_north_pacific",
-    "cp": "basin_quiet_central_pacific",
-    "wp": "basin_quiet_western_pacific",
-    "io": "basin_quiet_north_indian",
-    "sh": "basin_quiet_south_pacific",
-}
-
 
 def _slug(text: str) -> str:
     raw = (text or "").lower().replace("ʻ", "").replace("'", "")
