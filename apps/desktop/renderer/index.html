@@ -215,18 +215,20 @@
         </div>
         <div class="row wrap">
           <button type="button" id="audio-refresh">Refresh</button>
+          <button type="button" id="radio-save" class="primary">Save</button>
           <button type="button" id="audio-chime-now">Chime now</button>
           <a class="btn-link" id="audio-open-local" href="http://127.0.0.1:8787/radio" target="_blank" rel="noopener">Open wake page</a>
         </div>
       </div>
 
       <div class="radio-toggles row wrap" style="gap:1rem;margin:0.35rem 0 0.75rem">
-        <label class="check"><input type="checkbox" id="radio-local" /> Local playback (speakers via localhost bed)</label>
+        <label class="check"><input type="checkbox" id="radio-local" /> Local playback (hear bed on this PC)</label>
         <label class="check"><input type="checkbox" id="radio-onair" /> On air (public /radio listen)</label>
         <label class="check"><input type="checkbox" id="radio-mic" /> Mic armed</label>
         <span id="radio-mic-live" class="audio-pill warn hidden">LIVE MIC</span>
       </div>
       <p id="radio-tools" class="hint-inline">Encoder tools…</p>
+      <p class="hint-inline">Save stores Local / On air / Mic. On air without Local keeps the bed going silently for the web stream.</p>
       <div class="audio-board" style="margin-bottom:0.75rem">
         <div class="stream-side">
           <p class="stream-now-label">Desk listen (localhost)</p>
