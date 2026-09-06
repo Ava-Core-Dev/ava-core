@@ -342,6 +342,108 @@ btnDislike.addEventListener('click', () => sendVote('dislike'));
 btnSkip.addEventListener('click', () => skipSelf(false));
 player.addEventListener('contextmenu', e => e.preventDefault());
 
+const fbBackdrop = document.getElementById('fb-backdrop');
+const fbMsg = document.getElementById('fb-msg');
+const fbEmail = document.getElementById('fb-email');
+const fbStatus = document.getElementById('fb-status');
+const fbSpeak = document.getElementById('fb-speak');
+let fbRec = null;
+let fbListening = false;
+
+function openFeedback() {{
+  fbBackdrop.hidden = false;
+  fbBackdrop.classList.add('show');
+  fbStatus.textContent = '';
+  try {{ fbMsg.focus(); }} catch (e) {{}}
+}}
+function closeFeedback() {{
+  stopSpeak();
+  fbBackdrop.classList.remove('show');
+  fbBackdrop.hidden = true;
+}}
+function stopSpeak() {{
+  fbListening = false;
+  fbSpeak.classList.remove('listening');
+  fbSpeak.textContent = 'Speak';
+  try {{ if (fbRec) fbRec.stop(); }} catch (e) {{}}
+}}
+function startSpeak() {{
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {{
+    fbStatus.textContent = 'This browser cannot take voice here — type instead.';
+    return;
+  }}
+  if (fbListening) {{ stopSpeak(); return; }}
+  fbRec = new SR();
+  fbRec.lang = 'en-US';
+  fbRec.interimResults = true;
+  fbRec.continuous = false;
+  fbRec.onstart = () => {{
+    fbListening = true;
+    fbSpeak.classList.add('listening');
+    fbSpeak.textContent = 'Listening…';
+    fbStatus.textContent = 'Speak now — we will write it in the box.';
+  }};
+  fbRec.onerror = () => {{
+    stopSpeak();
+    fbStatus.textContent = 'Could not hear that — try again or type.';
+  }};
+  fbRec.onend = () => {{
+    fbListening = false;
+    fbSpeak.classList.remove('listening');
+    fbSpeak.textContent = 'Speak';
+  }};
+  fbRec.onresult = (ev) => {{
+    let text = '';
+    for (let i = 0; i < ev.results.length; i++) {{
+      text += ev.results[i][0].transcript;
+    }}
+    const cur = (fbMsg.value || '').trim();
+    fbMsg.value = (cur ? cur + ' ' : '') + text.trim();
+  }};
+  try {{ fbRec.start(); }} catch (e) {{
+    fbStatus.textContent = 'Mic blocked — allow the mic or type.';
+  }}
+}}
+async function sendFeedback() {{
+  const message = (fbMsg.value || '').trim();
+  if (!message) {{
+    fbStatus.textContent = 'Say or type something first.';
+    return;
+  }}
+  fbStatus.textContent = 'Sending…';
+  try {{
+    const r = await fetch('/api/feedback', {{
+      method: 'POST',
+      headers: {{ 'Content-Type': 'application/json', ...authHeaders() }},
+      body: JSON.stringify({{
+        type: 'radio',
+        message,
+        reply_email: (fbEmail.value || '').trim() || null,
+        surface: 'radio:' + SITE,
+        app_id: 'radio',
+        track_id: currentId || null,
+        track_title: (titleEl.textContent || '').trim() || null
+      }})
+    }});
+    const j = await r.json().catch(() => ({{}}));
+    if (!r.ok || !j.ok) {{
+      fbStatus.textContent = (j.detail || 'Could not send — try again.');
+      return;
+    }}
+    fbMsg.value = '';
+    fbStatus.textContent = 'Got it — thank you.';
+    setTimeout(closeFeedback, 900);
+  }} catch (e) {{
+    fbStatus.textContent = 'Could not send — try again.';
+  }}
+}}
+document.getElementById('fb-open').addEventListener('click', openFeedback);
+document.getElementById('fb-close').addEventListener('click', closeFeedback);
+fbBackdrop.addEventListener('click', (e) => {{ if (e.target === fbBackdrop) closeFeedback(); }});
+fbSpeak.addEventListener('click', startSpeak);
+document.getElementById('fb-send').addEventListener('click', sendFeedback);
+
 refreshSession().then(() => {{
   paintSession();
   refreshNow();
