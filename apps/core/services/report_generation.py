@@ -100,8 +100,8 @@ def _default_config() -> dict:
             "late": dict(daily),
             "kilauea": {
                 **_DEFAULT_REPORT,
-                "engine": "cloud",
-                "mp3": "cloud",
+                "engine": "local",
+                "mp3": "local",
                 "tts": True,
                 "blog": True,
                 "max_tokens": 600,
@@ -275,10 +275,9 @@ def _read_midday_window() -> dict:
 
 
 def open_midday_spend_window(*, note: str = "midday live Grok test") -> dict:
-    """Lift Grok halt + spend_master for midday text only (TTS stays gated by toggle).
-
-    Prior flags saved so close_midday_spend_window can restore. Idempotent.
-    """
+    """Do not flip spend switches. Operator ledger is the only spend gate."""
+    log.info("midday spend window ignored (no auto Grok spend) note=%s", note[:80])
+    return {"ok": True, "opened": False, "ignored": True, "note": str(note)[:200]}
     from apps.core.services import api_ledger, xai
 
     prior = _read_midday_window()
