@@ -4291,6 +4291,9 @@ async function boot() {
   await applyDeskUiRestore();
   $("git-check-btn")?.addEventListener("click", () => runGitCheckBtn().catch(() => {}));
   $("git-pull-btn")?.addEventListener("click", () => runGitPullBtn().catch(() => {}));
+  $("header-git-pull")?.addEventListener("click", () => runGitPullBtn().catch(() => {}));
+  $("feat-save")?.addEventListener("click", () => saveDeskFeatures().catch(() => {}));
+  $("feat-refresh")?.addEventListener("click", () => refreshDeskFeatures().catch(() => {}));
   $("git-prefs-save")?.addEventListener("click", () => saveGitSyncPrefsForm().catch(() => {}));
 
   const presetRes = await window.avaDesktop.listPresets();
