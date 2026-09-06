@@ -4133,11 +4133,6 @@ async function saveDeskFeatures() {
   const out = $("feat-status");
   if (out) out.textContent = "saving…";
   try {
-    const radio = await patchRadio({
-      hurricane_on_radio: !!$("feat-hurricane-radio")?.checked,
-      voice_inserts: !!$("feat-voice-inserts")?.checked,
-      feedback_popup: !!$("feat-feedback-popup")?.checked,
-    });
     const gateRes = await fetch(`${brainBaseUrl()}/api/ecoflow/ac-gate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...operatorHeaders() },
@@ -4147,9 +4142,23 @@ async function saveDeskFeatures() {
       }),
     });
     const gate = await gateRes.json().catch(() => ({}));
+    if (!gateRes.ok || gate.ok !== true) {
+      if (out) out.textContent = gate.detail || `AC gate save failed (${gateRes.status})`;
+      return;
+    }
+    const radio = await patchRadio({
+      hurricane_on_radio: !!$("feat-hurricane-radio")?.checked,
+      voice_inserts: !!$("feat-voice-inserts")?.checked,
+      feedback_popup: !!$("feat-feedback-popup")?.checked,
+    });
     paintDeskFeatures(radio, gate);
-    if (out) out.textContent = "Saved.";
-    await refreshDeskFeatures();
+    if (out) {
+      out.textContent = [
+        "Saved.",
+        gate.enabled ? "AC gate on" : "AC gate off",
+        gate.soc_keep_ac_on ? "SOC keep-AC on" : "SOC keep-AC off",
+      ].join(" · ");
+    }
   } catch (err) {
     if (out) out.textContent = String(err.message || err);
   }
@@ -4304,6 +4313,8 @@ async function boot() {
   $("header-git-pull")?.addEventListener("click", () => runGitPullBtn().catch(() => {}));
   $("feat-save")?.addEventListener("click", () => saveDeskFeatures().catch(() => {}));
   $("feat-refresh")?.addEventListener("click", () => refreshDeskFeatures().catch(() => {}));
+  $("feat-ecoflow-gate")?.addEventListener("change", () => saveDeskFeatures().catch(() => {}));
+  $("feat-ecoflow-soc")?.addEventListener("change", () => saveDeskFeatures().catch(() => {}));
   $("git-prefs-save")?.addEventListener("click", () => saveGitSyncPrefsForm().catch(() => {}));
 
   const presetRes = await window.avaDesktop.listPresets();

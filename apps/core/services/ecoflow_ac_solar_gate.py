@@ -504,6 +504,21 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         )
         return report
 
+    # SOC keep means “do not cut AC for solar.” It does not slam AC back on
+    # after you turned it off on the pack / app.
+    if want_on and not bool(ac_on) and soc_reason == "soc_keep_on":
+        report["skipped"] = "honor_ac_off"
+        report["would"] = "ac_on"
+        state["last_decision"] = "honor_ac_off"
+        state["last_skip_reason"] = "honor_ac_off"
+        save_state(state)
+        log.info(
+            "ac-solar-gate honor AC off (SOC keep will not re-enable) input=%.0fW soc=%s",
+            input_w,
+            soc,
+        )
+        return report
+
     last_at = state.get("last_action_at")
     if last_at:
         try:
