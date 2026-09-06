@@ -389,6 +389,9 @@ class RadioPatch(BaseModel):
     mic_armed: bool | None = None
     mic_device: str | None = None
     on_air_sticky: bool | None = None
+    hurricane_on_radio: bool | None = None
+    feedback_popup: bool | None = None
+    voice_inserts: bool | None = None
 
 
 class RadioVote(BaseModel):
@@ -439,6 +442,12 @@ async def api_radio_patch(body: RadioPatch):
         kwargs["mic_device"] = str(body.mic_device or "")[:120]
     if body.on_air_sticky is not None:
         kwargs["on_air_sticky"] = bool(body.on_air_sticky)
+    if body.hurricane_on_radio is not None:
+        kwargs["hurricane_on_radio"] = bool(body.hurricane_on_radio)
+    if body.feedback_popup is not None:
+        kwargs["feedback_popup"] = bool(body.feedback_popup)
+    if body.voice_inserts is not None:
+        kwargs["voice_inserts"] = bool(body.voice_inserts)
     if kwargs:
         radio_svc.patch(**kwargs)
 

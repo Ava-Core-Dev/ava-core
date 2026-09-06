@@ -304,7 +304,9 @@ COMPASS_SLOTS = {
 
 
 def _slug(text: str) -> str:
-    raw = (text or "").lower().replace("ʻ", "").replace("ʻ", "")
+    raw = (text or "").lower().replace("ʻ", "").replace("'", "")
+    raw = unicodedata.normalize("NFKD", raw)
+    raw = "".join(c for c in raw if not unicodedata.combining(c))
     return re.sub(r"[^a-z0-9]+", "_", raw).strip("_")
 
 
@@ -312,7 +314,7 @@ def _name_tokens(name: str) -> list[str]:
     slug = _slug(name)
     if not slug or slug in {"unnamed", "invest"}:
         return []
-    return [f"storm_{slug}", slug]
+    return [f"storm_{slug}"]
 
 
 def _class_before(label: str) -> str:
@@ -392,13 +394,10 @@ def clip_script(hawaii: dict, globe: dict) -> str:
             bits.append("slot_unit_nm")
             bits.append("hawaii_from_before")
             island = str(hawaii.get("island") or "")
-            key = _slug(island).replace("i", "i")
-            slot_isle = ISLAND_SLOTS.get(island.lower()) or ISLAND_SLOTS.get(key)
-            if not slot_isle:
-                for k, v in ISLAND_SLOTS.items():
-                    if _slug(k) in key or key in _slug(k):
-                        slot_isle = v
-                        break
+            folded = _slug(island)
+            slot_isle = ISLAND_SLOTS.get(island.lower()) or ISLAND_SLOTS.get(folded)
+            if not slot_isle and "lihu" in folded:
+                slot_isle = "slot_island_lihue"
             bits.append(slot_isle or "honolulu")
         compass = str(hawaii.get("bearing") or "").lower()
         if compass in COMPASS_SLOTS:

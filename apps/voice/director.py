@@ -1739,7 +1739,8 @@ class StreamDirector:
                     from apps.core.services import radio as radio_svc
                     from apps.core.services import radio_encode
 
-                    if radio_svc.load().get("on_air"):
+                    rst = radio_svc.load()
+                    if rst.get("on_air") and rst.get("voice_inserts", True):
                         radio_encode.push_insert(item.path, name=item.name or "")
                         radio_svc.announce_program_file(
                             item.path,

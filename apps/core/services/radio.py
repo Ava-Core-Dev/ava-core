@@ -36,6 +36,9 @@ def _default() -> dict[str, Any]:
         "mic_device": "",
         "wake_until": 0,
         "on_air_sticky": True,
+        "hurricane_on_radio": True,
+        "feedback_popup": True,
+        "voice_inserts": True,
         "last_track": "",
         "updated_at": 0,
     }
@@ -55,6 +58,9 @@ def load() -> dict[str, Any]:
         out["on_air"] = bool(data.get("on_air"))
         out["mic_armed"] = bool(data.get("mic_armed"))
         out["on_air_sticky"] = bool(data.get("on_air_sticky", True))
+        out["hurricane_on_radio"] = bool(data.get("hurricane_on_radio", True))
+        out["feedback_popup"] = bool(data.get("feedback_popup", True))
+        out["voice_inserts"] = bool(data.get("voice_inserts", True))
         out["mic_device"] = str(data.get("mic_device") or "")[:120]
         out["last_track"] = str(data.get("last_track") or "")[:500]
         out["wake_until"] = int(data.get("wake_until") or 0)
