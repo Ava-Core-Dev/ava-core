@@ -1819,14 +1819,27 @@ class StreamDirector:
             log.warning("OBS Ava Voice Bus play failed: %s", e)
 
     async def _play_local(self, path: Path | None) -> None:
-        """Play report/chime through desktop audio.
+        """Play report/chime on desk speakers when Local is on.
 
-        Windows: convert to WAV (ffmpeg) and play via winsound helper. Music is
-        already ducked by desk_audio (pygame mixer.music) — do not also load
-        long clips into pygame.Sound (holds the GIL / wedges uvicorn).
+        On air with Local off: skip speakers (clip is on ``/radio/live.mp3``)
+        but wait the clip duration so the radio insert stay matches.
         """
         if not path or not path.exists():
             await asyncio.sleep(2.0)
+            return
+
+        speakers = True
+        try:
+            from apps.core.services import radio as radio_svc
+
+            st = radio_svc.load()
+            if st.get("on_air") and not st.get("local_playback"):
+                speakers = False
+        except Exception:
+            speakers = True
+        if not speakers:
+            measured = _audio_file_duration_s(path) or self._estimate_duration(path)
+            await asyncio.sleep(max(2.0, float(measured or 2.0)))
             return
 
         # Windows report/chime: winsound path (voice level is system volume;
