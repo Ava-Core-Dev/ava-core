@@ -10,7 +10,7 @@ import { avaIsAwake } from "../shared/heartbeat";
 import { fetchFrontend, proxyToOrigin } from "../shared/proxy";
 import { statusJson } from "../shared/statusPage";
 import { goalsHiddenPage, maintenancePage } from "../shared/maintenancePage";
-import { isPrivatePath, isPublicData, isPublicWrite, isReadMethod } from "../shared/publicPaths";
+import { isPrivatePath, isPublicData, isPublicWrite, isRadioStreamPath, isReadMethod } from "../shared/publicPaths";
 import { storeOfflineFeedback } from "../shared/offlineInbox";
 import { feedbackPage } from "../shared/feedbackPage";
 import { probeOrigin, readUptime } from "../shared/uptime";

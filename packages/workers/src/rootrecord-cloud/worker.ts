@@ -16,6 +16,7 @@ import {
   isPublicData,
   isPublicPage,
   isPublicWrite,
+  isRadioStreamPath,
   isReadMethod,
   htmlRedirectTarget,
   originHtmlPath,
@@ -150,7 +151,8 @@ export default {
       return proxyToOrigin(request, {
         originUrl: origin,
         path: originPath,
-        timeoutMs: 15000,
+        timeoutMs: isRadioStreamPath(path) ? 0 : 15000,
+        noTimeout: isRadioStreamPath(path),
         offlineFallback: () => (path === "/feedback" ? feedbackPage() : holding()),
       });
     }

@@ -16,6 +16,8 @@ export interface ProxyOptions {
   retries?: number;
   /** Reusable POST/PUT body when the Request stream was already read. */
   bodyText?: string;
+  /** No AbortController — for /radio/live.mp3 and SSE. */
+  noTimeout?: boolean;
 }
 
 function outboundHeaders(request: Request, keepClientIp = false): Headers {
@@ -73,7 +75,15 @@ export async function proxyToOrigin(
   request: Request,
   opts: ProxyOptions
 ): Promise<Response> {
-  const { originUrl, offlineFallback, timeoutMs = 8000, path, retries = 0, bodyText } = opts;
+  const {
+    originUrl,
+    offlineFallback,
+    timeoutMs = 8000,
+    path,
+    retries = 0,
+    bodyText,
+    noTimeout = false,
+  } = opts;
   const url = new URL(request.url);
   const target = originUrl.replace(/\/$/, "") + (path ?? url.pathname) + url.search;
   const method = request.method;
@@ -83,17 +93,20 @@ export async function proxyToOrigin(
 
   let lastFail: Response | null = null;
   for (let i = 0; i < attempts; i++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const controller = noTimeout ? null : new AbortController();
+    const timer =
+      controller && timeoutMs > 0
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
     try {
       const res = await fetch(target, {
         method,
         headers: outboundHeaders(request, true),
         body: typeof payload === "string" ? payload : payload,
-        signal: controller.signal,
+        signal: controller?.signal,
         redirect: "manual",
       });
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
 
       if ([502, 503, 522, 523, 524, 530].includes(res.status)) {
         lastFail = (await offlineFallback?.()) ?? offlineResponse();
@@ -105,7 +118,7 @@ export async function proxyToOrigin(
       }
       return res;
     } catch {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       lastFail = (await offlineFallback?.()) ?? offlineResponse();
       if (i + 1 < attempts) {
         await new Promise((r) => setTimeout(r, 700));
