@@ -53,7 +53,7 @@ def _clean_hls(text: str) -> str:
     text = text.replace("$", "").replace("&", "and")
     text = re.sub(r"\s+", " ", text)
     text = re.sub(r"\n\s*\n+", "\n\n", text)
-    return text.strip() + "\n"
+    return text.strip()[:14000] + "\n"
 
 
 def _hls_statement(html: str) -> str:
@@ -100,7 +100,7 @@ def _write_audio(text: str) -> dict:
         from apps.voice.local_tts import speak_script
 
         result = speak_script(text, dest)
-        return {**result, "engine": "local", "path": str(dest)}
+        return {"ok": bool(result.get("ok")), "engine": "local", "path": str(dest), "detail": result.get("detail")}
     except Exception as exc:
         return {"ok": False, "engine": "local", "detail": str(exc)[:240]}
 
