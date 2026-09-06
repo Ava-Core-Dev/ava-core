@@ -1721,23 +1721,51 @@ class StreamDirector:
             log.info("Pausing %s for %s (higher priority)", self._current.name, item.name)
 
         self._current = item
+        radio_insert = False
         try:
             if item.scene:
                 await self._switch_scene(item.scene)
+
+            # Public radio: same reports/chimes as local, on the program bus.
+            if holds and item.path and Path(item.path).is_file():
+                try:
+                    from apps.core.services import radio as radio_svc
+                    from apps.core.services import radio_encode
+
+                    if radio_svc.load().get("on_air"):
+                        radio_encode.push_insert(item.path, name=item.name or "")
+                        radio_svc.announce_program_file(
+                            item.path, name=item.name or Path(item.path).stem
+                        )
+                        radio_insert = True
+                except Exception as e:
+                    log.debug("radio insert push skip: %s", e)
 
             self._broadcast(item)
             # Also drive OBS ffmpeg "Ava Voice Bus" — reliable when browser autoplay fails.
             await self._play_obs_voice_bus(item.path)
             log.info(
-                "Playing: %s  priority=%s  file=%s",
+                "Playing: %s  priority=%s  file=%s  radio_insert=%s",
                 item.name,
                 item.priority,
                 item.path.name if item.path else "?",
+                radio_insert,
             )
 
-            # ── Local desktop audio (always fires) ───────────────────────────
+            # ── Local desktop audio (speakers only when Local is on) ─────────
             await self._play_local(item.path)
         finally:
+            if radio_insert and item.path:
+                try:
+                    from apps.core.services import radio as radio_svc
+                    from apps.core.services import radio_encode
+
+                    radio_encode.clear_insert(path=item.path)
+                    bed = radio_encode.current_program_path()
+                    if bed is not None and radio_svc.load().get("on_air"):
+                        radio_svc.announce_program_file(bed)
+                except Exception as e:
+                    log.debug("radio insert clear skip: %s", e)
             # Always clear — exceptions used to leave hold stuck forever.
             if self._current is item:
                 self._current = None

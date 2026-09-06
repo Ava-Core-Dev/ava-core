@@ -180,7 +180,7 @@ async def radio_listen(request: Request):
 
 @router.get("/radio/live.mp3")
 async def radio_live_mp3():
-    """Progressive MP3 of the current program file (ffmpeg). On-air only."""
+    """Continuous program bus MP3 (bed + report/chime inserts). On-air only."""
     st = radio_svc.status()
     if not st.get("on_air"):
         return Response(status_code=404)
@@ -191,7 +191,7 @@ async def radio_live_mp3():
         return Response(status_code=204)
 
     async def gen():
-        async for chunk in radio_encode.iter_mp3_for_file(path):
+        async for chunk in radio_encode.iter_live_program():
             yield chunk
 
     return StreamingResponse(
