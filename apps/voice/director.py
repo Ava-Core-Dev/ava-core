@@ -339,8 +339,8 @@ def kill_stray_music_players(
 ) -> int:
     """Kill OS players for the music bed (orphans from origin recycle).
 
-    Windows: CIM filter on AVA_MUSIC_BED only — never psutil process_iter(cmdline),
-    which can hang this PC and freeze origin /health.
+    Windows: use a bounded CIM query for AVA_MUSIC_BED only — never
+    psutil process_iter(cmdline), which can hang this PC and freeze origin /health.
     keep_pid / keep_pids spare the live player (and a brief blend overlap peer).
     """
     killed = 0
@@ -350,9 +350,64 @@ def kill_stray_music_players(
     deadline = time.monotonic() + 3.0
 
     if os.name == "nt":
-        # WMI/CIM and psutil cmdline scans hang this host and freeze /health.
-        # Tracked bed PID is killed in _kill_music_proc; skip process-table sweeps.
-        return 0
+        # Run the bounded query off the event loop at all call sites. The active
+        # child is spared; duplicate marked children are safe to terminate.
+        script = (
+            "Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR "
+            "Name='pythonw.exe'\" | "
+            "Where-Object { $_.CommandLine -and $_.CommandLine -match "
+            "'AVA_MUSIC_BED' } | Select-Object ProcessId,CommandLine | "
+            "ConvertTo-Json -Compress"
+        )
+        try:
+            result = subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-Command",
+                    script,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                creationflags=CREATE_NO_WINDOW,
+            )
+            raw = result.stdout.strip()
+            if not raw:
+                return 0
+            rows = json.loads(raw)
+            if isinstance(rows, dict):
+                rows = [rows]
+            for row in rows if isinstance(rows, list) else []:
+                try:
+                    pid = int(row.get("ProcessId"))
+                except (AttributeError, TypeError, ValueError):
+                    continue
+                if pid in spare or pid <= 0:
+                    continue
+                cmdline = str(row.get("CommandLine") or "")
+                if not _music_cmdline_is_bed(cmdline):
+                    continue
+                try:
+                    subprocess.run(
+                        ["taskkill", "/PID", str(pid), "/T", "/F"],
+                        capture_output=True,
+                        timeout=3,
+                        creationflags=CREATE_NO_WINDOW,
+                    )
+                    killed += 1
+                except Exception:
+                    pass
+        except Exception as e:
+            logging.getLogger("ava.director").debug(
+                "Windows music bed sweep unavailable: %s", e
+            )
+        if killed:
+            logging.getLogger("ava.director").info(
+                "Music bed swept stray Windows players  killed=%s", killed
+            )
+        return killed
 
     try:
         import psutil
