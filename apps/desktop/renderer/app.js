@@ -3130,28 +3130,22 @@ function paintRadioControls(radio) {
   const live = $("radio-mic-live");
   const tools = $("radio-tools");
   const open = $("audio-open-local");
-  if (local && document.activeElement !== local) local.checked = !!radio.local_playback;
-  if (onair && document.activeElement !== onair) onair.checked = !!radio.on_air;
-  if (mic && document.activeElement !== mic) mic.checked = !!radio.mic_armed;
+  if (local) local.checked = !!radio.local_playback;
+  if (onair) onair.checked = !!radio.on_air;
+  if (mic) mic.checked = !!radio.mic_armed;
   if (live) live.classList.toggle("hidden", !radio.mic_armed);
   if (tools) {
     const t = radio.tools || {};
     tools.textContent = [
-      t.ffmpeg
-        ? t.icecast
-          ? "Icecast+ffmpeg ready"
-          : "ffmpeg live · /radio/live.mp3"
-        : "ffmpeg missing",
-      t.icecast ? "icecast ok" : null,
-      "speakers ≠ broadcast",
-    ]
-      .filter(Boolean)
-      .join(" · ");
+      radio.on_air ? "ON AIR" : "off air",
+      radio.local_playback ? "local speakers on" : "local speakers off",
+      t.ffmpeg ? "ffmpeg live ready" : "ffmpeg missing",
+    ].join(" · ");
   }
-  if (open && radio.wake_page) {
-    open.href = radio.wake_page.includes("127.0.0.1")
-      ? radio.wake_page
-      : `${brainBaseUrl().replace(/\/$/, "")}/radio`;
+  if (open) {
+    const base = brainBaseUrl().replace(/\/$/, "");
+    open.href = radio.on_air ? `${base}/radio/listen` : `${base}/radio`;
+    open.textContent = radio.on_air ? "Open listen page" : "Open wake page";
   }
 }
 
@@ -3169,18 +3163,38 @@ function ensureRadioDeskPlayer(radio) {
       }
       radioDeskEs = null;
     }
+    try {
+      player.pause();
+    } catch {
+      /* ignore */
+    }
     return;
+  }
+  if (radio.on_air && radio.local_playback) {
+    const liveUrl = `${brainBaseUrl().replace(/\/$/, "")}/radio/live.mp3`;
+    if (!String(player.src || "").includes("/radio/live.mp3")) {
+      player.src = liveUrl;
+    }
+    player.play().catch(() => {});
+  } else {
+    try {
+      player.pause();
+    } catch {
+      /* ignore */
+    }
   }
   if (radioDeskEs) return;
   const url = `${brainBaseUrl().replace(/\/$/, "")}/radio/events`;
   radioDeskEs = new EventSource(url);
   radioDeskEs.addEventListener("play", (e) => {
     try {
+      if (!$("radio-local")?.checked) return;
       const data = JSON.parse(e.data);
-      if (!data.src) return;
-      player.src = data.src.startsWith("http")
-        ? data.src
-        : `${brainBaseUrl().replace(/\/$/, "")}${data.src}`;
+      const src = data.live || data.src;
+      if (!src) return;
+      player.src = src.startsWith("http")
+        ? src
+        : `${brainBaseUrl().replace(/\/$/, "")}${src}`;
       player.play().catch(() => {});
     } catch {
       /* ignore */
@@ -3189,25 +3203,47 @@ function ensureRadioDeskPlayer(radio) {
 }
 
 async function patchRadio(partial) {
-  $("audio-status").textContent = "radio…";
+  $("audio-status").textContent = "Saving radio…";
   try {
     const res = await fetch(`${brainBaseUrl()}/api/radio`, {
       method: "POST",
       headers: { ...operatorHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify(partial),
     });
+    if (!res.ok) {
+      const text = await res.text();
+      $("audio-status").textContent = `Radio save failed (${res.status}): ${text.slice(0, 400)}`;
+      return null;
+    }
     const j = await res.json();
     paintRadioControls(j);
-    if (partial.local_playback === true) {
-      window.avaDesktop?.deskUiSave?.({ musicWanted: true }).catch(() => {});
-    } else if (partial.local_playback === false) {
-      window.avaDesktop?.deskUiSave?.({ musicWanted: false }).catch(() => {});
-    }
-    $("audio-status").textContent = j?.mic_note || "";
+    window.avaDesktop
+      ?.deskUiSave?.({
+        musicWanted: !!j.local_playback,
+        radioLocal: !!j.local_playback,
+        radioOnAir: !!j.on_air,
+        radioMic: !!j.mic_armed,
+      })
+      .catch(() => {});
+    $("audio-status").textContent = j.on_air
+      ? "Saved · on air"
+      : j.local_playback
+        ? "Saved · local only"
+        : "Saved · radio idle";
     await refreshAudioPage();
+    return j;
   } catch (err) {
     $("audio-status").textContent = String(err.message || err);
+    return null;
   }
+}
+
+async function saveRadioFromUi() {
+  return patchRadio({
+    local_playback: !!$("radio-local")?.checked,
+    on_air: !!$("radio-onair")?.checked,
+    mic_armed: !!$("radio-mic")?.checked,
+  });
 }
 
 async function audioMusicAction(action) {
@@ -3222,15 +3258,11 @@ async function audioMusicAction(action) {
     $("audio-status").textContent = j?.ok === false ? JSON.stringify(j, null, 2) : "";
     const a = String(action || "").toLowerCase();
     if (a === "start" || a === "resume") {
-      window.avaDesktop?.deskUiSave?.({
-        musicWanted: true,
-        musicTrack: j?.music?.current || j?.currently_playing?.music?.track || null,
-      }).catch(() => {});
       await patchRadio({ local_playback: true });
       return;
     } else if (a === "stop" || a === "pause") {
-      window.avaDesktop?.deskUiSave?.({ musicWanted: false }).catch(() => {});
-      await patchRadio({ local_playback: false });
+      const onAir = !!$("radio-onair")?.checked;
+      await patchRadio({ local_playback: false, on_air: onAir });
       return;
     }
     await refreshAudioPage();
@@ -3252,14 +3284,13 @@ function ensureAudioLive() {
 function wireAudioPage() {
   if (!$("page-audio")) return;
   $("audio-refresh")?.addEventListener("click", () => refreshAudioPage());
+  $("radio-save")?.addEventListener("click", () => saveRadioFromUi());
   $("audio-music-pause")?.addEventListener("click", () => audioMusicAction("pause"));
   $("audio-music-resume")?.addEventListener("click", () => audioMusicAction("resume"));
   $("audio-music-start")?.addEventListener("click", () => audioMusicAction("start"));
-  $("radio-local")?.addEventListener("change", (e) =>
-    patchRadio({ local_playback: !!e.target.checked }),
-  );
-  $("radio-onair")?.addEventListener("change", (e) => patchRadio({ on_air: !!e.target.checked }));
-  $("radio-mic")?.addEventListener("change", (e) => patchRadio({ mic_armed: !!e.target.checked }));
+  $("radio-local")?.addEventListener("change", () => saveRadioFromUi());
+  $("radio-onair")?.addEventListener("change", () => saveRadioFromUi());
+  $("radio-mic")?.addEventListener("change", () => saveRadioFromUi());
   $("audio-chime-now")?.addEventListener("click", async () => {
     $("audio-status").textContent = "chime…";
     try {

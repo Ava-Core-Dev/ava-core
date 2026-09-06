@@ -162,14 +162,20 @@ def program_url_for_file(path: Path | str) -> str | None:
 
 
 def announce_program_file(path: Path | str, *, name: str = "") -> None:
-    src = program_url_for_file(path)
-    if not src and not Path(path).is_file():
+    p = Path(path)
+    src = program_url_for_file(p)
+    if p.is_file():
+        try:
+            patch(last_track=str(p.resolve()))
+        except Exception:
+            pass
+    if not src and not p.is_file():
         return
     broadcast_program_event(
         {
             "src": src or "/radio/live.mp3",
             "live": "/radio/live.mp3",
-            "name": name or Path(path).name,
+            "name": name or p.name,
             "priority": 1,
         }
     )
