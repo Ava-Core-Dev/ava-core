@@ -6301,10 +6301,15 @@ async function refreshLedger() {
     if ($("ledger-spend-master")) $("ledger-spend-master").checked = Boolean(d.spend_master);
     const acc = d.accounts || {};
     const bal = d.balances || {};
-    if ($("ledger-cursor-spend")) $("ledger-cursor-spend").checked = Boolean(acc.cursor?.spend_allowed);
-    if ($("ledger-xai-spend")) $("ledger-xai-spend").checked = Boolean(acc.xai?.spend_allowed);
-    if ($("ledger-openai-spend")) $("ledger-openai-spend").checked = Boolean(acc.openai?.spend_allowed);
-    if ($("ledger-gemini-spend")) $("ledger-gemini-spend").checked = Boolean(acc.gemini?.spend_allowed);
+    const paintSpend = (id, on) => {
+      const el = $(id);
+      if (!el || document.activeElement === el) return;
+      el.checked = Boolean(on);
+    };
+    paintSpend("ledger-cursor-spend", acc.cursor?.spend_allowed);
+    paintSpend("ledger-xai-spend", acc.xai?.spend_allowed);
+    paintSpend("ledger-openai-spend", acc.openai?.spend_allowed);
+    paintSpend("ledger-gemini-spend", acc.gemini?.spend_allowed);
     ledgerUsdField("ledger-cursor-used", acc.cursor?.used_pct);
     ledgerUsdField("ledger-xai-usd", acc.xai?.starting_usd);
     ledgerUsdField("ledger-openai-usd", acc.openai?.starting_usd);

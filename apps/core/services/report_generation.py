@@ -1251,9 +1251,30 @@ def generate(
                     except Exception:
                         pass
                 return out_blocked
-            log.warning("%s cloud thin — local fallback", kind)
-            gen = _generate_local(kind, offline=False)
-            engine = str(gen.get("engine") or "local")
+            log.error("%s cloud thin — no local stand-in (wanted cloud)", kind)
+            out_thin = {
+                "ok": False,
+                "kind": kind,
+                "engine": "cloud",
+                "wanted_engine": wanted,
+                "wanted_mp3": wanted_mp3,
+                "dry_run": False,
+                "detail": gen.get("detail") or "thin_or_empty",
+                "blocked": True,
+                "files": {},
+                "blog": {"ok": False, "skipped": True, "detail": "cloud_thin"},
+                "tts": {"ok": False, "skipped": True, "detail": "cloud_thin"},
+            }
+            if update_board and kind in {"morning", "midday", "evening", "late"}:
+                try:
+                    from apps.core.services import daily_report_board
+
+                    daily_report_board.mark_failed(
+                        kind, error=str(gen.get("detail") or "thin_or_empty")
+                    )
+                except Exception:
+                    pass
+            return out_thin
     else:
         gen = _generate_local(kind, offline=offline)
         engine = str(gen.get("engine") or engine)
@@ -1330,10 +1351,11 @@ def generate(
         else:
             tts = synthesize_mp3(kind, text)
             if not tts.get("ok"):
-                # Cloud voice blocked/failed → local stitch fallback.
-                log.info("%s cloud mp3 failed (%s) — local stitch", kind, tts.get("detail"))
-                tts = synthesize_local_mp3(kind, text)
-                tts["fallback_from"] = "cloud"
+                log.error(
+                    "%s cloud mp3 failed (%s) — not stitching local over a paid miss",
+                    kind,
+                    tts.get("detail"),
+                )
             out["tts"] = tts
         if tts.get("ok") and out.get("blog", {}).get("ok"):
             from apps.core.services import report_blog
