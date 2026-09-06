@@ -193,6 +193,26 @@ async def obs_speaking_overlay():
         </script></body></html>""")
 
 
+@router.get("/official/{slug}", response_class=HTMLResponse)
+async def obs_official_download(slug: str):
+    """Serve downloaded NHC HTML with the origin its root-relative assets expect."""
+    allowed = {
+        "nhc_cpac_2day",
+        "nhc_cpac_7day",
+        "nhc_epac_2day",
+        "nhc_epac_7day",
+        "nhc_atlc_7day",
+    }
+    if slug not in allowed:
+        return HTMLResponse("Not found", status_code=404)
+    path = config.PUBLIC_MEDIA / "images" / "weather" / "official" / f"{slug}-current.html"
+    if not path.is_file():
+        return HTMLResponse("Not found", status_code=404)
+    html = path.read_text(encoding="utf-8", errors="replace")
+    html = html.replace("<head>", '<head><base href="https://www.nhc.noaa.gov/">', 1)
+    return HTMLResponse(html)
+
+
 @router.get("/hud", response_class=HTMLResponse)
 async def obs_hud():
     if not obs_process_running():
