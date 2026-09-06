@@ -278,66 +278,6 @@ def open_midday_spend_window(*, note: str = "midday live Grok test") -> dict:
     """Do not flip spend switches. Operator ledger is the only spend gate."""
     log.info("midday spend window ignored (no auto Grok spend) note=%s", note[:80])
     return {"ok": True, "opened": False, "ignored": True, "note": str(note)[:200]}
-    from apps.core.services import api_ledger, xai
-
-    prior = _read_midday_window()
-    if prior.get("active") and prior.get("prior_grok") is not None:
-        # Already open — refresh note/timestamp only.
-        prior["note"] = str(note)[:200]
-        prior["refreshed_at"] = datetime.now(HST).isoformat()
-        MIDDAY_SPEND_WINDOW_PATH.write_text(
-            json.dumps(prior, indent=2) + "\n", encoding="utf-8"
-        )
-        return {"ok": True, "already_open": True, "window": prior}
-
-    grok_path = config.DATA_DIR / "state" / "grok-status.json"
-    prior_grok = grok_path.read_text(encoding="utf-8") if grok_path.is_file() else None
-    prior_flags = api_ledger.flags()
-    window = {
-        "active": True,
-        "opened_at": datetime.now(HST).isoformat(),
-        "note": str(note)[:200],
-        "restore_after_midday": True,
-        "tts_stays_off": True,
-        "prior_grok": prior_grok,
-        "prior_spend_master": bool(prior_flags.get("spend_master")),
-        "prior_xai_allowed": bool(
-            (prior_flags.get("accounts") or {}).get("xai", {}).get("spend_allowed")
-        ),
-        "prior_capture_enabled": bool(prior_flags.get("capture_enabled")),
-    }
-    MIDDAY_SPEND_WINDOW_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MIDDAY_SPEND_WINDOW_PATH.write_text(
-        json.dumps(window, indent=2) + "\n", encoding="utf-8"
-    )
-    grok_path.write_text(
-        json.dumps(
-            {
-                "ok": True,
-                "halt": False,
-                "at": datetime.now(timezone.utc).isoformat(),
-                "note": str(note)[:200],
-                "midday_window": True,
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    api_ledger.write_flags(
-        {
-            "spend_master": True,
-            "accounts": {"xai": {"spend_allowed": True}},
-        }
-    )
-    log.info("midday Grok spend window OPEN (%s) halted=%s", note, xai.grok_is_down())
-    return {
-        "ok": True,
-        "opened": True,
-        "grok_halted": bool(xai.grok_is_down()),
-        "may_spend": api_ledger.may_spend("xai"),
-        "window_path": str(MIDDAY_SPEND_WINDOW_PATH),
-    }
 
 
 def close_midday_spend_window(*, reason: str = "midday_done") -> dict:

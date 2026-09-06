@@ -366,7 +366,7 @@ def _name_tokens(name: str) -> list[str]:
     slug = _slug(name)
     if not slug or slug in {"unnamed", "invest", "unknown"}:
         return []
-    for cand in (f"storm_{slug}", slug):
+    for cand in (f"storm_{slug}", slug, f"hurricane_{slug}"):
         if _have(cand):
             return [cand]
     return []
