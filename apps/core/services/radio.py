@@ -161,10 +161,10 @@ def program_url_for_file(path: Path | str) -> str | None:
         return None
 
 
-def announce_program_file(path: Path | str, *, name: str = "") -> None:
+def announce_program_file(path: Path | str, *, name: str = "", insert: bool = False) -> None:
     p = Path(path)
     src = program_url_for_file(p)
-    if p.is_file():
+    if p.is_file() and not insert:
         try:
             patch(last_track=str(p.resolve()))
         except Exception:
@@ -175,20 +175,26 @@ def announce_program_file(path: Path | str, *, name: str = "") -> None:
     try:
         from apps.core.services import radio_catalog
 
-        meta = radio_catalog.public_meta(p)
+        meta = radio_catalog.public_meta(p) if not insert else {}
     except Exception:
-        meta = {"title": name or p.stem, "description": "", "id": p.name}
+        meta = {}
+    title = (name or meta.get("title") or p.stem)[:160]
     broadcast_program_event(
         {
             "src": "/radio/live.mp3",
             "live": "/radio/live.mp3",
-            "name": meta.get("title") or name or p.stem,
-            "title": meta.get("title") or name or p.stem,
-            "description": meta.get("description") or "",
+            "name": title,
+            "title": title,
+            "description": (
+                "Live desk — report or chime"
+                if insert
+                else (meta.get("description") or "")
+            ),
             "id": meta.get("id") or p.name,
             "likes": meta.get("likes") or 0,
             "dislikes": meta.get("dislikes") or 0,
-            "priority": 1,
+            "priority": 2 if insert else 0,
+            "insert": bool(insert),
         }
     )
 

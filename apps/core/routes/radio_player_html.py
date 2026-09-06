@@ -458,7 +458,7 @@ es.addEventListener('play', e => {{
     myVote = null;
     if (pausedForGuest) return;
     // Force reconnect so report/chime inserts land on the continuous live stream.
-    playLive({{ ...data, live: LIVE, src: LIVE, insert: !!(data.priority && data.priority > 1) }}, true);
+    playLive({{ ...data, live: LIVE, src: LIVE, insert: !!data.insert }}, true);
   }} catch (err) {{}}
 }});
 player.addEventListener('ended', () => playLive({{}}, true));

@@ -1735,7 +1735,9 @@ class StreamDirector:
                     if radio_svc.load().get("on_air"):
                         radio_encode.push_insert(item.path, name=item.name or "")
                         radio_svc.announce_program_file(
-                            item.path, name=item.name or Path(item.path).stem
+                            item.path,
+                            name=item.name or Path(item.path).stem,
+                            insert=True,
                         )
                         radio_insert = True
                 except Exception as e:
