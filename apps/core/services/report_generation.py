@@ -489,9 +489,13 @@ def set_mp3(kind: str, mp3: str) -> dict:
 
 
 def _spend_ok() -> bool:
-    from apps.core.services import xai
+    """Cloud text/TTS only when Grok is not halted AND ledger allows xAI spend."""
+    from apps.core.services import api_ledger, xai
 
-    return not xai.grok_is_down()
+    if xai.grok_is_down():
+        return False
+    ok, _why = api_ledger.may_spend("xai")
+    return bool(ok)
 
 
 def resolve_engine(kind: str, *, offline: bool = False, force: str | None = None) -> str:
