@@ -1186,6 +1186,13 @@ class StreamDirector:
                 from apps.core.services import radio as radio_svc
 
                 radio_svc.announce_program_file(path)
+                # On air without Local — keep speakers silent after bed spawn.
+                try:
+                    st = radio_svc.load()
+                    if st.get("on_air") and not st.get("local_playback"):
+                        desk_audio.set_muted(True)
+                except Exception:
+                    pass
             except Exception:
                 pass
             while True:
