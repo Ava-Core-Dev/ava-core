@@ -454,11 +454,20 @@ async function refreshHurricane() {{
     el.textContent = (j && j.hawaii) ? j.hawaii : '';
   }} catch (e) {{}}
 }}
+async function applyFeedbackFlag() {{
+  try {{
+    const j = await fetch('/api/radio/status', {{ cache: 'no-store' }}).then(r => r.json());
+    const btn = document.getElementById('fb-open');
+    if (!btn) return;
+    btn.hidden = j && j.feedback_popup === false;
+  }} catch (e) {{}}
+}}
 refreshSession().then(() => {{
   paintSession();
   refreshNow();
   heartbeat();
   refreshHurricane();
+  applyFeedbackFlag();
 }});
 const es = new EventSource('/radio/events');
 es.onerror = () => {{ status.textContent = 'Holding the line…'; }};
