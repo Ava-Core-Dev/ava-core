@@ -130,7 +130,7 @@ class Scheduler:
         # ── Time chime (:00 and :30 HST) — bell + time_HHMM.mp3 ───────────────
         # Uses all 48 clips (time_0000 … time_2330) via Stream Director → desktop + OBS
         s.add_job(self._run("hourly_chime"), CronTrigger(minute="0,30"),
-                  id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=90)
+                  id="time-chime", name="Time chime (:00/:30)", misfire_grace_time=180)
 
         # After :30 chime — avoid stacking on the mark
         s.add_job(self._run("remaining_tasks"), CronTrigger(minute=32),
