@@ -3153,53 +3153,24 @@ let radioDeskEs = null;
 function ensureRadioDeskPlayer(radio) {
   const player = $("radio-desk-player");
   if (!player) return;
-  const want = !!(radio && (radio.local_playback || radio.on_air));
-  if (!want) {
-    if (radioDeskEs) {
-      try {
-        radioDeskEs.close();
-      } catch {
-        /* ignore */
-      }
-      radioDeskEs = null;
-    }
+  // Pygame owns Desk speakers. Never also play live.mp3 in this HTML element
+  // (that was a second copy of the same bed).
+  if (radioDeskEs) {
     try {
-      player.pause();
+      radioDeskEs.close();
     } catch {
       /* ignore */
     }
-    return;
+    radioDeskEs = null;
   }
-  if (radio.on_air && radio.local_playback) {
-    const liveUrl = `${brainBaseUrl().replace(/\/$/, "")}/radio/live.mp3`;
-    if (!String(player.src || "").includes("/radio/live.mp3")) {
-      player.src = liveUrl;
-    }
-    player.play().catch(() => {});
-  } else {
-    try {
-      player.pause();
-    } catch {
-      /* ignore */
-    }
+  try {
+    player.pause();
+    player.removeAttribute("src");
+    player.load?.();
+  } catch {
+    /* ignore */
   }
-  if (radioDeskEs) return;
-  const url = `${brainBaseUrl().replace(/\/$/, "")}/radio/events`;
-  radioDeskEs = new EventSource(url);
-  radioDeskEs.addEventListener("play", (e) => {
-    try {
-      if (!$("radio-local")?.checked) return;
-      const data = JSON.parse(e.data);
-      const src = data.live || data.src;
-      if (!src) return;
-      player.src = src.startsWith("http")
-        ? src
-        : `${brainBaseUrl().replace(/\/$/, "")}${src}`;
-      player.play().catch(() => {});
-    } catch {
-      /* ignore */
-    }
-  });
+  void radio;
 }
 
 async function patchRadio(partial) {
@@ -3257,12 +3228,21 @@ async function audioMusicAction(action) {
     const j = await res.json();
     $("audio-status").textContent = j?.ok === false ? JSON.stringify(j, null, 2) : "";
     const a = String(action || "").toLowerCase();
-    if (a === "start" || a === "resume") {
-      await patchRadio({ local_playback: true });
-      return;
-    } else if (a === "stop" || a === "pause") {
+    // Never force Local on when starting the bed — on-air bed can run muted.
+    // Local speakers follow the Local checkbox / explicit Local save only.
+    if (a === "stop" || a === "pause") {
       const onAir = !!$("radio-onair")?.checked;
       await patchRadio({ local_playback: false, on_air: onAir });
+      return;
+    }
+    if (a === "start" || a === "resume") {
+      // Keep radio.local_playback as the operator left it.
+      const local = !!$("radio-local")?.checked;
+      if (local) {
+        await patchRadio({ local_playback: true });
+      } else {
+        await patchRadio({ local_playback: false });
+      }
       return;
     }
     await refreshAudioPage();

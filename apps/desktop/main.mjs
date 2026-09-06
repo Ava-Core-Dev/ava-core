@@ -377,16 +377,9 @@ async function restoreDeskSession() {
     ui,
     morning,
   });
-  // Only restore unmuted local speakers when radioLocal / musicWanted for speakers.
-  // On-air bed is owned by radio state — do not unmute Desk on open.
-  if (ui.musicWanted && ui.radioLocal !== false) {
-    // Legacy desk-ui without radioLocal: only restore if musicWanted was for speakers.
-    // If radioLocal is explicitly false, skip.
-  }
-  if (ui.radioLocal || (ui.musicWanted && ui.radioLocal == null && ui.musicWanted)) {
-    // Prefer explicit radioLocal; fall back to old musicWanted only when radioLocal unset
-  }
-  const wantSpeakers = ui.radioLocal === true || (ui.radioLocal == null && ui.musicWanted === true);
+  // Speakers only when Local was on. On-air bed must not unmute Desk.
+  const wantSpeakers =
+    ui.radioLocal === true || (ui.radioLocal == null && ui.musicWanted === true);
   if (wantSpeakers) {
     const music = await restoreMusicBedIfWanted(true);
     sendOps("ava:desk-lifecycle", {
@@ -394,7 +387,6 @@ async function restoreDeskSession() {
       music,
       track: ui.musicTrack || null,
     });
-    // Align radio.local_playback with restored speakers
     try {
       await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio`, {
         method: "POST",
@@ -406,7 +398,6 @@ async function restoreDeskSession() {
       /* ignore */
     }
   } else {
-    // Ensure muted if on air without local
     try {
       await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio`, {
         method: "POST",

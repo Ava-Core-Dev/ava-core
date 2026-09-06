@@ -36,6 +36,7 @@ const DEFAULTS = {
   page: "terminal",
   bounds: null,
   musicWanted: false,
+  radioLocal: false,
   musicTrack: null,
   closedAt: null,
   updatedAt: null,
@@ -51,6 +52,10 @@ export function loadDeskUiState(root = deskAvaRoot()) {
       ...j,
       page: String(j.page || DEFAULTS.page),
       musicWanted: Boolean(j.musicWanted),
+      radioLocal:
+        j.radioLocal === undefined || j.radioLocal === null
+          ? null
+          : Boolean(j.radioLocal),
       musicTrack: j.musicTrack || null,
       bounds:
         j.bounds && typeof j.bounds === "object"
