@@ -497,7 +497,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         report["skipped"] = "disabled"
         state["last_decision"] = f"would_{desired}_disabled"
         state["last_skip_reason"] = "disabled"
-        save_state(state)
+        _save_eval(state)
         log.info(
             "ac-solar-gate disabled would=%s input=%.0fW ac=%s",
             desired,
@@ -510,7 +510,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         report["skipped"] = f"stale_quota_age_s={quota.get('age_s')}"
         state["last_decision"] = f"would_{desired}_stale"
         state["last_skip_reason"] = report["skipped"]
-        save_state(state)
+        _save_eval(state)
         log.info("ac-solar-gate skip stale age=%s would=%s", quota.get("age_s"), desired)
         return report
 
@@ -518,7 +518,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         report["skipped"] = "ac_state_unknown"
         state["last_decision"] = f"would_{desired}_unknown_ac"
         state["last_skip_reason"] = report["skipped"]
-        save_state(state)
+        _save_eval(state)
         return report
 
     if bool(ac_on) == want_on:
@@ -526,7 +526,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         report["action"] = "noop_satisfied"
         state["last_decision"] = f"satisfied_{desired}"
         state["last_skip_reason"] = None
-        save_state(state)
+        _save_eval(state)
         log.info(
             "ac-solar-gate satisfied ac=%s input=%.0fW (gate %s)",
             desired,
@@ -535,16 +535,19 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         )
         return report
 
-    # SOC keep means “do not cut AC for solar.” It does not slam AC back on
-    # after you turned it off on the pack / app.
-    if want_on and not bool(ac_on) and soc_reason == "soc_keep_on":
+    # Do not slam AC back on after Desk / pack / app turned it off.
+    honor_off = want_on and not bool(ac_on) and (
+        soc_reason == "soc_keep_on" or bool(state.get("manual_ac_off"))
+    )
+    if honor_off:
         report["skipped"] = "honor_ac_off"
         report["would"] = "ac_on"
         state["last_decision"] = "honor_ac_off"
         state["last_skip_reason"] = "honor_ac_off"
-        save_state(state)
+        _save_eval(state)
         log.info(
-            "ac-solar-gate honor AC off (SOC keep will not re-enable) input=%.0fW soc=%s",
+            "ac-solar-gate honor AC off reason=%s input=%.0fW soc=%s",
+            soc_reason,
             input_w,
             soc,
         )
@@ -570,7 +573,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
             report["skipped"] = f"cooldown_{left}s"
             state["last_decision"] = f"would_{desired}_cooldown"
             state["last_skip_reason"] = report["skipped"]
-            save_state(state)
+            _save_eval(state)
             log.info("ac-solar-gate cooldown %ss left would=%s", left, desired)
             return report
 
@@ -578,7 +581,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         report["action"] = f"dry_run_would_ac_{desired}"
         state["last_decision"] = f"dry_run_{desired}"
         state["last_skip_reason"] = None
-        save_state(state)
+        _save_eval(state)
         log.info(
             "ac-solar-gate dry-run would AC %s input=%.0fW ac_now=%s",
             desired.upper(),
