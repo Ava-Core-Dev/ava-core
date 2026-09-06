@@ -953,8 +953,15 @@ class StreamDirector:
                 if os.name == "nt":
                     try:
                         from apps.voice import desk_audio
+                        from apps.core.services import radio as radio_svc
 
                         desk_audio.set_ducked(False)
+                        desk_audio.set_muted(
+                            bool(
+                                radio_svc.load().get("on_air")
+                                and not radio_svc.load().get("local_playback")
+                            )
+                        )
                     except Exception:
                         pass
             self._music_operator_hold = False
