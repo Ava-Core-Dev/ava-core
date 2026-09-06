@@ -149,6 +149,24 @@ export default {
       });
     }
 
+    // Radio — same origin player on avaivy.cloud/radio (not the Pages shell).
+    const radioPath = path.replace(/\/+$/, "") || "/";
+    if (
+      radioPath === "/radio" ||
+      radioPath === "/radio/listen" ||
+      path.startsWith("/radio/") ||
+      radioPath === "/api/radio/now" ||
+      radioPath === "/api/radio/steering"
+    ) {
+      return proxyToOrigin(request, {
+        originUrl: origin,
+        path: path,
+        timeoutMs: isRadioStreamPath(radioPath) || isRadioStreamPath(path) ? 0 : 15000,
+        noTimeout: isRadioStreamPath(radioPath) || isRadioStreamPath(path),
+        offlineFallback: holdingPage,
+      });
+    }
+
     // Chat lives on the home screen only.
     if (path === "/chat" || path === "/chat/") {
       return Response.redirect(url.origin + "/#talk", 302);
