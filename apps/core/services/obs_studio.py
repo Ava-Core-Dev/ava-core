@@ -92,6 +92,7 @@ DEFAULT_MODE_DWELL_S = {
     "kilauea": 60,
     "hurricane": 60,
     "all": 60,
+    "official": 10,
 }
 
 
@@ -1308,6 +1309,10 @@ async def rotate_loop_scene() -> dict:
             base_pool = hurricane_scene_pool()
         elif mode == "weather":
             base_pool = weather_scene_pool()
+        elif mode == "official":
+            from apps.core.services.official_weather_media import SCENES
+
+            base_pool = [scene for scene, _ in SCENES]
         else:
             base_pool = list(AMBIENT_SCENES)
         # Cap the daily rotator at the explicit topic list — do not re-expand

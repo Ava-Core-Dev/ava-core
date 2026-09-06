@@ -110,6 +110,8 @@ class Scheduler:
                   id="rr-noaa", name="NOAA weather", misfire_grace_time=180)
         s.add_job(self._run("radar_archive"), IntervalTrigger(minutes=10),
               id="radar-archive", name="NWS Hawaii radar archive", misfire_grace_time=180)
+        s.add_job(self._run("official_weather_media"), IntervalTrigger(minutes=10),
+              id="official-weather-media", name="Official NHC/NWS media", misfire_grace_time=180)
 
         # ── NWS Hawaiʻi by-county (local stitch+play). Offset from :00/:30 storms.
         s.add_job(

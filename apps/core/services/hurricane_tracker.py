@@ -75,6 +75,8 @@ def current_mode() -> str:
         return "weather"
     if mode in {"all", "everything", "full"}:
         return "all"
+    if mode in {"official", "official-weather", "noaa-official"}:
+        return "official"
     return "daily"
 
 
@@ -88,6 +90,8 @@ def write_mode(mode: str, extra: dict | None = None) -> dict:
         stored = "weather"
     elif raw in {"all", "everything", "full"}:
         stored = "all"
+    elif raw in {"official", "official-weather", "noaa-official"}:
+        stored = "official"
     else:
         stored = "daily"
     payload = {
