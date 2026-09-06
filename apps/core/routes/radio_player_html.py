@@ -112,7 +112,26 @@ def player_html(*, brand: str = "Root Record Radio", site_label: str = "RootReco
       <a class="top-up" id="top-up" href="https://rootrecord.cloud/root-units">Top Up</a>
     </div>
     <div class="banner" id="banner"></div>
+    <div class="meta-row">
+      <button type="button" class="fb-open" id="fb-open">Share a thought</button>
+    </div>
     <p style="opacity:.7;font-size:.85rem;margin:0">Live from the Pacific Root Server · {site_label}</p>
+  </div>
+  <div class="fb-backdrop" id="fb-backdrop" role="dialog" aria-modal="true" aria-labelledby="fb-title" hidden>
+    <div class="fb-modal">
+      <h2 id="fb-title">Tell us about the radio</h2>
+      <p>Opinions, song ideas, what to play more of, or what to ease off. Guests welcome.</p>
+      <label for="fb-msg">Your words</label>
+      <textarea id="fb-msg" maxlength="4000" placeholder="What should Root Record Radio hear?"></textarea>
+      <label for="fb-email">Reply email (optional)</label>
+      <input id="fb-email" type="email" maxlength="160" placeholder="you@example.com" autocomplete="email"/>
+      <div class="fb-actions">
+        <button type="button" id="fb-speak">Speak</button>
+        <button type="button" class="primary" id="fb-send">Send</button>
+        <button type="button" id="fb-close">Close</button>
+      </div>
+      <p class="fb-status" id="fb-status"></p>
+    </div>
   </div>
 <script>
 const LIVE = '/radio/live.mp3';
