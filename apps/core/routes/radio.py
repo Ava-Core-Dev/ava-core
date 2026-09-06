@@ -480,4 +480,4 @@ async def api_radio_patch(body: RadioPatch):
         except Exception:
             pass
 
-    return radio_svc.status()
+    return st
