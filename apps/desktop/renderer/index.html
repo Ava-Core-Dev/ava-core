@@ -735,11 +735,17 @@
         </div>
         <div class="row">
           <button type="button" id="reports-refresh">Refresh</button>
+          <button type="button" id="reports-readiness-run" class="ok-btn">Run readiness now</button>
           <button type="button" id="reports-open-reports" class="primary">Open folder</button>
           <button type="button" id="reports-open-days">Solar days</button>
           <button type="button" id="reports-open-dumps">Dumps</button>
           <button type="button" id="reports-open-data">Data</button>
         </div>
+      </div>
+      <div class="reports-manual" style="margin-top:0.75rem">
+        <h3 class="cron-title">Report readiness</h3>
+        <p id="reports-readiness-meta" class="hint-inline">Loading report slots, freshness, and local audio…</p>
+        <div id="reports-overview" class="cron-table"></div>
       </div>
       <div class="reports-manual">
         <h3 class="cron-title">Manual daily report</h3>

@@ -213,6 +213,40 @@ def status_board() -> dict:
     except Exception as e:
         daily_due = {"ok": False, "detail": type(e).__name__}
 
+    generation = {}
+    audio_manual = {}
+    freshness = {}
+    generated_audio = {}
+    readiness = {"nextAt": 0, "status": "unavailable"}
+    try:
+        from apps.core.services import boot_report, report_audio_manual, report_generation
+
+        generation = report_generation.status()
+        audio_manual = report_audio_manual.status()
+        freshness = boot_report.report_metrics_fresh_within(max_age_s=3600)
+        for kind in ("morning", "midday", "evening", "late"):
+            files = []
+            for suffix in (".wav", ".mp3"):
+                path = config.GENERATED_DIR / f"{kind}-report-current{suffix}"
+                if not path.is_file():
+                    continue
+                info = _file_info(path, kind=f"{kind}-audio")
+                files.append(info)
+            generated_audio[kind] = files
+    except Exception as e:
+        generation = {"ok": False, "detail": type(e).__name__}
+        audio_manual = {"ok": False, "detail": type(e).__name__}
+        freshness = {"ok": False, "detail": type(e).__name__}
+
+    try:
+        readiness_job = jobs.get("report-readiness") or {}
+        next_run = readiness_job.get("next_run")
+        if next_run:
+            readiness["nextAt"] = int(datetime.fromisoformat(next_run).timestamp() * 1000)
+        readiness["status"] = "scheduled" if readiness_job else "missing"
+    except (TypeError, ValueError):
+        readiness["status"] = "invalid"
+
     return {
         "ok": True,
         "hstDay": now.strftime("%Y-%m-%d"),
@@ -220,6 +254,11 @@ def status_board() -> dict:
         "current": current,
         "dueToday": due_today,
         "dailyReportsDue": daily_due,
+        "generation": generation,
+        "audioManual": audio_manual,
+        "generatedAudio": generated_audio,
+        "freshness": freshness,
+        "readiness": readiness,
         "recurring": recurring,
         "generated": generated,
     }

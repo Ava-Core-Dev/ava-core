@@ -1003,6 +1003,43 @@ function paintCurrentReport(st) {
   }
 }
 
+function paintReportOverview(st) {
+  const host = $("reports-overview");
+  const meta = $("reports-readiness-meta");
+  if (!host || !meta) return;
+  const slots = st?.dailyReportsDue?.slots || {};
+  const generation = st?.generation?.reports || {};
+  const audio = st?.generatedAudio || {};
+  const labels = { morning: "Morning", midday: "Noon", evening: "Evening", late: "Late evening" };
+  const order = ["morning", "midday", "evening", "late"];
+  const freshness = st?.freshness || {};
+  const stale = freshness.stale || [];
+  const next = Number(st?.readiness?.nextAt || 0);
+  meta.textContent = [
+    `Poll ${st?.readiness?.status || "unknown"}${next ? ` · next ${fmtHst(next)}` : ""}`,
+    freshness.ok ? "all required metrics fresh" : `stale: ${stale.join(", ") || freshness.detail || "not validated"}`,
+  ].join(" · ");
+  host.innerHTML = `<div class="cron-row report-row report-overview-head"><strong>Report</strong><strong>Schedule</strong><strong>Status</strong><strong>Path</strong><strong>Audio</strong></div>`;
+  for (const kind of order) {
+    const slot = slots[kind] || {};
+    const cfg = generation[kind] || {};
+    const files = audio[kind] || [];
+    const audioLabel = files.length
+      ? files.map((f) => `${String(f.name || "").endsWith(".wav") ? "WAV" : "MP3"} ${Math.round((f.size || 0) / 1024)} KB`).join(" · ")
+      : "no generated audio";
+    const row = document.createElement("div");
+    row.className = `cron-row report-row ${slot.status || ""}`;
+    row.innerHTML = `
+      <div><strong>${escapeHtml(labels[kind])}</strong><div class="muted">${escapeHtml(kind)}</div></div>
+      <div class="muted">${escapeHtml(slot.scheduled_at || "—")}</div>
+      <div>${reportStatusPill(slot.status || "pending")}</div>
+      <div class="muted">Text ${escapeHtml(cfg.engine || "local")} · MP3 ${escapeHtml(cfg.mp3 || "local")}</div>
+      <div class="muted">${escapeHtml(audioLabel)}</div>
+    `;
+    host.appendChild(row);
+  }
+}
+
 async function refreshReports() {
   const meta = $("reports-meta");
   const dueHost = $("reports-due");
@@ -1022,6 +1059,7 @@ async function refreshReports() {
       return;
     }
     paintCurrentReport(st);
+    paintReportOverview(st);
     meta.textContent = [
       `HST ${st.hstDay || "?"}`,
       `${(st.dueToday || []).filter((r) => r.status !== "done").length} due/upcoming today`,
@@ -4621,6 +4659,19 @@ $("post-send").onclick = async () => {
 $("cron-refresh").onclick = () => refreshCrons();
 $("cron-catchup").onclick = () => runOpsCommand("cron-catchup");
 if ($("reports-refresh")) $("reports-refresh").onclick = () => refreshReports();
+if ($("reports-readiness-run")) {
+  $("reports-readiness-run").onclick = async () => {
+    const status = $("reports-readiness-meta");
+    if (status) status.textContent = "Running readiness poll…";
+    try {
+      const result = await window.avaDesktop.cronRun("report-readiness");
+      if (status) status.textContent = result?.ok ? `Readiness ran · ${result.slot || "no slot"}` : JSON.stringify(result);
+      await refreshReports();
+    } catch (err) {
+      if (status) status.textContent = String(err?.message || err);
+    }
+  };
+}
 if ($("reports-load-current")) {
   $("reports-load-current").onclick = async () => {
     const st = $("reports-status");
