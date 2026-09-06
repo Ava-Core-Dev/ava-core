@@ -177,7 +177,7 @@ async def apply_obs_scenes() -> dict:
             name = f"Official {slug}"
             current = _current(slug, kind)
             if kind == "page":
-                source_url = current.as_uri() if current.is_file() else url
+                source_url = f"http://127.0.0.1:8787/obs/official/{slug}" if current.is_file() else url
                 await _ensure_input(obs, scene, name, "browser_source", {"url": source_url, "width": 1920, "height": 1080, "shutdown": True, "restart_when_active": True})
             else:
                 await _ensure_input(obs, scene, name, "image_source", {"file": str(current), "unload": False})
