@@ -109,15 +109,15 @@ def _find_clip(name: str) -> Path | None:
     """Search numbers/ first so 1.wav is the digit, not a word collision.
 
     Prefers .wav over .mp3 when both exist (canonical desk format).
-    Also checks words/nws/ (NWS All Hazards) and words/ecoflow/ (AC solar-gate
-    pack) after flat words/ so existing weather/number clips keep priority and
-    each pack stays a separable subtree.
+    Also checks words/nws/, words/ecoflow/, and words/hurricane/ after flat words/
+    so existing weather/number clips keep priority and each pack stays a subtree.
     """
     search_dirs = (
         NUMBERS_DIR,
         WORDS_DIR,
         WORDS_DIR / "nws",
         WORDS_DIR / "ecoflow",
+        WORDS_DIR / "hurricane",
         TIME_DIR,
         SOUNDS_DIR,
         PHONEME_DIR,
