@@ -522,14 +522,9 @@ def clip_script(hawaii: dict, globe: dict) -> str:
         _push(bits, "quiet_board_whole")
     n = globe.get("count")
     if not n:
-        _push(bits, "global_quiet_whole")
+        _push(bits, "global_quiet_whole", "basin_quiet_central_pacific", "basin_quiet_eastern_north_pacific")
     else:
         _push(bits, "global_around_world_before", str(int(n)), "tropical_systems_on_board_after")
-    by_basin = globe.get("by_basin") or {}
-    if isinstance(by_basin, dict):
-        for code, quiet in BASIN_QUIET.items():
-            if not int(by_basin.get(code) or 0):
-                _push(bits, quiet)
     _push(bits, "signoff_pacific_root_server", "signoff_root_record_radio")
     return " ".join(bits)
 

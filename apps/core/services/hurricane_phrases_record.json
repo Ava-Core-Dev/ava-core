@@ -1,5 +1,5 @@
 {
-  "note": "Ara records stems and slots. Ava stitches. Never say product. Never speak placeholder names. Storm names are separate one-off clips.",
+  "note": "Live Ara pack uses docs/hurricane-ara-pack filenames in Media/public/audio/words/hurricane. This file is the older stem id list; stitcher uses pack ids.",
   "dir": "Media/public/audio/words/hurricane",
   "prompt": "docs/hurricane-ara-prompt.md",
   "stems": [
