@@ -973,7 +973,9 @@ function ensureCronLive() {
 
 function fmtHst(ts) {
   if (!ts) return "—";
-  return new Date(Number(ts)).toLocaleString("en-US", {
+  const value = typeof ts === "number" ? ts : Date.parse(String(ts));
+  if (!Number.isFinite(value)) return "—";
+  return new Date(value).toLocaleString("en-US", {
     timeZone: "Pacific/Honolulu",
     hour12: false,
     month: "short",
@@ -1060,9 +1062,11 @@ async function refreshReports() {
     }
     paintCurrentReport(st);
     paintReportOverview(st);
+    const dailySlots = st.dailyReportsDue?.slots || {};
+    const dailyRows = Object.values(dailySlots);
     meta.textContent = [
       `HST ${st.hstDay || "?"}`,
-      `${(st.dueToday || []).filter((r) => r.status !== "done").length} due/upcoming today`,
+      `${dailyRows.filter((r) => !["done", "skipped_optional"].includes(r.status)).length} report slots open`,
       `${(st.generated || []).length} generated`,
       st.asleep ? "asleep" : null,
     ]
@@ -1070,18 +1074,17 @@ async function refreshReports() {
       .join(" · ");
 
     dueHost.innerHTML = "";
-    for (const r of st.dueToday || []) {
+    for (const [kind, r] of Object.entries(dailySlots)) {
       const row = document.createElement("div");
       row.className = `cron-row report-row ${r.status || ""}`;
-      const nextAt = Number(r.nextAt || 0);
       row.innerHTML = `
         <div>
-          <div class="id">${escapeHtml(r.label || r.id)}</div>
-          <div class="muted">${escapeHtml(r.when || "")}</div>
+          <div class="id">${escapeHtml(kind)}</div>
+          <div class="muted">${escapeHtml(r.scheduled_at || "")}</div>
         </div>
         <div>${reportStatusPill(r.status)}</div>
-        <div class="cron-countdown" data-next-at="${nextAt || ""}">${countdownLabel(nextAt)}</div>
-        <div class="muted">${r.done ? "posted today" : "not yet"}</div>
+        <div class="muted">Text ${escapeHtml(r.engine_req || "local")} · MP3 ${escapeHtml(r.mp3_req || "local")}</div>
+        <div class="muted">${r.completed_at ? `completed ${escapeHtml(fmtHst(r.completed_at))}` : r.error ? escapeHtml(r.error) : "not completed"}</div>
         <div></div>
       `;
       dueHost.appendChild(row);
@@ -1124,7 +1127,7 @@ async function refreshReports() {
 
     $("reports-status").textContent = "";
     await refreshReportGenToggles();
-    await refreshReportAudioManual();
+    await refreshReportAudioManual(st);
     if (typeof tickCountdowns === "function") tickCountdowns();
     if (typeof ensureCronLive === "function") ensureCronLive();
   } catch (e) {
@@ -1203,7 +1206,7 @@ async function refreshReportGenToggles() {
   }
 }
 
-async function refreshReportAudioManual() {
+async function refreshReportAudioManual(reportBoard = null) {
   const host = $("reports-audio-manual");
   const statusEl = $("reports-audio-status");
   if (!host) return;
@@ -1221,6 +1224,7 @@ async function refreshReportAudioManual() {
     host.innerHTML = "";
     for (const kind of st.kinds || ["morning", "midday", "evening"]) {
       const slot = (st.slots || {})[kind] || {};
+      const generated = reportBoard?.generatedAudio?.[kind] || [];
       const row = document.createElement("div");
       row.className = "cron-row report-row";
       const sel = document.createElement("select");
@@ -1287,8 +1291,11 @@ async function refreshReportAudioManual() {
         statusEl.textContent = JSON.stringify(j, null, 2);
       };
       const left = document.createElement("div");
+      const generatedLabel = generated.length
+        ? `generated: ${generated.map((f) => f.name).join(" + ")}`
+        : "no generated current audio";
       left.innerHTML = `<div class="id">${escapeHtml(labels[kind] || kind)}</div>
-        <div class="muted">${slot.exists ? "file on disk" : slot.path ? "missing file" : "not set"} · auto ${slot.auto_play ? "ON" : "off"}</div>`;
+        <div class="muted">${escapeHtml(generatedLabel)} · manual ${slot.exists ? "fallback ready" : slot.path ? "missing file" : "not set"} · auto ${slot.auto_play ? "ON" : "off"}</div>`;
       const mid = document.createElement("div");
       mid.appendChild(sel);
       const autoWrap = document.createElement("label");
