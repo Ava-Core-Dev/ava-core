@@ -210,21 +210,22 @@ function paintMeta(j) {{
   btnDislike.classList.toggle('on-dislike', myVote === 'dislike');
 }}
 
-function playLive(meta) {{
+function playLive(meta, force) {{
   if (pausedForGuest || !guestAllowed) return;
   if (session.member && meta && meta.id && meta.skip_for_you) {{
     status.textContent = 'Skipped for you — waiting for the next song…';
     return;
   }}
   const base = LIVE;
-  if (player.getAttribute('data-base') !== base || player.paused) {{
+  const need = force || player.getAttribute('data-base') !== base || player.paused || !player.src;
+  if (need) {{
     player.setAttribute('data-base', base);
     player.src = base + '?t=' + Date.now();
     player.play().catch(()=>{{}});
   }}
   playingTrackId = (meta && meta.id) || playingTrackId;
   paintMeta(meta || {{}});
-  status.textContent = 'On air';
+  status.textContent = (meta && meta.insert) ? 'Live desk' : 'On air';
 }}
 
 async function refreshSession() {{
@@ -456,10 +457,11 @@ es.addEventListener('play', e => {{
     const data = JSON.parse(e.data);
     myVote = null;
     if (pausedForGuest) return;
-    playLive({{ ...data, live: LIVE }});
+    // Force reconnect so report/chime inserts land on the continuous live stream.
+    playLive({{ ...data, live: LIVE, src: LIVE, insert: !!(data.priority && data.priority > 1) }}, true);
   }} catch (err) {{}}
 }});
-player.addEventListener('ended', () => refreshNow());
+player.addEventListener('ended', () => playLive({{}}, true));
 setInterval(refreshNow, 40000);
 setInterval(heartbeat, 20000);
 </script>
