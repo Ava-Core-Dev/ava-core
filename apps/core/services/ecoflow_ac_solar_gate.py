@@ -4,10 +4,13 @@ Gate on Delta PV input (``mppt.inWatts`` — same primary key as ``pack_power`` 
 ``pv_w``). ``pd.wattsInSum`` / ``pd.inWatts`` are total pack input and are
 logged only; they can include non-PV paths and are not the solar-fight signal.
 
-Rules (operator 2026-09-05):
+Rules (operator 2026-09-05 watts; SOC overlay 2026-09-05 evening):
   - input ≥ 300 W → AC OFF (both packs take PV cleanly)
   - input ≤ 200 W (incl. zero) → AC ON (AC out feeds River path; stops solar fight)
   - 200–300 W dead band → no change
+  - Delta SOC **over 80%** → keep AC **ON** (overrides watt OFF; Starlink / high pack)
+  - Delta SOC **under 90%** → usual watt rules apply when not in the keep-ON band
+    (≤80% is under 90% → watt hysteresis only; 80–100% keep ON)
 
 Cron: hooked after ``ecoflow-quota`` (~2 min). Not a separate scheduler job.
 Disable: set ``enabled`` false in ``data/state/ecoflow-ac-solar-gate.json``
@@ -57,6 +60,10 @@ DEFAULT_COOLDOWN_S = 180
 # Match solar_weather ECO_STALE_S — refuse action on stale disk quota.
 MAX_QUOTA_AGE_S = 180
 
+# Battery overlay (operator): high SOC keeps AC on for Starlink / house path.
+SOC_KEEP_AC_ON_ABOVE = 80.0  # SOC > this → force AC ON
+SOC_USUAL_RULES_BELOW = 90.0  # documented band; usual watt rules when SOC ≤ keep threshold
+
 STATE_NAME = "ecoflow-ac-solar-gate.json"
 # Primary gate field (evidence in data/ecoflow/quota/{DELTA}.json).
 GATE_KEY = "mppt.inWatts"
@@ -86,6 +93,8 @@ def load_state() -> dict[str, Any]:
         "cooldown_s": DEFAULT_COOLDOWN_S,
         "off_at_w": OFF_AT_W,
         "on_at_w": ON_AT_W,
+        "soc_keep_ac_on_above": SOC_KEEP_AC_ON_ABOVE,
+        "soc_usual_rules_below": SOC_USUAL_RULES_BELOW,
         "gate_key": GATE_KEY,
         "sn": DELTA_SN,
         "last_input_w": None,
@@ -178,13 +187,43 @@ def read_delta_quota() -> dict[str, Any]:
 
 
 def decide(input_w: float, *, off_at: float = OFF_AT_W, on_at: float = ON_AT_W) -> str | None:
-    """Return ``on``, ``off``, or None (dead band)."""
+    """Return ``on``, ``off``, or None (dead band). Watt hysteresis only."""
     w = float(input_w or 0.0)
     if w >= float(off_at):
         return "off"
     if w <= float(on_at):
         return "on"
     return None
+
+
+def _soc_float(raw: Any) -> float | None:
+    try:
+        if raw is None or raw == "":
+            return None
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def decide_with_soc(
+    input_w: float,
+    soc: float | None,
+    *,
+    off_at: float = OFF_AT_W,
+    on_at: float = ON_AT_W,
+    soc_keep_above: float = SOC_KEEP_AC_ON_ABOVE,
+) -> tuple[str | None, str | None]:
+    """Watt decide, then SOC overlay.
+
+    Returns (desired, reason). reason is ``soc_keep_on`` when battery forces ON.
+    When SOC is over ``soc_keep_above``, AC stays ON (overrides watt OFF / dead band).
+    When SOC is at or below that band (and under the documented 90% usual line),
+    watt rules alone apply.
+    """
+    watt = decide(input_w, off_at=off_at, on_at=on_at)
+    if soc is not None and soc > float(soc_keep_above):
+        return "on", "soc_keep_on"
+    return watt, None
 
 
 def phrase_for_action(action: str | None) -> str | None:
@@ -325,6 +364,8 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
     enabled = bool(state.get("enabled", True)) if env_en is None else env_en
     off_at = float(state.get("off_at_w") or OFF_AT_W)
     on_at = float(state.get("on_at_w") or ON_AT_W)
+    soc_keep = float(state.get("soc_keep_ac_on_above") or SOC_KEEP_AC_ON_ABOVE)
+    soc_usual = float(state.get("soc_usual_rules_below") or SOC_USUAL_RULES_BELOW)
     cooldown_s = int(state.get("cooldown_s") or DEFAULT_COOLDOWN_S)
 
     quota = read_delta_quota()
@@ -333,7 +374,13 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         "enabled": enabled,
         "execute": bool(execute),
         "gate_key": GATE_KEY,
-        "rules": {"off_at_w": off_at, "on_at_w": on_at, "dead_band": [on_at, off_at]},
+        "rules": {
+            "off_at_w": off_at,
+            "on_at_w": on_at,
+            "dead_band": [on_at, off_at],
+            "soc_keep_ac_on_above": soc_keep,
+            "soc_usual_rules_below": soc_usual,
+        },
         "cooldown_s": cooldown_s,
         "quota": {
             k: quota.get(k)
@@ -350,6 +397,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
             )
         },
         "decision": None,
+        "decision_reason": None,
         "would": None,
         "action": None,
         "skipped": None,
