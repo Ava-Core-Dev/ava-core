@@ -176,7 +176,7 @@ async def obs_speaking_overlay():
     idle = _idle_if_no_obs()
     if idle:
         return idle
-        return HTMLResponse("""<!doctype html><html><head><meta charset='utf-8'><style>
+    return HTMLResponse("""<!doctype html><html><head><meta charset='utf-8'><style>
             html,body{margin:0;background:transparent;overflow:hidden}
             #box{position:fixed;right:28px;bottom:28px;padding:10px 16px;border-radius:8px;
                 background:rgba(5,12,15,.78);color:#9fffc2;font:600 24px 'Segoe UI',sans-serif;
