@@ -11,7 +11,7 @@ from apps.core import config
 
 HST = ZoneInfo("Pacific/Honolulu")
 STATE_PATH = config.DATA_DIR / "state" / "report-periodic-play.json"
-REPLAY_S = 30 * 60
+REPLAY_S = 10 * 60
 
 
 def active_kind(now: datetime | None = None) -> str:
@@ -98,6 +98,8 @@ async def play_if_due(
         return {"ok": True, "skipped": True, "detail": "replay_interval", "kind": kind}
 
     played = await voice_events.play_report_mp3(path, name=f"{kind}_report_periodic", kind=kind)
+    if played.get("skipped"):
+        return {"ok": True, "skipped": True, "kind": kind, "play": played}
     if not played.get("ok"):
         return {"ok": False, "kind": kind, "play": played}
 

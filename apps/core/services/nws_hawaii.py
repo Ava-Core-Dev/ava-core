@@ -581,7 +581,7 @@ async def refresh(
     tropical_hawaii = hawaii_county_tropical_watch_warning(alerts)
     tropical_replay_due = tropical_hawaii and (
         _seconds_since(prev.get("last_spoken_at")) is None
-        or _seconds_since(prev.get("last_spoken_at")) >= 1800
+        or _seconds_since(prev.get("last_spoken_at")) >= 600
     )
     # Boot: announce only if this hash was never spoken (or forced). Do not
     # re-speak the same advisory on every origin recycle.
@@ -665,7 +665,7 @@ async def refresh(
         except Exception as e:
             log.warning("NWS local stitch/play failed: %s", e)
             play_out = {"ok": False, "detail": str(e)[:160]}
-        announced = bool(play_out and play_out.get("ok"))
+        announced = bool(play_out and play_out.get("ok") and not play_out.get("skipped"))
         stitch_meta = (play_out or {}).get("stitch") if isinstance(play_out, dict) else None
         if isinstance(stitch_meta, dict) and stitch_meta.get("ok") is False:
             announced = False

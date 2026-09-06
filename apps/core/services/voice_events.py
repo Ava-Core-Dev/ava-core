@@ -17,6 +17,7 @@ from apps.core import config
 log = logging.getLogger("ava.voice_events")
 STATE_PATH = config.DATA_DIR / "state" / "voice-events.json"
 DEFAULT_COOLDOWN_S = 5 * 60
+GLOBAL_COOLDOWN_S = 10 * 60
 
 
 def _load() -> dict:
@@ -58,6 +59,18 @@ def _resolve_audio(*candidates: str | Path | None) -> Path | None:
     return None
 
 
+def _global_cooldown_remaining() -> int:
+    state = _load()
+    last = float(state.get("last_global_at") or 0)
+    return max(0, int(GLOBAL_COOLDOWN_S - (time.time() - last)))
+
+
+def _mark_global_played() -> None:
+    state = _load()
+    state["last_global_at"] = time.time()
+    _save(state)
+
+
 # Back-compat alias
 _resolve_mp3 = _resolve_audio
 
@@ -81,6 +94,16 @@ async def play_report_mp3(
     if path is None:
         log.warning("report play missing audio name=%s kind=%s", name, kind)
         return {"ok": False, "detail": "mp3_missing", "name": name, "kind": kind}
+    remaining = _global_cooldown_remaining()
+    if remaining:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "global_cooldown",
+            "remaining_s": remaining,
+            "name": name,
+            "kind": kind,
+        }
     try:
         from apps.voice.director import Priority, get_director
 
@@ -91,6 +114,7 @@ async def play_report_mp3(
             priority=Priority.REPORT,
             scene=None,
         )
+        _mark_global_played()
         log.info("report audio queued name=%s file=%s", label, path.name)
         return {
             "ok": True,
@@ -115,6 +139,15 @@ async def announce(phrase_id: str, *, cooldown_s: int = DEFAULT_COOLDOWN_S, prio
     last = float((st.get("last") or {}).get(name) or 0)
     if last and cooldown_s > 0 and (now - last) < cooldown_s:
         return {"ok": True, "skipped": True, "reason": "cooldown", "phrase": name}
+    remaining = _global_cooldown_remaining()
+    if remaining:
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "global_cooldown",
+            "remaining_s": remaining,
+            "phrase": name,
+        }
     path = _clip_path(name)
     st.setdefault("last", {})[name] = now
     if path is None:
@@ -127,6 +160,7 @@ async def announce(phrase_id: str, *, cooldown_s: int = DEFAULT_COOLDOWN_S, prio
 
         pri = getattr(Priority, priority.upper(), Priority.REPORT)
         await get_director().queue(path, name=name, priority=pri, scene=None)
+        _mark_global_played()
         _save(st)
         return {"ok": True, "played": True, "phrase": name, "path": str(path)}
     except Exception as e:
