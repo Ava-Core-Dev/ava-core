@@ -39,6 +39,8 @@ def _default() -> dict[str, Any]:
         "hurricane_on_radio": True,
         "feedback_popup": True,
         "voice_inserts": True,
+        "music_volume": 0.50,
+        "speech_music_volume": 0.20,
         "last_track": "",
         "updated_at": 0,
     }
@@ -61,6 +63,8 @@ def load() -> dict[str, Any]:
         out["hurricane_on_radio"] = bool(data.get("hurricane_on_radio", True))
         out["feedback_popup"] = bool(data.get("feedback_popup", True))
         out["voice_inserts"] = bool(data.get("voice_inserts", True))
+        out["music_volume"] = min(1.0, max(0.0, float(data.get("music_volume", 0.50))))
+        out["speech_music_volume"] = min(1.0, max(0.0, float(data.get("speech_music_volume", 0.20))))
         out["mic_device"] = str(data.get("mic_device") or "")[:120]
         out["last_track"] = str(data.get("last_track") or "")[:500]
         out["wake_until"] = int(data.get("wake_until") or 0)

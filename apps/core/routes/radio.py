@@ -392,6 +392,8 @@ class RadioPatch(BaseModel):
     hurricane_on_radio: bool | None = None
     feedback_popup: bool | None = None
     voice_inserts: bool | None = None
+    music_volume: float | None = Field(default=None, ge=0, le=1)
+    speech_music_volume: float | None = Field(default=None, ge=0, le=1)
 
 
 class RadioVote(BaseModel):
@@ -448,6 +450,10 @@ async def api_radio_patch(body: RadioPatch):
         kwargs["feedback_popup"] = bool(body.feedback_popup)
     if body.voice_inserts is not None:
         kwargs["voice_inserts"] = bool(body.voice_inserts)
+    if body.music_volume is not None:
+        kwargs["music_volume"] = float(body.music_volume)
+    if body.speech_music_volume is not None:
+        kwargs["speech_music_volume"] = float(body.speech_music_volume)
     if kwargs:
         radio_svc.patch(**kwargs)
 

@@ -3182,6 +3182,12 @@ function paintRadioControls(radio) {
   if ($("radio-hurricane")) $("radio-hurricane").checked = radio.hurricane_on_radio !== false;
   if ($("radio-inserts")) $("radio-inserts").checked = radio.voice_inserts !== false;
   if ($("radio-feedback")) $("radio-feedback").checked = radio.feedback_popup !== false;
+  const musicVolume = Math.round(Number(radio.music_volume ?? 0.5) * 100);
+  const speechVolume = Math.round(Number(radio.speech_music_volume ?? 0.2) * 100);
+  if ($("radio-music-volume")) $("radio-music-volume").value = musicVolume;
+  if ($("radio-music-volume-value")) $("radio-music-volume-value").textContent = `${musicVolume}%`;
+  if ($("radio-speech-volume")) $("radio-speech-volume").value = speechVolume;
+  if ($("radio-speech-volume-value")) $("radio-speech-volume-value").textContent = `${speechVolume}%`;
   if (live) live.classList.toggle("hidden", !radio.mic_armed);
   if (tools) {
     const t = radio.tools || {};
@@ -3266,6 +3272,8 @@ async function saveRadioFromUi() {
     hurricane_on_radio: !!$("radio-hurricane")?.checked,
     voice_inserts: !!$("radio-inserts")?.checked,
     feedback_popup: !!$("radio-feedback")?.checked,
+    music_volume: Number($("radio-music-volume")?.value || 50) / 100,
+    speech_music_volume: Number($("radio-speech-volume")?.value || 20) / 100,
   });
 }
 
@@ -3323,6 +3331,12 @@ function wireAudioPage() {
   $("radio-local")?.addEventListener("change", () => saveRadioFromUi());
   $("radio-onair")?.addEventListener("change", () => saveRadioFromUi());
   $("radio-mic")?.addEventListener("change", () => saveRadioFromUi());
+  $("radio-music-volume")?.addEventListener("input", () => {
+    $("radio-music-volume-value").textContent = `${$("radio-music-volume").value}%`;
+  });
+  $("radio-speech-volume")?.addEventListener("input", () => {
+    $("radio-speech-volume-value").textContent = `${$("radio-speech-volume").value}%`;
+  });
   $("audio-chime-now")?.addEventListener("click", async () => {
     $("audio-status").textContent = "chime…";
     try {
