@@ -304,7 +304,7 @@ async def api_radio_wake():
 
 @router.post("/api/radio")
 async def api_radio_patch(body: RadioPatch):
-    """Desk toggles. Local playback drives speaker bed; on_air opens public listen."""
+    """Desk toggles. Local = speakers; on_air = public listen. Never desktop loopback."""
     kwargs = {}
     if body.local_playback is not None:
         kwargs["local_playback"] = bool(body.local_playback)
@@ -320,34 +320,47 @@ async def api_radio_patch(body: RadioPatch):
         radio_svc.patch(**kwargs)
 
     st = radio_svc.status()
-    # Sync speaker bed with local_playback
+    # Speakers vs stream:
+    #  local on  → bed audible
+    #  on air only → bed keeps running muted (so /radio/live.mp3 has a current track)
+    #  both off → pause bed
     try:
         from apps.voice.director import ensure_music_bed, get_director
+        from apps.voice import desk_audio
 
         d = get_director()
-        if st.get("local_playback"):
+        if st.get("local_playback") or st.get("on_air"):
             ensure_music_bed()
             await d.start_music_bed()
+            if st.get("local_playback"):
+                desk_audio.set_ducked(False)
+                desk_audio.set_muted(False)
+            else:
+                desk_audio.set_muted(True)
         else:
             d.pause_music_bed()
+            try:
+                desk_audio.set_muted(False)
+            except Exception:
+                pass
+        st = radio_svc.status()
     except Exception as e:
-        log.debug("radio local_playback sync: %s", e)
+        log.warning("radio bed sync: %s", e)
         st = {**st, "bed_sync_detail": str(e)[:160]}
 
     if st.get("mic_armed") and not st.get("tools", {}).get("ffmpeg"):
-        st = {**st, "mic_note": "Mic flag set — needs ffmpeg + named device before encode"}
+        st = {**st, "mic_note": "Mic armed — needs a named capture device wired next"}
 
-    # If on air and a bed is already playing, push it to listeners now
     if st.get("on_air") or st.get("local_playback"):
         try:
             from apps.voice.director import get_director
-            from apps.core.services import radio as radio_svc
 
             d = get_director()
             cur = (d.get_status().get("music") or {}).get("current")
             if cur:
                 radio_svc.announce_program_file(cur)
+                radio_svc.patch(last_track=str(cur))
         except Exception:
             pass
 
-    return st
+    return radio_svc.status()

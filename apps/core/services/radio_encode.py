@@ -44,6 +44,14 @@ def current_program_path() -> Path | None:
             return Path(p)
     except Exception:
         pass
+    try:
+        from apps.core.services import radio as radio_svc
+
+        last = str(radio_svc.load().get("last_track") or "").strip()
+        if last and Path(last).is_file():
+            return Path(last)
+    except Exception:
+        pass
     return None
 
 

@@ -36,6 +36,7 @@ def _default() -> dict[str, Any]:
         "mic_device": "",
         "wake_until": 0,
         "on_air_sticky": True,
+        "last_track": "",
         "updated_at": 0,
     }
 
@@ -55,6 +56,7 @@ def load() -> dict[str, Any]:
         out["mic_armed"] = bool(data.get("mic_armed"))
         out["on_air_sticky"] = bool(data.get("on_air_sticky", True))
         out["mic_device"] = str(data.get("mic_device") or "")[:120]
+        out["last_track"] = str(data.get("last_track") or "")[:500]
         out["wake_until"] = int(data.get("wake_until") or 0)
         out["updated_at"] = int(data.get("updated_at") or 0)
         return out
