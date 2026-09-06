@@ -11,6 +11,7 @@ import logging
 import math
 import time
 from datetime import datetime
+import re
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -281,22 +282,151 @@ def global_block(storms: list[dict[str, Any]]) -> dict[str, Any]:
     return {"count": n, "by_basin": by_basin, "lead": lead, "spoken": spoken}
 
 
+ISLAND_SLOTS = {
+    "honolulu": "slot_island_honolulu",
+    "hilo": "slot_island_hilo",
+    "lihue": "slot_island_lihue",
+    "līhuʻe": "slot_island_lihue",
+    "kona": "slot_island_kona",
+}
+
+COMPASS_SLOTS = {
+    "north": "slot_compass_n",
+    "northeast": "slot_compass_ne",
+    "east": "slot_compass_e",
+    "southeast": "slot_compass_se",
+    "south": "slot_compass_s",
+    "southwest": "slot_compass_sw",
+    "west": "slot_compass_w",
+    "northwest": "slot_compass_nw",
+}
+
+
+def _slug(text: str) -> str:
+    raw = (text or "").lower().replace("ʻ", "").replace("ʻ", "")
+    return re.sub(r"[^a-z0-9]+", "_", raw).strip("_")
+
+
+def _name_tokens(name: str) -> list[str]:
+    slug = _slug(name)
+    if not slug or slug in {"unnamed", "invest"}:
+        return []
+    return [f"storm_{slug}", slug]
+
+
+def _class_before(label: str) -> str:
+    blob = (label or "").lower()
+    if "typhoon" in blob:
+        return "hawaii_named_typhoon_before"
+    if "cyclone" in blob and "tropical storm" not in blob:
+        return "hawaii_named_cyclone_before"
+    if "hurricane" in blob:
+        return "hawaii_named_hurricane_before"
+    if "tropical storm" in blob:
+        return "hawaii_ts_before"
+    if "depression" in blob:
+        return "hawaii_td_before"
+    if "remnant" in blob:
+        return "hawaii_remnant_before"
+    return "hawaii_disturbance_before"
+
+
+def _class_slot(label: str) -> str | None:
+    blob = (label or "").lower()
+    if "category 5" in blob or "cat 5" in blob:
+        return "slot_class_cat5"
+    if "category 4" in blob or "cat 4" in blob:
+        return "slot_class_cat4"
+    if "category 3" in blob or "major" in blob:
+        return "slot_class_major"
+    if "category 2" in blob:
+        return "slot_class_cat2"
+    if "category 1" in blob:
+        return "slot_class_cat1"
+    if "super typhoon" in blob:
+        return "slot_class_super"
+    if "typhoon" in blob:
+        return "slot_class_typhoon"
+    if "cyclone" in blob and "tropical storm" not in blob:
+        return "slot_class_cyclone"
+    if "tropical storm" in blob:
+        return "slot_class_ts"
+    if "depression" in blob:
+        return "slot_class_td"
+    if "hurricane" in blob:
+        return "slot_class_hurricane"
+    return None
+
+
+def _county_watch_clips(trop: list[dict[str, Any]]) -> list[str]:
+    blob = " ".join(
+        f"{p.get('event') or ''} {p.get('counties') or ''}" for p in trop
+    ).lower()
+    bits = []
+    if any(k in blob for k in ("kauai", "kauaʻi", "lihue", "līhuʻe")):
+        bits.append("hawaii_watch_kauai_01")
+    if any(k in blob for k in ("oahu", "oʻahu", "honolulu")):
+        bits.append("hawaii_watch_oahu_01")
+    if "maui" in blob:
+        bits.append("hawaii_watch_maui_01")
+    if any(k in blob for k in ("hawaii county", "hawaiʻi island", "big island", "hilo", "kona")):
+        bits.append("hawaii_watch_big_01")
+    return bits
+
+
 def clip_script(hawaii: dict, globe: dict) -> str:
-    bits = ["opener_11", "hawaii_title_01"]
+    """Stem + slot + number ids. Missing WAVs are skipped at stitch time."""
+    bits = ["opener_10", "hawaii_title_01"]
+    trop = hawaii.get("nws_tropical") or []
     if hawaii.get("present"):
+        bits.append(_class_before(str(hawaii.get("label") or "")))
+        bits.extend(_name_tokens(str(hawaii.get("name") or "")))
+        slot = _class_slot(str(hawaii.get("label") or ""))
+        if slot:
+            bits.append(slot)
         nm = hawaii.get("nm")
         if nm is not None:
+            bits.append("hawaii_dist_before")
             bits.append(str(int(nm)))
-        island = str(hawaii.get("island") or "").lower().replace("ʻ", "").replace("ī", "i")
-        for tok in island.replace(" ", "_").split("_"):
-            if tok:
-                bits.append(tok)
-        bits.append("hurricane")
+            bits.append("slot_unit_nm")
+            bits.append("hawaii_from_before")
+            island = str(hawaii.get("island") or "")
+            key = _slug(island).replace("i", "i")
+            slot_isle = ISLAND_SLOTS.get(island.lower()) or ISLAND_SLOTS.get(key)
+            if not slot_isle:
+                for k, v in ISLAND_SLOTS.items():
+                    if _slug(k) in key or key in _slug(k):
+                        slot_isle = v
+                        break
+            bits.append(slot_isle or "honolulu")
+        compass = str(hawaii.get("bearing") or "").lower()
+        if compass in COMPASS_SLOTS:
+            bits.append(COMPASS_SLOTS[compass])
+        kt = hawaii.get("knots")
+        if kt is not None:
+            bits.append("wind_before")
+            bits.append(str(int(kt)))
+            bits.append("slot_unit_knots")
+        if trop:
+            bits.append("hawaii_watches_active_01")
+            bits.extend(_county_watch_clips(trop))
+        else:
+            bits.append("hawaii_watches_none_01")
+        bits.append("hawaii_monitor_01")
     else:
+        bits.append("hawaii_no_named_01")
+        bits.append("hawaii_watches_none_01" if not trop else "hawaii_watches_active_01")
+        if trop:
+            bits.extend(_county_watch_clips(trop))
         bits.append("opener_04")
-    bits.append("worldwide")
-    if globe.get("count") is not None:
-        bits.append(str(int(globe["count"])))
+    n = globe.get("count")
+    if not n:
+        bits.append("global_quiet_01")
+    else:
+        bits.append("global_around_before")
+        bits.append(str(int(n)))
+        bits.append("global_systems_after")
+    bits.append("signoff_01")
     return " ".join(bits)
 
 
@@ -333,7 +463,7 @@ def build(*, write_wav: bool = True) -> dict[str, Any]:
         f"# Hurricane global desk — {now.strftime('%Y-%m-%d %H:%M')} HST\n\n"
         f"{spoken}\n\n"
         f"Sources on disk: NHC/RAMMB/JTWC storms ({data.get('count') or len(storms)}), "
-        f"NWS Hawaiʻi products ({nws.get('alert_count') or 0}).\n"
+        f"NWS Hawaiʻi alerts ({nws.get('alert_count') or 0}).\n"
     )
     dated.write_text(body, encoding="utf-8")
     current.write_text(body, encoding="utf-8")
@@ -382,6 +512,8 @@ async def play_on_radio() -> dict[str, Any]:
     st = radio_svc.load()
     if not st.get("on_air"):
         return {"ok": True, "skipped": "not_on_air"}
+    if st.get("hurricane_on_radio", True) is False:
+        return {"ok": True, "skipped": "hurricane_off"}
     wav = config.GENERATED_DIR / WAV_NAME
     if not wav.is_file() or wav.stat().st_size <= 0:
         return {"ok": False, "skipped": "no_wav"}
