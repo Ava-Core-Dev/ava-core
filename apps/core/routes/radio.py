@@ -415,14 +415,15 @@ async def api_radio_patch(body: RadioPatch):
 
         d = get_director()
         if st.get("local_playback") or st.get("on_air"):
+            if not st.get("local_playback"):
+                desk_audio.set_muted(True)
             ensure_music_bed()
             await d.start_music_bed()
             if st.get("local_playback"):
                 desk_audio.set_ducked(False)
                 desk_audio.set_muted(False)
             else:
-                # On air without Local — bed runs, speakers silent.
-                # Mute before and after start so a late pygame spawn still gets MUTE.
+                # Speakers stay silent; re-send MUTE after spawn.
                 desk_audio.set_muted(True)
                 await asyncio.sleep(0.35)
                 desk_audio.set_muted(True)
