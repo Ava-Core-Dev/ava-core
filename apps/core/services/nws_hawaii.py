@@ -38,6 +38,11 @@ COUNTIES: list[dict[str, str]] = [
     {"same": "015005", "key": "kalawao", "speech": "Kalawao County"},
 ]
 
+TROPICAL_REPLAY_EVENTS = {
+    "tropical storm watch",
+    "tropical storm warning",
+}
+
 # areaDesc fallback when SAME is missing
 _AREA_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
@@ -148,6 +153,28 @@ def _by_county(alerts: list[dict]) -> dict[str, list[str]]:
             if key in out and event not in out[key]:
                 out[key].append(event)
     return out
+
+
+def hawaii_county_tropical_watch_warning(alerts: list[dict]) -> bool:
+    """Whether Hawaii County has an active tropical-storm watch or warning."""
+    for alert in alerts:
+        event = str(alert.get("event") or "").strip().lower()
+        counties = {str(key).strip().lower() for key in (alert.get("counties") or [])}
+        if event in TROPICAL_REPLAY_EVENTS and "hawaii" in counties:
+            return True
+    return False
+
+
+def _seconds_since(raw: object) -> float | None:
+    if not raw:
+        return None
+    try:
+        value = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - value.astimezone(timezone.utc)).total_seconds())
+    except (TypeError, ValueError):
+        return None
 
 
 def build_spoken(
@@ -551,12 +578,22 @@ async def refresh(
     fp = fingerprint(alerts)
     changed = fp != str(prev.get("hash") or "")
     as_of = product_as_of(alerts)
+    tropical_hawaii = hawaii_county_tropical_watch_warning(alerts)
+    tropical_replay_due = tropical_hawaii and (
+        _seconds_since(prev.get("last_spoken_at")) is None
+        or _seconds_since(prev.get("last_spoken_at")) >= 1800
+    )
     # Boot: announce only if this hash was never spoken (or forced). Do not
     # re-speak the same advisory on every origin recycle.
     boot_needs = reason == "boot" and (
         force_speak or str(prev.get("last_spoken_hash") or "") != fp
     )
-    should_speak = bool(force_speak or (speak_on_change and changed) or boot_needs)
+    should_speak = bool(
+        force_speak
+        or (speak_on_change and changed)
+        or boot_needs
+        or tropical_replay_due
+    )
     spoken = build_spoken(
         by_county,
         reason="boot" if reason == "boot" else "update",
@@ -601,6 +638,8 @@ async def refresh(
         "last_poll_hst": now_hst,
         "last_poll_reason": reason,
         "last_changed_at": now_iso if changed else prev.get("last_changed_at"),
+        "tropical_hawaii_county": tropical_hawaii,
+        "tropical_replay_due": tropical_replay_due,
         # Keep prior spoken markers until announce succeeds.
         "last_spoken_at": prev.get("last_spoken_at"),
         "last_spoken_reason": prev.get("last_spoken_reason"),
@@ -685,6 +724,8 @@ async def refresh(
         "pull_verified": True,
         "alerts": len(alerts),
         "changed": changed,
+        "tropical_hawaii_county": tropical_hawaii,
+        "tropical_replay_due": tropical_replay_due,
         "product_as_of": as_of_iso,
         "spoken": spoken if should_speak and (play_out or {}).get("ok") else None,
         "spoken_always": spoken,
