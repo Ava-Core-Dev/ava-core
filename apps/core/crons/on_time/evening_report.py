@@ -14,7 +14,23 @@ async def run():
     from apps.core.services import voice_events
 
     daily_report_board.ensure_today()
+    evening_slot = daily_report_board.get_slot("evening") or {}
+    if evening_slot.get("status") in {"done", "running"}:
+        log.info("Evening report already active or generated today — skip duplicate run")
+        return {"ok": True, "skipped": True, "detail": "already_done"}
     daily_report_board.mark_due()
+
+    from apps.core.crons.in_order_on_boot import boot_prelims
+    from apps.core.services import boot_report
+
+    prelim = await boot_prelims.run(write_report=False)
+    if not prelim.get("ok"):
+        daily_report_board.mark_failed("evening", error="prelims_failed")
+        return {"ok": False, "skipped": True, "detail": "prelims_failed", "prelim": prelim}
+    freshness = boot_report.report_metrics_fresh_within(max_age_s=3600)
+    if not freshness["ok"]:
+        daily_report_board.mark_failed("evening", error="stale_metrics")
+        return {"ok": False, "skipped": True, "detail": "stale_metrics", "freshness": freshness}
 
     engine = report_generation.engine_for("evening")
     result = report_generation.generate(

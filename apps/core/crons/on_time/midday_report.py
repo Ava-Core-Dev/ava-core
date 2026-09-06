@@ -62,16 +62,27 @@ async def _play_midday_mp3(tts: dict | None) -> dict | None:
 
 async def run():
     log.info("Midday report cron (11:55 → noon)  %s", datetime.now(timezone.utc).isoformat())
-    from apps.core.services import daily_report_board, midday_report, report_generation, reports
+    from apps.core.services import boot_report, daily_report_board, midday_report, report_generation, reports
     from apps.core.services import reports as report_store
 
     daily_report_board.ensure_today()
+    midday_slot = daily_report_board.get_slot("midday") or {}
+    if midday_slot.get("status") in {"done", "running"}:
+        log.info("Midday report already active or generated today — skip duplicate run")
+        return {"ok": True, "skipped": True, "detail": "already_done"}
     daily_report_board.mark_due()
 
     if not midday_report.midday_automation_enabled():
         log.info("Midday report automation OFF — prelims still refresh facts")
     prelim = await _refresh_prelims()
     log.info("midday prelims ok=%s", prelim.get("ok"))
+    if not prelim.get("ok"):
+        daily_report_board.mark_failed("midday", error="prelims_failed")
+        return {"ok": False, "skipped": True, "detail": "prelims_failed", "prelim": prelim}
+    freshness = boot_report.report_metrics_fresh_within(max_age_s=3600)
+    if not freshness["ok"]:
+        daily_report_board.mark_failed("midday", error="stale_metrics")
+        return {"ok": False, "skipped": True, "detail": "stale_metrics", "freshness": freshness}
 
     settings = report_generation.type_settings("midday")
     allow_tts = bool(settings.get("tts"))

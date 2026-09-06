@@ -27,8 +27,8 @@ async def run():
 
     daily_report_board.ensure_today()
     morning_slot = daily_report_board.get_slot("morning") or {}
-    if morning_slot.get("status") == "done":
-        log.info("Morning report already generated today — skip duplicate run")
+    if morning_slot.get("status") in {"done", "running"}:
+        log.info("Morning report already active or generated today — skip duplicate run")
         return {"ok": True, "skipped": True, "detail": "already_done"}
     daily_report_board.mark_due()
 
