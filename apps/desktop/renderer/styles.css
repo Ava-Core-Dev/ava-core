@@ -27,6 +27,25 @@ header {
   justify-content: space-between;
   gap: 1rem;
 }
+.header-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+}
+.header-pull {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  border: 1px solid rgba(110, 231, 168, 0.35);
+  background: rgba(30, 58, 44, 0.85);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+}
+.header-pull:hover { border-color: var(--accent); }
 .conn-pill {
   flex: 0 0 auto;
   margin-top: 0.15rem;

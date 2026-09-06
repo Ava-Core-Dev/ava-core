@@ -227,6 +227,9 @@
       <div class="radio-toggles row wrap" style="gap:1rem;margin:0.35rem 0 0.75rem">
         <label class="check"><input type="checkbox" id="radio-local" /> Local playback (hear bed on this PC)</label>
         <label class="check"><input type="checkbox" id="radio-onair" /> On air (public /radio listen)</label>
+        <label class="check"><input type="checkbox" id="radio-hurricane" /> Hurricane desk on radio</label>
+        <label class="check"><input type="checkbox" id="radio-inserts" /> Voice inserts on live stream</label>
+        <label class="check"><input type="checkbox" id="radio-feedback" /> Listener feedback on listen page</label>
         <label class="check"><input type="checkbox" id="radio-mic" /> Mic armed</label>
         <span id="radio-mic-live" class="audio-pill warn hidden">LIVE MIC</span>
       </div>
@@ -999,6 +1002,19 @@
     </section>
 
     <section id="page-settings" class="page">
+      <h2 class="cron-title">Desk features</h2>
+      <p class="hint-inline">Hurricane desk, radio inserts, listener feedback, and Delta 2 AC. Save writes origin state. Restart Ava Desk after a GitHub pull if the window itself changed.</p>
+      <label class="check"><input id="feat-hurricane-radio" type="checkbox" /> Hurricane desk on public radio (06:35 / 13:12 / 17:02 HST)</label>
+      <label class="check"><input id="feat-voice-inserts" type="checkbox" /> Reports and chimes on the public live stream</label>
+      <label class="check"><input id="feat-feedback-popup" type="checkbox" /> Radio “Share a thought” on the listen page</label>
+      <label class="check"><input id="feat-ecoflow-gate" type="checkbox" /> Delta 2 AC solar gate</label>
+      <label class="check"><input id="feat-ecoflow-soc" type="checkbox" /> Keep AC on when Delta SOC is over 80%</label>
+      <div class="row" style="gap:0.5rem;margin-top:0.5rem">
+        <button type="button" id="feat-save" class="primary">Save features</button>
+        <button type="button" id="feat-refresh">Refresh</button>
+      </div>
+      <pre id="feat-status" class="status"></pre>
+
       <h2 class="cron-title">Projected start</h2>
       <p class="hint-inline">Auto-fills from the rolling average of first daytime starts (after sunrise, before 2pm). Save to lock a manual time; Use average to follow the average again.</p>
       <div class="grid-2">

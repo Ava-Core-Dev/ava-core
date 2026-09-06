@@ -61,6 +61,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "settings") {
       refreshConnectionForm();
       refreshGitSyncPrefs();
+      refreshDeskFeatures();
       refreshStartTimer();
       refreshShutdownTimer();
       refreshOpsBanner();
