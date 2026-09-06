@@ -435,7 +435,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         state["last_skip_reason"] = report["skipped"]
         state["last_decision"] = "error"
         state["last_decision_at"] = time.strftime("%Y-%m-%dT%H:%M:%S%z")
-        save_state(state)
+        _save_eval(state)
         return report
 
     input_w = float(quota.get("input_w") or 0.0)
@@ -590,6 +590,22 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         )
         return report
 
+    _overlay_operator_flags(state)
+    enabled = bool(state.get("enabled", True)) if env_en is None else env_en
+    if not enabled:
+        report["skipped"] = "disabled"
+        report["enabled"] = False
+        state["last_decision"] = f"would_{desired}_disabled"
+        state["last_skip_reason"] = "disabled"
+        _save_eval(state)
+        log.info(
+            "ac-solar-gate disabled before PUT would=%s input=%.0fW ac=%s",
+            desired,
+            input_w,
+            ac_on,
+        )
+        return report
+
     # Live PUT — intentional automation; Starlink rides DELTA leftover AC.
     put = _put_ac(want_on)
     report["put"] = {
@@ -618,7 +634,7 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
     report["announce"] = phrase
     if phrase:
         _enqueue_announce(phrase)
-    save_state(state)
+    _save_eval(state)
     return report
 
 

@@ -4077,6 +4077,8 @@ async function saveGitSyncPrefsForm() {
   }
 }
 
+let deskFeatSeq = 0;
+
 function paintDeskFeatures(radio, gate) {
   if (radio && radio.ok === true) {
     if ($("feat-hurricane-radio") && typeof radio.hurricane_on_radio === "boolean") {
@@ -4090,17 +4092,25 @@ function paintDeskFeatures(radio, gate) {
     }
   }
   if (gate && gate.ok === true) {
-    if ($("feat-ecoflow-gate") && typeof gate.enabled === "boolean") {
-      $("feat-ecoflow-gate").checked = gate.enabled;
+    const gateEl = $("feat-ecoflow-gate");
+    const socEl = $("feat-ecoflow-soc");
+    if (gateEl && typeof gate.enabled === "boolean" && document.activeElement !== gateEl) {
+      gateEl.checked = gate.enabled;
     }
-    if ($("feat-ecoflow-soc") && typeof gate.soc_keep_ac_on === "boolean") {
-      $("feat-ecoflow-soc").checked = gate.soc_keep_ac_on;
+    if (socEl && typeof gate.soc_keep_ac_on === "boolean" && document.activeElement !== socEl) {
+      socEl.checked = gate.soc_keep_ac_on;
     }
   }
 }
 
+function featBit(on, unknown, onLabel, offLabel) {
+  if (unknown) return `${offLabel.replace(/ off$/, "")} unknown`;
+  return on ? onLabel : offLabel;
+}
+
 async function refreshDeskFeatures() {
   const out = $("feat-status");
+  const seq = ++deskFeatSeq;
   try {
     const [radioRes, gateRes] = await Promise.all([
       fetch(`${brainBaseUrl()}/api/radio/status`, {
@@ -4112,25 +4122,34 @@ async function refreshDeskFeatures() {
         headers: operatorHeaders(),
       }),
     ]);
+    if (seq !== deskFeatSeq) return;
     const radio = await radioRes.json().catch(() => ({}));
     const gate = await gateRes.json().catch(() => ({}));
+    if (seq !== deskFeatSeq) return;
     paintDeskFeatures(radio, gate);
     if (out) {
       out.textContent = [
-        radio.hurricane_on_radio === false ? "hurricane radio off" : "hurricane radio on",
-        radio.voice_inserts === false ? "inserts off" : "inserts on",
-        radio.feedback_popup === false ? "feedback off" : "feedback on",
-        gate.enabled === false ? "AC gate off" : "AC gate on",
-        gate.soc_keep_ac_on === false ? "SOC keep-AC off" : "SOC keep-AC on",
+        featBit(radio.hurricane_on_radio !== false, radio.ok !== true, "hurricane radio on", "hurricane radio off"),
+        featBit(radio.voice_inserts !== false, radio.ok !== true, "inserts on", "inserts off"),
+        featBit(radio.feedback_popup !== false, radio.ok !== true, "feedback on", "feedback off"),
+        featBit(gate.enabled === true, gate.ok !== true || typeof gate.enabled !== "boolean", "AC gate on", "AC gate off"),
+        featBit(
+          gate.soc_keep_ac_on === true,
+          gate.ok !== true || typeof gate.soc_keep_ac_on !== "boolean",
+          "SOC keep-AC on",
+          "SOC keep-AC off",
+        ),
       ].join(" · ");
     }
   } catch (err) {
+    if (seq !== deskFeatSeq) return;
     if (out) out.textContent = String(err.message || err);
   }
 }
 
 async function saveDeskFeatures() {
   const out = $("feat-status");
+  const seq = ++deskFeatSeq;
   if (out) out.textContent = "saving…";
   try {
     const gateRes = await fetch(`${brainBaseUrl()}/api/ecoflow/ac-gate`, {
@@ -4142,6 +4161,7 @@ async function saveDeskFeatures() {
       }),
     });
     const gate = await gateRes.json().catch(() => ({}));
+    if (seq !== deskFeatSeq) return;
     if (!gateRes.ok || gate.ok !== true) {
       if (out) out.textContent = gate.detail || `AC gate save failed (${gateRes.status})`;
       return;
@@ -4151,6 +4171,7 @@ async function saveDeskFeatures() {
       voice_inserts: !!$("feat-voice-inserts")?.checked,
       feedback_popup: !!$("feat-feedback-popup")?.checked,
     });
+    if (seq !== deskFeatSeq) return;
     paintDeskFeatures(radio, gate);
     if (out) {
       out.textContent = [
@@ -4160,6 +4181,7 @@ async function saveDeskFeatures() {
       ].join(" · ");
     }
   } catch (err) {
+    if (seq !== deskFeatSeq) return;
     if (out) out.textContent = String(err.message || err);
   }
 }
