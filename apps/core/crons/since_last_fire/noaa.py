@@ -127,8 +127,20 @@ async def run():
             if critical:
                 from apps.core.services import reports
                 alert_lines = [f"⚠️ **NWS ALERT** — {a['event']}: {a['headline']}" for a in critical[:3]]
-                reports.queue_public_draft("weather", "\n".join(alert_lines), source="cron")
-                log.info("Queued %d critical NWS alert draft(s) for review", len(critical))
+                alert_text = "\n".join(alert_lines)
+                reports.write_current(alert_text, kind="weather", source="nws_critical")
+                posted = await reports.publish("weather", alert_text, channel="ava_home")
+                if posted.get("ok"):
+                    log.info(
+                        "Published %d critical NWS alert(s) channel=%s dms=%s",
+                        len(critical), posted.get("channel"), posted.get("dms"),
+                    )
+                else:
+                    queued = reports.queue_public_draft("weather", alert_text, source="cron")
+                    log.warning(
+                        "Critical NWS alert publish failed; queued draft name=%s detail=%s",
+                        queued.get("name"), posted.get("detail"),
+                    )
 
     except Exception:
         log.exception("NOAA cron failed")

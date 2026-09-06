@@ -1293,6 +1293,10 @@ async def rotate_loop_scene() -> dict:
         cur = (await obs.req("GetCurrentProgramScene")).get("currentProgramSceneName")
         if coll.get("switched"):
             return {"ok": True, "scene": cur, "held": "mode_collection", "mode": mode}
+        if cur == "Scene":
+            await obs.req("SetCurrentProgramScene", {"sceneName": DEFAULT_START_SCENE})
+            _save_rotate(DEFAULT_START_SCENE)
+            return {"ok": True, "scene": DEFAULT_START_SCENE, "from": cur, "held": "invalid_scene"}
 
         if mode != "all" and watch.get("erupting"):
             if cur != KILAUEA_WATCH:
