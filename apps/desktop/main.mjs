@@ -365,8 +365,31 @@ async function handleDeskClose(reason) {
     runningOpsId = null;
   }
 
-  // Stop music + MediaPlayer orphans. Do not stop origin/watchdog/crons.
-  await stopDeskOwnedAudio();
+  // Stop music + MediaPlayer orphans — unless on air (public stream needs the bed).
+  let onAir = false;
+  try {
+    const rr = await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio/status`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    const rj = await rr.json().catch(() => ({}));
+    onAir = Boolean(rj?.on_air);
+  } catch {
+    onAir = false;
+  }
+  if (onAir) {
+    try {
+      await fetch(`http://127.0.0.1:${process.env.AVA_PORT || 8787}/api/radio`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ local_playback: false, on_air: true }),
+        signal: AbortSignal.timeout(8000),
+      });
+    } catch {
+      /* ignore */
+    }
+  } else {
+    await stopDeskOwnedAudio();
+  }
 }
 
 async function restoreDeskSession() {
