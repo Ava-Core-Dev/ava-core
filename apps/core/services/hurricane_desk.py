@@ -282,7 +282,7 @@ def global_block(storms: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def clip_script(hawaii: dict, globe: dict) -> str:
-    bits = ["nws_hawaii_hazard_update"]
+    bits = ["opener_11", "hawaii_title_01"]
     if hawaii.get("present"):
         nm = hawaii.get("nm")
         if nm is not None:
@@ -292,6 +292,8 @@ def clip_script(hawaii: dict, globe: dict) -> str:
             if tok:
                 bits.append(tok)
         bits.append("hurricane")
+    else:
+        bits.append("opener_04")
     bits.append("worldwide")
     if globe.get("count") is not None:
         bits.append(str(int(globe["count"])))
