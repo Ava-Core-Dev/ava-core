@@ -48,5 +48,13 @@ async def run():
     out["slot"] = slot
     out["result"] = result
     out["ok"] = bool(result.get("ok", True)) if isinstance(result, dict) else True
+    if isinstance(result, dict) and result.get("ok") and not result.get("skipped"):
+        from apps.core.services import report_periodic_audio
+
+        out["play"] = await report_periodic_audio.play_if_due(
+            slot,
+            reason="report_ready",
+            force=True,
+        )
     log.info("report readiness slot=%s result=%s", slot, result)
     return out
