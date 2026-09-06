@@ -19,6 +19,7 @@ HST = ZoneInfo("Pacific/Honolulu")
 URL = "https://radar.weather.gov/ridge/standard/HAWAII_loop.gif"
 RADAR_DIR = config.PUBLIC_MEDIA / "images" / "weather" / "gifs" / "archive"
 ZIP_PATH = RADAR_DIR / "radar_archive.zip"
+CURRENT_PATH = RADAR_DIR / "radar_archive-current.gif"
 STATE_PATH = config.DATA_DIR / "state" / "radar-archive.json"
 
 
@@ -39,6 +40,7 @@ def fetch_and_archive() -> dict:
     gif_name = f"radar_archive-{stamp}.gif"
     gif_path = RADAR_DIR / gif_name
     gif_path.write_bytes(data)
+    CURRENT_PATH.write_bytes(data)
 
     entries: dict[str, bytes] = {}
     if ZIP_PATH.is_file():
@@ -57,6 +59,7 @@ def fetch_and_archive() -> dict:
         "ok": True,
         "url": URL,
         "gif": str(gif_path),
+        "current": str(CURRENT_PATH),
         "zip": str(ZIP_PATH),
         "bytes": len(data),
         "archived_count": len(entries),
