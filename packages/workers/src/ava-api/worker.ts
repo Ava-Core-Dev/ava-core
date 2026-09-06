@@ -24,6 +24,25 @@ import type { AvaEnv, ScheduledEvent } from "../shared/types";
 const ORIGIN = "https://origin.avaivy.cloud";
 const VERCEL_FRONTEND = "https://avaivy-cloud.pages.dev";
 
+function withRadioNav(html: string): string {
+  if (!html || html.includes('href="/radio"') || html.includes(">Radio</a>")) return html;
+  // Operator ask: Radio in site nav. Inject until Pages rebuild ships content.json.
+  return html.replace(
+    /(<a[^>]*href="\/status"[^>]*>\s*Status\s*<\/a>)/i,
+    '$1<a href="/radio">Radio</a>',
+  );
+}
+
+async function fetchFrontendWithRadio(request: Request, base: string): Promise<Response> {
+  const res = await fetchFrontend(request, base);
+  const ct = res.headers.get("content-type") || "";
+  if (!ct.includes("text/html")) return res;
+  const html = withRadioNav(await res.text());
+  const headers = new Headers(res.headers);
+  headers.delete("content-length");
+  return new Response(html, { status: res.status, headers });
+}
+
 function isOpsPath(path: string): boolean {
   // Exact /api/ops and /api/ops/* only. Do not match /api/ops-schedule-banner.
   return (
@@ -249,7 +268,7 @@ export default {
 
 
     try {
-      return await fetchFrontend(request, VERCEL_FRONTEND);
+      return await fetchFrontendWithRadio(request, VERCEL_FRONTEND);
     } catch {
       return holdingPage();
     }
