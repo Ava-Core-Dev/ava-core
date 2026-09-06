@@ -16,6 +16,8 @@ from pydantic import BaseModel, Field
 
 from apps.core.services import radio as radio_svc
 from apps.core.services import radio_catalog
+from apps.core.services import radio_access
+from apps.core.routes.radio_player_html import player_html as _player_html_fn
 
 router = APIRouter(tags=["radio"])
 log = logging.getLogger("ava.radio.routes")
