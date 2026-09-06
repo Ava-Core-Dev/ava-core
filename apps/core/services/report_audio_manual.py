@@ -290,6 +290,7 @@ async def play_now(kind: str, path: str | None = None) -> dict:
         target,
         name=f"{kind}_manual",
         kind=kind,
+        force=True,
     )
     out["manual"] = True
     out["kind"] = kind

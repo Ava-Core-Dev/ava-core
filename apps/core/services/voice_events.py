@@ -79,6 +79,7 @@ async def play_report_mp3(
     *candidates: str | Path | None,
     name: str = "report",
     kind: str | None = None,
+    force: bool = False,
 ) -> dict:
     """Queue an existing report WAV/MP3 at REPORT priority. No TTS spend.
 
@@ -95,7 +96,7 @@ async def play_report_mp3(
         log.warning("report play missing audio name=%s kind=%s", name, kind)
         return {"ok": False, "detail": "mp3_missing", "name": name, "kind": kind}
     remaining = _global_cooldown_remaining()
-    if remaining:
+    if remaining and not force:
         return {
             "ok": True,
             "skipped": True,
