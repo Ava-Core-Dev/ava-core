@@ -3134,6 +3134,9 @@ function paintRadioControls(radio) {
   if (local) local.checked = !!radio.local_playback;
   if (onair) onair.checked = !!radio.on_air;
   if (mic) mic.checked = !!radio.mic_armed;
+  if ($("radio-hurricane")) $("radio-hurricane").checked = radio.hurricane_on_radio !== false;
+  if ($("radio-inserts")) $("radio-inserts").checked = radio.voice_inserts !== false;
+  if ($("radio-feedback")) $("radio-feedback").checked = radio.feedback_popup !== false;
   if (live) live.classList.toggle("hidden", !radio.mic_armed);
   if (tools) {
     const t = radio.tools || {};
@@ -3215,6 +3218,9 @@ async function saveRadioFromUi() {
     local_playback: !!$("radio-local")?.checked,
     on_air: !!$("radio-onair")?.checked,
     mic_armed: !!$("radio-mic")?.checked,
+    hurricane_on_radio: !!$("radio-hurricane")?.checked,
+    voice_inserts: !!$("radio-inserts")?.checked,
+    feedback_popup: !!$("radio-feedback")?.checked,
   });
 }
 
@@ -4066,6 +4072,74 @@ async function saveGitSyncPrefsForm() {
       autoPull: Boolean($("git-auto-pull")?.checked),
     });
     if (out) out.textContent = `prefs saved\n${JSON.stringify(r.prefs, null, 2)}`;
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+  }
+}
+
+function paintDeskFeatures(radio, gate) {
+  if (radio && radio.ok !== false) {
+    if ($("feat-hurricane-radio")) $("feat-hurricane-radio").checked = radio.hurricane_on_radio !== false;
+    if ($("feat-voice-inserts")) $("feat-voice-inserts").checked = radio.voice_inserts !== false;
+    if ($("feat-feedback-popup")) $("feat-feedback-popup").checked = radio.feedback_popup !== false;
+  }
+  if (gate && gate.ok !== false) {
+    if ($("feat-ecoflow-gate")) $("feat-ecoflow-gate").checked = gate.enabled !== false;
+    if ($("feat-ecoflow-soc")) $("feat-ecoflow-soc").checked = gate.soc_keep_ac_on !== false;
+  }
+}
+
+async function refreshDeskFeatures() {
+  const out = $("feat-status");
+  try {
+    const [radioRes, gateRes] = await Promise.all([
+      fetch(`${brainBaseUrl()}/api/radio/status`, {
+        cache: "no-store",
+        headers: operatorHeaders(),
+      }),
+      fetch(`${brainBaseUrl()}/api/ecoflow/ac-gate`, {
+        cache: "no-store",
+        headers: operatorHeaders(),
+      }),
+    ]);
+    const radio = await radioRes.json().catch(() => ({}));
+    const gate = await gateRes.json().catch(() => ({}));
+    paintDeskFeatures(radio, gate);
+    if (out) {
+      out.textContent = [
+        radio.hurricane_on_radio === false ? "hurricane radio off" : "hurricane radio on",
+        radio.voice_inserts === false ? "inserts off" : "inserts on",
+        radio.feedback_popup === false ? "feedback off" : "feedback on",
+        gate.enabled === false ? "AC gate off" : "AC gate on",
+        gate.soc_keep_ac_on === false ? "SOC keep-AC off" : "SOC keep-AC on",
+      ].join(" · ");
+    }
+  } catch (err) {
+    if (out) out.textContent = String(err.message || err);
+  }
+}
+
+async function saveDeskFeatures() {
+  const out = $("feat-status");
+  if (out) out.textContent = "saving…";
+  try {
+    const radio = await patchRadio({
+      hurricane_on_radio: !!$("feat-hurricane-radio")?.checked,
+      voice_inserts: !!$("feat-voice-inserts")?.checked,
+      feedback_popup: !!$("feat-feedback-popup")?.checked,
+    });
+    const gateRes = await fetch(`${brainBaseUrl()}/api/ecoflow/ac-gate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...operatorHeaders() },
+      body: JSON.stringify({
+        enabled: !!$("feat-ecoflow-gate")?.checked,
+        soc_keep_ac_on: !!$("feat-ecoflow-soc")?.checked,
+      }),
+    });
+    const gate = await gateRes.json().catch(() => ({}));
+    paintDeskFeatures(radio, gate);
+    if (out) out.textContent = "Saved.";
+    await refreshDeskFeatures();
   } catch (err) {
     if (out) out.textContent = String(err.message || err);
   }
