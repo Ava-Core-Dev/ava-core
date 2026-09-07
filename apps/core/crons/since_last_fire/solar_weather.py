@@ -1196,6 +1196,44 @@ def append_hybrid_lifecycle_event(event: str, now: datetime | None = None) -> di
     }
 
 
+def _hybrid_prediction_inserts(stamp: str) -> tuple[str | None, str | None]:
+    """Build source-derived weather-window and Kilauea prediction inserts."""
+    weather_insert = None
+    kilauea_insert = None
+    try:
+        from apps.core.services.reports import latest_report
+
+        weather_report = latest_report("nws-weather-*.md")
+        if weather_report:
+            weather_body = weather_report.read_text(encoding="utf-8", errors="replace")
+            periods = re.findall(
+                r"^###\s+([^\n]+)\n([^\n]+)\n([^\n]+)",
+                weather_body,
+                re.M,
+            )
+            windows = []
+            for name, summary, detail in periods[:4]:
+                windows.append(f"{name.strip()}: {re.sub(r'\\s+', ' ', summary).strip()} | {re.sub(r'\\s+', ' ', detail).strip()}")
+            alerts = re.findall(
+                r"\*\*([^*]+)\*\*[^\n]*\n([^\n]*\buntil\b[^\n]+)",
+                weather_body,
+                re.I,
+            )
+            for name, window in alerts[:8]:
+                windows.append(f"ALERT {name.strip()}: {re.sub(r'\\s+', ' ', window).strip()}")
+            if windows:
+                weather_insert = f">{stamp}, WEATHER WINDOWS — " + " || ".join(windows)
+
+        kilauea_report = latest_report("kilauea-*.md")
+        if kilauea_report:
+            kilauea_body = re.sub(r"\s+", " ", kilauea_report.read_text(encoding="utf-8", errors="replace")).strip()
+            if kilauea_body:
+                kilauea_insert = f">{stamp}, KILAUEA PREDICTION — {kilauea_body[:900]}"
+    except Exception:
+        pass
+    return weather_insert, kilauea_insert
+
+
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
     """Append weather and EcoFlow status above the notes cutoff."""
     target = path or SOLAR_NOTES_PATH
@@ -1264,6 +1302,7 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
         f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
         f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}"
     )
+    weather_windows_insert, kilauea_insert = _hybrid_prediction_inserts(stamp)
     inserts: list[str] = []
     charge_insert = _charge_status_insert(now, body)
     if charge_insert:
@@ -1272,6 +1311,10 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     if power_insert:
         inserts.append(power_insert)
     inserts.extend((weather_insert, ecoflow_insert))
+    if weather_windows_insert:
+        inserts.append(weather_windows_insert)
+    if kilauea_insert:
+        inserts.append(kilauea_insert)
 
     updated, inserted = _append_report_inserts(body, inserts)
     if inserted:
