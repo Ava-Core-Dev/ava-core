@@ -68,7 +68,7 @@ STATE_NAME = "ecoflow-ac-solar-gate.json"
 # Primary gate field (evidence in data/ecoflow/quota/{DELTA}.json).
 GATE_KEY = "mppt.inWatts"
 TOTAL_IN_KEYS = ("pd.wattsInSum", "pd.inWatts")
-AC_KEYS = ("pd.acEnabled",)
+AC_KEYS = ("inv.cfgAcEnabled", "pd.acEnabled", "mppt.cfgAcEnabled")
 
 
 def state_path() -> Path:
@@ -316,69 +316,6 @@ def _sign_headers(access_key: str, secret_key: str, body: dict | None) -> dict[s
     return headers
 
 
-def _get_live_quota() -> dict[str, Any]:
-    access = (os.getenv("AVA_ECOFLOW_ACCESS_KEY") or "").strip()
-    secret = (os.getenv("AVA_ECOFLOW_SECRET_KEY") or "").strip()
-    if not access or not secret:
-        return {"ok": False, "error": "missing_ecoflow_keys"}
-    base = (os.getenv("AVA_ECOFLOW_BASE_URL") or DEFAULT_BASE).strip() or DEFAULT_BASE
-    params = {"sn": DELTA_SN}
-    nonce = str(int(100000 + (time.time() * 1000) % 900000))
-    timestamp = str(int(time.time() * 1000))
-    sign_headers = {"accessKey": access, "nonce": nonce, "timestamp": timestamp}
-    query = _qstring(params)
-    sign_str = f"{query}&{_qstring(sign_headers)}"
-    sign = hmac.new(secret.encode(), sign_str.encode(), hashlib.sha256).hexdigest()
-    headers = {
-        **sign_headers,
-        "sign": sign,
-        "Accept": "application/json",
-        "User-Agent": "AvaIvy/2.0 (EcoFlow AC state verify)",
-    }
-    url = f"{base.rstrip('/')}/iot-open/sign/device/quota/all?{query}"
-    req = request.Request(url, headers=headers, method="GET")
-    try:
-        with request.urlopen(req, timeout=20) as resp:
-            parsed = json.loads(resp.read().decode("utf-8", errors="replace") or "{}")
-        code = str(parsed.get("code") or "")
-        data = parsed.get("data") or {}
-        return {
-            "ok": code in {"0", "None", ""} and isinstance(data, dict),
-            "http_status": getattr(resp, "status", 200),
-            "code": code,
-            "data": data,
-        }
-    except error.HTTPError as e:
-        return {"ok": False, "http_status": e.code, "error": str(e)}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
-
-
-def _ac_state(data: dict[str, Any]) -> tuple[bool | None, str | None]:
-    for key in AC_KEYS:
-        if data.get(key) is None:
-            continue
-        try:
-            return bool(int(data[key])), key
-        except (TypeError, ValueError):
-            continue
-    return None, None
-
-
-def _verify_ac_state(want_on: bool, *, attempts: int = 3, delay_s: float = 2.0) -> dict[str, Any]:
-    observations: list[dict[str, Any]] = []
-    for attempt in range(attempts):
-        live = _get_live_quota()
-        data = live.get("data") or {}
-        ac_on, ac_key = _ac_state(data)
-        observations.append({"attempt": attempt + 1, "ac_on": ac_on, "ac_key": ac_key})
-        if ac_on is not None and ac_on == want_on:
-            return {"ok": True, "ac_on": ac_on, "ac_key": ac_key, "observations": observations}
-        if attempt + 1 < attempts:
-            time.sleep(delay_s)
-    return {"ok": False, "error": "ac_state_not_verified", "observations": observations}
-
-
 def _ac_command(turn_on: bool) -> dict[str, Any]:
     return {
         "sn": DELTA_SN,
@@ -489,7 +426,6 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         "action": None,
         "skipped": None,
         "put": None,
-        "verify": None,
         "state_path": str(state_path()),
     }
 
@@ -677,30 +613,16 @@ def evaluate(*, execute: bool = False) -> dict[str, Any]:
         for k in ("ok", "http_status", "code", "message", "error", "action")
     }
     if put.get("ok"):
-        verify = _verify_ac_state(want_on)
-        report["verify"] = verify
-        if not verify.get("ok"):
-            report["ok"] = False
-            report["action"] = f"put_unverified_{desired}"
-            report["skipped"] = "ac_state_not_verified"
-            state["last_decision"] = f"put_unverified_{desired}"
-            state["last_skip_reason"] = "ac_state_not_verified"
-            log.error(
-                "ac-solar-gate PUT AC %s accepted but state was not verified: %s",
-                desired.upper(),
-                verify,
-            )
-        else:
-            report["action"] = f"put_ac_{desired}"
-            state["last_action"] = desired
-            state["last_action_at"] = now
-            state["last_decision"] = f"put_{desired}"
-            state["last_skip_reason"] = None
-            log.warning(
-                "ac-solar-gate PUT AC %s verified input=%.0fW (Starlink on DELTA AC may drop if OFF)",
-                desired.upper(),
-                input_w,
-            )
+        report["action"] = f"put_ac_{desired}"
+        state["last_action"] = desired
+        state["last_action_at"] = now
+        state["last_decision"] = f"put_{desired}"
+        state["last_skip_reason"] = None
+        log.warning(
+            "ac-solar-gate PUT AC %s input=%.0fW (Starlink on DELTA AC may drop if OFF)",
+            desired.upper(),
+            input_w,
+        )
     else:
         report["ok"] = False
         report["action"] = f"put_failed_{desired}"
