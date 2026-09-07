@@ -3503,6 +3503,8 @@ function renderStreamRotationEditors(scenes, cfg) {
   const interval = $("stream-rotation-interval");
   if (enabled) enabled.checked = cfg.enabled !== false;
   if (interval) interval.value = String(asSecInput(cfg.interval_s, 60));
+  if (enabled) enabled.onchange = saveStreamRotationConfig;
+  if (interval) interval.onchange = applyStreamRotationInterval;
   modeHost.innerHTML = "";
   sceneHost.innerHTML = "";
   for (const mode of ["daily", "all", "weather", "kilauea", "hurricane"]) {
@@ -3537,6 +3539,14 @@ function renderStreamRotationEditors(scenes, cfg) {
     lbl.append(input);
     sceneHost.append(lbl);
   }
+}
+
+function applyStreamRotationInterval() {
+  const value = asSecInput($("stream-rotation-interval")?.value, 60);
+  document.querySelectorAll("input[data-rotation-mode], input[data-rotation-scene]").forEach((input) => {
+    input.value = String(value);
+  });
+  saveStreamRotationConfig();
 }
 
 async function saveStreamRotationConfig() {
