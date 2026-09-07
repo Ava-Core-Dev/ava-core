@@ -82,7 +82,7 @@ DEFAULT_SCENE_DWELL_S = 60
 # Ambient VLC can be on Morning_Broadcast_Current (~7 min); wait at least that long
 # unless GetMediaInputStatus reports the current item has ended.
 VLC_MIN_DWELL_S = 420
-MIN_DWELL_S = 12
+MIN_DWELL_S = 5
 MAX_DWELL_S = 900
 ROTATION_CFG_PATH = config.DATA_DIR / "state" / "obs-rotation-config.json"
 
@@ -175,7 +175,10 @@ def load_rotation_config() -> dict[str, Any]:
             raw = {}
         if isinstance(raw.get("enabled"), bool):
             enabled = raw["enabled"]
-        interval_s = _sanitize_dwell(raw.get("interval_s"), DEFAULT_ROTATION_INTERVAL_S)
+        interval_s = _sanitize_dwell(
+            raw.get("interval_s", (raw.get("mode_dwell_s") or {}).get("daily")),
+            DEFAULT_ROTATION_INTERVAL_S,
+        )
         for mode, default_s in DEFAULT_MODE_DWELL_S.items():
             mode_dwell[mode] = _sanitize_dwell((raw.get("mode_dwell_s") or {}).get(mode), default_s)
         for scene, dwell in (raw.get("scene_dwell_s") or {}).items():
