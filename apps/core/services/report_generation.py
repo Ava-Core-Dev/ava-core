@@ -1385,7 +1385,13 @@ def generate(
     tts = out.get("tts") or {}
     audio_path = tts.get("current") or tts.get("mp3")
     text_path = (out.get("files") or {}).get("dated")
-    if audio_path and text_path and Path(audio_path).is_file() and Path(text_path).is_file():
+    if (
+        audio_path
+        and not tts.get("reused")
+        and text_path
+        and Path(audio_path).is_file()
+        and Path(text_path).is_file()
+    ):
         try:
             from apps.core.services import discord
 
