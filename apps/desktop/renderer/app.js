@@ -3499,6 +3499,10 @@ function renderStreamRotationEditors(scenes, cfg) {
   if (!modeHost || !sceneHost) return;
   const modeDwell = cfg.mode_dwell_s || {};
   const sceneDwell = cfg.scene_dwell_s || {};
+  const enabled = $("stream-rotation-enabled");
+  const interval = $("stream-rotation-interval");
+  if (enabled) enabled.checked = cfg.enabled !== false;
+  if (interval) interval.value = String(asSecInput(cfg.interval_s, 60));
   modeHost.innerHTML = "";
   sceneHost.innerHTML = "";
   for (const mode of ["daily", "all", "weather", "kilauea", "hurricane"]) {
@@ -3546,11 +3550,26 @@ async function saveStreamRotationConfig() {
   sceneInputs.forEach((el) => {
     scene_dwell_s[el.dataset.rotationScene] = asSecInput(el.value, 60);
   });
-  await fetch(`${brainBaseUrl()}/api/obs/rotation-config`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode_dwell_s, scene_dwell_s }),
-  });
+  const status = $("stream-rotation-status");
+  if (status) status.textContent = "Saving…";
+  try {
+    const response = await fetch(`${brainBaseUrl()}/api/obs/rotation-config`, {
+      method: "POST",
+      headers: { ...operatorHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        enabled: $("stream-rotation-enabled")?.checked !== false,
+        interval_s: asSecInput($("stream-rotation-interval")?.value, 60),
+        mode_dwell_s,
+        scene_dwell_s,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok || result?.ok === false) throw new Error(result?.detail || `HTTP ${response.status}`);
+    streamRotationCfgKey = JSON.stringify(result || {});
+    if (status) status.textContent = result.enabled ? `Saved · every ${result.interval_s}s` : "Saved · switcher off";
+  } catch (err) {
+    if (status) status.textContent = `Save failed · ${String(err?.message || err)}`;
+  }
 }
 
 async function refreshSitesPage() {

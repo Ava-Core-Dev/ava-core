@@ -158,6 +158,11 @@
           <div id="stream-scene-hide" class="row wrap stream-transport"></div>
           <p class="hint-inline" style="margin:0.6rem 0 0.25rem">Rotation dwell (seconds)</p>
           <div class="stream-rotation" id="stream-rotation-config">
+            <div class="row wrap stream-transport" style="align-items:center;margin-bottom:0.35rem">
+              <label class="check"><input type="checkbox" id="stream-rotation-enabled" /> Auto scene switcher</label>
+              <label>Default interval <input id="stream-rotation-interval" type="number" min="5" max="3600" step="1" style="width:5.5rem" /> s</label>
+              <span id="stream-rotation-status" class="hint-inline" style="margin:0"></span>
+            </div>
             <div class="row wrap stream-transport" id="stream-rotation-modes"></div>
             <div class="row wrap stream-transport" id="stream-rotation-scenes"></div>
           </div>
