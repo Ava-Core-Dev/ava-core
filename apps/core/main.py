@@ -215,6 +215,12 @@ async def lifespan(app: FastAPI):
         schedule_clock.sample_day_start()
     except Exception as e:
         log.debug("uptime start skipped: %s", e)
+    try:
+        from apps.core.crons.since_last_fire.solar_weather import append_hybrid_lifecycle_event
+        result = append_hybrid_lifecycle_event("STARTED")
+        log.info("Hybrid lifecycle start: %s", result.get("detail"))
+    except Exception as e:
+        log.warning("Hybrid lifecycle start skipped: %s", e)
 
     yield
 
@@ -228,6 +234,12 @@ async def lifespan(app: FastAPI):
         note_down()
     except Exception:
         pass
+    try:
+        from apps.core.crons.since_last_fire.solar_weather import append_hybrid_lifecycle_event
+        result = append_hybrid_lifecycle_event("STOPPED")
+        log.info("Hybrid lifecycle stop: %s", result.get("detail"))
+    except Exception as e:
+        log.warning("Hybrid lifecycle stop skipped: %s", e)
     if _scheduler:
         await _scheduler.stop()
     try:

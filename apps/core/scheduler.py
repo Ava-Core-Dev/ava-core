@@ -172,10 +172,10 @@ class Scheduler:
         )
         s.add_job(
             self._run_hybrid_charge_status,
-            IntervalTrigger(minutes=1),
+            IntervalTrigger(seconds=10),
             id="hybrid-charge-status",
-            name="Hybrid charge status (every minute)",
-            misfire_grace_time=30,
+            name="Hybrid charge status (every 10 seconds)",
+            misfire_grace_time=5,
         )
 
         s.add_job(self._run("system_perf"), CronTrigger(minute=6),

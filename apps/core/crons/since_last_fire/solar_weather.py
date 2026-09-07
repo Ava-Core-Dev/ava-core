@@ -1047,9 +1047,7 @@ def _charge_status_insert(now: datetime, report_body: str | None = None) -> str 
     except (TypeError, ValueError):
         prior_pct = None
     prior_status = prior.get("status")
-    changed = prior_status != status or (
-        prior_pct is not None and battery_pct is not None and prior_pct != battery_pct
-    )
+    changed = prior_status != status
     if report_body is not None:
         latest_charge = re.findall(
             r"^>\d{4}, CHARGE STATUS — (Charging|Battery) \| Host battery: ([^%|]+)%",
@@ -1062,11 +1060,7 @@ def _charge_status_insert(now: datetime, report_body: str | None = None) -> str 
                 report_pct_f = float(report_pct.strip())
             except ValueError:
                 report_pct_f = None
-            changed = changed or report_status != status or (
-                report_pct_f is not None
-                and battery_pct is not None
-                and report_pct_f != battery_pct
-            )
+            changed = changed or report_status != status
 
     HYBRID_CHARGE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     HYBRID_CHARGE_STATE_PATH.write_text(
@@ -1176,8 +1170,34 @@ def _append_report_inserts(body: str, inserts: list[str]) -> tuple[str, bool]:
     return before_cutoff + appended + body[cutoff_at:], True
 
 
+def append_hybrid_lifecycle_event(event: str, now: datetime | None = None) -> dict:
+    """Append one AVA STARTED/STOPPED lifecycle entry to the dated report."""
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    target = hybrid_daily_report_path(now)
+    if not target.is_file():
+        return {"ok": False, "detail": "hybrid_report_missing", "path": str(target)}
+    body = target.read_text(encoding="utf-8", errors="replace")
+    if SOLAR_NOTES_CUTOFF not in body:
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(target)}
+    normalized = event.strip().upper()
+    if normalized not in {"STARTED", "STOPPED"}:
+        return {"ok": False, "detail": "invalid_lifecycle_event", "event": event}
+    line = f">{now:%H%M}, AVA {normalized}"
+    updated, inserted = _append_report_inserts(body, [line])
+    if inserted:
+        target.write_text(updated, encoding="utf-8", newline="\n")
+    return {
+        "ok": True,
+        "path": str(target),
+        "detail": "inserted" if inserted else "already_present",
+        "line": line,
+    }
+
+
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
-    """Insert quarter-hour weather and EcoFlow status above the notes cutoff."""
+    """Append weather and EcoFlow status above the notes cutoff."""
     target = path or SOLAR_NOTES_PATH
     if not target.is_file():
         return {"ok": False, "detail": "solar_notes_missing", "path": str(target)}
@@ -1188,8 +1208,6 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     from zoneinfo import ZoneInfo
 
     now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
-    if now.minute not in {0, 15, 30, 45}:
-        return {"ok": False, "detail": "not_quarter_hour", "minute": now.minute}
     now_ms = int(now.timestamp() * 1000)
     start_ms = now_ms - 15 * 60 * 1000
     latest: dict[str, dict] = {}
