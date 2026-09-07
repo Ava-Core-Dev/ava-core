@@ -1024,7 +1024,7 @@ def hybrid_daily_report_path(now: datetime) -> Path:
     )
 
 
-def _charge_status_insert(now: datetime) -> str | None:
+def _charge_status_insert(now: datetime, report_body: str | None = None) -> str | None:
     """Return an insert only when host Charging/Battery mode changes."""
     from apps.core.host_metrics import snapshot
 
@@ -1034,13 +1034,50 @@ def _charge_status_insert(now: datetime) -> str | None:
         return None
     status = "Charging" if bool(plugged) else "Battery"
     try:
+        battery_pct = float(row.get("battery_pct"))
+    except (TypeError, ValueError):
+        battery_pct = None
+    try:
         prior = json.loads(HYBRID_CHARGE_STATE_PATH.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         prior = {}
-    changed = prior.get("status") != status
+
+    try:
+        prior_pct = float(prior.get("battery_pct"))
+    except (TypeError, ValueError):
+        prior_pct = None
+    prior_status = prior.get("status")
+    changed = prior_status != status or (
+        prior_pct is not None and battery_pct is not None and prior_pct != battery_pct
+    )
+    if report_body is not None:
+        latest_charge = re.findall(
+            r"^>\d{4}, CHARGE STATUS — (Charging|Battery) \| Host battery: ([^%|]+)%",
+            report_body,
+            re.M,
+        )
+        if latest_charge:
+            report_status, report_pct = latest_charge[-1]
+            try:
+                report_pct_f = float(report_pct.strip())
+            except ValueError:
+                report_pct_f = None
+            changed = changed or report_status != status or (
+                report_pct_f is not None
+                and battery_pct is not None
+                and report_pct_f != battery_pct
+            )
+
     HYBRID_CHARGE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     HYBRID_CHARGE_STATE_PATH.write_text(
-        json.dumps({"status": status, "updated_at": now.isoformat()}) + "\n",
+        json.dumps(
+            {
+                "status": status,
+                "battery_pct": battery_pct,
+                "updated_at": now.isoformat(),
+            }
+        )
+        + "\n",
         encoding="utf-8",
     )
     if not changed:
@@ -1202,28 +1239,20 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
         prefix,
         count=1,
     )
-    cleaned_lines: list[str] = []
-    skip_ecoflow = False
-    for line in prefix.splitlines():
-        if re.match(
+    # Remove only complete, explicitly formatted automation lines. Never infer
+    # that a following Delta/River line is generated; it may be a manual note.
+    prefix = "\n".join(
+        line for line in prefix.splitlines()
+        if not re.match(
             r"^(?:[>#]?\d{4},\s*AUTO ECOFLOW STATUS|AUTO \d{4},\s*ECOFLOW STATUS)",
             line,
-        ):
-            skip_ecoflow = True
-            continue
-        if skip_ecoflow and (
-            re.match(r"^#?-?\s*(?:DELTA 2|RIVER 2 PRO):", line)
-            or not line.strip()
-        ):
-            continue
-        skip_ecoflow = False
-        cleaned_lines.append(line)
-    prefix = "\n".join(cleaned_lines)
+        )
+    )
     prefix = re.sub(r"(?:[>#]?\d{4}, WEATHER — .*\n?)+$", "", prefix, flags=re.S)
     prefix = _strip_legacy_automation_lines(prefix)
 
     inserts: list[str] = []
-    charge_insert = _charge_status_insert(now)
+    charge_insert = _charge_status_insert(now, body)
     if charge_insert:
         inserts.append(charge_insert)
     power_insert = _power_automation_insert(now)
