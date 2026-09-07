@@ -473,10 +473,13 @@ async def slack_loop() -> None:
                     text = str(msg.get("text") or "")
                     from apps.core.services import message_audit
 
+                    slack_chat_type = (
+                        "dm" if cid.startswith("D") else "group_dm" if cid.startswith("G") else "channel"
+                    )
                     message_audit.append_inbound(
                         surface="slack",
                         chat_id=cid,
-                        chat_type="channel",
+                        chat_type=slack_chat_type,
                         sender_id=uid,
                         message_id=msg.get("ts"),
                         text=text,
