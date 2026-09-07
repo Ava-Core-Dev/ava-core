@@ -7,6 +7,7 @@ from spoken/public text. NWS bodies never enter cloud generation packages.
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import re
 from copy import deepcopy
@@ -1043,7 +1044,56 @@ def _generate_grok(kind: str, *, max_tokens: int = 1800) -> dict:
     }
 
 
+def _kilauea_notice_report() -> dict:
+    """Turn the saved HVO notice into a short factual local report."""
+    facts = _kind_operator_facts("kilauea")
+    if not facts or "notice facts not live" in facts.lower():
+        return {
+            "ok": True,
+            "engine": "local_facts",
+            "text": (
+                "Kīlauea status update. The latest HVO notice is not available locally. "
+                "Please check the official HVO update for current conditions. End of status."
+            ),
+            "include_timestamp": False,
+        }
+
+    def field(pattern: str, default: str) -> str:
+        match = re.search(pattern, facts, re.I)
+        return re.sub(r"\s+", " ", match.group(1)).strip() if match else default
+
+    alert = field(r"Current Volcano Alert Level:\s*([^\n]+)", "not stated")
+    aviation = field(r"Current Aviation Color Code:\s*([^\n]+)", "not stated")
+    summary = field(
+        r"Summary:\s*(.*?)(?:\n\s*Overview:|\Z)",
+        "The latest HVO summary was not included in the saved notice.",
+    )
+    overview = field(
+        r"Overview:\s*(.*?)(?:\n\s*(?:A detailed summary|NOTE:|Signi|\Z))",
+        "",
+    )
+    sentences = re.split(r"(?<=[.!?])\s+", f"{summary} {overview}".strip())
+    details = " ".join(sentences[:3]).strip()
+    details = re.sub(r"\b([A-Za-z]+ \d+)-(\d+)\b", r"\1 through \2", details)
+    text = (
+        "Kīlauea status update. "
+        f"The current volcano alert level is {alert.lower()}. "
+        f"The aviation color code is {aviation.lower()}. "
+        f"{details or 'No further HVO details are available in the saved notice.'} "
+        "End of status."
+    )
+    return {
+        "ok": True,
+        "engine": "local_facts",
+        "text": text,
+        "include_timestamp": False,
+        "facts": facts,
+    }
+
+
 def _generate_local(kind: str, *, offline: bool = False) -> dict:
+    if kind == "kilauea":
+        return _kilauea_notice_report()
     if kind == "midday":
         from apps.core.services import midday_report
 
@@ -1393,19 +1443,32 @@ def generate(
         and Path(text_path).is_file()
     ):
         try:
-            from apps.core.services import discord
+            from apps.core.services import discord, reports
 
             channel_id = config.DISCORD_CHANNELS.get("ava_home")
-            posted = discord.post_message_with_files(
-                channel_id,
-                f"Ava {kind} report generated.",
-                [text_path, audio_path],
-            ) if channel_id else None
-            out["discord"] = {
-                "ok": bool(posted),
-                "channel": channel_id,
-                "files": [Path(text_path).name, Path(audio_path).name],
-            }
+            audio_digest = hashlib.sha256(Path(audio_path).read_bytes()).hexdigest()
+            if channel_id and reports.discord_delivery_is_new(
+                kind, channel_id, text, audio_digest
+            ):
+                posted = discord.post_message_with_files(
+                    channel_id,
+                    f"Ava {kind} report generated.",
+                    [text_path, audio_path],
+                )
+                if posted:
+                    reports.mark_discord_delivery(kind, channel_id, text, audio_digest)
+                out["discord"] = {
+                    "ok": bool(posted),
+                    "channel": channel_id,
+                    "files": [Path(text_path).name, Path(audio_path).name],
+                }
+            else:
+                out["discord"] = {
+                    "ok": True,
+                    "skipped": True,
+                    "detail": "unchanged_report",
+                    "channel": channel_id,
+                }
         except Exception as e:
             log.warning("%s Discord report delivery failed: %s", kind, type(e).__name__)
             out["discord"] = {"ok": False, "detail": type(e).__name__}
@@ -1439,6 +1502,7 @@ generate_report = generate
 
 
 _MULTIWORD_PHRASES = (
+    "color_code",
     "hawaii_pacific_solar_root_server",
     "hawaiian_standard_time",
     "here_are_the_local_solar_and_system_statistics",

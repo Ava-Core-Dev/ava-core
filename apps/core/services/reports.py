@@ -5,6 +5,8 @@ Do not use this for operator-only or development messages.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -22,6 +24,7 @@ PUBLIC_KINDS = {"morning", "summary", "solar", "weather", "kilauea"}
 
 CURRENT_MD_NAME = "morning-report-current.md"
 QUEUE_DIR_NAME = "queue"
+DELIVERY_STATE_PATH = config.DATA_DIR / "state" / "report-discord-delivery.json"
 _REPORT_JOBS = (
     ("report-readiness", "Report readiness poll", "every 5 min · before each slot"),
     ("morning-report", "Morning report final retry", "10:00 HST · fallback"),
@@ -65,6 +68,49 @@ def queue_dir() -> Path:
     p = config.REPORTS_DIR / QUEUE_DIR_NAME
     p.mkdir(parents=True, exist_ok=True)
     return p
+
+
+def _delivery_key(kind: str, channel_id: str) -> str:
+    return f"{str(kind or 'report').strip().lower()}:{str(channel_id).strip()}"
+
+
+def discord_delivery_is_new(
+    kind: str,
+    channel_id: str,
+    text: str,
+    variant: str = "",
+) -> bool:
+    """Return whether report text differs from the last successful channel post."""
+    try:
+        state = json.loads(DELIVERY_STATE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        state = {}
+    if not isinstance(state, dict):
+        state = {}
+    digest = hashlib.sha256(
+        (str(text or "").strip() + "\n" + str(variant or "")).encode("utf-8")
+    ).hexdigest()
+    return state.get(_delivery_key(kind, channel_id)) != digest
+
+
+def mark_discord_delivery(
+    kind: str,
+    channel_id: str,
+    text: str,
+    variant: str = "",
+) -> None:
+    """Record a channel post after Discord confirms it succeeded."""
+    try:
+        state = json.loads(DELIVERY_STATE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        state = {}
+    if not isinstance(state, dict):
+        state = {}
+    state[_delivery_key(kind, channel_id)] = hashlib.sha256(
+        (str(text or "").strip() + "\n" + str(variant or "")).encode("utf-8")
+    ).hexdigest()
+    DELIVERY_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DELIVERY_STATE_PATH.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
 
 
 def _hst_now() -> datetime:
@@ -353,8 +399,14 @@ async def publish(
     if channel:
         ch_id = config.DISCORD_CHANNELS.get("ava_home") or config.DISCORD_CHANNELS.get(channel, channel)
         if ch_id:
-            posted = await discord.post_message(ch_id, body[:1900])
-            result["channel"] = bool(posted)
+            if discord_delivery_is_new(kind, ch_id, body):
+                posted = await discord.post_message(ch_id, body[:1900])
+                result["channel"] = bool(posted)
+                if posted:
+                    mark_discord_delivery(kind, ch_id, body)
+            else:
+                result["channel"] = True
+                result["channel_skipped"] = "unchanged"
 
     for row in subscribers.list_all():
         if not subscribers.wants_reports(row):
