@@ -126,8 +126,11 @@ async def run():
 
     reports.queue_public_draft("summary", content, source=f"cron_midday_{engine}")
     report_store.write_current(content, kind="summary", source=f"cron_midday_{engine}")
+    play = None
+    if content.strip() and result.get("ok", True) and not result.get("blocked"):
+        play = await _play_midday_mp3(result.get("tts"))
     after = None
-    # Play deferred to midday_report_play (12:05). Still disarm / close spend on text OK.
+    # Keep the later periodic job as a retry if the director was unavailable here.
     if content.strip() and result.get("ok", True) and not result.get("blocked"):
         after = _after_midday_success(
             engine=str(result.get("engine") or engine),
@@ -147,5 +150,6 @@ async def run():
         "ok": bool(content.strip()) and not result.get("blocked"),
         "engine": result.get("engine") or engine,
         "tts": result.get("tts"),
+        "play": play,
         "after": after,
     }

@@ -185,30 +185,9 @@ async def telegram_loop() -> None:
                 cmd = _parse_cmd(text)
                 from_user = msg.get("from") or {}
                 from_id = str(from_user.get("id") or "")
-                username = str(from_user.get("username") or "")
-                first_name = str(from_user.get("first_name") or "")
-                last_name = str(from_user.get("last_name") or "")
-                label = username or first_name
+                label = str(from_user.get("username") or from_user.get("first_name") or "")
                 if bot_id and from_id == bot_id:
                     continue
-                media_kind = next(
-                    (kind for kind in ("video", "document", "photo", "audio", "voice") if msg.get(kind)),
-                    "",
-                )
-                from apps.core.services import message_audit
-
-                message_audit.append_inbound(
-                    surface="telegram",
-                    chat_id=cid,
-                    chat_type=chat_type,
-                    sender_id=from_id,
-                    username=username,
-                    first_name=first_name,
-                    last_name=last_name,
-                    message_id=msg.get("message_id"),
-                    text=text,
-                    media_kind=media_kind,
-                )
                 telegram_rooms.append_log(cid, "ingest" if text else "group_update", text, from_id)
                 try:
                     from apps.core.services import people
@@ -368,19 +347,6 @@ async def _discord_tick() -> None:
             if not uid or uid == bot_id:
                 continue
             content = str(msg.get("content") or "")
-            from apps.core.services import message_audit
-
-            message_audit.append_inbound(
-                surface="discord",
-                chat_id=cid,
-                chat_type="dm" if cid in dm_ids else "channel",
-                sender_id=uid,
-                username=str(author.get("username") or ""),
-                first_name=str(author.get("global_name") or ""),
-                message_id=msg.get("id"),
-                text=content,
-                media_kind="attachment" if msg.get("attachments") else "",
-            )
             try:
                 from apps.core.services import people
 
@@ -471,20 +437,6 @@ async def slack_loop() -> None:
                     if uid and uid == bot_id:
                         continue
                     text = str(msg.get("text") or "")
-                    from apps.core.services import message_audit
-
-                    slack_chat_type = (
-                        "dm" if cid.startswith("D") else "group_dm" if cid.startswith("G") else "channel"
-                    )
-                    message_audit.append_inbound(
-                        surface="slack",
-                        chat_id=cid,
-                        chat_type=slack_chat_type,
-                        sender_id=uid,
-                        message_id=msg.get("ts"),
-                        text=text,
-                        media_kind="file" if msg.get("files") else "",
-                    )
                     try:
                         from apps.core.services import people
 
