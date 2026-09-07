@@ -74,8 +74,7 @@ function Register-SilentPythonw {
 
 Register-SilentPythonw -Name "watchdog" -ScriptPath (Join-Path $Repo "windows\watchdog.py") -Minutes 1 -TimeoutMinutes 0
 # Task Scheduler on this Windows build rejects PT30S (min repeat is 1 minute).
-# auto-push.py ticks twice inside each minute so edits still hit GitHub in ~30s.
-Register-SilentPythonw -Name "auto-push" -ScriptPath (Join-Path $Repo "scripts\auto-push.py") -Minutes 1 -TimeoutMinutes 5
+Register-SilentPythonw -Name "auto-push" -ScriptPath (Join-Path $Repo "scripts\auto-push.py") -Minutes 15 -TimeoutMinutes 5
 Register-SilentPythonw -Name "auto-pull" -ScriptPath (Join-Path $Repo "scripts\auto-pull.py") -Minutes 10 -TimeoutMinutes 5
 Register-SilentPythonw -Name "site-update" -ScriptPath (Join-Path $Repo "scripts\site-update.py") -Minutes 5 -TimeoutMinutes 10
 Write-Host "Registered pythonw AVA-CORE\watchdog, auto-push, auto-pull, site-update."

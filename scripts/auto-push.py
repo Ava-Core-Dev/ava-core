@@ -123,7 +123,6 @@ def main(argv: list[str]) -> int:
         log("skip: git.exe not found")
         return 1
 
-    # Task Scheduler will not take PT30S on this Windows. Tick twice per 1-min task.
     deadline = time.monotonic() + (0 if once or dry else 50)
     rc = 0
     while True:
