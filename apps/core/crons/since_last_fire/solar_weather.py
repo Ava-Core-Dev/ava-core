@@ -20,6 +20,8 @@ from typing import Any
 
 import httpx
 
+from apps.core import config
+
 log = logging.getLogger("ava.cron.solar_weather")
 
 from apps.core.services.data_layout import (
@@ -38,6 +40,7 @@ APPLIANCE_AC_W = 1000
 _LIVE_CACHE: dict[str, Any] = {}
 SOLAR_NOTES_PATH = Path.home() / "OneDrive" / "Documents" / "Solar Notes.txt"
 SOLAR_NOTES_CUTOFF = "+++Automation Cut Off"
+HYBRID_REPORT_ROOT = config.DATA_DIR / "ecoflow" / "Hybrid Tracking Reports"
 
 
 def _sort_devices(devices: list[dict]) -> list[dict]:
@@ -1010,13 +1013,24 @@ def _history_averages() -> dict:
     }
 
 
-def update_solar_notes(now: datetime | None = None) -> dict:
+def hybrid_daily_report_path(now: datetime) -> Path:
+    """Return the one dated hybrid report that belongs to this HST day."""
+    return (
+        HYBRID_REPORT_ROOT
+        / str(now.year)
+        / now.strftime("%B")
+        / f"hybrid-manual-daily-report-{now:%Y-%m-%d}.md"
+    )
+
+
+def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
     """Insert a quarter-hour EcoFlow status block above the notes cutoff."""
-    if not SOLAR_NOTES_PATH.is_file():
-        return {"ok": False, "detail": "solar_notes_missing", "path": str(SOLAR_NOTES_PATH)}
-    body = SOLAR_NOTES_PATH.read_text(encoding="utf-8", errors="replace")
+    target = path or SOLAR_NOTES_PATH
+    if not target.is_file():
+        return {"ok": False, "detail": "solar_notes_missing", "path": str(target)}
+    body = target.read_text(encoding="utf-8", errors="replace")
     if SOLAR_NOTES_CUTOFF not in body:
-        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(SOLAR_NOTES_PATH)}
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(target)}
 
     from zoneinfo import ZoneInfo
 
@@ -1069,14 +1083,22 @@ def update_solar_notes(now: datetime | None = None) -> dict:
     prefix = body[:cutoff_at]
     prefix = re.sub(r"(?:AUTO \d{4}, ECOFLOW STATUS\n.*?\n\n)+$", "", prefix, flags=re.S)
     updated = prefix.rstrip() + "\n\n" + block + body[cutoff_at:]
-    SOLAR_NOTES_PATH.write_text(updated, encoding="utf-8", newline="\n")
+    target.write_text(updated, encoding="utf-8", newline="\n")
     return {
         "ok": True,
-        "path": str(SOLAR_NOTES_PATH),
+        "path": str(target),
         "stamp": stamp,
         "delta_samples": len(samples["delta"]),
         "river_samples": len(samples["river"]),
     }
+
+
+def update_hybrid_daily_report(now: datetime | None = None) -> dict:
+    """Update only the exact dated hybrid report for the current HST day."""
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    return update_solar_notes(now, path=hybrid_daily_report_path(now))
 
 
 def _attach_rollups(snap: dict) -> dict:

@@ -76,6 +76,19 @@ async def run():
     report_path = config.REPORTS_DIR / f"system-performance-{now.strftime('%Y-%m-%dT%H')}.md"
     report_path.write_text(content, encoding="utf-8")
     try:
+        from apps.core.services import discord, reports
+
+        channel_id = config.DISCORD_CHANNELS.get("ava_home")
+        if channel_id and reports.discord_delivery_is_new("system", channel_id, content):
+            posted = await discord.post_message(channel_id, content[:1900])
+            if posted:
+                reports.mark_discord_delivery("system", channel_id, content)
+                log.info("System performance posted to Discord channel=%s", channel_id)
+        else:
+            log.debug("System performance unchanged; Discord post skipped")
+    except Exception as e:
+        log.warning("System performance Discord post failed: %s", type(e).__name__)
+    try:
         from apps.core.crons.since_last_fire.solar_weather import record_host_sample
         record_host_sample(force=True)
     except Exception as e:

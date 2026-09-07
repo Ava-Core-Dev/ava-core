@@ -386,6 +386,13 @@ class Scheduler:
                 result.get("delta_samples"),
                 result.get("river_samples"),
             )
+        from apps.core.crons.since_last_fire.solar_weather import update_hybrid_daily_report
+
+        hybrid = await asyncio.to_thread(update_hybrid_daily_report)
+        if not hybrid.get("ok"):
+            log.warning("Hybrid daily report update skipped: %s", hybrid.get("detail"))
+        else:
+            log.info("Hybrid daily report updated: %s", hybrid.get("path"))
         return result
 
     @staticmethod
