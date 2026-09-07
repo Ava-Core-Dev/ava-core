@@ -1052,12 +1052,22 @@ def _charge_status_insert(now: datetime) -> str | None:
 
     uptime = int(row.get("uptime_s") or 0)
     return (
-        f"#{now:%H%M}, CHARGE STATUS — {status} | Host battery: {value('battery_pct', '%')} | "
+        f">{now:%H%M}, CHARGE STATUS — {status} | Host battery: {value('battery_pct', '%')} | "
         f"CPU: {value('cpu_pct', '%')} | RAM: {value('mem_pct', '%')} | "
         f"Temp: {value('temp_c', 'C')} | iGPU: {value('gpu_pct', '%')} | "
         f"NPU: {'present' if row.get('npu_present') else 'not found'} | "
         f"Uptime: {uptime // 3600}h {(uptime % 3600) // 60}m"
     )
+
+
+def _strip_legacy_automation_lines(prefix: str) -> str:
+    """Remove stale auto inserts left behind by older report runs."""
+    legacy = re.compile(
+        r"(?m)^(?:#?\d{4},\s*(?:WEATHER|CHARGE STATUS|AUTO ECOFLOW STATUS)|"
+        r"AUTO \d{4},\s*ECOFLOW STATUS|"
+        r">\d{4},\s*(?:WEATHER|CHARGE STATUS|AUTO ECOFLOW STATUS))\s*.*$\n?"
+    )
+    return legacy.sub("", prefix).strip("\n")
 
 
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
@@ -1125,8 +1135,8 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
 
     stamp = now.strftime("%H%M")
     block = (
-        f"#{stamp}, WEATHER — {weather_line}\n"
-        f"#{stamp}, AUTO ECOFLOW STATUS - "
+        f">{stamp}, WEATHER — {weather_line}\n"
+        f">{stamp}, AUTO ECOFLOW STATUS - "
         f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
         f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}\n\n"
     )
@@ -1145,7 +1155,7 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     skip_ecoflow = False
     for line in prefix.splitlines():
         if re.match(
-            r"^(?:#?\d{4},\s*AUTO ECOFLOW STATUS|AUTO \d{4},\s*ECOFLOW STATUS)",
+            r"^(?:[>#]?\d{4},\s*AUTO ECOFLOW STATUS|AUTO \d{4},\s*ECOFLOW STATUS)",
             line,
         ):
             skip_ecoflow = True
@@ -1158,7 +1168,7 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
         skip_ecoflow = False
         cleaned_lines.append(line)
     prefix = "\n".join(cleaned_lines)
-    prefix = re.sub(r"(?:#?\d{4}, WEATHER — .*\n?)+$", "", prefix, flags=re.S)
+    prefix = re.sub(r"(?:[>#]?\d{4}, WEATHER — .*\n?)+$", "", prefix, flags=re.S)
     charge_insert = _charge_status_insert(now)
     if charge_insert:
         prefix = prefix.rstrip() + "\n" + charge_insert + "\n"
