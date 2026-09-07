@@ -374,18 +374,6 @@ class Scheduler:
     async def _run_solar_notes():
         import asyncio
 
-        from apps.core.crons.since_last_fire.solar_weather import update_solar_notes
-
-        result = await asyncio.to_thread(update_solar_notes)
-        if not result.get("ok"):
-            log.warning("Solar Notes update skipped: %s", result.get("detail"))
-        else:
-            log.info(
-                "Solar Notes updated at %s delta_samples=%s river_samples=%s",
-                result.get("stamp"),
-                result.get("delta_samples"),
-                result.get("river_samples"),
-            )
         from apps.core.crons.since_last_fire.solar_weather import update_hybrid_daily_report
 
         hybrid = await asyncio.to_thread(update_hybrid_daily_report)

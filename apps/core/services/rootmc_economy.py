@@ -218,12 +218,11 @@ def format_discord(snap: dict[str, Any], *, now_hst: str, mult_line: str = "") -
 
 
 def economy_discord_channel() -> str:
-    """Prefer the real #automations channel for live economy posts."""
+    """Send live economy posts to Ava's main Discord channel."""
     from apps.core import config
 
     return (
         os.getenv("DISCORD_ECONOMY_STATS_CHANNEL_ID", "").strip()
         or os.getenv("DISCORD_AUTOMATIONS_CHANNEL_ID", "").strip()
-        or "1545284463783710720"
-        or config.DISCORD_CHANNELS.get("automations", "")
+        or config.DISCORD_CHANNELS.get("ava_home", "")
     )

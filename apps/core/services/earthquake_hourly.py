@@ -4,6 +4,7 @@ No Grok TTS. Clip-stitch → WAV. Trigger: top of hour, or new local M≥2.0.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -95,8 +96,6 @@ def _place_token(place: str) -> str | None:
 
 
 def _mag_token(mag: float | None) -> list[str]:
-    if mag is None:
-        return []
     # Speak whole magnitude as integer when close; else skip decimals.
     n = int(round(float(mag)))
     bits = [str(n)]
@@ -300,6 +299,29 @@ async def build_and_maybe_play(
         text_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     except Exception as e:
         log.warning("EQ text write failed: %s", e)
+
+    try:
+        from apps.core.services import discord, reports
+
+        channel_id = config.DISCORD_CHANNELS.get("ava_home")
+        report_text = text_path.read_text(encoding="utf-8") if text_path.is_file() else ""
+        audio_digest = hashlib.sha256(dest.read_bytes()).hexdigest() if dest.is_file() else ""
+        if channel_id and report_text and reports.discord_delivery_is_new(
+            "earthquake", channel_id, report_text, audio_digest
+        ):
+            posted = await asyncio.to_thread(
+                discord.post_message_with_files,
+                channel_id,
+                "Ava earthquake report generated.",
+                [text_path, dest],
+            )
+            if posted:
+                reports.mark_discord_delivery(
+                    "earthquake", channel_id, report_text, audio_digest
+                )
+                log.info("Earthquake report posted to Discord channel=%s", channel_id)
+    except Exception as e:
+        log.warning("Earthquake Discord post failed: %s", type(e).__name__)
 
     seen = set(prev_ids)
     for e in (bundle.get("hawaii") or []) + (bundle.get("global") or []):
