@@ -94,6 +94,7 @@ DEFAULT_MODE_DWELL_S = {
     "all": 60,
     "official": 10,
 }
+DEFAULT_ROTATION_INTERVAL_S = 60
 
 
 def _first_existing(*paths: Path) -> Path | None:
@@ -165,21 +166,41 @@ def _resolve_scene_target(pool: list[str], existing: list[str], current: str | N
 def load_rotation_config() -> dict[str, Any]:
     mode_dwell = dict(DEFAULT_MODE_DWELL_S)
     scene_dwell: dict[str, int] = {}
+    enabled = True
+    interval_s = DEFAULT_ROTATION_INTERVAL_S
     if ROTATION_CFG_PATH.is_file():
         try:
             raw = json.loads(ROTATION_CFG_PATH.read_text())
         except Exception:
             raw = {}
+        if isinstance(raw.get("enabled"), bool):
+            enabled = raw["enabled"]
+        interval_s = _sanitize_dwell(raw.get("interval_s"), DEFAULT_ROTATION_INTERVAL_S)
         for mode, default_s in DEFAULT_MODE_DWELL_S.items():
             mode_dwell[mode] = _sanitize_dwell((raw.get("mode_dwell_s") or {}).get(mode), default_s)
         for scene, dwell in (raw.get("scene_dwell_s") or {}).items():
             if isinstance(scene, str) and scene.strip():
                 scene_dwell[scene] = _sanitize_dwell(dwell, 60)
-    return {"mode_dwell_s": mode_dwell, "scene_dwell_s": scene_dwell}
+    return {
+        "enabled": enabled,
+        "interval_s": interval_s,
+        "mode_dwell_s": mode_dwell,
+        "scene_dwell_s": scene_dwell,
+    }
 
 
-def save_rotation_config(mode_dwell_s: dict[str, Any] | None = None, scene_dwell_s: dict[str, Any] | None = None) -> dict[str, Any]:
+def save_rotation_config(
+    mode_dwell_s: dict[str, Any] | None = None,
+    scene_dwell_s: dict[str, Any] | None = None,
+    *,
+    enabled: bool | None = None,
+    interval_s: Any = None,
+) -> dict[str, Any]:
     cfg = load_rotation_config()
+    if enabled is not None:
+        cfg["enabled"] = bool(enabled)
+    if interval_s is not None:
+        cfg["interval_s"] = _sanitize_dwell(interval_s, cfg["interval_s"])
     if isinstance(mode_dwell_s, dict):
         for mode in DEFAULT_MODE_DWELL_S:
             if mode in mode_dwell_s:
@@ -1314,6 +1335,9 @@ async def _restart_media(obs: ObsClient, input_name: str) -> None:
 
 async def rotate_loop_scene() -> dict:
     """Advance desks only after the current file has finished (or VLC min dwell)."""
+    cfg = load_rotation_config()
+    if not cfg.get("enabled", True):
+        return {"ok": True, "held": "disabled", "enabled": False}
     from apps.core.routes.obs import _kilauea_state, _watch_from_state
     from apps.core.services.minecraft_live import mc_share, record_tick, snapshot
 
@@ -1361,8 +1385,10 @@ async def rotate_loop_scene() -> dict:
         from apps.core.services.obs_overlay_gen import bump_overlay_gen
 
         await refresh_auto_hide()
-        cfg = load_rotation_config()
-        dwell_mode = _sanitize_dwell((cfg.get("mode_dwell_s") or {}).get(mode), 60)
+        dwell_mode = _sanitize_dwell(
+            (cfg.get("mode_dwell_s") or {}).get(mode),
+            cfg.get("interval_s", DEFAULT_ROTATION_INTERVAL_S),
+        )
         dwell_scene = _sanitize_dwell((cfg.get("scene_dwell_s") or {}).get(cur), dwell_mode)
         dwell_s = max(MIN_DWELL_S, dwell_scene)
         st = _load_rotate()

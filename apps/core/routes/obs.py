@@ -1177,6 +1177,8 @@ class SceneVisibilityBody(BaseModel):
 
 
 class RotationConfigBody(BaseModel):
+    enabled: bool | None = None
+    interval_s: int | None = None
     mode_dwell_s: dict[str, int] = {}
     scene_dwell_s: dict[str, int] = {}
 
@@ -1219,6 +1221,11 @@ async def api_obs_rotation_config_get():
 async def api_obs_rotation_config_post(body: RotationConfigBody):
     from apps.core.services.obs_studio import save_rotation_config
 
-    cfg = save_rotation_config(body.mode_dwell_s, body.scene_dwell_s)
+    cfg = save_rotation_config(
+        body.mode_dwell_s,
+        body.scene_dwell_s,
+        enabled=body.enabled,
+        interval_s=body.interval_s,
+    )
     return {"ok": True, **cfg}
 
