@@ -1154,7 +1154,7 @@ def _strip_legacy_automation_lines(prefix: str) -> str:
 
 
 def _append_report_inserts(body: str, inserts: list[str]) -> tuple[str, bool]:
-    """Append new automation lines before the cutoff without rewriting body text."""
+    """Insert new automation lines before the cutoff in timestamp order."""
     unique = []
     for insert in inserts:
         line = insert.rstrip("\r\n")
@@ -1167,8 +1167,21 @@ def _append_report_inserts(body: str, inserts: list[str]) -> tuple[str, bool]:
     before_cutoff = body[:cutoff_at]
     if before_cutoff and not before_cutoff.endswith("\n"):
         before_cutoff += "\n"
-    appended = "".join(f"{line}\n" for line in unique)
-    return before_cutoff + appended + body[cutoff_at:], True
+    for line in unique:
+        stamp_match = re.match(r"^>(\d{4}),", line)
+        if not stamp_match:
+            before_cutoff += f"{line}\n"
+            continue
+        stamp = int(stamp_match.group(1))
+        lines = before_cutoff.splitlines(keepends=True)
+        offset = len(before_cutoff)
+        for index, existing in enumerate(lines):
+            existing_match = re.match(r"^>(\d{4}),", existing)
+            if existing_match and int(existing_match.group(1)) > stamp:
+                offset = sum(len(item) for item in lines[:index])
+                break
+        before_cutoff = before_cutoff[:offset] + f"{line}\n" + before_cutoff[offset:]
+    return before_cutoff + body[cutoff_at:], True
 
 
 def append_hybrid_lifecycle_event(event: str, now: datetime | None = None) -> dict:

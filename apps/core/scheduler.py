@@ -13,6 +13,7 @@ from __future__ import annotations
 import inspect
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -165,10 +166,10 @@ class Scheduler:
 
         s.add_job(
             self._run_solar_notes,
-            CronTrigger(minute="0,15,30,45"),
+            IntervalTrigger(seconds=45),
             id="solar-notes-quarter-hour",
-            name="Solar Notes EcoFlow status (:00/:15/:30/:45)",
-            misfire_grace_time=60,
+            name="Solar Notes EcoFlow status (quarter-hour recovery every 45s)",
+            misfire_grace_time=45,
         )
         s.add_job(
             self._run_hybrid_charge_status,
@@ -383,7 +384,10 @@ class Scheduler:
 
         from apps.core.crons.since_last_fire.solar_weather import update_hybrid_daily_report
 
-        hybrid = await asyncio.to_thread(update_hybrid_daily_report)
+        now = datetime.now(ZoneInfo("Pacific/Honolulu"))
+        quarter = (now.minute // 15) * 15
+        slot = now.replace(minute=quarter, second=0, microsecond=0)
+        hybrid = await asyncio.to_thread(update_hybrid_daily_report, slot)
         if not hybrid.get("ok"):
             log.warning("Hybrid daily report update skipped: %s", hybrid.get("detail"))
         else:
