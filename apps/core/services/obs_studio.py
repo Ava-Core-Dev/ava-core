@@ -132,6 +132,36 @@ def _sanitize_dwell(value: Any, fallback: int = 60) -> int:
     return max(5, min(3600, n))
 
 
+def _resolve_scene_target(pool: list[str], existing: list[str], current: str | None, *, fallback: str = DEFAULT_START_SCENE) -> str:
+    """Return the next valid scene from a preferred pool without assuming a hidden/missing OBS scene exists."""
+    available = [s for s in existing if isinstance(s, str) and s.strip()]
+    if not available:
+        return fallback
+    candidates = [s for s in pool if s in available]
+    if not candidates:
+        if fallback in available:
+            return fallback
+        return available[0]
+    if current is None:
+        return candidates[0]
+    if current in candidates:
+        idx = candidates.index(current)
+        return candidates[(idx + 1) % len(candidates)]
+    for idx, scene in enumerate(pool):
+        if scene in candidates and scene == current:
+            return candidates[(candidates.index(current) + 1) % len(candidates)]
+        if scene == current:
+            next_valid = None
+            for later in pool[idx + 1:]:
+                if later in candidates:
+                    next_valid = later
+                    break
+            if next_valid is not None:
+                return next_valid
+            return candidates[0]
+    return candidates[0]
+
+
 def load_rotation_config() -> dict[str, Any]:
     mode_dwell = dict(DEFAULT_MODE_DWELL_S)
     scene_dwell: dict[str, int] = {}
@@ -1369,16 +1399,20 @@ async def rotate_loop_scene() -> dict:
             base_pool = [scene for scene, _ in SCENES]
         else:
             base_pool = list(AMBIENT_SCENES)
-        # Cap the daily rotator at the explicit topic list — do not re-expand
-        # from every leftover OBS scene name.
+        # Cap the daily rotator at the explicit topic list and only rotate through
+        # scenes that actually exist in the live OBS canvas.
         pool = visible_pool(base_pool)
         if not pool:
             pool = [DEFAULT_START_SCENE]
-        # Prefer topic order; if current isn't in pool, jump to first topic.
-        if cur not in pool:
-            nxt = pool[0]
-        else:
-            nxt = pool[(pool.index(cur) + 1) % len(pool)]
+        pool = [scene for scene in pool if scene in scene_list]
+        if not pool:
+            if scene_list:
+                pool = scene_list
+            else:
+                await obs.req("CreateScene", {"sceneName": DEFAULT_START_SCENE})
+                scene_list = [DEFAULT_START_SCENE]
+                pool = [DEFAULT_START_SCENE]
+        nxt = _resolve_scene_target(pool, scene_list, cur, fallback=DEFAULT_START_SCENE)
         await obs.req("SetCurrentProgramScene", {"sceneName": nxt})
         bump_overlay_gen(nxt, "rotate")
         nxt_media, _ = SCENE_MEDIA.get(nxt, (None, None))
