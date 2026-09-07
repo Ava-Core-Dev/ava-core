@@ -368,19 +368,19 @@ async def _discord_tick() -> None:
             if not uid or uid == bot_id:
                 continue
             content = str(msg.get("content") or "")
-                    from apps.core.services import message_audit
+            from apps.core.services import message_audit
 
-                    message_audit.append_inbound(
-                        surface="discord",
-                        chat_id=cid,
-                        chat_type="dm" if cid in dm_ids else "channel",
-                        sender_id=uid,
-                        username=str(author.get("username") or ""),
-                        first_name=str(author.get("global_name") or ""),
-                        message_id=msg.get("id"),
-                        text=content,
-                        media_kind="attachment" if msg.get("attachments") else "",
-                    )
+            message_audit.append_inbound(
+                surface="discord",
+                chat_id=cid,
+                chat_type="dm" if cid in dm_ids else "channel",
+                sender_id=uid,
+                username=str(author.get("username") or ""),
+                first_name=str(author.get("global_name") or ""),
+                message_id=msg.get("id"),
+                text=content,
+                media_kind="attachment" if msg.get("attachments") else "",
+            )
             try:
                 from apps.core.services import people
 

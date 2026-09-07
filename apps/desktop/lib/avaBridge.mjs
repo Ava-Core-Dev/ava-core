@@ -772,6 +772,20 @@ export async function listTelegramChats(env) {
 
   // Discover more chats from recent logs
   const logDir = path.join(handoffRoot(), "data", "logs");
+  for (const line of readJsonlTail(path.join(logDir, "messages-inbound.jsonl"), 4000)) {
+    try {
+      const j = JSON.parse(line);
+      if (String(j.surface || "").toLowerCase() !== "telegram") continue;
+      const cid = normalizeTgChatId(j.chatId);
+      if (!cid) continue;
+      const label = j.isDm
+        ? `dm · ${j.username ? `@${j.username}` : [j.firstName, j.lastName].filter(Boolean).join(" ") || cid}`
+        : `group · ${cid}`;
+      add(cid, label, j.isDm ? "private" : "group");
+    } catch {
+      /* ignore malformed audit rows */
+    }
+  }
   for (const file of ["inbound.jsonl", "outbound.jsonl"]) {
     for (const line of readJsonlTail(path.join(logDir, file), 2500)) {
       try {
@@ -1140,6 +1154,24 @@ export async function fetchTelegramHistory(env, chatId, limit = 42) {
 
   // 2) Inbound / outbound action logs
   const logDir = path.join(handoffRoot(), "data", "logs");
+  for (const line of readJsonlTail(path.join(logDir, "messages-inbound.jsonl"), 10000)) {
+    try {
+      const j = JSON.parse(line);
+      if (String(j.surface || "").toLowerCase() !== "telegram") continue;
+      if (!tgChannelMatches(j.chatId, id)) continue;
+      const identity = j.username
+        ? `@${j.username}`
+        : [j.firstName, j.lastName].filter(Boolean).join(" ");
+      pushMsg({
+        who: identity || j.senderId || "user",
+        text: j.text || (j.mediaKind ? `[${j.mediaKind}]` : ""),
+        id: j.messageId || null,
+        at: j.at || 0,
+      });
+    } catch {
+      /* ignore malformed audit rows */
+    }
+  }
   for (const line of readJsonlTail(path.join(logDir, "inbound.jsonl"))) {
     try {
       const j = JSON.parse(line);
