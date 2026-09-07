@@ -170,6 +170,13 @@ class Scheduler:
             name="Solar Notes EcoFlow status (:00/:15/:30/:45)",
             misfire_grace_time=60,
         )
+        s.add_job(
+            self._run_hybrid_charge_status,
+            IntervalTrigger(minutes=1),
+            id="hybrid-charge-status",
+            name="Hybrid charge status (every minute)",
+            misfire_grace_time=30,
+        )
 
         s.add_job(self._run("system_perf"), CronTrigger(minute=6),
                   id="system-performance", name="System performance", misfire_grace_time=120)
@@ -381,6 +388,19 @@ class Scheduler:
             log.warning("Hybrid daily report update skipped: %s", hybrid.get("detail"))
         else:
             log.info("Hybrid daily report updated: %s", hybrid.get("path"))
+        return hybrid
+
+    @staticmethod
+    async def _run_hybrid_charge_status():
+        import asyncio
+
+        from apps.core.crons.since_last_fire.solar_weather import update_hybrid_charge_status
+
+        result = await asyncio.to_thread(update_hybrid_charge_status)
+        if not result.get("ok"):
+            log.warning("Hybrid charge status update skipped: %s", result.get("detail"))
+        elif result.get("detail") == "inserted":
+            log.info("Hybrid charge status inserted: %s", result.get("path"))
         return result
 
     @staticmethod

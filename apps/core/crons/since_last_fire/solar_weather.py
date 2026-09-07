@@ -1158,6 +1158,24 @@ def _strip_legacy_automation_lines(prefix: str) -> str:
     return legacy.sub("", prefix).strip("\n")
 
 
+def _append_report_inserts(body: str, inserts: list[str]) -> tuple[str, bool]:
+    """Append new automation lines before the cutoff without rewriting body text."""
+    unique = []
+    for insert in inserts:
+        line = insert.rstrip("\r\n")
+        if line and line not in body:
+            unique.append(line)
+    if not unique:
+        return body, False
+
+    cutoff_at = body.index(SOLAR_NOTES_CUTOFF)
+    before_cutoff = body[:cutoff_at]
+    if before_cutoff and not before_cutoff.endswith("\n"):
+        before_cutoff += "\n"
+    appended = "".join(f"{line}\n" for line in unique)
+    return before_cutoff + appended + body[cutoff_at:], True
+
+
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
     """Insert quarter-hour weather and EcoFlow status above the notes cutoff."""
     target = path or SOLAR_NOTES_PATH
@@ -1222,35 +1240,12 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
         pass
 
     stamp = now.strftime("%H%M")
-    block = (
-        f">{stamp}, WEATHER — {weather_line}\n"
+    weather_insert = f">{stamp}, WEATHER — {weather_line}"
+    ecoflow_insert = (
         f">{stamp}, ECOFLOW STATUS - "
         f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
-        f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}\n\n"
+        f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}"
     )
-    cutoff_at = body.index(SOLAR_NOTES_CUTOFF)
-    prefix = body[:cutoff_at]
-    forecast_marker = re.compile(
-        r"#Predicted Forcast for today:\n#(?:[^\n]*)\n#(?:\n|$)",
-        re.I,
-    )
-    prefix = forecast_marker.sub(
-        f"#Predicted Forcast for today:\n# {weather_line}\n#\n",
-        prefix,
-        count=1,
-    )
-    # Remove only complete, explicitly formatted automation lines. Never infer
-    # that a following Delta/River line is generated; it may be a manual note.
-    prefix = "\n".join(
-        line for line in prefix.splitlines()
-        if not re.match(
-            r"^(?:[>#]?\d{4},\s*AUTO ECOFLOW STATUS|AUTO \d{4},\s*ECOFLOW STATUS)",
-            line,
-        )
-    )
-    prefix = re.sub(r"(?:[>#]?\d{4}, WEATHER — .*\n?)+$", "", prefix, flags=re.S)
-    prefix = _strip_legacy_automation_lines(prefix)
-
     inserts: list[str] = []
     charge_insert = _charge_status_insert(now, body)
     if charge_insert:
@@ -1258,8 +1253,12 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     power_insert = _power_automation_insert(now)
     if power_insert:
         inserts.append(power_insert)
+    inserts.extend((weather_insert, ecoflow_insert))
 
-    if inserts and "\n".join(inserts) in body:
+    updated, inserted = _append_report_inserts(body, inserts)
+    if inserted:
+        target.write_text(updated, encoding="utf-8", newline="\n")
+    else:
         return {
             "ok": True,
             "path": str(target),
@@ -1268,12 +1267,6 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
             "river_samples": len(samples["river"]),
             "detail": "already_present",
         }
-
-    if inserts:
-        prefix = prefix.rstrip() + "\n" + "\n".join(inserts) + "\n"
-
-    updated = prefix.rstrip() + "\n\n" + block + body[cutoff_at:]
-    target.write_text(updated, encoding="utf-8", newline="\n")
     return {
         "ok": True,
         "path": str(target),
@@ -1289,6 +1282,27 @@ def update_hybrid_daily_report(now: datetime | None = None) -> dict:
 
     now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
     return update_solar_notes(now, path=hybrid_daily_report_path(now))
+
+
+def update_hybrid_charge_status(now: datetime | None = None) -> dict:
+    """Append a host charge transition without running the quarter-hour block."""
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    target = hybrid_daily_report_path(now)
+    if not target.is_file():
+        return {"ok": False, "detail": "hybrid_report_missing", "path": str(target)}
+    body = target.read_text(encoding="utf-8", errors="replace")
+    if SOLAR_NOTES_CUTOFF not in body:
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(target)}
+
+    charge_insert = _charge_status_insert(now, body)
+    if not charge_insert:
+        return {"ok": True, "path": str(target), "detail": "unchanged"}
+    updated, inserted = _append_report_inserts(body, [charge_insert])
+    if inserted:
+        target.write_text(updated, encoding="utf-8", newline="\n")
+    return {"ok": True, "path": str(target), "detail": "inserted" if inserted else "already_present"}
 
 
 def _attach_rollups(snap: dict) -> dict:
