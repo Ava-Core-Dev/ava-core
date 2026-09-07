@@ -163,6 +163,14 @@ class Scheduler:
         s.add_job(self._run("solar_weather"), CronTrigger(minute=4),
                   id="hourly-solar-weather", name="Hourly solar+weather", misfire_grace_time=120)
 
+        s.add_job(
+            self._run_solar_notes,
+            CronTrigger(minute="0,15,30,45"),
+            id="solar-notes-quarter-hour",
+            name="Solar Notes EcoFlow status (:00/:15/:30/:45)",
+            misfire_grace_time=60,
+        )
+
         s.add_job(self._run("system_perf"), CronTrigger(minute=6),
                   id="system-performance", name="System performance", misfire_grace_time=120)
 
@@ -361,6 +369,24 @@ class Scheduler:
         from apps.core.crons.since_last_fire import hourly_clip_reports
 
         await hourly_clip_reports.prebuild()
+
+    @staticmethod
+    async def _run_solar_notes():
+        import asyncio
+
+        from apps.core.crons.since_last_fire.solar_weather import update_solar_notes
+
+        result = await asyncio.to_thread(update_solar_notes)
+        if not result.get("ok"):
+            log.warning("Solar Notes update skipped: %s", result.get("detail"))
+        else:
+            log.info(
+                "Solar Notes updated at %s delta_samples=%s river_samples=%s",
+                result.get("stamp"),
+                result.get("delta_samples"),
+                result.get("river_samples"),
+            )
+        return result
 
     @staticmethod
     async def _eq_poll_m2():

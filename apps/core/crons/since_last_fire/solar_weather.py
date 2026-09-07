@@ -12,6 +12,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,6 +36,8 @@ from apps.core.services.data_layout import (
 ECO_STALE_S = 3 * 60
 APPLIANCE_AC_W = 1000
 _LIVE_CACHE: dict[str, Any] = {}
+SOLAR_NOTES_PATH = Path.home() / "OneDrive" / "Documents" / "Solar Notes.txt"
+SOLAR_NOTES_CUTOFF = "+++Automation Cut Off"
 
 
 def _sort_devices(devices: list[dict]) -> list[dict]:
@@ -1004,6 +1007,75 @@ def _history_averages() -> dict:
         "soc_1h_pct": _mean(soc_recent),
         "solar_morning_w": _mean(solar_morn),
         "samples_1h": len(load_recent),
+    }
+
+
+def update_solar_notes(now: datetime | None = None) -> dict:
+    """Insert a quarter-hour EcoFlow status block above the notes cutoff."""
+    if not SOLAR_NOTES_PATH.is_file():
+        return {"ok": False, "detail": "solar_notes_missing", "path": str(SOLAR_NOTES_PATH)}
+    body = SOLAR_NOTES_PATH.read_text(encoding="utf-8", errors="replace")
+    if SOLAR_NOTES_CUTOFF not in body:
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(SOLAR_NOTES_PATH)}
+
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    if now.minute not in {0, 15, 30, 45}:
+        return {"ok": False, "detail": "not_quarter_hour", "minute": now.minute}
+    now_ms = int(now.timestamp() * 1000)
+    start_ms = now_ms - 15 * 60 * 1000
+    latest: dict[str, dict] = {}
+    samples: dict[str, list[dict[str, float | int | None]]] = {"delta": [], "river": []}
+    for root in _ecoflow_roots():
+        hist = root / "history"
+        if not hist.is_dir():
+            continue
+        for device, row in _iter_history_rows(hist, tail=800):
+            role = _device_role(device)
+            if role not in samples:
+                continue
+            at_ms = _parse_history_at_ms(row, now_ms)
+            if at_ms is None or at_ms > now_ms or at_ms < start_ms:
+                continue
+            try:
+                sample = {
+                    "in_w": float(row.get("solarW")) if row.get("solarW") is not None else None,
+                    "out_w": float(row.get("outW")) if row.get("outW") is not None else None,
+                    "soc": float(row.get("soc")) if row.get("soc") is not None else None,
+                    "at_ms": at_ms,
+                }
+            except (TypeError, ValueError):
+                continue
+            samples[role].append(sample)
+            if role not in latest or at_ms > latest[role]["at_ms"]:
+                latest[role] = sample
+
+    def avg(role: str, key: str) -> str:
+        vals = [float(s[key]) for s in samples[role] if s.get(key) is not None]
+        return f"{sum(vals) / len(vals):.0f} W" if vals else "n/a"
+
+    def pct(role: str) -> str:
+        value = latest.get(role, {}).get("soc")
+        return f"{float(value):.0f}%" if value is not None and 0 <= float(value) <= 100 else "n/a"
+
+    stamp = now.strftime("%H%M")
+    block = (
+        f"AUTO {stamp}, ECOFLOW STATUS\n"
+        f"- DELTA 2: Average 15-minute In/Out: {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current: {pct('delta')}\n"
+        f"- RIVER 2 PRO: Average 15-minute In/Out: {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current: {pct('river')}\n\n"
+    )
+    cutoff_at = body.index(SOLAR_NOTES_CUTOFF)
+    prefix = body[:cutoff_at]
+    prefix = re.sub(r"(?:AUTO \d{4}, ECOFLOW STATUS\n.*?\n\n)+$", "", prefix, flags=re.S)
+    updated = prefix.rstrip() + "\n\n" + block + body[cutoff_at:]
+    SOLAR_NOTES_PATH.write_text(updated, encoding="utf-8", newline="\n")
+    return {
+        "ok": True,
+        "path": str(SOLAR_NOTES_PATH),
+        "stamp": stamp,
+        "delta_samples": len(samples["delta"]),
+        "river_samples": len(samples["river"]),
     }
 
 
