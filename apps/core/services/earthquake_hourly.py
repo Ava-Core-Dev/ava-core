@@ -171,7 +171,7 @@ async def fetch_bundle() -> dict:
     )
     global_ev = await _fetch(
         {
-            "minmagnitude": 4.5,
+            "minmagnitude": 2.5,
             "limit": 40,
         }
     )
@@ -190,8 +190,42 @@ def facts_fingerprint(bundle: dict) -> str:
     return hashlib.md5("\n".join(rows).encode()).hexdigest()
 
 
+def _magnitude_at_least(events: list[dict], minimum: float = 2.5) -> list[dict]:
+    out = []
+    for event in events:
+        try:
+            if float(event.get("mag") or 0) >= minimum:
+                out.append(event)
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def _new_events(events: list[dict], previous_ids: set[str]) -> list[dict]:
+    return [event for event in events if event.get("id") and event["id"] not in previous_ids]
+
+
+def _event_report_lines(label: str, events: list[dict]) -> list[str]:
+    lines = [f"## {label} Changes Since Last Report"]
+    if not events:
+        lines.append("- No new earthquakes.")
+        return lines
+    for event in events[:12]:
+        lines.append(f"- M{event.get('mag')} {event.get('place')}")
+    if len(events) > 12:
+        lines.append(f"- ...and {len(events) - 12} more new earthquakes.")
+    return lines
+
+
+def _twenty_four_hour_lines(label: str, events: list[dict]) -> list[str]:
+    qualifying = _magnitude_at_least(events)
+    largest = max((float(e.get("mag")) for e in qualifying), default=None)
+    detail = f"; largest M{largest:g}" if largest is not None else ""
+    return [f"## {label} 24-Hour M2.5+ Summary", f"- {len(qualifying)} earthquakes{detail}."]
+
+
 def build_clip_script(bundle: dict, *, now: datetime | None = None) -> str:
-    from apps.voice.clips import _find_clip
+    from apps.voice.clips import _find_clip, _number_to_clips
     from apps.voice.local_tts import clock_tokens
 
     now = now or datetime.now(HST)
@@ -201,26 +235,48 @@ def build_clip_script(bundle: dict, *, now: datetime | None = None) -> str:
             bits.append(stem)
     bits += clock_tokens(now.hour, now.minute)
 
-    # Hawaii: counts by magnitude (e.g. "3 magnitude 2") — never spam one line per quake.
+    previous_ids = set((_load_state().get("seen_ids") or []))
     hi = list(bundle.get("hawaii") or [])
-    hi_buckets = _mag_buckets(hi)
+    glob = list(bundle.get("global") or [])
+    fresh_hi = _new_events(hi, previous_ids)
+    fresh_global = _new_events(glob, previous_ids)
+
+    # Announce only changes, while retaining a 24-hour M2.5+ rollup.
+    hi_buckets = _mag_buckets(fresh_hi)
     if hi_buckets:
         if _find_clip("hawaii"):
             bits.append("hawaii")
+        if _find_clip("changes"):
+            bits.append("changes")
+        if _find_clip("since"):
+            bits.append("since")
+        if _find_clip("last"):
+            bits.append("last")
+        if _find_clip("report"):
+            bits.append("report")
         bits += _bucket_bits(hi_buckets[:_MAX_HI])
     else:
         if _find_clip("hawaii") and _find_clip("quiet"):
             bits += ["hawaii", "quiet"]
 
-    # Global: same rollup (M≥4.5 feed). Cap distinct magnitude buckets.
-    glob = list(bundle.get("global") or [])
-    glob_buckets = _mag_buckets(glob)
+    def summary_bits(label: str, events: list[dict]) -> list[str]:
+        count = len(_magnitude_at_least(events))
+        if not all(_find_clip(token) for token in (label, "events", "last", "hours")):
+            return []
+        return [label, *_number_to_clips(count), "events", "last", "24", "hours"]
+
+    bits += summary_bits("hawaii", hi)
+
+    # Global: same change-only behavior, with the 24-hour feed now at M2.5+.
+    glob_buckets = _mag_buckets(fresh_global)
     if glob_buckets:
         if _find_clip("global"):
             bits.append("global")
         if _find_clip("earthquakes"):
             bits.append("earthquakes")
         bits += _bucket_bits(glob_buckets[:_MAX_GLOBAL])
+
+    bits += summary_bits("global", glob)
 
     if _find_clip("end_of_status"):
         bits.append("end_of_status")
@@ -260,9 +316,11 @@ async def build_and_maybe_play(
     bundle = await fetch_bundle()
     fp = facts_fingerprint(bundle)
     prev_ids = set(prev.get("seen_ids") or [])
+    fresh_hi = _new_events(list(bundle.get("hawaii") or []), prev_ids)
+    fresh_global = _new_events(list(bundle.get("global") or []), prev_ids)
     fresh_m2 = new_local_m2(bundle, prev_ids)
     changed = fp != str(prev.get("hash") or "")
-    should_announce = bool(force or reason == "hourly" or fresh_m2)
+    should_announce = bool(force or changed or fresh_m2)
 
     dest = config.GENERATED_DIR / "earthquake-hourly-current.wav"
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -281,22 +339,27 @@ async def build_and_maybe_play(
                 pass
 
     text_path = config.REPORTS_DIR / "earthquake-hourly-current.md"
+    report_body = ""
+    report_facts = ""
     try:
         config.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
         lines = [
-            f"# Earthquake hourly — {datetime.now(HST).isoformat()}",
             f"reason: {reason}",
             f"script: {script}",
             "",
-            "## Hawaii",
         ]
-        for e in (bundle.get("hawaii") or [])[:12]:
-            lines.append(f"- M{e.get('mag')} {e.get('place')}")
         lines.append("")
-        lines.append("## Global")
-        for e in (bundle.get("global") or [])[:12]:
-            lines.append(f"- M{e.get('mag')} {e.get('place')}")
-        text_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        lines.extend(_event_report_lines("Hawaii", fresh_hi))
+        lines.append("")
+        lines.extend(_twenty_four_hour_lines("Hawaii", list(bundle.get("hawaii") or [])))
+        lines.append("")
+        lines.extend(_event_report_lines("Global", fresh_global))
+        lines.append("")
+        lines.extend(_twenty_four_hour_lines("Global", list(bundle.get("global") or [])))
+        report_facts = "\n".join(lines) + "\n"
+        report_body = f"# Earthquake hourly — {datetime.now(HST).isoformat()}\n{report_facts}"
+        if report_facts != str(prev.get("report_facts") or ""):
+            text_path.write_text(report_body, encoding="utf-8")
     except Exception as e:
         log.warning("EQ text write failed: %s", e)
 
@@ -336,8 +399,10 @@ async def build_and_maybe_play(
         "hawaii_n": len(bundle.get("hawaii") or []),
         "global_n": len(bundle.get("global") or []),
         "fresh_local_m2": [e.get("id") for e in fresh_m2],
+        "fresh_global": [e.get("id") for e in fresh_global],
         "seen_ids": seen_list,
         "script": script,
+        "report_facts": report_facts,
         "wav": str(dest) if dest.is_file() else None,
     }
     _save_state(state)

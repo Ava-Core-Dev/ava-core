@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import re
+import textwrap
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1206,11 +1207,19 @@ def _hybrid_prediction_inserts(stamp: str) -> tuple[str | None, str | None]:
         weather_report = latest_report("nws-weather-*.md")
         if weather_report:
             weather_body = weather_report.read_text(encoding="utf-8", errors="replace")
-            periods = re.findall(
-                r"^###\s+([^\n]+)\n([^\n]+)\n([^\n]+)",
+            periods = []
+            for match in re.finditer(
+                r"^###\s+([^\n]+)\n(.*?)(?=^###\s+|\Z)",
                 weather_body,
-                re.M,
-            )
+                re.M | re.S,
+            ):
+                period_lines = [
+                    re.sub(r"\s+", " ", line).strip()
+                    for line in match.group(2).splitlines()
+                    if line.strip()
+                ]
+                if len(period_lines) >= 2:
+                    periods.append((match.group(1), period_lines[0], period_lines[1]))
             windows = []
             for name, summary, detail in periods[:4]:
                 windows.append(f"{name.strip()}: {re.sub(r'\\s+', ' ', summary).strip()} | {re.sub(r'\\s+', ' ', detail).strip()}")
@@ -1222,16 +1231,71 @@ def _hybrid_prediction_inserts(stamp: str) -> tuple[str | None, str | None]:
             for name, window in alerts[:8]:
                 windows.append(f"ALERT {name.strip()}: {re.sub(r'\\s+', ' ', window).strip()}")
             if windows:
-                weather_insert = f">{stamp}, WEATHER WINDOWS — " + " || ".join(windows)
+                weather_lines = [f">{stamp}, WEATHER WINDOWS — {windows[0]}" ]
+                weather_lines.extend(f">{window}" for window in windows[1:])
+                weather_insert = "\n".join(weather_lines)
 
         kilauea_report = latest_report("kilauea-*.md")
         if kilauea_report:
             kilauea_body = re.sub(r"\s+", " ", kilauea_report.read_text(encoding="utf-8", errors="replace")).strip()
             if kilauea_body:
-                kilauea_insert = f">{stamp}, KILAUEA PREDICTION — {kilauea_body[:900]}"
+                wrapped = textwrap.wrap(kilauea_body[:900], width=180, break_long_words=False)
+                if wrapped:
+                    kilauea_lines = [f">{stamp}, KILAUEA PREDICTION — {wrapped[0]}" ]
+                    kilauea_lines.extend(f">{line}" for line in wrapped[1:])
+                    kilauea_insert = "\n".join(kilauea_lines)
     except Exception:
         pass
     return weather_insert, kilauea_insert
+
+
+def _replace_hybrid_prediction_sections(
+    body: str,
+    weather_insert: str | None,
+    kilauea_insert: str | None,
+) -> tuple[str, bool]:
+    """Replace generated forecast sections while preserving surrounding notes."""
+    updated = body
+    changed = False
+    if weather_insert:
+        weather_pattern = re.compile(
+            r"(?ms)^(### Weather Forecast\s*\n).*?(?:^\+\+\+END WEATHER FORECAST\s*$|(?=^### Kilauea Prediction\s*$))"
+        )
+        replacement = f"\\1{weather_insert}\n+++END WEATHER FORECAST\n\n"
+        candidate, count = weather_pattern.subn(replacement, updated, count=1)
+        changed = changed or candidate != updated
+        updated = candidate
+    if kilauea_insert:
+        kilauea_pattern = re.compile(
+            r"(?ms)^(### Kilauea Prediction\s*\n).*?(?:^\+\+\+END KILAUEA PREDICTION\s*$|(?=^## HYBRID NOTES FOR ))"
+        )
+        replacement = f"\\1{kilauea_insert}\n+++END KILAUEA PREDICTION\n\n"
+        candidate, count = kilauea_pattern.subn(replacement, updated, count=1)
+        changed = changed or candidate != updated
+        updated = candidate
+    for marker in ("+++END WEATHER FORECAST", "+++END KILAUEA PREDICTION"):
+        duplicate_marker = re.compile(
+            rf"(?m)^{re.escape(marker)}\s*$\n(?:\s*\n)*(?=^{re.escape(marker)}\s*$)"
+        )
+        candidate = duplicate_marker.sub("", updated)
+        changed = changed or candidate != updated
+        updated = candidate
+    return updated, changed
+
+
+def _remove_legacy_prediction_inserts(body: str) -> str:
+    """Remove older appended prediction blocks from the manual-notes area."""
+    marker = re.search(r"^## HYBRID NOTES FOR .*?$", body, re.M)
+    if not marker:
+        return body
+    prefix = body[: marker.end()]
+    notes = body[marker.end() :]
+    legacy = re.compile(
+        r"(?m)^(?:>\d{4}, (?:WEATHER WINDOWS|KILAUEA PREDICTION) —|"
+        r"> \[KILAUEA_PREDICTION - INSERT ON AVA BOOT\]).*"
+        r"(?:\n(?!>\d{4}, )>[^\n]*)*\n?"
+    )
+    return prefix + legacy.sub("", notes)
 
 
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
@@ -1311,12 +1375,13 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     if power_insert:
         inserts.append(power_insert)
     inserts.extend((weather_insert, ecoflow_insert))
-    if weather_windows_insert:
-        inserts.append(weather_windows_insert)
-    if kilauea_insert:
-        inserts.append(kilauea_insert)
-
-    updated, inserted = _append_report_inserts(body, inserts)
+    cleaned_body = _remove_legacy_prediction_inserts(body)
+    cleanup_changed = cleaned_body != body
+    updated, sections_changed = _replace_hybrid_prediction_sections(
+        cleaned_body, weather_windows_insert, kilauea_insert
+    )
+    updated, inserted = _append_report_inserts(updated, inserts)
+    inserted = inserted or sections_changed or cleanup_changed
     if inserted:
         target.write_text(updated, encoding="utf-8", newline="\n")
     else:
