@@ -277,8 +277,7 @@ function createWindow() {
   // Do not re-fire from the GUI — reload / brief disconnects were spamming
   // "Root Record is online. I'm back."
 
-  // Closing the GUI must not kill origin — Ava stays up as the root server.
-  // Music bed + desk-spawned ops are stopped on quit (see handleDeskClose).
+  // Closing the GUI is an explicit full AVA shutdown.
 
   mainWindow.on("close", () => {
     try {
@@ -305,6 +304,13 @@ function createWindow() {
 async function handleDeskClose(reason) {
   if (deskCloseHandled) return;
   deskCloseHandled = true;
+
+  if (reason === "window-all-closed" || reason === "before-quit") {
+    operatorPurgeRunning = true;
+    await runOperatorPurgeScript(["--json"]);
+    return;
+  }
+
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {
       try {
