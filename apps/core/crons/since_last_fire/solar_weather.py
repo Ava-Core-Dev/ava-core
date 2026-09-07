@@ -1230,6 +1230,16 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     if power_insert:
         inserts.append(power_insert)
 
+    if inserts and "\n".join(inserts) in body:
+        return {
+            "ok": True,
+            "path": str(target),
+            "stamp": stamp,
+            "delta_samples": len(samples["delta"]),
+            "river_samples": len(samples["river"]),
+            "detail": "already_present",
+        }
+
     if inserts:
         prefix = prefix.rstrip() + "\n" + "\n".join(inserts) + "\n"
 
