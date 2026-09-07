@@ -41,6 +41,7 @@ _LIVE_CACHE: dict[str, Any] = {}
 SOLAR_NOTES_PATH = Path.home() / "OneDrive" / "Documents" / "Solar Notes.txt"
 SOLAR_NOTES_CUTOFF = "+++Automation Cut Off"
 HYBRID_REPORT_ROOT = config.DATA_DIR / "ecoflow" / "Hybrid Tracking Reports"
+HYBRID_CHARGE_STATE_PATH = config.DATA_DIR / "state" / "hybrid-charge-status.json"
 
 
 def _sort_devices(devices: list[dict]) -> list[dict]:
@@ -1023,6 +1024,42 @@ def hybrid_daily_report_path(now: datetime) -> Path:
     )
 
 
+def _charge_status_insert(now: datetime) -> str | None:
+    """Return an insert only when host Charging/Battery mode changes."""
+    from apps.core.host_metrics import snapshot
+
+    row = snapshot(home=config.AVA_HOME) or {}
+    plugged = row.get("battery_plugged")
+    if plugged is None:
+        return None
+    status = "Charging" if bool(plugged) else "Battery"
+    try:
+        prior = json.loads(HYBRID_CHARGE_STATE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        prior = {}
+    changed = prior.get("status") != status
+    HYBRID_CHARGE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HYBRID_CHARGE_STATE_PATH.write_text(
+        json.dumps({"status": status, "updated_at": now.isoformat()}) + "\n",
+        encoding="utf-8",
+    )
+    if not changed:
+        return None
+
+    def value(key: str, suffix: str = "") -> str:
+        raw = row.get(key)
+        return f"{float(raw):.0f}{suffix}" if raw is not None else "n/a"
+
+    uptime = int(row.get("uptime_s") or 0)
+    return (
+        f"#{now:%H%M}, CHARGE STATUS — {status} | Host battery: {value('battery_pct', '%')} | "
+        f"CPU: {value('cpu_pct', '%')} | RAM: {value('mem_pct', '%')} | "
+        f"Temp: {value('temp_c', 'C')} | iGPU: {value('gpu_pct', '%')} | "
+        f"NPU: {'present' if row.get('npu_present') else 'not found'} | "
+        f"Uptime: {uptime // 3600}h {(uptime % 3600) // 60}m"
+    )
+
+
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
     """Insert a quarter-hour EcoFlow status block above the notes cutoff."""
     target = path or SOLAR_NOTES_PATH
@@ -1075,13 +1112,16 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
 
     stamp = now.strftime("%H%M")
     block = (
-        f"AUTO {stamp}, ECOFLOW STATUS\n"
-        f"- DELTA 2: Average 15-minute In/Out: {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current: {pct('delta')}\n"
-        f"- RIVER 2 PRO: Average 15-minute In/Out: {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current: {pct('river')}\n\n"
+        f"#{stamp}, AUTO ECOFLOW STATUS - "
+        f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
+        f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}\n\n"
     )
     cutoff_at = body.index(SOLAR_NOTES_CUTOFF)
     prefix = body[:cutoff_at]
     prefix = re.sub(r"(?:AUTO \d{4}, ECOFLOW STATUS\n.*?\n\n)+$", "", prefix, flags=re.S)
+    charge_insert = _charge_status_insert(now)
+    if charge_insert:
+        prefix = prefix.rstrip() + "\n" + charge_insert + "\n"
     updated = prefix.rstrip() + "\n\n" + block + body[cutoff_at:]
     target.write_text(updated, encoding="utf-8", newline="\n")
     return {
