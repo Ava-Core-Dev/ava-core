@@ -1061,7 +1061,7 @@ def _charge_status_insert(now: datetime) -> str | None:
 
 
 def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
-    """Insert a quarter-hour EcoFlow status block above the notes cutoff."""
+    """Insert quarter-hour weather and EcoFlow status above the notes cutoff."""
     target = path or SOLAR_NOTES_PATH
     if not target.is_file():
         return {"ok": False, "detail": "solar_notes_missing", "path": str(target)}
@@ -1110,15 +1110,55 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
         value = latest.get(role, {}).get("soc")
         return f"{float(value):.0f}%" if value is not None and 0 <= float(value) <= 100 else "n/a"
 
+    weather_line = "n/a"
+    try:
+        from apps.core.services.reports import latest_report
+
+        weather_report = latest_report("nws-weather-*.md")
+        if weather_report:
+            weather_body = weather_report.read_text(encoding="utf-8", errors="replace")
+            weather_match = re.search(r"^###?\s*[^\n]+\n([^\n]+)", weather_body, re.M)
+            if weather_match:
+                weather_line = re.sub(r"\s+", " ", weather_match.group(1)).strip()
+    except Exception:
+        pass
+
     stamp = now.strftime("%H%M")
     block = (
+        f"#{stamp}, WEATHER — {weather_line}\n"
         f"#{stamp}, AUTO ECOFLOW STATUS - "
         f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
         f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}\n\n"
     )
     cutoff_at = body.index(SOLAR_NOTES_CUTOFF)
     prefix = body[:cutoff_at]
-    prefix = re.sub(r"(?:AUTO \d{4}, ECOFLOW STATUS\n.*?\n\n)+$", "", prefix, flags=re.S)
+    forecast_marker = re.compile(
+        r"#Predicted Forcast for today:\n#(?:[^\n]*)\n#(?:\n|$)",
+        re.I,
+    )
+    prefix = forecast_marker.sub(
+        f"#Predicted Forcast for today:\n# {weather_line}\n#\n",
+        prefix,
+        count=1,
+    )
+    cleaned_lines: list[str] = []
+    skip_ecoflow = False
+    for line in prefix.splitlines():
+        if re.match(
+            r"^(?:#?\d{4},\s*AUTO ECOFLOW STATUS|AUTO \d{4},\s*ECOFLOW STATUS)",
+            line,
+        ):
+            skip_ecoflow = True
+            continue
+        if skip_ecoflow and (
+            re.match(r"^#?-?\s*(?:DELTA 2|RIVER 2 PRO):", line)
+            or not line.strip()
+        ):
+            continue
+        skip_ecoflow = False
+        cleaned_lines.append(line)
+    prefix = "\n".join(cleaned_lines)
+    prefix = re.sub(r"(?:#?\d{4}, WEATHER — .*\n?)+$", "", prefix, flags=re.S)
     charge_insert = _charge_status_insert(now)
     if charge_insert:
         prefix = prefix.rstrip() + "\n" + charge_insert + "\n"
