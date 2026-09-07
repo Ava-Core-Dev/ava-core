@@ -1381,6 +1381,31 @@ def generate(
             "mp3_mode": mp3_mode,
         }
 
+    # Deliver only complete report pairs: the dated markdown plus generated audio.
+    tts = out.get("tts") or {}
+    audio_path = tts.get("current") or tts.get("mp3")
+    text_path = (out.get("files") or {}).get("dated")
+    if audio_path and text_path and Path(audio_path).is_file() and Path(text_path).is_file():
+        try:
+            from apps.core.services import discord
+
+            channel_id = config.DISCORD_CHANNELS.get("ava_home")
+            posted = discord.post_message_with_files(
+                channel_id,
+                f"Ava {kind} report generated.",
+                [text_path, audio_path],
+            ) if channel_id else None
+            out["discord"] = {
+                "ok": bool(posted),
+                "channel": channel_id,
+                "files": [Path(text_path).name, Path(audio_path).name],
+            }
+        except Exception as e:
+            log.warning("%s Discord report delivery failed: %s", kind, type(e).__name__)
+            out["discord"] = {"ok": False, "detail": type(e).__name__}
+    else:
+        out["discord"] = {"ok": False, "skipped": True, "detail": "incomplete_report_pair"}
+
     if update_board and kind in {"morning", "midday", "evening", "late"}:
         try:
             from apps.core.services import daily_report_board

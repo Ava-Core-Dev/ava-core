@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import mimetypes
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -78,6 +81,65 @@ async def post_message(channel_id: str, content: str, ref_id: str | None = None)
             if i < len(parts) - 1:
                 await asyncio.sleep(0.35)
     return first
+
+
+def post_message_with_files(
+    channel_id: str,
+    content: str,
+    file_paths: list[str | Path],
+) -> dict | None:
+    """Post a short message with local files as Discord attachments."""
+    if not config.discord_bot_token():
+        log.info("Discord file post skipped (no bot token)")
+        return None
+    paths = [Path(p) for p in file_paths if p and Path(p).is_file()]
+    if not paths:
+        return None
+    paths = paths[:10]
+    payload = {
+        "content": str(content or "")[:2000],
+        "allowed_mentions": {"parse": []},
+        "attachments": [
+            {"id": i, "filename": path.name} for i, path in enumerate(paths)
+        ],
+    }
+    files = {
+        "payload_json": (None, json.dumps(payload), "application/json"),
+    }
+    handles = []
+    try:
+        for i, path in enumerate(paths):
+            handle = path.open("rb")
+            handles.append(handle)
+            files[f"files[{i}]"] = (
+                path.name,
+                handle,
+                mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+            )
+        with httpx.Client(timeout=30) as client:
+            response = client.post(
+                f"{config.DISCORD_API}/channels/{channel_id}/messages",
+                headers={
+                    "Authorization": f"Bot {config.discord_bot_token()}",
+                    "User-Agent": "AvaIvyRootMC (rootmc.net, 2.0)",
+                },
+                files=files,
+            )
+        if response.status_code not in (200, 201):
+            log.error(
+                "Discord file post failed ch=%s status=%s body=%s",
+                channel_id,
+                response.status_code,
+                response.text[:300],
+            )
+            return None
+        return response.json()
+    except Exception:
+        log.exception("Discord file post errored ch=%s", channel_id)
+        return None
+    finally:
+        for handle in handles:
+            handle.close()
 
 
 async def pin_message(channel_id: str, message_id: str) -> bool:
