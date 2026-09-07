@@ -1063,9 +1063,11 @@ def _charge_status_insert(now: datetime) -> str | None:
 def _strip_legacy_automation_lines(prefix: str) -> str:
     """Remove stale auto inserts left behind by older report runs."""
     legacy = re.compile(
-        r"(?m)^(?:#?\d{4},\s*(?:WEATHER|CHARGE STATUS|AUTO ECOFLOW STATUS)|"
+        r"(?m)^(?:#?\d{4},\s*(?:WEATHER|CHARGE STATUS)|"
+        r"#?\d{4},\s*AUTO ECOFLOW STATUS|"
         r"AUTO \d{4},\s*ECOFLOW STATUS|"
-        r">\d{4},\s*(?:WEATHER|CHARGE STATUS|AUTO ECOFLOW STATUS))\s*.*$\n?"
+        r">\d{4},\s*(?:WEATHER|CHARGE STATUS|AUTO ECOFLOW STATUS)|"
+        r">\d{4},\s*ECOFLOW STATUS)\s*.*$\n?"
     )
     return legacy.sub("", prefix).strip("\n")
 
@@ -1136,7 +1138,7 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
     stamp = now.strftime("%H%M")
     block = (
         f">{stamp}, WEATHER — {weather_line}\n"
-        f">{stamp}, AUTO ECOFLOW STATUS - "
+        f">{stamp}, ECOFLOW STATUS - "
         f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
         f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}\n\n"
     )
