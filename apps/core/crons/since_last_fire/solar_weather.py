@@ -1060,14 +1060,63 @@ def _charge_status_insert(now: datetime) -> str | None:
     )
 
 
+def _power_automation_insert(now: datetime) -> str | None:
+    """Write the latest Delta 2 AC and river-feed automation state once per change."""
+    state_path = config.DATA_DIR / "state" / "ecoflow-ac-solar-gate.json"
+    if not state_path.is_file():
+        return None
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(state, dict):
+        return None
+
+    action = state.get("last_action")
+    if action is None:
+        action = state.get("desired_ac")
+    if action not in {"on", "off"}:
+        return None
+
+    input_w = state.get("last_input_w")
+    total_in = state.get("last_total_in_w")
+    soc = state.get("last_soc")
+    status = "ON" if action == "on" else "OFF"
+    river_feed = "ACTIVE" if action == "on" else "IDLE"
+    input_txt = f"{float(input_w):.0f}W" if input_w is not None else "n/a"
+    total_txt = f"{float(total_in):.0f}W" if total_in is not None else "n/a"
+    soc_txt = f"{float(soc):.0f}%" if soc is not None else "n/a"
+
+    prior_path = config.DATA_DIR / "state" / "hybrid-power-automation-state.json"
+    try:
+        prior = json.loads(prior_path.read_text(encoding="utf-8")) if prior_path.is_file() else {}
+    except (OSError, ValueError):
+        prior = {}
+    key = f"{action}|{input_w}|{total_in}|{soc}"
+    changed = prior.get("key") != key
+    prior_path.parent.mkdir(parents=True, exist_ok=True)
+    prior_path.write_text(
+        json.dumps({"key": key, "action": action, "updated_at": now.isoformat()}) + "\n",
+        encoding="utf-8",
+    )
+    if not changed:
+        return None
+
+    return (
+        f">{now:%H%M}, POWER AUTOMATION — DELTA 2 AC AUTO {status} | "
+        f"status: {status} | input {input_txt} | total in {total_txt} | "
+        f"Delta SOC {soc_txt} | River feed {river_feed}"
+    )
+
+
 def _strip_legacy_automation_lines(prefix: str) -> str:
     """Remove stale auto inserts left behind by older report runs."""
     legacy = re.compile(
-        r"(?m)^(?:#?\d{4},\s*(?:WEATHER|CHARGE STATUS)|"
-        r"#?\d{4},\s*AUTO ECOFLOW STATUS|"
-        r"AUTO \d{4},\s*ECOFLOW STATUS|"
-        r">\d{4},\s*(?:WEATHER|CHARGE STATUS|AUTO ECOFLOW STATUS)|"
-        r">\d{4},\s*ECOFLOW STATUS)\s*.*$\n?"
+        r"(?m)^(?:#?\d{4},\s*(?:WEATHER|CHARGE STATUS|POWER AUTOMATION)|"
+        r"#?\d{4},\s*(?:AUTO ECOFLOW STATUS|ECOFLOW STATUS)|"
+        r"AUTO \d{4},\s*(?:ECOFLOW STATUS|POWER AUTOMATION)|"
+        r">\d{4},\s*(?:WEATHER|CHARGE STATUS|POWER AUTOMATION|AUTO ECOFLOW STATUS)|"
+        r">\d{4},\s*(?:ECOFLOW STATUS|POWER AUTOMATION))\s*.*$\n?"
     )
     return legacy.sub("", prefix).strip("\n")
 
@@ -1171,9 +1220,19 @@ def update_solar_notes(now: datetime | None = None, path: Path | None = None) ->
         cleaned_lines.append(line)
     prefix = "\n".join(cleaned_lines)
     prefix = re.sub(r"(?:[>#]?\d{4}, WEATHER — .*\n?)+$", "", prefix, flags=re.S)
+    prefix = _strip_legacy_automation_lines(prefix)
+
+    inserts: list[str] = []
     charge_insert = _charge_status_insert(now)
     if charge_insert:
-        prefix = prefix.rstrip() + "\n" + charge_insert + "\n"
+        inserts.append(charge_insert)
+    power_insert = _power_automation_insert(now)
+    if power_insert:
+        inserts.append(power_insert)
+
+    if inserts:
+        prefix = prefix.rstrip() + "\n" + "\n".join(inserts) + "\n"
+
     updated = prefix.rstrip() + "\n\n" + block + body[cutoff_at:]
     target.write_text(updated, encoding="utf-8", newline="\n")
     return {
