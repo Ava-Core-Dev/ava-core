@@ -118,8 +118,19 @@ def mark_announced(*, clip: str = "") -> None:
     _save(st)
 
 
+def _first_existing(*paths: Path) -> Path | None:
+    for p in paths:
+        if p and p.is_file():
+            return p
+    return None
+
+
 def clip_path(name: str = CLIP_BACK) -> Path:
-    return config.ASSETS_DIR / "words" / f"{name}.mp3"
+    base = config.ASSETS_DIR / "words" / name
+    existing = _first_existing(base.with_suffix(".wav"), base.with_suffix(".mp3"), base)
+    if existing is not None:
+        return existing
+    return base.with_suffix(".wav")
 
 
 def choose_clip(*, force: bool = False) -> tuple[str, Path, float]:
