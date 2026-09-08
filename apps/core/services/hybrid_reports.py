@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-_PROCESSOR_FILE = Path.home() / "Processors" / "Hybrid Tracking Reports" / "hybrid_reports.py"
+_PROCESSOR_FILE = Path.home() / "RootRecord Core Ops" / "Hybrid Tracking Reports" / "hybrid_reports.py"
 
 if not _PROCESSOR_FILE.is_file():
     raise FileNotFoundError(f"Hybrid report processor is missing: {_PROCESSOR_FILE}")
