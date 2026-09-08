@@ -54,7 +54,9 @@ def latest_report(pattern: str) -> Path | None:
     if pattern.startswith("nws-weather-"):
         files = [
             p for p in DAILY_REPORTS_ROOT.rglob(pattern)
-            if p.is_file() and p.stat().st_size > 0
+            if p.is_file()
+            and p.stat().st_size > 0
+            and not p.name.startswith("nws-weather-alert-")
         ]
     else:
         files = [

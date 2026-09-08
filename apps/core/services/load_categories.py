@@ -274,7 +274,7 @@ def bank_state(devices: list[dict]) -> str:
     src = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_out"), None)
     dst = next((d.get("label") for d in devices if d.get("ac_role") == "transfer_in"), None)
     if src and dst:
-        bits.append(f"transfer {src} → {dst}")
+        bits.append(f"transfer {src} -> {dst}")
     elif cats["transfer_w"] >= 20:
         bits.append("AC transfer")
     house_ac = float(cats["starlink_lights_w"] or 0) + float(cats["emergency_pack_w"] or 0)
@@ -288,7 +288,7 @@ def bank_state(devices: list[dict]) -> str:
         bits.append("PV charging")
     if cats["server_mobile_w"] > 20:
         bits.append("server + mobile")
-    return " · ".join(bits) or "idle"
+    return " | ".join(bits) or "idle"
 
 
 def night_charge_callout(devices: list[dict], *, sun: dict | None = None) -> dict | None:
