@@ -36,6 +36,7 @@ const DEFAULTS = {
   page: "terminal",
   bounds: null,
   musicWanted: false,
+  startAvaOnLaunch: false,
   radioLocal: false,
   musicTrack: null,
   closedAt: null,
@@ -52,6 +53,7 @@ export function loadDeskUiState(root = deskAvaRoot()) {
       ...j,
       page: String(j.page || DEFAULTS.page),
       musicWanted: Boolean(j.musicWanted),
+      startAvaOnLaunch: Boolean(j.startAvaOnLaunch),
       radioLocal:
         j.radioLocal === undefined || j.radioLocal === null
           ? null

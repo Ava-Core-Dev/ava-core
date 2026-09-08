@@ -144,6 +144,12 @@ let operatorPurgeRunning = false;
 let lastDeskPage = "terminal";
 
 const DESK_ROOT = deskAvaRoot();
+const OPERATOR_PURGE_SCRIPT = path.join(
+  os.homedir(),
+  "RootRecord Core Ops",
+  "WatchDog",
+  "operator_purge.py",
+);
 
 function runOperatorPurgeScript(args = []) {
   const python =
@@ -151,7 +157,7 @@ function runOperatorPurgeScript(args = []) {
       path.join(DESK_ROOT, ".venv", "Scripts", "python.exe"),
       path.join(DESK_ROOT, ".venv", "Scripts", "pythonw.exe"),
     ].find((p) => fs.existsSync(p)) || "python";
-  const script = path.join(DESK_ROOT, "windows", "operator_purge.py");
+  const script = OPERATOR_PURGE_SCRIPT;
   return new Promise((resolve) => {
     let out = "";
     let err = "";
@@ -523,19 +529,22 @@ if (!app.requestSingleInstanceLock()) {
 app.whenReady().then(async () => {
   if (!app.hasSingleInstanceLock()) return;
   deskCloseHandled = false;
+  const launchState = loadDeskUiState(DESK_ROOT);
   // Reopening Desk undoes Clear desk purge (tasks + origin) — no manual --clear.
-  if (!operatorPurgeRunning) {
+  if (launchState.startAvaOnLaunch && !operatorPurgeRunning) {
     try {
       await clearOperatorPurgeOnOpen();
     } catch (err) {
       console.error("operator purge clear-on-open failed:", err?.message || err);
     }
   }
-  // Start Ava Core + Voice with the GUI. Closing the window does not stop origin.
-  try {
-    await startAvaSession();
-  } catch (err) {
-    console.error("Ava session start failed:", err?.message || err);
+  // Start Ava Core + Voice only when boot-on-launch is enabled.
+  if (launchState.startAvaOnLaunch) {
+    try {
+      await startAvaSession();
+    } catch (err) {
+      console.error("Ava session start failed:", err?.message || err);
+    }
   }
 
   createWindow();
@@ -549,10 +558,13 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       deskCloseHandled = false;
-      clearOperatorPurgeOnOpen()
+      const state = loadDeskUiState(DESK_ROOT);
+      const resume = state.startAvaOnLaunch ? clearOperatorPurgeOnOpen() : Promise.resolve();
+      resume
         .catch(() => {})
         .finally(() => {
-          startAvaSession().finally(() => {
+          const start = state.startAvaOnLaunch ? startAvaSession() : Promise.resolve();
+          start.finally(() => {
             createWindow();
             setTimeout(() => {
               restoreDeskSession().catch(() => {});

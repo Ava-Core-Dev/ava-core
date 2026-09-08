@@ -59,6 +59,7 @@ document.querySelectorAll(".tab").forEach((btn) => {
     if (btn.dataset.page === "automation") refreshAutomationPage();
     if (btn.dataset.page === "terminal") refreshTerminalLive();
     if (btn.dataset.page === "settings") {
+      refreshStartupPreference();
       refreshConnectionForm();
       refreshGitSyncPrefs();
       refreshDeskFeatures();
@@ -78,6 +79,25 @@ function syncPurgeButton() {
   if (!btn || !box) return;
   btn.disabled = !box.checked || btn.dataset.busy === "1";
 }
+
+async function refreshStartupPreference() {
+  const result = await window.avaDesktop?.deskUiGet?.();
+  const input = $("start-ava-on-launch");
+  if (input) input.checked = result?.state?.startAvaOnLaunch === true;
+}
+
+$("start-ava-on-launch-save")?.addEventListener("click", async () => {
+  const input = $("start-ava-on-launch");
+  const status = $("start-ava-on-launch-status");
+  try {
+    const result = await window.avaDesktop?.deskUiSave?.({
+      startAvaOnLaunch: Boolean(input?.checked),
+    });
+    if (status) status.textContent = result?.ok ? "Saved." : "Could not save startup preference.";
+  } catch (err) {
+    if (status) status.textContent = `Could not save startup preference: ${err?.message || err}`;
+  }
+});
 
 $("purge-confirm")?.addEventListener("change", () => syncPurgeButton());
 
