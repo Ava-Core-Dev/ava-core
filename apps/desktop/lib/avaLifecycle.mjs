@@ -159,7 +159,7 @@ async function healthOk() {
 function spawnCore() {
   if (isWin) {
     const pyw = path.join(AVA_ROOT, ".venv", "Scripts", "pythonw.exe");
-    const watch = path.join(AVA_ROOT, "windows", "watchdog.py");
+    const watch = path.join(process.env.USERPROFILE || "C:\\Users\\rootr", "RootRecord Core Ops", "WatchDog", "watchdog.py");
     const cmd = fs.existsSync(pyw) ? pyw : "pythonw";
     spawn(cmd, [watch], {
       cwd: AVA_ROOT,

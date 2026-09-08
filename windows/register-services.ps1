@@ -3,6 +3,7 @@
 
 $ErrorActionPreference = "Stop"
 $Repo = Split-Path -Parent $PSScriptRoot
+$WatchDogRoot = Join-Path (Split-Path -Parent $Repo) "RootRecord Core Ops\WatchDog"
 $Pythonw = Join-Path $Repo ".venv\Scripts\pythonw.exe"
 if (-not (Test-Path -LiteralPath $Pythonw)) { throw "missing $Pythonw" }
 
@@ -72,7 +73,7 @@ function Register-SilentPythonw {
   schtasks /Create /TN "AVA-CORE\$Name" /XML $xmlPath /F | Out-Host
 }
 
-Register-SilentPythonw -Name "watchdog" -ScriptPath (Join-Path $Repo "windows\watchdog.py") -Minutes 1 -TimeoutMinutes 0
+Register-SilentPythonw -Name "watchdog" -ScriptPath (Join-Path $WatchDogRoot "watchdog.py") -Minutes 1 -TimeoutMinutes 0
 # Task Scheduler on this Windows build rejects PT30S (min repeat is 1 minute).
 Register-SilentPythonw -Name "auto-push" -ScriptPath (Join-Path $Repo "scripts\auto-push.py") -Minutes 15 -TimeoutMinutes 5
 Register-SilentPythonw -Name "auto-pull" -ScriptPath (Join-Path $Repo "scripts\auto-pull.py") -Minutes 10 -TimeoutMinutes 5
