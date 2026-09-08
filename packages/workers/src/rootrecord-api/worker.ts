@@ -8,7 +8,6 @@ import { goalsHiddenPage, maintenancePage } from "../shared/maintenancePage";
 import type { AvaEnv, ScheduledEvent } from "../shared/types";
 
 const ORIGIN = "https://origin.avaivy.cloud";
-const ACCOUNT_API = "https://rootrecord-api-account.rootrecord.workers.dev";
 const PAGES_FRONTEND = "https://rootrecord-info.pages.dev";
 const PROXIED_PREFIXES = ["/api/", "/obs/", "/health"];
 

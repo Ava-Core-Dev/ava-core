@@ -78,7 +78,7 @@ async function ecoflowGet(
       "User-Agent": "AvaIvy/2.0 (CF EcoFlow)",
     },
   });
-  const json = await res.json().catch(() => null);
+  const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   const code = json?.code != null ? String(json.code) : "0";
   return { ok: res.ok && code === "0", json };
 }
@@ -431,7 +431,7 @@ export async function pollAndStoreEcoflow(env: EcoflowEnv): Promise<Record<strin
 }
 
 export function solarDeskFromStored(stored: Record<string, unknown> | null): Response {
-  const base = stored && typeof stored === "object" ? { ...stored } : { detail: "no_snapshot" };
+  const base: Record<string, unknown> = stored && typeof stored === "object" ? { ...stored } : { detail: "no_snapshot" };
   // Never keep ecoflow_live on a Worker-served bank — that label means origin.
   const ageHint =
     typeof base.updated_at === "string"
