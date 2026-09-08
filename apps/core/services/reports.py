@@ -18,6 +18,7 @@ from . import discord, subscribers, telegram
 log = logging.getLogger("ava.reports")
 
 HST = ZoneInfo("Pacific/Honolulu")
+DAILY_REPORTS_ROOT = Path.home() / "RootRecord Core Ops" / "Reports"
 
 # Public report kinds subscribers opted into. Everything else stays off the list.
 PUBLIC_KINDS = {"morning", "summary", "solar", "weather", "kilauea"}
@@ -49,12 +50,17 @@ _REPORT_JOBS = (
 
 
 def latest_report(pattern: str) -> Path | None:
-    """Newest non-empty markdown in REPORTS_DIR. Empty stubs must not win."""
-    files = [
-        p
-        for p in config.REPORTS_DIR.glob(pattern)
-        if p.is_file() and p.stat().st_size > 0
-    ]
+    """Newest non-empty report, using the migrated daily root for Weather."""
+    if pattern.startswith("nws-weather-"):
+        files = [
+            p for p in DAILY_REPORTS_ROOT.rglob(pattern)
+            if p.is_file() and p.stat().st_size > 0
+        ]
+    else:
+        files = [
+            p for p in config.REPORTS_DIR.glob(pattern)
+            if p.is_file() and p.stat().st_size > 0
+        ]
     if not files:
         return None
     return max(files, key=lambda p: p.stat().st_mtime)
