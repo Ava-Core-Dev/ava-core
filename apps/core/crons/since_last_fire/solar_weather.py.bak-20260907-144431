@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import re
+import textwrap
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,6 +39,117 @@ from apps.core.services.data_layout import (
 ECO_STALE_S = 3 * 60
 APPLIANCE_AC_W = 1000
 _LIVE_CACHE: dict[str, Any] = {}
+SOLAR_NOTES_PATH = Path.home() / "OneDrive" / "Documents" / "Solar Notes.txt"
+SOLAR_NOTES_CUTOFF = "+++Automation Cut Off"
+HYBRID_REPORT_ROOT = config.DATA_DIR / "ecoflow" / "Hybrid Tracking Reports"
+HYBRID_CHARGE_STATE_PATH = config.DATA_DIR / "state" / "hybrid-charge-status.json"
+HYBRID_REPORT_LINE_LIMIT = 111
+
+
+def _automated_lines(stamp: str, content: str) -> str:
+    """Format an automated report block using the current hybrid layout."""
+    prefix = f"> ◇ **{stamp}** — "
+    width = max(1, HYBRID_REPORT_LINE_LIMIT - len(prefix))
+    lines = []
+    for paragraph in content.splitlines() or [""]:
+        wrapped = textwrap.wrap(
+            re.sub(r"\s+", " ", paragraph).strip(),
+            width=width,
+            break_long_words=False,
+            break_on_hyphens=False,
+        ) or [""]
+        lines.extend(f"{prefix}{line}" for line in wrapped)
+    return "\n".join(lines)
+
+
+def _hybrid_report_template(now: datetime) -> str:
+    """Return the canonical starting layout for a new hybrid report."""
+    date_label = f"{now:%B} {now.day}, {now:%Y}"
+    return f"""# HYBRID TRACKING REPORT
+## {date_label}
+
+---
+
+## FIELD NOTES
+
+### Terms
+
+- **East / West Prop** — Solar panels have a manual prop to angle them toward the sun.
+- **EcoFlow capacitor singing** — A high-pitched morning voltage noise that stops when output steadies.
+- **LCD display beep** — The Delta 2 display beeps when a few watts begin, before full supply.
+- **Morning position** — Back panels raised to the east.
+- **First wattage** — Initial LCD wattage, fluctuating from 0–15 W while panels release bursts.
+- **Noon position** — Flat.
+- **Afternoon position** — Back panels flat, front panel propped to the west.
+
+### Morning Steps (Critical)
+
+- Set morning position.
+- Turn phone on before EcoFlow polling / AVA boot.
+
+## TYPICAL POWER COSTS
+
+| Device | Power Draw |
+|---|---|
+| Laptop | 67 W DC while charging; 11–25 W when full |
+| Starlink | 30–60 W AC; 110 W while booting |
+| Hard drive dock | 11 W DC steady |
+| Ryobi battery | — W per battery |
+| LCD second screen | 5–10 W DC |
+| Ninebot battery | — W while charging |
+
+## BATTERY CAPACITIES
+
+| Battery | Usable Capacity |
+|---|---|
+| River 2 Pro | 600 Wh |
+| Delta 2 | 900 Wh |
+| Ninebot Epack | 220 Wh |
+| Laptop | 59 Wh |
+
+## MAX SOLAR INPUTS
+
+| Unit | Max Input |
+|---|---|
+| River 2 Pro | 220 W |
+| Delta 2 | 500 W |
+
+---
+
+## DAILY CONDITIONS
+
+### Weather Forecast
+
+> ◇ **0000** — Weather pending
++++END WEATHER FORECAST
+
+### Kilauea Prediction
+
+> ◇ **0000** — Kīlauea status pending
++++END KILAUEA PREDICTION
+
+## HYBRID NOTES FOR {date_label.upper()}
+
+**Legend**
+> ◆ = Manual entry
+> ◇ = Automated entry
+
+*This is a hybrid manual report.*
+
++++Automation Cut Off
+
+## Daily To-Do
+
+| Time | Task |
+|---|---|
+| 0500–0600 / 1930 | Raise to morning position |
+| 1100 | Lower to noon (flat) position |
+| 1500 | Raise front for west-facing |
+
+---
+
+*End of report — {date_label}*
+"""
 
 
 def _sort_devices(devices: list[dict]) -> list[dict]:
@@ -1008,6 +1120,453 @@ def _history_averages() -> dict:
         "solar_morning_w": _mean(solar_morn),
         "samples_1h": len(load_recent),
     }
+
+
+def hybrid_daily_report_path(now: datetime) -> Path:
+    """Return the one dated hybrid report that belongs to this HST day."""
+    return (
+        HYBRID_REPORT_ROOT
+        / str(now.year)
+        / now.strftime("%B")
+        / f"hybrid-manual-daily-report-{now:%Y-%m-%d}.md"
+    )
+
+
+def ensure_hybrid_daily_report(now: datetime) -> Path:
+    """Create a missing daily report using the canonical hybrid layout."""
+    target = hybrid_daily_report_path(now)
+    if target.is_file():
+        body = target.read_text(encoding="utf-8", errors="replace")
+        legacy_empty = (
+            "## DAILY CONDITIONS" not in body
+            and "Daily To Do:" in body
+            and "This is a HYBRID manual report." in body
+            and not re.search(r"(?m)^\s*>?\s*[◇◆]\s*\*\*\d{4}", body)
+        )
+        if not legacy_empty:
+            return target
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(_hybrid_report_template(now), encoding="utf-8", newline="\n")
+    return target
+
+
+def _charge_status_insert(now: datetime, report_body: str | None = None) -> str | None:
+    """Return an insert only when host Charging/Battery mode changes."""
+    from apps.core.host_metrics import snapshot
+
+    row = snapshot(home=config.AVA_HOME) or {}
+    plugged = row.get("battery_plugged")
+    if plugged is None:
+        return None
+    status = "Charging" if bool(plugged) else "Battery"
+    try:
+        battery_pct = float(row.get("battery_pct"))
+    except (TypeError, ValueError):
+        battery_pct = None
+    try:
+        prior = json.loads(HYBRID_CHARGE_STATE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        prior = {}
+
+    try:
+        prior_pct = float(prior.get("battery_pct"))
+    except (TypeError, ValueError):
+        prior_pct = None
+    prior_status = prior.get("status")
+    changed = prior_status != status
+    if report_body is not None:
+        latest_charge = re.findall(
+            r"^(?:>\d{4},|> ◇ \*\*\d{4}\*\* —) CHARGE STATUS — "
+            r"(Charging|Battery) \| Host battery: ([^%|]+)%",
+            report_body,
+            re.M,
+        )
+        if latest_charge:
+            report_status, report_pct = latest_charge[-1]
+            try:
+                report_pct_f = float(report_pct.strip())
+            except ValueError:
+                report_pct_f = None
+            changed = changed or report_status != status
+
+    HYBRID_CHARGE_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HYBRID_CHARGE_STATE_PATH.write_text(
+        json.dumps(
+            {
+                "status": status,
+                "battery_pct": battery_pct,
+                "updated_at": now.isoformat(),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    if not changed:
+        return None
+
+    def value(key: str, suffix: str = "") -> str:
+        raw = row.get(key)
+        return f"{float(raw):.0f}{suffix}" if raw is not None else "n/a"
+
+    uptime = int(row.get("uptime_s") or 0)
+    return _automated_lines(now.strftime("%H%M"), (
+        f"CHARGE STATUS — {status} | Host battery: {value('battery_pct', '%')} | "
+        f"CPU: {value('cpu_pct', '%')} | RAM: {value('mem_pct', '%')} | "
+        f"Temp: {value('temp_c', 'C')} | iGPU: {value('gpu_pct', '%')} | "
+        f"NPU: {'present' if row.get('npu_present') else 'not found'} | "
+        f"Uptime: {uptime // 3600}h {(uptime % 3600) // 60}m"
+    ))
+
+
+def _power_automation_insert(now: datetime) -> str | None:
+    """Write the latest Delta 2 AC and river-feed automation state once per change."""
+    state_path = config.DATA_DIR / "state" / "ecoflow-ac-solar-gate.json"
+    if not state_path.is_file():
+        return None
+    try:
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(state, dict):
+        return None
+
+    action = state.get("last_action")
+    if action is None:
+        action = state.get("desired_ac")
+    if action not in {"on", "off"}:
+        return None
+
+    input_w = state.get("last_input_w")
+    total_in = state.get("last_total_in_w")
+    soc = state.get("last_soc")
+    status = "ON" if action == "on" else "OFF"
+    river_feed = "ACTIVE" if action == "on" else "IDLE"
+    input_txt = f"{float(input_w):.0f}W" if input_w is not None else "n/a"
+    total_txt = f"{float(total_in):.0f}W" if total_in is not None else "n/a"
+    soc_txt = f"{float(soc):.0f}%" if soc is not None else "n/a"
+
+    prior_path = config.DATA_DIR / "state" / "hybrid-power-automation-state.json"
+    try:
+        prior = json.loads(prior_path.read_text(encoding="utf-8")) if prior_path.is_file() else {}
+    except (OSError, ValueError):
+        prior = {}
+    key = f"{action}|{input_w}|{total_in}|{soc}"
+    changed = prior.get("key") != key
+    prior_path.parent.mkdir(parents=True, exist_ok=True)
+    prior_path.write_text(
+        json.dumps({"key": key, "action": action, "updated_at": now.isoformat()}) + "\n",
+        encoding="utf-8",
+    )
+    if not changed:
+        return None
+
+    return _automated_lines(now.strftime("%H%M"), (
+        f"POWER AUTOMATION — DELTA 2 AC AUTO {status} | "
+        f"status: {status} | input {input_txt} | total in {total_txt} | "
+        f"Delta SOC {soc_txt} | River feed {river_feed}"
+    ))
+
+
+def _strip_legacy_automation_lines(prefix: str) -> str:
+    """Remove stale auto inserts left behind by older report runs."""
+    legacy = re.compile(
+        r"(?m)^(?:#?\d{4},\s*(?:WEATHER|CHARGE STATUS|POWER AUTOMATION)|"
+        r"#?\d{4},\s*(?:AUTO ECOFLOW STATUS|ECOFLOW STATUS)|"
+        r"AUTO \d{4},\s*(?:ECOFLOW STATUS|POWER AUTOMATION)|"
+        r">\d{4},\s*(?:WEATHER|CHARGE STATUS|POWER AUTOMATION|AUTO ECOFLOW STATUS)|"
+        r">\d{4},\s*(?:ECOFLOW STATUS|POWER AUTOMATION))\s*.*$\n?"
+    )
+    return legacy.sub("", prefix).strip("\n")
+
+
+def _append_report_inserts(body: str, inserts: list[str]) -> tuple[str, bool]:
+    """Insert new automation lines before the cutoff in timestamp order."""
+    unique = []
+    for insert in inserts:
+        line = insert.rstrip("\r\n")
+        if line and line not in body:
+            unique.append(line)
+    if not unique:
+        return body, False
+
+    cutoff_at = body.index(SOLAR_NOTES_CUTOFF)
+    before_cutoff = body[:cutoff_at]
+    if before_cutoff and not before_cutoff.endswith("\n"):
+        before_cutoff += "\n"
+    for line in unique:
+        stamp_match = re.match(r"^> ◇ \*\*(\d{4})\*\* —", line)
+        if not stamp_match:
+            before_cutoff += f"{line}\n"
+            continue
+        stamp = int(stamp_match.group(1))
+        lines = before_cutoff.splitlines(keepends=True)
+        offset = len(before_cutoff)
+        for index, existing in enumerate(lines):
+            existing_match = re.match(r"^> ◇ \*\*(\d{4})\*\* —", existing)
+            if existing_match and int(existing_match.group(1)) > stamp:
+                offset = sum(len(item) for item in lines[:index])
+                break
+                before_cutoff = before_cutoff[:offset] + f"{line}\n\n" + before_cutoff[offset:]
+    return before_cutoff + body[cutoff_at:], True
+
+
+def append_hybrid_lifecycle_event(event: str, now: datetime | None = None) -> dict:
+    """Append one AVA STARTED/STOPPED lifecycle entry to the dated report."""
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    target = hybrid_daily_report_path(now)
+    if not target.is_file():
+        return {"ok": False, "detail": "hybrid_report_missing", "path": str(target)}
+    body = target.read_text(encoding="utf-8", errors="replace")
+    if SOLAR_NOTES_CUTOFF not in body:
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(target)}
+    normalized = event.strip().upper()
+    if normalized not in {"STARTED", "STOPPED"}:
+        return {"ok": False, "detail": "invalid_lifecycle_event", "event": event}
+    line = _automated_lines(now.strftime("%H%M"), f"AVA {normalized}")
+    updated, inserted = _append_report_inserts(body, [line])
+    if inserted:
+        target.write_text(updated, encoding="utf-8", newline="\n")
+    return {
+        "ok": True,
+        "path": str(target),
+        "detail": "inserted" if inserted else "already_present",
+        "line": line,
+    }
+
+
+def _hybrid_prediction_inserts(stamp: str) -> tuple[str | None, str | None]:
+    """Build source-derived weather-window and Kilauea prediction inserts."""
+    weather_insert = None
+    kilauea_insert = None
+    try:
+        from apps.core.services.reports import latest_report
+
+        weather_report = latest_report("nws-weather-*.md")
+        if weather_report:
+            weather_body = weather_report.read_text(encoding="utf-8", errors="replace")
+            periods = []
+            for match in re.finditer(
+                r"^###\s+([^\n]+)\n(.*?)(?=^###\s+|\Z)",
+                weather_body,
+                re.M | re.S,
+            ):
+                period_lines = [
+                    re.sub(r"\s+", " ", line).strip()
+                    for line in match.group(2).splitlines()
+                    if line.strip()
+                ]
+                if len(period_lines) >= 2:
+                    periods.append((match.group(1), period_lines[0], period_lines[1]))
+            windows = []
+            for name, summary, detail in periods[:4]:
+                windows.append(f"{name.strip()}: {re.sub(r'\\s+', ' ', summary).strip()} | {re.sub(r'\\s+', ' ', detail).strip()}")
+            alerts = re.findall(
+                r"\*\*([^*]+)\*\*[^\n]*\n([^\n]*\buntil\b[^\n]+)",
+                weather_body,
+                re.I,
+            )
+            for name, window in alerts[:8]:
+                windows.append(f"ALERT {name.strip()}: {re.sub(r'\\s+', ' ', window).strip()}")
+            if windows:
+                weather_insert = _automated_lines(
+                    stamp, "WEATHER WINDOWS — " + "\n".join(windows)
+                )
+
+        kilauea_report = latest_report("kilauea-*.md")
+        if kilauea_report:
+            kilauea_body = re.sub(r"\s+", " ", kilauea_report.read_text(encoding="utf-8", errors="replace")).strip()
+            if kilauea_body:
+                kilauea_insert = _automated_lines(
+                    stamp, "KILAUEA PREDICTION — " + kilauea_body[:900]
+                )
+    except Exception:
+        pass
+    return weather_insert, kilauea_insert
+
+
+def _replace_hybrid_prediction_sections(
+    body: str,
+    weather_insert: str | None,
+    kilauea_insert: str | None,
+) -> tuple[str, bool]:
+    """Replace generated forecast sections while preserving surrounding notes."""
+    updated = body
+    changed = False
+    if weather_insert:
+        weather_pattern = re.compile(
+            r"(?ms)^(### Weather Forecast\s*\n).*?(?:^\+\+\+END WEATHER FORECAST\s*$|(?=^### Kilauea Prediction\s*$))"
+        )
+        replacement = f"\\1{weather_insert}\n+++END WEATHER FORECAST\n\n"
+        candidate, count = weather_pattern.subn(replacement, updated, count=1)
+        changed = changed or candidate != updated
+        updated = candidate
+    if kilauea_insert:
+        kilauea_pattern = re.compile(
+            r"(?ms)^(### Kilauea Prediction\s*\n).*?(?:^\+\+\+END KILAUEA PREDICTION\s*$|(?=^## HYBRID NOTES FOR ))"
+        )
+        replacement = f"\\1{kilauea_insert}\n+++END KILAUEA PREDICTION\n\n"
+        candidate, count = kilauea_pattern.subn(replacement, updated, count=1)
+        changed = changed or candidate != updated
+        updated = candidate
+    for marker in ("+++END WEATHER FORECAST", "+++END KILAUEA PREDICTION"):
+        duplicate_marker = re.compile(
+            rf"(?m)^{re.escape(marker)}\s*$\n(?:\s*\n)*(?=^{re.escape(marker)}\s*$)"
+        )
+        candidate = duplicate_marker.sub("", updated)
+        changed = changed or candidate != updated
+        updated = candidate
+    return updated, changed
+
+
+def _remove_legacy_prediction_inserts(body: str) -> str:
+    """Remove older appended prediction blocks from the manual-notes area."""
+    marker = re.search(r"^## HYBRID NOTES FOR .*?$", body, re.M)
+    if not marker:
+        return body
+    prefix = body[: marker.end()]
+    notes = body[marker.end() :]
+    legacy = re.compile(
+        r"(?m)^(?:>\d{4}, (?:WEATHER WINDOWS|KILAUEA PREDICTION) —|"
+        r"> \[KILAUEA_PREDICTION - INSERT ON AVA BOOT\]).*"
+        r"(?:\n(?!>\d{4}, )>[^\n]*)*\n?"
+    )
+    return prefix + legacy.sub("", notes)
+
+
+def update_solar_notes(now: datetime | None = None, path: Path | None = None) -> dict:
+    """Append weather and EcoFlow status above the notes cutoff."""
+    target = path or SOLAR_NOTES_PATH
+    if not target.is_file():
+        return {"ok": False, "detail": "solar_notes_missing", "path": str(target)}
+    body = target.read_text(encoding="utf-8", errors="replace")
+    if SOLAR_NOTES_CUTOFF not in body:
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(target)}
+
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    now_ms = int(now.timestamp() * 1000)
+    start_ms = now_ms - 15 * 60 * 1000
+    latest: dict[str, dict] = {}
+    samples: dict[str, list[dict[str, float | int | None]]] = {"delta": [], "river": []}
+    for root in _ecoflow_roots():
+        hist = root / "history"
+        if not hist.is_dir():
+            continue
+        for device, row in _iter_history_rows(hist, tail=800):
+            role = _device_role(device)
+            if role not in samples:
+                continue
+            at_ms = _parse_history_at_ms(row, now_ms)
+            if at_ms is None or at_ms > now_ms or at_ms < start_ms:
+                continue
+            try:
+                sample = {
+                    "in_w": float(row.get("solarW")) if row.get("solarW") is not None else None,
+                    "out_w": float(row.get("outW")) if row.get("outW") is not None else None,
+                    "soc": float(row.get("soc")) if row.get("soc") is not None else None,
+                    "at_ms": at_ms,
+                }
+            except (TypeError, ValueError):
+                continue
+            samples[role].append(sample)
+            if role not in latest or at_ms > latest[role]["at_ms"]:
+                latest[role] = sample
+
+    def avg(role: str, key: str) -> str:
+        vals = [float(s[key]) for s in samples[role] if s.get(key) is not None]
+        return f"{sum(vals) / len(vals):.0f} W" if vals else "n/a"
+
+    def pct(role: str) -> str:
+        value = latest.get(role, {}).get("soc")
+        return f"{float(value):.0f}%" if value is not None and 0 <= float(value) <= 100 else "n/a"
+
+    weather_line = "n/a"
+    try:
+        from apps.core.services.reports import latest_report
+
+        weather_report = latest_report("nws-weather-*.md")
+        if weather_report:
+            weather_body = weather_report.read_text(encoding="utf-8", errors="replace")
+            weather_match = re.search(r"^###?\s*[^\n]+\n([^\n]+)", weather_body, re.M)
+            if weather_match:
+                weather_line = re.sub(r"\s+", " ", weather_match.group(1)).strip()
+    except Exception:
+        pass
+
+    stamp = now.strftime("%H%M")
+    weather_insert = _automated_lines(stamp, f"WEATHER — {weather_line}")
+    ecoflow_insert = _automated_lines(stamp, (
+        "ECOFLOW STATUS - "
+        f"DELTA 2: Average 15-minute In/Out {avg('delta', 'in_w')} / {avg('delta', 'out_w')} | Current {pct('delta')} | "
+        f"RIVER 2 PRO: Average 15-minute In/Out {avg('river', 'in_w')} / {avg('river', 'out_w')} | Current {pct('river')}"
+    ))
+    weather_windows_insert, kilauea_insert = _hybrid_prediction_inserts(stamp)
+    inserts: list[str] = []
+    charge_insert = _charge_status_insert(now, body)
+    if charge_insert:
+        inserts.append(charge_insert)
+    power_insert = _power_automation_insert(now)
+    if power_insert:
+        inserts.append(power_insert)
+    inserts.extend((weather_insert, ecoflow_insert))
+    cleaned_body = _strip_legacy_automation_lines(body)
+    cleaned_body = _remove_legacy_prediction_inserts(cleaned_body)
+    cleanup_changed = cleaned_body != body
+    updated, sections_changed = _replace_hybrid_prediction_sections(
+        cleaned_body, weather_windows_insert, kilauea_insert
+    )
+    updated, inserted = _append_report_inserts(updated, inserts)
+    inserted = inserted or sections_changed or cleanup_changed
+    if inserted:
+        target.write_text(updated, encoding="utf-8", newline="\n")
+    else:
+        return {
+            "ok": True,
+            "path": str(target),
+            "stamp": stamp,
+            "delta_samples": len(samples["delta"]),
+            "river_samples": len(samples["river"]),
+            "detail": "already_present",
+        }
+    return {
+        "ok": True,
+        "path": str(target),
+        "stamp": stamp,
+        "delta_samples": len(samples["delta"]),
+        "river_samples": len(samples["river"]),
+    }
+
+
+def update_hybrid_daily_report(now: datetime | None = None) -> dict:
+    """Update only the exact dated hybrid report for the current HST day."""
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    return update_solar_notes(now, path=ensure_hybrid_daily_report(now))
+
+
+def update_hybrid_charge_status(now: datetime | None = None) -> dict:
+    """Append a host charge transition without running the quarter-hour block."""
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(ZoneInfo("Pacific/Honolulu"))
+    target = hybrid_daily_report_path(now)
+    if not target.is_file():
+        return {"ok": False, "detail": "hybrid_report_missing", "path": str(target)}
+    body = target.read_text(encoding="utf-8", errors="replace")
+    if SOLAR_NOTES_CUTOFF not in body:
+        return {"ok": False, "detail": "automation_cutoff_missing", "path": str(target)}
+
+    charge_insert = _charge_status_insert(now, body)
+    if not charge_insert:
+        return {"ok": True, "path": str(target), "detail": "unchanged"}
+    updated, inserted = _append_report_inserts(body, [charge_insert])
+    if inserted:
+        target.write_text(updated, encoding="utf-8", newline="\n")
+    return {"ok": True, "path": str(target), "detail": "inserted" if inserted else "already_present"}
 
 
 def _attach_rollups(snap: dict) -> dict:

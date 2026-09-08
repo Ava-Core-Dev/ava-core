@@ -382,7 +382,7 @@ class Scheduler:
     async def _run_solar_notes():
         import asyncio
 
-        from apps.core.crons.since_last_fire.solar_weather import update_hybrid_daily_report
+        from apps.core.services.hybrid_reports import update_hybrid_daily_report
 
         now = datetime.now(ZoneInfo("Pacific/Honolulu"))
         quarter = (now.minute // 15) * 15
@@ -398,7 +398,7 @@ class Scheduler:
     async def _run_hybrid_charge_status():
         import asyncio
 
-        from apps.core.crons.since_last_fire.solar_weather import update_hybrid_charge_status
+        from apps.core.services.hybrid_reports import update_hybrid_charge_status
 
         result = await asyncio.to_thread(update_hybrid_charge_status)
         if not result.get("ok"):

@@ -216,7 +216,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.debug("uptime start skipped: %s", e)
     try:
-        from apps.core.crons.since_last_fire.solar_weather import append_hybrid_lifecycle_event
+        from apps.core.services.hybrid_reports import append_hybrid_lifecycle_event
         result = append_hybrid_lifecycle_event("STARTED")
         log.info("Hybrid lifecycle start: %s", result.get("detail"))
     except Exception as e:
@@ -235,7 +235,7 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
     try:
-        from apps.core.crons.since_last_fire.solar_weather import append_hybrid_lifecycle_event
+        from apps.core.services.hybrid_reports import append_hybrid_lifecycle_event
         result = append_hybrid_lifecycle_event("STOPPED")
         log.info("Hybrid lifecycle stop: %s", result.get("detail"))
     except Exception as e:
