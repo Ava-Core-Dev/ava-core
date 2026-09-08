@@ -1,8 +1,8 @@
-"""One live data tree. Delete a folder here and it stays gone.
+"""Canonical local data roots for AVA and RootRecord Core Ops.
 
-Live writes and reads use ``config.DATA_DIR`` only
-(``C:\\Users\\rootr\\ava\\data`` on this PC). Old trees on E: and D: are
-archives. Do not scan them for charts or LIVE FACTS.
+Live writes and reads use the C: workstation only. EcoFlow is a standalone
+local desk operation under ``RootRecord Core Ops\\Ecoflow``; old trees on E:
+and D: are archives and must not be scanned for charts or LIVE FACTS.
 
 The EcoFlow pack ``R331ZAB5SG755642`` is never fetched, stored, or shown.
 """
@@ -74,7 +74,7 @@ def device_role(sn_or_label: str) -> str:
 
 
 def ecoflow_dir() -> Path:
-    return config.DATA_DIR / "ecoflow"
+    return Path.home() / "RootRecord Core Ops" / "Ecoflow"
 
 
 def system_dir() -> Path:

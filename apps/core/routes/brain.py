@@ -102,8 +102,10 @@ async def brain_chat(body: BrainIn, request: Request):
         except Exception:
             tool_notes.append("calc=unavailable")
     if "sqlite" in lower or ".db" in lower or "ecoflow" in lower:
+        from apps.core.services.data_layout import ecoflow_dir
+
         for p in (
-            config.DATA_DIR / "ecoflow" / "ecoflow-10s.db",
+            ecoflow_dir() / "ecoflow-10s.db",
             config.DATA_DIR / "system" / "system.db",
         ):
             tool_notes.append(json.dumps(_sqlite_tables(p)))

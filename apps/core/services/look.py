@@ -107,9 +107,11 @@ def _nhc() -> list[tuple[str, Path]]:
 
 
 def _pack_screens() -> list[tuple[str, Path]]:
+    from apps.core.services.data_layout import ecoflow_dir
+
     roots = (
         config.PUBLIC_MEDIA / "images" / "ecoflow",
-        config.DATA_DIR / "ecoflow" / "screens",
+        ecoflow_dir() / "screens",
     )
     found: list[tuple[str, Path]] = []
     for root in roots:

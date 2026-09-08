@@ -18,7 +18,7 @@ from apps.core.services import energy
 
 log = logging.getLogger("ava.db_facts")
 
-from apps.core.services.data_layout import SN_LABELS, ecoflow_sn_public, host_history_path
+from apps.core.services.data_layout import SN_LABELS, ecoflow_dir, ecoflow_sn_public, host_history_path
 
 # Keep in sync with data_layout.SN_LABELS. Facts never print serials.
 _PACK_LABELS = SN_LABELS
@@ -211,7 +211,7 @@ def _weighted_bank(packs: list[dict[str, Any]], socs: list[float]) -> float | No
 
 
 def _ecoflow_from_jsonl() -> tuple[float | None, str | None]:
-    hist = config.DATA_DIR / "ecoflow" / "history"
+    hist = ecoflow_dir() / "history"
     if not hist.is_dir():
         return None, None
     packs: list[dict[str, Any]] = []
@@ -322,7 +322,7 @@ def _ecoflow_from_quota() -> tuple[float | None, str | None]:
 
 
 def _ecoflow_from_sqlite() -> tuple[float | None, str | None]:
-    path = config.DATA_DIR / "ecoflow" / "ecoflow-10s.db"
+    path = ecoflow_dir() / "ecoflow-10s.db"
     if not path.is_file():
         return None, None
     try:

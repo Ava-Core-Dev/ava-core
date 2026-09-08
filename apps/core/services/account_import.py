@@ -496,22 +496,24 @@ async def _scan_discord(conn, summary: dict) -> None:
 
 
 def _copy_sqlite(summary: dict) -> None:
-    """Live SQLite stays under DATA_DIR. External D:/E: trees are cold archive only."""
+    """EcoFlow SQLite stays in RootRecord Core Ops. D:/E: trees are archives."""
+    from apps.core.services.data_layout import ecoflow_dir
+
     copies = []
     skipped = []
     # Prefer already-local weather/quakes; do not pull old EcoFlow/system charts from D:.
     local_ok = []
     for rel in (
-        Path("ecoflow") / "ecoflow-10s.db",
-        Path("ecoflow") / "ecoflow-1min.db",
-        Path("ecoflow") / "ecoflow-state.db",
+        Path("ecoflow-10s.db"),
+        Path("ecoflow-1min.db"),
+        Path("ecoflow-state.db"),
         Path("weather") / "weather.db",
         Path("weather") / "quakes.db",
     ):
-        dest = config.DATA_DIR / rel
+        dest = ecoflow_dir() / rel
         if dest.is_file():
             local_ok.append({"path": str(dest), "bytes": dest.stat().st_size})
-            if "ecoflow" in dest.parts:
+            if dest.parent == ecoflow_dir():
                 from apps.core.services.data_layout import purge_hidden_ecoflow
                 purge_hidden_ecoflow(dest.parent)
         else:
