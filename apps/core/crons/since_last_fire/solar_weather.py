@@ -506,7 +506,7 @@ def _append_ecoflow_history(sn: str, *, soc, pwr: dict, online: bool) -> None:
         "soc": soc,
         "solarW": pwr.get("pv_w") or 0,
         "inW": pwr.get("ac_in_w") or 0,
-        "outW": pwr.get("dc_out_w") or 0,
+        "outW": pwr.get("discharge_w") or 0,
         "offCircuit": not online,
     }
     try:
