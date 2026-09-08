@@ -1,4 +1,4 @@
-"""Compatibility boundary for the standalone Earthquake processor."""
+"""AVA boundary for the standalone local Earthquake processor."""
 
 from __future__ import annotations
 
@@ -7,6 +7,6 @@ from pathlib import Path
 _PROCESSOR_FILE = Path.home() / "RootRecord Core Ops" / "Earthquakes" / "earthquake_hourly.py"
 
 if not _PROCESSOR_FILE.is_file():
-	raise FileNotFoundError(f"Earthquake processor is missing: {_PROCESSOR_FILE}")
+    raise FileNotFoundError(f"Earthquake processor is missing: {_PROCESSOR_FILE}")
 
 exec(compile(_PROCESSOR_FILE.read_text(encoding="utf-8"), str(_PROCESSOR_FILE), "exec"), globals())

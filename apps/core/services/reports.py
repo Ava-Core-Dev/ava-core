@@ -58,6 +58,11 @@ def latest_report(pattern: str) -> Path | None:
             and p.stat().st_size > 0
             and not p.name.startswith("nws-weather-alert-")
         ]
+    elif pattern.startswith("kilauea-"):
+        files = [
+            p for p in DAILY_REPORTS_ROOT.rglob(pattern)
+            if p.is_file() and p.stat().st_size > 0
+        ]
     else:
         files = [
             p for p in config.REPORTS_DIR.glob(pattern)
