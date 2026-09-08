@@ -20,7 +20,11 @@ function Register-SilentPythonw {
   # Watchdog Popen's long-lived uvicorn. PT1M + job membership = origin killed every minute.
   # PT0S = unlimited (Task Scheduler). Other tasks keep a real minutes cap.
   $timeLimit = if ($TimeoutMinutes -le 0) { "PT0S" } else { "PT${TimeoutMinutes}M" }
-  $xmlPath = Join-Path $Repo "windows\$Name.xml"
+  $xmlPath = if ($Name -eq "watchdog") {
+    Join-Path $WatchDogRoot "$Name.xml"
+  } else {
+    Join-Path $Repo "windows\$Name.xml"
+  }
   $start = (Get-Date).AddMinutes(1).ToString("yyyy-MM-ddTHH:mm:ss")
   $cmdEsc = [System.Security.SecurityElement]::Escape($Pythonw)
   $argEsc = [System.Security.SecurityElement]::Escape(('"' + $ScriptPath + '"'))
