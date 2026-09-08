@@ -18,7 +18,7 @@ from . import discord, subscribers, telegram
 log = logging.getLogger("ava.reports")
 
 HST = ZoneInfo("Pacific/Honolulu")
-DAILY_REPORTS_ROOT = Path.home() / "RootRecord Core Ops" / "Chronology" / "Reports"
+DAILY_REPORTS_ROOT = Path.home() / "RootRecord Core Ops" / "Reports"
 
 # Public report kinds subscribers opted into. Everything else stays off the list.
 PUBLIC_KINDS = {"morning", "summary", "solar", "weather", "kilauea"}

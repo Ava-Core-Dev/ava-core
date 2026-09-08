@@ -85,7 +85,7 @@ async def run():
     global _last_multiplier, _last_alert
 
     from apps.core import config
-    from apps.core.crons.since_last_fire.kilauea import get_multiplier
+    from apps.core.services.kilauea import get_multiplier
     from apps.core.services import discord
     from apps.core.services import rootmc_economy as eco
 
