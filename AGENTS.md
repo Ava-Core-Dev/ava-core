@@ -1,19 +1,98 @@
-# AVA Core — this tree
+# AGENTS — AVA Core
 
-Everything live is **`C:\Users\rootr\ava`**. That is home and repo. Origin `127.0.0.1:8787` (this PC only).
+## Purpose
 
-Desk is Electron: `apps\desktop`. Shortcut: Desktop\Ava Desk. Not a public webpage. `/ops` is localhost only.
+This is the root operational guidance for the AVA Core system.
 
-**Media**, **workstations**, and product **apps** are real folders on C:. `plugins` is a local junction into `workstations\minecraft-plugins\plugins`. D: and E: are cold archive only — Ava must keep running if they are unplugged.
+AVA Core is a real, running system. Treat the existing filesystem, services,
+applications, configuration, databases, automation, and operational
+conventions as authoritative.
 
-Media layout: `public/{type}/{category}` and `private/{type}/{category}`. No second copy in private if it is already public. Do not put a second copy of the app under `core` or `ava-core-v2`.
+## REQUIRED BEHAVIOR
 
-Product apps under `apps\`: kilauea-alerts, rootmc-android, weather-manager-web, business-manager-web, kilauea-alerts-web, account-hub-web, token-manager-web, root-farms-web, root-farms-mobile-web, root-goals-web, visiting-hawaii-web, realm-web, solana-rootrecord-site. RootMC API is `api.rootmc.net` only — not Ava origin, not `*.rootmc.net` for Ava. Product weather/business APIs stay held.
+Before modifying anything:
 
-Public home: **rootrecord.cloud**. Tunnel: `origin.avaivy.cloud` → `:8787`.
+1. Inspect the actual files and directories involved.
+2. Read applicable nested `AGENTS.md` files.
+3. Check `/home/ava-core/context/common-bugs/` for known recurring issues.
+4. Do not assume paths, service names, launchers, configuration locations,
+   architectures, or process ownership.
+5. Preserve working functionality unless the requested change explicitly
+   requires otherwise.
 
-Timings: `operations/cronologicals` (`always-on`, `on-time`, `since-last-fire`, `in-order-on-boot`).
+When debugging or investigating:
 
-Task Scheduler: `pythonw.exe` only — `windows\watchdog.py`, `scripts\auto-push.py` (1 min task; script checks twice so dirty files hit GitHub in about 30s; Windows rejects PT30S), `scripts\auto-pull.py` (10 min, ff-only, refuses dirty), `scripts\site-update.py` (5 min, holding worker). Never `powershell.exe`.
+- Prefer evidence over assumptions.
+- Inspect actual processes, files, services, logs, and configuration.
+- Reproduce failures where practical.
+- Verify fixes rather than stopping at successful compilation.
 
-C-only check: `windows\assert_c_only.py`. Workstation verify (does not recreate USB junctions): `scripts\import_workstations.ps1`.
+When a reusable discovery is made:
+
+- Update the relevant entry in `/home/ava-core/context/common-bugs/`.
+- Add a new entry when the issue is genuinely new.
+- Correct existing documentation when an earlier assumption was wrong.
+
+## CODE CHANGES
+
+Before modifying source:
+
+- Inspect the relevant source.
+- Make a timestamped backup when working on important operational files.
+- Make the smallest safe change.
+- Compile or syntax-check where applicable.
+- Perform a runtime test when applicable.
+- Verify the actual behavior.
+
+Do not repeatedly patch based on guessed structure.
+
+## PROJECT BOUNDARIES
+
+Do not treat dependency caches, generated files, or third-party source as
+AVA Core project code.
+
+In particular, avoid creating or modifying project-level agent guidance
+inside:
+
+- `.cargo/registry/`
+- `.cursor/plugins/cache/`
+- `.codex/.tmp/`
+- `node_modules/`
+- `__pycache__/`
+- `.venv/`
+- `venv/`
+
+unless explicitly required.
+
+## CONTEXT
+
+Persistent operational knowledge belongs under:
+
+    /home/ava-core/context/
+
+Recurring bugs and discoveries belong under:
+
+    /home/ava-core/context/common-bugs/
+
+Read and update that knowledge as part of debugging and development.
+
+## NESTED AGENTS
+
+Nested `AGENTS.md` files provide more specific instructions for their
+directory and descendants.
+
+When a nested file conflicts with this file, follow the more specific
+instruction unless it violates a higher-level system requirement.
+
+## SECURITY
+
+Never place passwords, private keys, API keys, tokens, session cookies,
+wallet secrets, or other credentials in source-control-style documentation.
+
+Document credential locations/types when operationally useful, but never
+record the secret itself.
+
+## FINAL RULE
+
+Every debugging, building, and development session should leave AVA Core
+better understood than it was before.
