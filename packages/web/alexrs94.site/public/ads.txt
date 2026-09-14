@@ -1,0 +1,3 @@
+# Google AdSense publisher authorization.
+# Replace pub-XXXXXXXXXXXXXXXX with the live publisher ID when verified.
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

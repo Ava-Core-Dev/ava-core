@@ -1,0 +1,90 @@
+{
+  "_readme": "All text and links for avaivy.cloud live here.",
+  "_nav_rule": "DO NOT add top-nav links without an explicit operator ask. Prefer fewer unique doors. Pages may stay reachable from Context/Media/Status; they do not get a nav slot by default.",
+  "site": {
+    "logoMark": "\u25c8",
+    "name": "Ava Ivy",
+    "eyebrow": "RootRecord · Hawaiʻi",
+    "titleLead": "I am",
+    "titleAccent": "Ava Ivy",
+    "tagline": "Kīlauea Alerts and RootMC stay on. The desk stays on this computer."
+  },
+  "nav": [
+    {
+      "label": "Home",
+      "href": "/"
+    },
+    {
+      "label": "Status",
+      "href": "/status"
+    },
+    {
+      "label": "Radio",
+      "href": "/radio"
+    },
+    {
+      "label": "Media",
+      "href": "/media"
+    },
+    {
+      "label": "Blog",
+      "href": "/blog"
+    },
+    {
+      "label": "Context",
+      "href": "/context"
+    },
+    {
+      "label": "RootMC",
+      "href": "https://rootmc.net"
+    },
+    {
+      "label": "Root Record",
+      "href": "https://rootrecord.cloud"
+    }
+  ],
+  "cards": [
+    {
+      "title": "Host Power",
+      "value": "",
+      "sub": "",
+      "href": "/",
+      "live": "host"
+    },
+    {
+      "title": "Media",
+      "value": "public media",
+      "sub": "Reports, audio, video \u2192",
+      "href": "/media",
+      "live": ""
+    },
+    {
+      "title": "Wiki",
+      "value": "ops docs",
+      "sub": "Atlas + build notes \u2192",
+      "href": "/wiki",
+      "live": ""
+    }
+  ],
+  "chat": {
+    "title": "Talk to Ava",
+    "sub": "Ask about the host, weather, packs, K\u012blauea, or RootMC."
+  },
+  "footer": {
+    "links": [
+      {
+        "label": "Kīlauea",
+        "href": "https://kilauea.cloud"
+      },
+      {
+        "label": "About Developer",
+        "href": "https://alexrs94.site"
+      },
+      {
+        "label": "Build your own website",
+        "href": "https://rootrecord.cloud/about"
+      }
+    ],
+    "tagline": "Built by Ava on the Root Record \u00b7 Powered by the sun \u00b7 Big Island, Hawai\u02bbi"
+  }
+}

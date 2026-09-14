@@ -1,0 +1,17 @@
+SELECT 'weather_data' AS tbl, COUNT(*) AS rows FROM weather_data;
+SELECT 'weather_location_ai_reports' AS tbl, COUNT(*) AS rows FROM weather_location_ai_reports;
+SELECT 'rootmc_shop_price_history' AS tbl, COUNT(*) AS rows FROM rootmc_shop_price_history;
+SELECT 'rootmc_daily_category_reports' AS tbl, COUNT(*) AS rows FROM rootmc_daily_category_reports;
+SELECT 'rootmc_daily_reports' AS tbl, COUNT(*) AS rows FROM rootmc_daily_reports;
+SELECT 'discord_ai_reports' AS tbl, COUNT(*) AS rows FROM discord_ai_reports;
+SELECT 'kilauea_ai_analyses' AS tbl, COUNT(*) AS rows FROM kilauea_ai_analyses;
+SELECT 'blocknotes_world_ai_reports' AS tbl, COUNT(*) AS rows FROM blocknotes_world_ai_reports;
+SELECT 'worker_http_error_events' AS tbl, COUNT(*) AS rows FROM worker_http_error_events;
+SELECT 'bm_owned_row' AS tbl, COUNT(*) AS rows FROM bm_owned_row;
+SELECT 'rootstat_player_item_totals' AS tbl, COUNT(*) AS rows FROM rootstat_player_item_totals;
+SELECT 'rootstat_server_item_totals' AS tbl, COUNT(*) AS rows FROM rootstat_server_item_totals;
+SELECT 'discord_user_activity' AS tbl, COUNT(*) AS rows FROM discord_user_activity;
+SELECT 'discord_activity_daily' AS tbl, COUNT(*) AS rows FROM discord_activity_daily;
+SELECT 'rootmc_ingame_events' AS tbl, COUNT(*) AS rows FROM rootmc_ingame_events;
+SELECT 'user_accounts' AS tbl, COUNT(*) AS rows FROM user_accounts;
+SELECT 'license_accounts' AS tbl, COUNT(*) AS rows FROM license_accounts;

@@ -1,0 +1,8 @@
+[
+  {"id": "healing", "name": "Potion of Healing", "effect": "Instant Health"},
+  {"id": "strength", "name": "Potion of Strength", "effect": "Strength"},
+  {"id": "swiftness", "name": "Potion of Swiftness", "effect": "Speed"},
+  {"id": "fire_resistance", "name": "Potion of Fire Resistance", "effect": "Fire Resistance"},
+  {"id": "night_vision", "name": "Potion of Night Vision", "effect": "Night Vision"},
+  {"id": "invisibility", "name": "Potion of Invisibility", "effect": "Invisibility"}
+]

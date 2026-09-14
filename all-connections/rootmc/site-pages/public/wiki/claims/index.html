@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claims &amp; Areas — RootMC Wiki</title>
+  <meta name="description" content="RootMC personal claims — areas, levels, founding costs, expansions, members, banks, territory fees, and /spawn visits on live play.rootmc.net.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/claims/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / <a href="/wiki/">Wiki</a> / Claims</p>
+    <p class="market-badge">Root-Claims</p>
+    <h1 class="wiki-page-title">Claims &amp; <em>areas</em></h1>
+    <p class="page-lead">On live RootMC, land is personal Root-Claims circles. You found up to <strong>3 areas</strong>, grow each to <strong>level 10</strong>, invite members, and visit friends with <code>/spawn</code>.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">play.rootmc.net</span>
+      <span class="wiki-badge wiki-badge-player">/c · /claim · /claims</span>
+      <span class="wiki-badge">Gold (G)</span>
+    </div>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="Wiki navigation">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#areas">Areas &amp; levels</a></li>
+            <li><a href="#costs">Costs</a></li>
+            <li><a href="#members">Members</a></li>
+            <li><a href="#spawn">Spawn visits</a></li>
+            <li><a href="#bank">Area bank</a></li>
+            <li><a href="#territory-fees">Territory &amp; fees</a></li>
+            <li><a href="#mining-rights">Mining rights</a></li>
+            <li><a href="#commands">Commands</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Wiki</h2>
+          <nav>
+            <ul>
+              <li><a href="/wiki/">Wiki home</a></li>
+              <li><a href="/wiki/player/">Player guide</a></li>
+              <li><a href="/wiki/economy/">Economy guide</a></li>
+              <li><a href="/wiki/constitution/">Constitution</a></li>
+              <li><a href="/wiki/territories/">Territory buffers</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="overview">
+          <h2>Overview</h2>
+          <p>Each claim is a <strong>16-block radius circle</strong> around an anchor. Circles that belong to the same <strong>area</strong> share one name, one spawn, and one bank. Strangers cannot build inside your circles. Outside the rim is a <strong>territory band</strong> (+48 blocks) — still wilderness, but outsiders cannot found a new area into it. Overlapping territories split <strong>50/50</strong> (nearest claim center). Claims apply at <strong>Y 0 and above</strong> only.</p>
+          <ul>
+            <li>Live RootMC uses <strong>Root-Claims</strong> (<code>/c</code>) only.</li>
+            <li>Currency is always <strong>Gold (G)</strong>. Your <strong>first plot is tax-free</strong>. Extra areas and expansions withhold the live <code>/tax</code> reserve tier from the fee.</li>
+            <li><strong>Mining rights:</strong> below Y 0 is free reign — no claims, no territories, no destroy fees.</li>
+          </ul>
+        </article>
+
+        <article id="areas">
+          <h2>Areas &amp; levels</h2>
+          <p>An <strong>area</strong> is a group of up to <strong>10 claim circles</strong>. Level = how many circles you have in that area (level 1 = just the root).</p>
+          <ul>
+            <li>Max <strong>3 areas</strong> per player (up to 30 circles total).</li>
+            <li>To found area 2 you need <strong>1</strong> area already at level 10. Area 3 needs <strong>2</strong> maxed areas.</li>
+            <li>New areas auto-name as <code>YourName(1)</code>, <code>YourName(2)</code>, <code>YourName(3)</code> unless you pass a custom name to <code>/c new</code>.</li>
+            <li>Only the <strong>area owner</strong> can expand (raise level). Members build and ally, but do not spend the area bank to expand.</li>
+          </ul>
+        </article>
+
+        <article id="costs">
+          <h2>Costs</h2>
+          <h3>Founding (wallet)</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Area</th><th>Cost</th><th>Unlock</th></tr></thead>
+            <tbody>
+              <tr><td>1st</td><td><strong>Free (0 G)</strong></td><td>Always</td></tr>
+              <tr><td>2nd</td><td><strong>1000 G</strong></td><td>1 area at level 10</td></tr>
+              <tr><td>3rd</td><td><strong>10000 G</strong></td><td>2 areas at level 10</td></tr>
+            </tbody>
+          </table>
+          <p>The first area is free to found and does not seed the area bank. Later areas charge wallet Gold to the reserve.</p>
+          <h3>Expansion (area bank)</h3>
+          <p>Stand on the rim of your area (±3 blocks). Cost starts at <strong>75 G</strong> for level 1→2, then × <strong>1.5</strong> each step, paid from that area’s bank.</p>
+          <h3>Unclaim</h3>
+          <p>Refund is <strong>50%</strong> of what you paid for that circle. Expansion refunds go back to the area bank. You must unclaim outer expansions before removing an inner circle.</p>
+        </article>
+
+        <article id="members">
+          <h2>Members</h2>
+          <p><code>/c add</code>, <code>/c trust</code>, and <code>/c friend</code> are the same list — <strong>members</strong> of that area.</p>
+          <ul>
+            <li>Build, use containers, open the community chest, use private spawn</li>
+            <li>Territory ally (no satellite alerts; wilderness destroy fee exempt in the band)</li>
+            <li>You can be a member of as many areas as you want and still own your own areas</li>
+          </ul>
+        </article>
+
+        <article id="spawn">
+          <h2>Spawn visits</h2>
+          <ul>
+            <li><code>/spawn</code> — server spawn</li>
+            <li><code>/spawn &lt;player&gt;</code> — that player’s area spawn (public, or you are a member)</li>
+            <li><code>/spawn &lt;areaname&gt;</code> — by area display name</li>
+            <li><code>/spawn &lt;player&gt; &lt;areaname&gt;</code> — pick which area when they have more than one</li>
+          </ul>
+          <p>Owners set spawn with <code>/c set spawn</code> (stand inside the area) and toggle public/private in <code>/c</code> settings or <code>/c toggle spawn on|off</code>.</p>
+        </article>
+
+        <article id="bank">
+          <h2>Area bank</h2>
+          <p>Each area has one bank used for expansions. Deposit with <code>/c bank deposit &lt;amount&gt;</code> while standing in the area (or your default area). Outsider territory destroy fees credit <strong>75%</strong> to this area-root bank (25% Server Reserve). Expansions pay claim tax from this bank; the first founding plot does not.</p>
+        </article>
+
+        <article id="territory-fees">
+          <h2>Territory &amp; destroy fees</h2>
+          <p>Walking into a territory shows <strong>Entering USERNAME’s territory — Fees Apply</strong>. Leaving a claim or territory is announced the same way. Borders between two territories are a clean 50/50 split (nearest center).</p>
+          <ul>
+            <li><strong>Territory of USERNAME</strong> — outsiders pay <strong>1 G per block</strong> broken: <strong>75%</strong> → that claim’s area bank, <strong>25%</strong> → Server Reserve. Owner and trusted members (<code>/c add</code>) are exempt.</li>
+            <li><strong>Ava’s wilderness</strong> (not claim, not territory) — Ava <em>is</em> the wilderness guardian watch. <strong>1 G per block</strong> → Server Reserve. Chat recap when you start taking resources, then each minute while you keep paying (no spam if zero). If you cannot pay, the break is cancelled. New players should <code>/c new</code> / <code>/c claim</code> immediately, or get trusted on someone’s land.</li>
+            <li>Creative / spectator and staff bypass are exempt.</li>
+          </ul>
+        </article>
+
+        <article id="mining-rights">
+          <h2>Mining rights (Y &lt; 0)</h2>
+          <p>Anything <strong>below Y 0</strong> is free-reign underworld. There are <strong>no claims</strong> and <strong>no territories</strong> underground — everyone may mine. Ava claim clear (<code>/ava hire claim</code>, aliases <code>chunk</code> / <code>clear</code> / <code>circle</code>) is <strong>owner-only</strong>: stand at <strong>Y ≥ 0</strong> within <strong>8 blocks</strong> of that claim ring (center or rim). The dig is the <strong>full circle</strong>, including same-owner expansions; only <strong>other players’</strong> overlapping columns are skipped. Digs go <strong>layer by layer, top down</strong> from stand Y (stand Y included), <strong>rescanning each row</strong> for dirt→grass and skipped blocks before going down, and remove <strong>natural / unplaced</strong> blocks only — player builds (planks, cobble, chests, farms…) stay. Quote shows ores at Y -59, ETA, and builds left standing. <code>/ava stop</code> lists work orders with a red Stop; mining contracts have <strong>no refunds</strong>. No base fee: <strong>0.01 G/block</strong>, plus <strong>+0.01 per 100k</strong> blocks (200k → 0.02 G/block). Dig max <strong>480 blocks/min</strong>. <code>/ava hire minedown</code> is the same rate for a small shaft; the whole footprint must sit on land you own. Digs continue through Y 0 into the underworld. Paid work orders resume after disconnect or restart.</p>
+        </article>
+
+        <article id="commands">
+          <h2>Commands</h2>
+          <table class="wiki-table">
+            <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td><code>/c</code></td><td>Claims dashboard</td></tr>
+              <tr><td><code>/c new [name]</code></td><td>Found a new area</td></tr>
+              <tr><td><code>/c claim</code></td><td>Expand current area (rim)</td></tr>
+              <tr><td><code>/c bank</code> · <code>deposit</code></td><td>View / fund area bank</td></tr>
+              <tr><td><code>/c add &lt;player&gt;</code></td><td>Add member</td></tr>
+              <tr><td><code>/c untrust &lt;player&gt;</code></td><td>Remove member</td></tr>
+              <tr><td><code>/c set spawn</code></td><td>Set area spawn</td></tr>
+              <tr><td><code>/spawn …</code></td><td>Server or area spawn</td></tr>
+              <tr><td><code>/c list</code> · <code>info</code> · <code>lines</code></td><td>List, inspect, outline</td></tr>
+              <tr><td><code>/c unclaim</code> · <code>unclaim all</code></td><td>Remove circle / all areas</td></tr>
+            </tbody>
+          </table>
+          <p>In-game help: <code>/c help</code>.</p>
+        </article>
+
+        <article id="faq">
+          <h2>FAQ</h2>
+          <p><strong>Are there towns or nations?</strong> No. Live RootMC is Root-Claims only — personal areas and territory buffers.</p>
+          <p><strong>Can members expand my area?</strong> No — only the owner raises level and spends the area bank.</p>
+          <p><strong>Do claims go underground?</strong> No. Y &lt; 0 is mining rights for everyone.</p>
+          <p><strong>What if I cannot afford Ava’s wilderness breaks?</strong> Claim with <code>/c new</code> or ask a player to <code>/c add</code> you. Trusted members do not pay territory fees. Entering unclaimed land shows <em>Entering Ava’s wilderness — Guardian watch</em>.</p>
+          <p><strong>Where do I see my land?</strong> In-game <code>/c lines</code> and <code>/c info</code>. Territory rules: <a href="/wiki/territories/">Territory buffers</a>.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container">
+      <p><a href="/wiki/">Wiki</a> · <a href="/wiki/player/">Player guide</a> · <a href="/wiki/economy/">Economy</a> · <a href="/wiki/territories/">Territories</a></p>
+      <p class="rmc-footer-mono">claims · areas · Gold (G)</p>
+    </div>
+  </footer>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root-Ping install guide — RootMC Plugins</title>
+  <meta name="description" content="Detailed connection analytics for Paper — /ping, MySQL samples, interactive dashboards on the roadmap.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/root-ping/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="root-ping" data-bstats-url="https://bstats.org/plugin/bukkit/Root-Ping/32911">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span> RootMC <span class="rmc-brand-tag">Network</span></a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/plugins/">Plugins</a> / Root-Ping</p>
+    <h1 class="wiki-page-title">Root-Ping</h1>
+    <p class="page-lead">Detailed connection analytics — owns <code>/ping</code>, shows latency + server load, and writes rich MySQL samples. Interactive dashboards (timelines, host compare, load correlation) are on the roadmap and will read the same tables.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge">Needs Root-Core</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a href="https://www.spigotmc.org/resources/root-ping-detailed-connection-analytics.137392/" rel="noopener noreferrer" target="_blank">Spigot resource →</a>
+      <a id="guide-bstats-link" href="https://bstats.org/plugin/bukkit/Root-Ping/32911" rel="noopener noreferrer" target="_blank">bStats metrics →</a>
+      <a href="/plugins/root-core/">Root-Core →</a>
+      <a href="/wiki/versioning/">Versioning →</a>
+    </p>
+
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">Install</h2>
+      <ol class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li>Install <a href="/plugins/root-core/">Root-Core</a> first (MySQL settings + RootMC config folder).</li>
+        <li>Drop <code>root-ping-*.jar</code> into <code>plugins/</code> (or let Core auto-update from the manifest).</li>
+        <li>Config: <code>plugins/RootMC/root-ping.yml</code> (created on first enable).</li>
+        <li>Restart Paper after jar install.</li>
+      </ol>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Commands</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li><code>/ping</code> — latency + TPS / MSPT / online / heap (<code>/latency</code>)</li>
+        <li><code>/ping reload</code> — reload config (<code>rootping.admin</code>)</li>
+      </ul>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">What is sampled</h2>
+      <p class="rmc-muted" style="margin:0 0 0.75rem;line-height:1.7">On <code>/ping</code> and on a timer (default every 5 minutes), Root-Ping appends a row to <code>{prefix}ping_samples</code> when MySQL is configured: ping, client brand/protocol/locale/view distance, virtual host, host label, TPS/MSPT, heap, CPU, disk.</p>
+      <p class="rmc-muted" style="margin:0;line-height:1.7"><strong>Roadmap:</strong> interactive web analytics (player timelines, custom host-label compare, load correlation, ops filters) will use this same collector — no second instrumentation.</p>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Permissions</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li><code>rootping.use</code> — use <code>/ping</code> (default: true)</li>
+        <li><code>rootping.admin</code> — reload (default: op)</li>
+      </ul>
+    </section>
+  </main>
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Catalog</a> · <a href="/plugins/root-core/">Root-Core</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">Root-Ping · YEAR.MONTH.BUILD</p>
+    </div>
+  </footer>
+  <script src="/plugins/guide.js" defer></script>
+  <script src="/scripts/site-nav.js?v=20260725t" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

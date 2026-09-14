@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Department of The /Mint - RootMC</title>
+  <meta name="description" content="RootMC Department of The /Mint - physical gold conversion, redemption, backing, and ledger activity tracked from 3 July 2026 onward.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/g2/mint/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body class="mint-page">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container mint-wrap">
+    <p class="wiki-breadcrumb"><a href="/">Home</a>  -  <a href="/g2/economy/">Economy</a>
+        <a href="/g2/daily-report/">Daily report</a>  -  Department of The /Mint</p>
+    <div class="economy-subnav" data-economy-nav hidden aria-label="Economy sections"></div>
+
+    <header class="mint-hero">
+      <p class="market-badge">Department of The /Mint</p>
+      <h1><span class="gold">Department</span> of The /Mint</h1>
+      <p id="mint-subtitle" class="rmc-muted mint-sub">Loading...</p>
+      <p class="mint-era-note rmc-muted">
+        Ledger era begins <strong>3 July 2026</strong> (HST). Activity before 3 Jul is excluded - manual baseline from first reliable sync.
+      </p>
+    </header>
+
+    <p id="mint-error" class="market-error" hidden></p>
+
+    <div id="mint-provenance-warning" class="rmc-card mint-provenance-warning" hidden role="status">
+      <p class="mint-provenance-warning-title"><strong>Item-level proof not synced yet</strong></p>
+      <p id="mint-provenance-warning-body" class="rmc-muted mint-provenance-warning-body"></p>
+    </div>
+
+    <div class="market-summary mint-summary mint-summary--primary" aria-label="Mint department headline totals">
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Player balances</span>
+        <span class="market-summary-value gold" id="mint-player-balances">...</span>
+        <span class="market-summary-meta">wallet Notes (G)</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Total minted</span>
+        <span class="market-summary-value gold" id="mint-total-minted">...</span>
+        <span class="market-summary-meta" id="mint-total-minted-meta">gold -> Notes since 3 Jul</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Gold not yet minted</span>
+        <span class="market-summary-value" id="mint-unminted">...</span>
+        <span class="market-summary-meta" id="mint-unminted-meta">physical items at peg</span>
+      </div>
+    </div>
+
+    <div class="market-summary mint-summary mint-summary--secondary" aria-label="Mint department detail totals">
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Notes -> gold</span>
+        <span class="market-summary-value" id="mint-redeem">...</span>
+        <span class="market-summary-meta" id="mint-redeem-events">redemptions</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Net /mint</span>
+        <span class="market-summary-value gold" id="mint-net">...</span>
+        <span class="market-summary-meta">gross minus redeem</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Backing</span>
+        <span class="market-summary-value" id="mint-backing">...</span>
+        <span class="market-summary-meta">/mint vs circulation</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Ledger rows</span>
+        <span class="market-summary-value" id="mint-ledger-count">...</span>
+        <span class="market-summary-meta">every /mint action</span>
+      </div>
+    </div>
+
+    <section class="rmc-card mint-transparency" aria-labelledby="mint-role-title" id="mint-role">
+      <p class="market-badge">How it works</p>
+      <h2 id="mint-role-title">The mint is a <span class="gold">conversion function</span>, not a vault</h2>
+      <p id="mint-role-summary" class="mint-transparency-lead">Loading...</p>
+      <p class="rmc-muted mint-transparency-note">
+        <code>/mint</code> destroys physical gold items and credits wallet <strong>Notes (G)</strong> at a fixed peg, or burns Notes and spawns gold via <code>/mint gold</code>.
+        It does <strong>not</strong> maintain its own account or gold reserve - only an audited treasury ledger of every conversion.
+        The <a href="/g2/economy/#server-reserve">Server Reserve</a> (<code>towny-server</code>) is separate: governance grants and treasury flows, not mint holdings.
+      </p>
+
+      <div class="mint-transparency-grid">
+        <div class="mint-transparency-block">
+          <h3>Fixed peg (1 Note = 1 gold ingot)</h3>
+          <ul class="mint-peg-list">
+            <li>Gold nugget - <span class="gold">1/9 G</span></li>
+            <li>Gold ingot - <span class="gold">1 G</span></li>
+            <li>Gold block - <span class="gold">9 G</span></li>
+          </ul>
+        </div>
+        <div class="mint-transparency-block">
+          <h3>Mint ledger backing <span class="rmc-muted" id="mt-ledger-era-label">(since 3 Jul)</span></h3>
+          <dl class="mint-dl">
+            <dt>Gold -> Notes (gross)</dt><dd id="mt-gross-in" class="gold">-</dd>
+            <dt>Notes -> gold (redeemed)</dt><dd id="mt-redeemed-out">-</dd>
+            <dt>Net ledger backing</dt><dd id="mt-net-backing" class="gold">-</dd>
+          </dl>
+        </div>
+        <div class="mint-transparency-block">
+          <h3>Notes in circulation</h3>
+          <dl class="mint-dl">
+            <dt>Player wallet Notes</dt><dd id="mt-wallet-notes" class="gold">-</dd>
+            <dt>Server Reserve Notes</dt><dd id="mt-reserve-notes">-</dd>
+            <dt class="mint-dl-total">Total circulation</dt><dd id="mt-total-circ" class="mint-dl-total">-</dd>
+          </dl>
+        </div>
+        <div class="mint-transparency-block">
+          <h3>Backing ratios</h3>
+          <dl class="mint-dl">
+            <dt>Net /mint Ã· player wallets</dt><dd id="mt-wallet-backing-pct">-</dd>
+            <dt>Gross /mint Ã· circulation</dt><dd id="mt-circulation-backing-pct">-</dd>
+            <dt>Wallets above era backing</dt><dd id="mt-over-issue">-</dd>
+            <dt>Era surplus headroom</dt><dd id="mt-surplus">-</dd>
+          </dl>
+        </div>
+        <div class="mint-transparency-block">
+          <h3>Physical gold (not ledger)</h3>
+          <dl class="mint-dl">
+            <dt>Items not yet /minted</dt><dd id="mt-unminted-items">-</dd>
+            <dt>Physical mined since 3 Jul</dt><dd id="mt-gold-physical" class="gold">-</dd>
+            <dt>Loot &amp; pickups (tracker)</dt><dd id="mt-gold-loot">-</dd>
+            <dt class="mint-dl-total">Gold-found tracker total</dt><dd id="mt-gold-found" class="mint-dl-total">-</dd>
+          </dl>
+          <p class="rmc-muted mint-transparency-foot">Physical mined = ore + blocks only. Loot totals are event counters - not proof of items still held. Item receipts appear after the live server syncs gold-item events.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="mint-grid">
+      <section class="rmc-card mint-panel" aria-labelledby="mint-lb-title">
+        <h2 id="mint-lb-title">Converters</h2>
+        <p class="rmc-muted mint-note" id="mint-lb-note">Net /mint by player since 3 Jul - positive = more gold converted to Notes than redeemed.</p>
+        <div class="leaderboard-table-wrap">
+          <table class="leaderboard-table" id="mint-leaderboard">
+            <thead><tr><th>#</th><th>Player</th><th>Gross in</th><th>Redeemed</th><th>Net</th><th>Events</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="rmc-card mint-panel" aria-labelledby="mint-storage-title">
+        <h2 id="mint-storage-title">Physical gold in storage</h2>
+        <p class="rmc-muted mint-note">Chests, shops, inventories, and Towny-placed blocks - redeemable at the peg. Full breakdown on <a href="/g2/economy/#gold-supply">Economy -> Gold supply</a>.</p>
+        <div class="leaderboard-summary-grid mint-storage-grid">
+          <div class="leaderboard-stat">
+            <span class="leaderboard-stat-label">Total stored</span>
+            <span id="mint-storage-total" class="leaderboard-stat-value gold">-</span>
+          </div>
+          <div class="leaderboard-stat">
+            <span class="leaderboard-stat-label">Players with gold</span>
+            <span id="mint-storage-players" class="leaderboard-stat-value">-</span>
+          </div>
+          <div class="leaderboard-stat">
+            <span class="leaderboard-stat-label">Last scan</span>
+            <span id="mint-storage-scanned" class="leaderboard-stat-value mint-stat-small">-</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="rmc-card mint-panel" id="gold-found" aria-labelledby="mint-found-title">
+        <h2 id="mint-found-title">Gold found since 3 Jul</h2>
+        <p class="rmc-muted mint-note">Activity tracker - ore, blocks, loot chests, and pickups. <strong>Not</strong> the same as physical gold in storage or /mint ledger rows. Click a player for item receipts when synced.</p>
+        <div class="leaderboard-table-wrap">
+          <table class="leaderboard-table mint-gold-found-table" id="mint-gold-found">
+            <thead><tr><th>#</th><th>Player</th><th>Mined</th><th>Found</th><th>Events</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="mint-item-events" class="mint-item-events" hidden>
+          <h3 id="mint-item-events-title">Item receipts</h3>
+          <p id="mint-item-events-status" class="rmc-muted mint-item-events-status"></p>
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table mint-item-events-table">
+              <thead><tr><th>When</th><th>Via</th><th>Item</th><th>Stacks</th><th>G</th><th>Location</th></tr></thead>
+              <tbody id="mint-item-events-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="rmc-card mint-ledger-panel" aria-labelledby="mint-ledger-title" id="mint-ledger">
+      <h2 id="mint-ledger-title">Complete /mint record</h2>
+      <p class="rmc-muted mint-note" id="mint-ledger-note">Every audited /mint action since 3 July 2026 - gold converted to wallet Notes and Notes redeemed for physical gold.</p>
+      <p id="mint-ledger-status" class="rmc-muted mint-ledger-status">Loading ledger...</p>
+      <div class="leaderboard-table-wrap mint-ledger-wrap">
+        <table class="leaderboard-table mint-activity-table" id="mint-ledger-table">
+          <thead><tr><th>#</th><th>When</th><th>Player</th><th>Action</th><th>Amount</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="mint-ledger-actions">
+        <button type="button" class="rmc-btn rmc-btn-ghost" id="mint-ledger-more" hidden>Load more</button>
+      </div>
+    </section>
+
+    <p class="rmc-muted mint-footer-links">
+      <a href="/g2/economy/">Economy overview</a>  - 
+      <a href="/g2/economy/#server-reserve">Server Reserve</a>  - 
+      <a href="/wiki/constitution/">Constitution</a>
+    </p>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-inner">
+      <p>RootMC  -  <a href="https://rootmc.net">rootmc.net</a>  -  play.rootmc.net</p>
+    </div>
+  </footer>
+
+  
+  <script src="/g2/scripts/economy-nav.js" defer></script>
+  <script src="/g2/mint/mint.js?v=20260710a" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+  <script src="/scripts/generation-switch.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

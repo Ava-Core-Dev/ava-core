@@ -420,6 +420,23 @@ def report_metrics_fresh_within(*, max_age_s: int = 3600) -> dict:
     checked: list[dict] = []
     now = time.time()
     for key, path in candidates.items():
+        if key == "grok-status":
+            try:
+                from apps.core.services import api_ledger
+
+                may_use_grok, reason = api_ledger.may_spend("xai")
+                if not may_use_grok and reason == "spend_master_off":
+                    checked.append(
+                        {
+                            "key": key,
+                            "age_s": 0,
+                            "fresh": True,
+                            "disabled": True,
+                        }
+                    )
+                    continue
+            except Exception:
+                pass
         age_s = None
         if path.is_file():
             data = _read_json(path)

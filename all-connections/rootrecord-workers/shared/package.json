@@ -1,0 +1,7 @@
+{
+  "name": "rootrecord-cloudflare-shared",
+  "private": true,
+  "dependencies": {
+    "@noble/hashes": "^1.8.0"
+  }
+}

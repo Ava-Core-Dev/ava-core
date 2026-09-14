@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RootMC plugin suite — Wiki</title>
+  <meta name="description" content="Operator guide to the RootMC Paper suite — install order, Root-Claims land, auto-updates, and links to every plugin guide.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/plugins/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">Network</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="wiki"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/wiki/">Wiki</a> / Plugins</p>
+    <h1 class="wiki-page-title">RootMC <em>plugin suite</em></h1>
+    <p class="rmc-lead" style="max-width:44rem">Everything a modern Paper survival server needs — Gold economy, perms, land, day clock, ranks, ops, and CDN auto-updates — under one brand and one shared <code>plugins/RootMC/</code> folder.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge wiki-badge-dev">Operators</span>
+      <span class="wiki-badge wiki-badge-player">Product key</span>
+    </div>
+    <p style="margin:1.25rem 0 0">
+      <a class="rmc-btn rmc-btn-primary" href="/plugins/">Open catalog →</a>
+      <a class="rmc-btn rmc-btn-secondary" href="/wiki/plugins/api/" style="margin-left:0.5rem">Update &amp; APIs →</a>
+    </p>
+
+    <div class="wiki-shell" style="margin-top:2rem">
+      <aside class="wiki-sidebar" aria-label="Sections">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#cover">What ships</a></li>
+            <li><a href="#network">Network setup</a></li>
+            <li><a href="#hosts">Live land (Root-Claims)</a></li>
+            <li><a href="#order">Install order</a></li>
+            <li><a href="#update">Auto-update</a></li>
+            <li><a href="#guides">Plugin guides</a></li>
+            <li><a href="#keys">Keys &amp; My Servers</a></li>
+            <li><a href="#players">Player docs</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <p class="rmc-muted" style="margin:0;font-size:0.85rem">Related</p>
+          <ul>
+            <li><a href="/wiki/plugins/network-setup/">Network setup</a></li>
+            <li><a href="/plugins/">Catalog downloads</a></li>
+            <li><a href="/wiki/versioning/">Versioning scheme</a></li>
+            <li><a href="/wiki/plugins/api/">Manifest &amp; APIs</a></li>
+            <li><a href="/developer/">Developer portal</a></li>
+          </ul>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="cover">
+          <h2>What ships</h2>
+          <p>The public CDN suite is first-party RootMC software. Live line is <strong><code data-live-suite-version>…</code></strong> — always read <a href="/plugins/manifest.json">manifest.json</a>, never a hardcoded jar name.</p>
+          <ul>
+            <li><strong>Root-Core</strong> — license, shared folder, updater, Discord/Slack <em>comms</em></li>
+            <li><strong>Root-Ava-Core</strong> — Ava companion (ensure-installed from the manifest)</li>
+            <li><strong>Root-Times</strong> — day clock, playtime, activity</li>
+            <li><strong>Root-Perms</strong> — groups &amp; tracks</li>
+            <li><strong>Root-Economy</strong> — Gold, Vault, treasury, shops, bonds, loans, tax</li>
+            <li><strong>Root-Essentials</strong> — homes, TP, spawn, banners, potions, QoL fees</li>
+            <li><strong>Root-Claims</strong> / <strong>Root-Territories</strong> — personal land and +48 territory buffers</li>
+            <li><strong>Root-Play</strong> — ranks, votes, help, new-player road</li>
+            <li><strong>Root-Skills</strong> — proportional XP, talents (mcMMO path)</li>
+            <li><strong>Root-Ops</strong> — admin, restart, announcer, mapper</li>
+            <li><strong>Root-ItemInfo</strong> — <code>/info</code> + world census</li>
+            <li><strong>Root-Gamble</strong> / <strong>Root-Heads</strong> / <strong>Root-Haste</strong> — mini-games, collectibles, torch</li>
+            <li><strong>RootMC</strong> — link, heartbeat</li>
+            <li><strong>RootMC-Official</strong> — legacy/optional progression (not required)</li>
+          </ul>
+          <p>Currency is always <strong>Gold (G)</strong>, not dollars. Automated grants debit the Server Reserve — see the <a href="/wiki/constitution/">Constitution</a>.</p>
+        </article>
+
+        <article id="network">
+          <h2>Network setup</h2>
+          <p>New host path: drop jars → product key in <code>root-core.yml</code> → restart → <code>/rootcore connect</code> shows <strong>NETWORK CONNECTED</strong>.</p>
+          <p><a class="rmc-btn rmc-btn-primary" href="/wiki/plugins/network-setup/">Open network setup checklist →</a></p>
+        </article>
+
+        <article id="hosts">
+          <h2>Live land (Root-Claims)</h2>
+          <p>Live RootMC is a <strong>singular</strong> host: <code>play.rootmc.net</code> with <strong>Root-Claims</strong> only. There is no Towny host and no Claims-world vs Towny pair.</p>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Install</th><th>Include</th><th>Skip</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Live RootMC / third-party Paper</td>
+                <td>Full suite + <strong>Root-Claims</strong> + Root-Territories</td>
+                <td><a href="/plugins/rootmc-official/">RootMC-Official</a> unless you intentionally want the legacy jar. Vault optional.</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="order">
+          <h2>Install order</h2>
+          <ol>
+            <li>Paper 26.x with outbound HTTPS to <code>api.rootmc.net</code></li>
+            <li><a href="/plugins/root-core/">Root-Core</a> + <a href="/developer/keys/">product key</a> in <code>plugins/RootMC/root-core.yml</code></li>
+            <li>Root-Times → Root-Perms → Root-Economy → Root-Essentials</li>
+            <li>Root-Play, Root-Ops, Root-Territories, Root-ItemInfo, RootMC</li>
+            <li>Root-Claims (+ Root-Territories). RootMC-Official last only if you intentionally enable the legacy jar</li>
+          </ol>
+          <div class="wiki-callout wiki-callout-dev">
+            Shared configs live under <code>plugins/RootMC/</code>, not each jar’s own data folder. Core creates and repairs that folder on enable.
+          </div>
+        </article>
+
+        <article id="update">
+          <h2>Auto-update</h2>
+          <p>With <code>updater.enabled: true</code> (default), Root-Core polls <a href="/plugins/manifest.json">https://rootmc.net/plugins/manifest.json</a>, downloads newer jars for every installed catalog plugin, prunes older same-plugin jars, and can schedule a restart. Manual: <code>/rootcore update</code>.</p>
+          <ul>
+            <li><code>only-installed: true</code> (default) — update jars already on disk, plus always install <code>updater.ensure</code> (ava-core, times, perms, economy, essentials, claims, territories, play, skills, ops, appreciation, rootmc).</li>
+            <li><code>only-installed: false</code> — download <strong>every</strong> manifest entry (full self-install of the public catalog).</li>
+          </ul>
+          <p>Details: <a href="/wiki/plugins/api/">Plugin update &amp; APIs</a>.</p>
+        </article>
+
+        <article id="guides">
+          <h2>Plugin guides</h2>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Plugin</th><th>Guide</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Root-Core</td><td><a href="/plugins/root-core/">/plugins/root-core/</a> (includes Discord/Slack comms)</td></tr>
+              <tr><td>Root-Ava-Core</td><td><a href="/plugins/root-ava-core/">/plugins/root-ava-core/</a></td></tr>
+              <tr><td>Root-Times</td><td><a href="/plugins/root-times/">/plugins/root-times/</a></td></tr>
+              <tr><td>Root-Perms</td><td><a href="/plugins/root-perms/">/plugins/root-perms/</a></td></tr>
+              <tr><td>Root-Economy</td><td><a href="/plugins/root-economy/">/plugins/root-economy/</a></td></tr>
+              <tr><td>Root-ChestShops</td><td><a href="/plugins/root-chestshops/">/plugins/root-chestshops/</a></td></tr>
+              <tr><td>Root-Market</td><td><a href="/plugins/root-market/">/plugins/root-market/</a></td></tr>
+              <tr><td>Root-Gamble</td><td><a href="/plugins/root-gamble/">/plugins/root-gamble/</a></td></tr>
+              <tr><td>Root-Essentials</td><td><a href="/plugins/root-essentials/">/plugins/root-essentials/</a></td></tr>
+              <tr><td>Root-Claims</td><td><a href="/plugins/root-claims/">/plugins/root-claims/</a></td></tr>
+              <tr><td>Root-Territories</td><td><a href="/plugins/root-territories/">/plugins/root-territories/</a></td></tr>
+              <tr><td>Root-Play</td><td><a href="/plugins/root-play/">/plugins/root-play/</a></td></tr>
+              <tr><td>Root-Skills</td><td><a href="/plugins/root-skills/">/plugins/root-skills/</a></td></tr>
+              <tr><td>Root-Try</td><td><a href="/plugins/root-try/">/plugins/root-try/</a></td></tr>
+              <tr><td>Root-Haste</td><td><a href="/plugins/root-haste/">/plugins/root-haste/</a> (torch default; unlock-joint for 18+)</td></tr>
+              <tr><td>Root-Heads</td><td><a href="/plugins/root-heads/">/plugins/root-heads/</a></td></tr>
+              <tr><td>Root-Referrals</td><td><a href="/plugins/root-referrals/">/plugins/root-referrals/</a></td></tr>
+              <tr><td>Root-Appreciation</td><td><a href="/plugins/root-appreciation/">/plugins/root-appreciation/</a></td></tr>
+              <tr><td>Root-Memberships</td><td><a href="/plugins/root-memberships/">/plugins/root-memberships/</a></td></tr>
+              <tr><td>Root-Ops</td><td><a href="/plugins/root-ops/">/plugins/root-ops/</a></td></tr>
+              <tr><td>Root-ItemInfo</td><td><a href="/plugins/root-iteminfo/">/plugins/root-iteminfo/</a></td></tr>
+              <tr><td>Root-Webstat</td><td><a href="/plugins/root-webstat/">/plugins/root-webstat/</a></td></tr>
+              <tr><td>Root-Ping</td><td><a href="/plugins/root-ping/">/plugins/root-ping/</a></td></tr>
+              <tr><td>RootMC</td><td><a href="/plugins/rootmc/">/plugins/rootmc/</a></td></tr>
+              <tr><td>Root-BlueMap-R2-Fix</td><td><a href="/plugins/root-bluemap-r2-fix/">/plugins/root-bluemap-r2-fix/</a></td></tr>
+              <tr><td>RootMC-Official</td><td><a href="/plugins/rootmc-official/">/plugins/rootmc-official/</a></td></tr>
+            </tbody>
+          </table>
+          <p><strong>Root-Discord</strong> is retired — remove the jar; Discord/Slack live in <a href="/plugins/root-core/#discord">Root-Core comms</a>. Absorbed jars (shops, help, rewards, …) redirect to Essentials or Play — see catalog notes.</p>
+        </article>
+
+        <article id="keys">
+          <h2>Keys &amp; My Servers</h2>
+          <p>Register at the <a href="/developer/">developer portal</a>, generate a product key, put it in <code>root-core.yml</code>, start Core. Bind + presence fill <code>cloud.yml</code> and list the host under <a href="/developer/servers/">My Servers</a>. Full checklist: <a href="/wiki/plugins/network-setup/">network setup</a>.</p>
+        </article>
+
+        <article id="players">
+          <h2>Player-facing docs</h2>
+          <ul>
+            <li><a href="/wiki/player/">Player guide</a> — join, commands, linking</li>
+            <li><a href="/referrals/">Referrals</a> — <code>/root</code> codes, qualify gates, Gold rewards</li>
+            <li><a href="/thanks/">Appreciation</a> — <code>/thanks</code> tokens, <code>/bonus</code> daily streak</li>
+            <li><a href="/wiki/economy/">Economy guide</a> — Gold, mint, shops, loans</li>
+            <li><a href="/wiki/constitution/">Constitution</a> — reserve, taxes, governance</li>
+            <li><a href="/list/">Lists</a> — treasury / pool snapshots</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/wiki/">Wiki</a> · <a href="/plugins/">Plugins</a> · <a href="/developer/">Developers</a></p>
+      <p class="rmc-footer-mono">suite guide · Paper 26.x</p>
+    </div>
+  </footer>
+  <script src="/plugins/suite-version.js?v=1" defer></script>
+  <script src="/scripts/site-nav.js?v=20260723p" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

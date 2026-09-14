@@ -71,6 +71,12 @@ async def lifespan(app: FastAPI):
         capture_boot_gap()
     except Exception:
         pass
+    try:
+        from apps.core.services.net_gate import mark_online
+
+        mark_online()
+    except Exception as e:
+        log.warning("Network gate state update skipped: %s", e)
     log.info("Ava Core starting  port=%s  env=%s", config.AVA_PORT, config.AVA_ENV)
     log.info("Config: %s", config.as_dict())
 
@@ -83,17 +89,18 @@ async def lifespan(app: FastAPI):
         from apps.voice.director import (
             ensure_music_bed,
             ensure_running,
+            music_bed_startup_allowed,
             music_bed_wanted,
         )
 
         ensure_running()
         # Do not sync-sweep on the event loop — Windows process scans hang /health.
         # ensure_music_bed runs kill_stray off-thread inside start_music_bed.
-        if music_bed_wanted():
+        if music_bed_startup_allowed() and music_bed_wanted():
             ensure_music_bed()
             log.info("Stream Director + music bed start queued")
         else:
-            log.info("Stream Director started; music bed OFF (wanted=0)")
+            log.info("Stream Director started; music bed OFF (startup opt-in disabled or wanted=0)")
     except Exception as e:
         log.warning("Stream Director / music bed failed to start: %s", e)
 
@@ -234,6 +241,12 @@ async def lifespan(app: FastAPI):
         note_down()
     except Exception:
         pass
+    try:
+        from apps.core.services.net_gate import mark_offline
+
+        mark_offline()
+    except Exception as e:
+        log.warning("Network gate shutdown update skipped: %s", e)
     try:
         from apps.core.services.hybrid_reports import append_hybrid_lifecycle_event
         result = append_hybrid_lifecycle_event("STOPPED")

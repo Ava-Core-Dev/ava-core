@@ -1,0 +1,10 @@
+[
+  {"id": "sharpness", "name": "Sharpness", "maxLevel": 5},
+  {"id": "efficiency", "name": "Efficiency", "maxLevel": 5},
+  {"id": "unbreaking", "name": "Unbreaking", "maxLevel": 3},
+  {"id": "mending", "name": "Mending", "maxLevel": 1},
+  {"id": "fortune", "name": "Fortune", "maxLevel": 3},
+  {"id": "silk_touch", "name": "Silk Touch", "maxLevel": 1},
+  {"id": "protection", "name": "Protection", "maxLevel": 4},
+  {"id": "feather_falling", "name": "Feather Falling", "maxLevel": 4}
+]

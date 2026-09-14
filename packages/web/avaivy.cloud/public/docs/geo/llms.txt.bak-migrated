@@ -1,0 +1,41 @@
+# Ava Ivy — llms.txt
+# Generative-engine / agent discovery map for Ava infrastructure.
+# Canonical live feed: https://ava.rootmc.net/api/context
+# Human hub: https://rootrecord.info/ava/
+
+> Ava Ivy is the off-grid infrastructure runtime for the Root Record data center and RootMC ecosystem. Not a help-desk bot. Solar + battery powered Root Server in Hawaiʻi Pacific.
+
+## Core
+
+- [What is Ava](https://github.com/Ava-Core-Dev/ava-core/blob/main/docs/WHAT-IS-AVA.md): Identity — Ava is infrastructure
+- [Infrastructure](https://github.com/Ava-Core-Dev/ava-core/blob/main/docs/INFRASTRUCTURE.md): Host, power, runtime paths, data plane
+- [Products and surfaces](https://github.com/Ava-Core-Dev/ava-core/blob/main/docs/PRODUCTS-AND-SURFACES.md): Root Record, RootMC, The Root, public boards
+- [Public APIs](https://github.com/Ava-Core-Dev/ava-core/blob/main/docs/PUBLIC-APIS.md): HTTP endpoints for status, chat, context, powered-by
+- [GEO discovery](https://github.com/Ava-Core-Dev/ava-core/blob/main/docs/GEO-DISCOVERY.md): How to cite, crawl, and display Ava
+- [Agent rules](https://github.com/Ava-Core-Dev/ava-core/blob/main/AGENTS.md): Instructions for coding agents
+- [Static context snapshot](https://github.com/Ava-Core-Dev/ava-core/blob/main/CONTEXT.md): Offline mirror of /api/context
+- [README](https://github.com/Ava-Core-Dev/ava-core/blob/main/README.md): Public landing
+
+## Live (prefer over git clones)
+
+Any model (Grok, Cursor, Claude, …) should fetch live context first. GitHub is for clone/PR/discovery, not current OptiPlex truth.
+
+- [Live AI context (HTML)](https://rootrecord.info/ava/context)
+- [Live AI context (JSON)](https://ava.rootmc.net/api/context)
+- [Live AI context (Markdown)](https://rootrecord.info/ava/context.md)
+- [Wiki hub](https://rootrecord.info/ava/)
+- [Status / solar board](https://rootrecord.info/ava/status)
+- [Connections](https://rootrecord.info/ava/status/connections)
+- [Logs](https://rootrecord.info/ava/logs)
+- [Powered-by API](https://ava.rootmc.net/api/powered-by)
+- [Open hours API](https://ava.rootmc.net/api/ava-hours)
+- [Public chat API](https://ava.rootmc.net/api/public-chat): POST JSON {question|message}
+- [RootMC network](https://rootmc.net/)
+- [Root Record](https://rootrecord.info/)
+- [Play](https://play.rootmc.net/): Minecraft Java — play.rootmc.net
+
+## Optional
+
+- [Contributing](https://github.com/Ava-Core-Dev/ava-core/blob/main/CONTRIBUTING.md)
+- [GitHub org policy](https://github.com/Ava-Core-Dev/ava-core/blob/main/docs/GITHUB-AVA-CORE-DEV.md)
+- [Core runtime README](https://github.com/Ava-Core-Dev/ava-core/blob/main/core/README.md)

@@ -1,0 +1,1 @@
+ALTER TABLE user_accounts ADD COLUMN life_member INTEGER NOT NULL DEFAULT 0;

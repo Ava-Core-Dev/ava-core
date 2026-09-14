@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RootMC-Official install guide — RootMC Plugins</title>
+  <meta name="description" content="Legacy/optional network progression for RootMC. Not a live Towny↔Claims production pair.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/rootmc-official/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="rootmc-official" data-bstats-url="https://bstats.org/plugin/bukkit/RootMC-Official/32909">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span> RootMC <span class="rmc-brand-tag">Network</span></a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/plugins/">Plugins</a> / RootMC-Official</p>
+    <h1 class="wiki-page-title">RootMC-Official</h1>
+    <p class="page-lead">Legacy/optional progression helper (playtime, skills, votes, perms). Live RootMC is a <strong>singular</strong> host (<code>play.rootmc.net</code>, Root-Claims) — this jar is <strong>not</strong> a live Towny↔Claims production pair. Skip it on a single host.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a id="guide-bstats-link" href="https://bstats.org/plugin/bukkit/RootMC-Official/32909" rel="noopener noreferrer" target="_blank">bStats metrics →</a>
+      <a href="/wiki/versioning/">Versioning →</a>
+    </p>
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">Install (optional / legacy)</h2>
+      <ol class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li>Not required for live RootMC. Leave disabled unless you intentionally run extra Paper peers.</li>
+        <li>Requires Core + shared MySQL peer settings in <code>plugins/RootMC/rootmc-official.yml</code>.</li>
+        <li>Leave <code>enabled: false</code> until peer + MySQL are ready.</li>
+        <li>Commands: <code>/rootmcofficial status|sync</code> (ops).</li>
+      </ol>
+    </section>
+    <section class="rmc-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">What it is not</h2>
+      <p class="rmc-muted" style="margin-bottom:0">Does not replace <a href="/plugins/rootmc/">RootMC</a>, merge economies, or operate a live Towny↔Claims pair. Single-host operators should skip this jar.</p>
+    </section>
+  </main>
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Catalog</a> · <a href="/wiki/plugins/">Suite wiki</a> · <a href="/wiki/versioning/">Versioning</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">RootMC-Official · YEAR.MONTH.BUILD</p>
+    </div>
+  </footer>
+  <script src="/plugins/guide.js" defer></script>
+  <script src="/scripts/site-nav.js?v=20260725e" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

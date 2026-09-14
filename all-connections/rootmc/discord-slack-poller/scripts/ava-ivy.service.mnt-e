@@ -1,0 +1,35 @@
+[Unit]
+Description=Ava Ivy (RootMC) — pit-stop unit running off /mnt/e
+After=network-online.target mnt-e.mount
+Wants=network-online.target
+# If you use an fstab mount unit named differently, adjust After=/Requires=
+
+[Service]
+Type=simple
+User=ava
+Group=ava
+WorkingDirectory=/mnt/e/.1 Work Stations/RootMC/Web Files/rootmc-ava
+Environment=AVA_HEADLESS=1
+Environment=AVA_NO_STATUS_WINDOW=1
+Environment=AVA_RICH_PRESENCE=0
+Environment=AVA_HANDOFF=/mnt/e/.1 Work Stations/RootMC/Server Handoffs/Ava Ivy
+Environment=AVA_WORKSPACE=/mnt/e/.1 Work Stations/RootMC
+Environment=ROOTMC_ENV_FILE=/mnt/e/.1 Work Stations/RootMC/.env
+Environment=NODE_ENV=production
+ExecStartPre=/bin/mkdir -p "/mnt/e/.1 Work Stations/RootMC/Server Handoffs/Ava Ivy/data"
+ExecStartPre=/bin/rm -f "/mnt/e/.1 Work Stations/RootMC/Server Handoffs/Ava Ivy/data/power-off.json"
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=30
+
+# Pit-stop: source stays on E. Caches still live in user home on SSD.
+# Install:
+#   sudo cp "…/scripts/ava-ivy.service.mnt-e" /etc/systemd/system/ava-ivy.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now ava-ivy
+# Prefer stock ava-ivy.service once /srv/rootmc bind is set up long-term.
+# Status from laptop: ssh -L 8787:127.0.0.1:8787 rootatmus-prime
+
+[Install]
+WantedBy=multi-user.target

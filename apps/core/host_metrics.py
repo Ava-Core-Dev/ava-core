@@ -9,9 +9,13 @@ import os
 import shutil
 import subprocess
 import time
-import winreg
 from pathlib import Path
 from typing import Any
+
+if os.name == "nt":
+    import winreg
+else:
+    winreg = None
 
 import psutil
 
@@ -180,7 +184,7 @@ def host_disk_pct(home: Path | None = None) -> float | None:
 
 
 def gpu_name() -> str | None:
-    if os.name != "nt":
+    if os.name != "nt" or winreg is None:
         return None
     class_root = r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
     try:
@@ -202,7 +206,7 @@ def gpu_name() -> str | None:
 
 def npu_present() -> bool:
     """Device present. Does not mean Ollama or Windows is using it."""
-    if os.name != "nt":
+    if os.name != "nt" or winreg is None:
         return False
     # Compute Accelerator class (AMD XDNA / NPU Compute Accelerator Device)
     try:

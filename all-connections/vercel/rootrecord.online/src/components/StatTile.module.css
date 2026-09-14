@@ -1,0 +1,13 @@
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.value { font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em; }
+.sub { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+.pill { margin-top: 8px; align-self: flex-start; }

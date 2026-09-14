@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link account — RootMC</title>
+  <meta name="description" content="Link your Minecraft player to RootMC using a code from /link in-game.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/verify/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container verify-main">
+    <header class="verify-hero">
+      <p class="market-badge">Account linking</p>
+      <h1>Link your <span style="background:linear-gradient(135deg,var(--rmc-gold-bright),var(--rmc-copper));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">player</span></h1>
+      <p class="rmc-muted">Run <code>/link</code> in-game, enter your code below, then link with Discord. No sign-up required.</p>
+
+      <ol class="verify-stepper" aria-label="Steps">
+        <li class="verify-step is-active"><span class="num">1</span>Code</li>
+        <li class="verify-step"><span class="num">2</span>Discord</li>
+        <li class="verify-step"><span class="num">3</span>Linked</li>
+      </ol>
+    </header>
+
+    <p id="status" class="verify-status" role="status" hidden></p>
+
+    <section id="panel-loading" class="rmc-card verify-card">
+      <div class="skeleton-rows" style="padding: 0;">
+        <div class="skeleton-row" style="height: 56px;"></div>
+        <div class="skeleton-row" style="height: 40px; width: 70%;"></div>
+      </div>
+    </section>
+
+    <section id="panel-success" class="rmc-card verify-card" hidden>
+      <p class="rmc-badge" style="background: rgba(93,211,158,0.15); color: var(--rmc-emerald); border-color: rgba(93,211,158,0.32);">✓ Linked</p>
+      <h2 style="margin-top:0">You&rsquo;re linked</h2>
+      <p class="rmc-muted" id="success-detail"></p>
+      <div class="verify-actions">
+        <a class="rmc-btn rmc-btn-primary" href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">Open Discord</a>
+        <a class="rmc-btn rmc-btn-secondary" href="/">Back to home</a>
+      </div>
+    </section>
+
+    <section id="panel-verify" class="rmc-card verify-card">
+      <h2 style="margin-top:0">Verification code</h2>
+      <p class="rmc-muted" id="code-preview">Enter the 6-character code from <code>/link</code> in-game.</p>
+      <form id="form-verify" class="verify-form">
+        <label class="verify-field">
+          <span>Code</span>
+          <input type="text" name="code" id="input-code" maxlength="6" pattern="[A-Za-z0-9]{6}" required autocomplete="one-time-code" placeholder="ABC123">
+        </label>
+        <div class="verify-actions">
+          <button type="button" class="rmc-btn rmc-btn-primary" id="btn-discord" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.32 4.37A19.79 19.79 0 0 0 15.43 3a13.4 13.4 0 0 0-.62 1.27 18.27 18.27 0 0 0-5.62 0A12.5 12.5 0 0 0 8.57 3 19.74 19.74 0 0 0 3.67 4.37 21.05 21.05 0 0 0 .17 18.7a19.92 19.92 0 0 0 6.05 3.06 14.6 14.6 0 0 0 1.3-2.11 12.86 12.86 0 0 1-2.05-1c.17-.13.34-.27.5-.4a14.18 14.18 0 0 0 12.06 0c.17.14.34.27.5.4a12.79 12.79 0 0 1-2.06 1 14.45 14.45 0 0 0 1.3 2.12 19.92 19.92 0 0 0 6.06-3.07 21 21 0 0 0-3.51-14.33Z"/></svg>
+            Link with Discord
+          </button>
+          <button type="submit" class="rmc-btn rmc-btn-secondary" id="btn-complete" disabled>Minecraft only</button>
+        </div>
+      </form>
+      <p class="rmc-muted verify-note">Discord linking sets your server nickname to your in-game name, grants the linked-player role, pays a one-time <strong>100 G</strong> welcome bonus, and <strong>unlocks Discord chat</strong>. Run <code>/link</code> in-game first, then use Link with Discord below.</p>
+      <p style="margin:1rem 0 0">
+        <button type="button" class="rmc-btn rmc-btn-ghost" id="btn-show-advanced" style="font-size:0.85rem; padding: 0.55rem 1rem;">Sign in with email (optional)</button>
+      </p>
+    </section>
+
+    <section id="panel-advanced" class="rmc-card verify-card" hidden>
+      <h2 style="margin-top:0">Sign in (optional)</h2>
+      <p class="rmc-muted">Optional — link this Minecraft player to an existing email login used elsewhere.</p>
+      <form id="form-login" class="verify-form">
+        <label class="verify-field">
+          <span>Email</span>
+          <input type="email" name="email" required autocomplete="username" placeholder="you@example.com">
+        </label>
+        <label class="verify-field">
+          <span>Password</span>
+          <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+        </label>
+        <div class="verify-actions">
+          <button type="submit" class="rmc-btn rmc-btn-primary">Sign in, then link</button>
+          <button type="button" class="rmc-btn rmc-btn-secondary" id="btn-back-verify">Back</button>
+          <button type="button" class="rmc-btn rmc-btn-ghost" id="btn-logout">Sign out</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/">RootMC home</a> · <a href="/wiki/player/#linking">How linking works</a></p>
+      <p class="rmc-footer-mono">codes expire in ~15 min</p>
+    </div>
+  </footer>
+
+  <nav class="rmc-bottomnav" aria-label="Mobile">
+    <div class="rmc-bottomnav-inner">
+      <a href="/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+      </a>
+      <a href="/market/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+        Market
+      </a>
+      <a href="/leaderboard/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10l1 7H6l1-7zM6 11h12v6H6z"/></svg>
+        Ranks
+      </a>
+      <a href="/player/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+        Players
+      </a>
+      <a href="/wiki/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>
+        Wiki
+      </a>
+    </div>
+  </nav>
+
+  
+  <script src="/verify/verify.js" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

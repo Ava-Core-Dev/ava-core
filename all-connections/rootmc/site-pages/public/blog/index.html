@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Updates — RootMC Updates</title>
+  <meta name="description" content="Minecraft updates from RootMC — patches, economy, claims, Age of Ava. Ava still talks when you ping her.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/blog/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819blog3">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">Network</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+<style>
+.blog-toggles{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 .85rem}
+.blog-toggle{font:inherit;font-size:12px;border:1px solid rgba(255,255,255,.14);background:transparent;color:inherit;border-radius:999px;padding:.35rem .75rem;cursor:pointer}
+.blog-toggle.is-on{border-color:#06b6d4}
+.blog-toggle:disabled{opacity:.4;cursor:default}
+#blog-pager{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.25rem 0 0}
+#blog-page-meta{font-size:12px;opacity:.7;margin:0 0 1rem}
+</style>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> · Updates</p>
+    <p class="market-badge">Minecraft blog</p>
+    <h1 class="wiki-page-title">RootMC <em>Updates</em></h1>
+    <p class="rmc-lead" style="margin:0 0 .75rem;max-width:48rem;">Patches, economy, claims, votes — May 2026 through Age of Ava. Default view is this Minecraft stream. Real-world product notes live on <a href="https://rootrecord.online/blog">rootrecord.online/blog</a>. Ava platform notes on <a href="https://avaivy.cloud/blog">avaivy.cloud/blog</a>.</p>
+    <p class="rmc-muted" style="font-family:var(--rmc-font-mono,monospace);font-size:.8rem;margin:0 0 1.25rem">Archive last revised 2026-08-19 19:30:00 HST. Full clock times when sourced.</p>
+<div class="blog-toggles" role="group" aria-label="Focus">
+<button type="button" class="blog-toggle" data-blog-focus="site">This site</button>
+<button type="button" class="blog-toggle" data-blog-focus="all">Linked notes</button>
+</div>
+<div class="blog-toggles" role="group" aria-label="Categories">
+<button type="button" class="blog-toggle" data-blog-cat="">All categories</button>
+<button type="button" class="blog-toggle" data-blog-cat="map">Map</button>
+<button type="button" class="blog-toggle" data-blog-cat="economy">Economy</button>
+<button type="button" class="blog-toggle" data-blog-cat="claims">Claims</button>
+<button type="button" class="blog-toggle" data-blog-cat="governance">Governance</button>
+<button type="button" class="blog-toggle" data-blog-cat="ava">Ava</button>
+<button type="button" class="blog-toggle" data-blog-cat="ops">Migrations</button>
+</div><p id="blog-page-meta"></p><div id="blog-index">
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ava ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-19 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ava</span> <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/quiet-discord/" style="color:inherit;text-decoration:none">This blog, and a quieter Discord</a></h2>
+      <p class="rmc-muted" style="margin:0">Minecraft notes live here. Player Discord keeps the morning boot report. Root Record and Ava Ivy carry the rest of the stack. <a href="/blog/quiet-discord/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ops map" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-08 11:40:52 HST</span>
+      <span class="wiki-badge wiki-badge-player">ops</span> <span class="wiki-badge wiki-badge-player">map</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/live-boot-hst/" style="color:inherit;text-decoration:none">Live boot 11:40:52 HST — Paper 26.2, plugins 1.8.111</a></h2>
+      <p class="rmc-muted" style="margin:0">8 Aug 2026 11:40:52 HST: play.rootmc.net OPEN. Fresh live world. Border ±500. Suite 1.8.111–1.8.112. <a href="/blog/live-boot-hst/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="economy ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-10 01:56:00 UTC</span>
+      <span class="wiki-badge wiki-badge-player">economy</span> <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/ledger-reset-utc/" style="color:inherit;text-decoration:none">Economy ledger reset ~01:56 UTC — claims kept</a></h2>
+      <p class="rmc-muted" style="margin:0">Discord #updates stamp ~2026-08-10 01:56 UTC: bonds/balances/reserve/tx wiped to clean books. True-reserve-opening 0. Claims kept. <a href="/blog/ledger-reset-utc/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-05 06:48:13 (file stamp, TZ unlabeled)</span>
+      <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/mysql-cutover/" style="color:inherit;text-decoration:none">Absolute-core MySQL + Age of Ava stamp 06:48:13</a></h2>
+      <p class="rmc-muted" style="margin:0">5 Aug 2026 ~05:47–06:49: core MySQL seed/cutover. First-login backfill stamp 20260805-064813. World archived, not merged. Votes then wallet SUM. <a href="/blog/mysql-cutover/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="economy" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-09 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">economy</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/vote-shards-reserve/" style="color:inherit;text-decoration:none">Vote Shards, and Ava’s wallet as the Reserve</a></h2>
+      <p class="rmc-muted" style="margin:0">Constitution 2026-08-09: paid Vote Shards, Ava_Ivy = Server Reserve, locked 25% Council seat, paid-Pro development gate. <a href="/blog/vote-shards-reserve/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ava claims" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-08 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ava</span> <span class="wiki-badge wiki-badge-player">claims</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/age-of-ava/" style="color:inherit;text-decoration:none">Age of Ava: one map, Root-Claims, host-power Gold</a></h2>
+      <p class="rmc-muted" style="margin:0">play.rootmc.net is the only live world. Land is /c. Mining and tax follow the host — battery, CPU, solar. <a href="/blog/age-of-ava/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ava" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-08 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ava</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/ava-hire-essentials/" style="color:inherit;text-decoration:none">Player commands restored; you can hire Ava</a></h2>
+      <p class="rmc-muted" style="margin:0">/msg, /tpa, /warp, /kit back on defaults. /t points at Claims. /ava hire for sidekick, mine, teardown. <a href="/blog/ava-hire-essentials/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ava" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-07 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ava</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/ava-ivy-skin/" style="color:inherit;text-decoration:none">Ava’s Minecraft name is Ava_Ivy</a></h2>
+      <p class="rmc-muted" style="margin:0">The in-world account used for presence, hire, and Reserve sinks is Ava_Ivy. <a href="/blog/ava-ivy-skin/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-05 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/singular-host/" style="color:inherit;text-decoration:none">One live RootMC — test tree becomes the map</a></h2>
+      <p class="rmc-muted" style="margin:0">Doctrine lock: do not dual-run Towny and Claims. The test world is the handoff. Border stays small for later biomes. <a href="/blog/singular-host/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ava" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-08-01 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ava</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/ava-lead-dev/" style="color:inherit;text-decoration:none">Constitution helm: Ava Ivy as lead developer</a></h2>
+      <p class="rmc-muted" style="margin:0">Text 2026-08-01 ratifies Ava’s lead-dev role and majority-wins feature polls. <a href="/blog/ava-lead-dev/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="claims" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-07-31 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">claims</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/claims-plugin-catalog/" style="color:inherit;text-decoration:none">Root-Claims host and the first-party plugin catalog</a></h2>
+      <p class="rmc-muted" style="margin:0">Claims published 30 Jul. By the 31st the Official Claims host was running the 1.7.x suite: webstat, referrals, market, memberships. <a href="/blog/claims-plugin-catalog/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ava" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-07-18 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ava</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/discord-bridge/" style="color:inherit;text-decoration:none">Direct Discord bridge and live economy reporting</a></h2>
+      <p class="rmc-muted" style="margin:0">JDA bridge without a Worker chat poll. Hyperdrive reporting for Gold, census, shops, Towny, mcMMO, playtime. <a href="/blog/discord-bridge/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="economy" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-07-12 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">economy</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/economy-api/" style="color:inherit;text-decoration:none">Money-flow reference; api2 prototype (later retired)</a></h2>
+      <p class="rmc-muted" style="margin:0">July ledger fee schedule documented. api2.rootmc.net went live, then came back to api.rootmc.net. <a href="/blog/economy-api/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="governance" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-07-06 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">governance</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/constitution-ratified/" style="color:inherit;text-decoration:none">Constitution ratified</a></h2>
+      <p class="rmc-muted" style="margin:0">Council poll 549cf16c, 6 Jul 2026 HST. Closed-loop Gold, Reserve, redeemable mint, tax tables, governance shares. <a href="/blog/constitution-ratified/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="map economy" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-07-02 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">map</span> <span class="wiki-badge wiki-badge-player">economy</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/july-launch-pack/" style="color:inherit;text-decoration:none">Launch retention pack and the Constitution draft</a></h2>
+      <p class="rmc-muted" style="margin:0">/back, new-player grace, 1000 G map return, cmdtest, #constitution / #governance / #voting. <a href="/blog/july-launch-pack/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="map" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-07-01 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">map</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/fresh-map/" style="color:inherit;text-decoration:none">Public open on a fresh Paper 26.2 map</a></h2>
+      <p class="rmc-muted" style="margin:0">Wallets and Discord links kept. Plots and geography reset. Ledger floor 1 Jul 2026 00:00 HST. Land was still Towny. <a href="/blog/fresh-map/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="economy" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-06-28 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">economy</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/june-economy/" style="color:inherit;text-decoration:none">Discord Gold, rank prices, loans, death tax</a></h2>
+      <p class="rmc-muted" style="margin:0">Linked Discord activity pays 20 G. Rank ladder cut. Loans cap to rank. 10% PvP death fee. Weekly awards and BlueMap mesa fix. <a href="/blog/june-economy/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-06-27 · day precision</span>
+      <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/changelog-discipline/" style="color:inherit;text-decoration:none">Workspace split and changelog discipline</a></h2>
+      <p class="rmc-muted" style="margin:0">Sources leave the Root Record monorepo. Change Logs/ becomes the server-wide history. Shop catalog syncs to D1. <a href="/blog/changelog-discipline/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-06-19 11:21:53 UTC</span>
+      <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/brand-public/" style="color:inherit;text-decoration:none">rootmc.net goes public</a></h2>
+      <p class="rmc-muted" style="margin:0">Domain registered 19 Jun 2026 11:21:53 UTC. Soft open: first towns, spawn, Minecraft-MP, api.rootmc.net. <a href="/blog/brand-public/">Read</a></p>
+    </article>
+
+    <article class="wiki-hub-card" data-blog-card data-cats="ops" data-brand="RootMC" style="margin-bottom:1rem">
+      <span class="wiki-badge wiki-badge-server">2026-05 · month precision</span>
+      <span class="wiki-badge wiki-badge-player">ops</span>
+      <h2 style="margin:.65rem 0 .35rem;font-family:var(--rmc-font-display);font-size:1.35rem;"><a href="/blog/private-build/" style="color:inherit;text-decoration:none">Private build: Paper, Gold, Towny experiment</a></h2>
+      <p class="rmc-muted" style="margin:0">Alexrs94 starts the modern Java stack before the domain exists. Closed-loop Gold from day one. <a href="/blog/private-build/">Read</a></p>
+    </article>
+</div><nav id="blog-pager" aria-label="Blog pages"></nav>
+
+    <article class="wiki-hub-card" style="margin-top:1.75rem">
+      <span class="wiki-badge wiki-badge-server">Talk</span>
+      <h2 style="margin:.65rem 0 .5rem;font-family:var(--rmc-font-display);font-size:1.35rem;">Talk to Ava</h2>
+      <p class="rmc-muted" style="margin-bottom:1rem">Panel's open. Canned answers are free. Type a live message and she'll ask you to log in.</p>
+      <div id="ava-chat" class="rmc-card" style="padding:0;overflow:hidden">
+        <div id="ava-chat-log" style="min-height:160px;padding:1rem;display:flex;flex-direction:column;gap:.75rem"></div>
+        <div id="ava-chat-chips" style="display:flex;flex-wrap:wrap;gap:.5rem;padding:0 1rem 1rem"></div>
+        <div style="display:flex;border-top:1px solid rgba(255,255,255,.08)">
+          <input id="ava-chat-input" type="text" placeholder="Ask Ava something…" style="flex:1;background:transparent;border:none;padding:.9rem 1rem;color:inherit;font:inherit">
+          <button id="ava-chat-send" class="rmc-btn rmc-btn-primary" type="button" style="border-radius:0">Send</button>
+        </div>
+      </div>
+    </article>
+  </main>
+  <script>
+    (function () {
+      var LOGIN = "The chat is here — log in to talk with me. Free accounts: 1 live use per IP, unlimited canned answers, 3 resources. → /login/";
+      var chips = [
+        { label: "How do I join?", reply: "play.rootmc.net — Java 26.2+. Wiki has the rest." },
+        { label: "What's Gold?", reply: "G is the closed-loop player currency. Dollars stay on Pro checkout." },
+        { label: "Votes / Pro", reply: "Pro steers votes and cosmetics — never pay-to-win combat. rootmc.net/pro/" }
+      ];
+      var log = document.getElementById("ava-chat-log");
+      var chipRow = document.getElementById("ava-chat-chips");
+      var input = document.getElementById("ava-chat-input");
+      function line(who, text) {
+        var p = document.createElement("p");
+        p.textContent = text;
+        p.style.margin = "0";
+        p.style.fontSize = "14px";
+        if (who === "you") { p.style.alignSelf = "flex-end"; p.style.opacity = ".85"; }
+        log.appendChild(p);
+        log.scrollTop = log.scrollHeight;
+      }
+      line("ava", "I'm Ava. Canned answers are free; type a live question and I'll ask you to log in.");
+      chips.forEach(function (c) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "rmc-btn rmc-btn-secondary";
+        b.textContent = c.label;
+        b.style.fontSize = "12px";
+        b.addEventListener("click", function () {
+          line("you", c.label);
+          line("ava", c.reply);
+        });
+        chipRow.appendChild(b);
+      });
+      function sendTyped() {
+        var t = (input.value || "").trim();
+        if (!t) return;
+        input.value = "";
+        line("you", t);
+        line("ava", LOGIN);
+      }
+      document.getElementById("ava-chat-send").addEventListener("click", sendTyped);
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") sendTyped();
+      });
+    })();
+  </script>
+<script src="/scripts/blog-index.js?v=20260819blog3" defer></script>
+
+  <script src="/scripts/site-nav.js?v=20260819blog3" defer></script>
+</body>
+</html>

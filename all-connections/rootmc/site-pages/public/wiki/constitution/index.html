@@ -1,0 +1,539 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RootMC Constitution — Rules, Reserve &amp; Regulations</title>
+  <meta name="description" content="RootMC Constitution version 2026-08-01 — authoritative rules for the gold-backed economy, Server Reserve, treasury grants, note supply, and governance.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/constitution/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / <a href="/wiki/">Wiki</a> / Constitution</p>
+    <p class="market-badge">Governance</p>
+    <h1 class="wiki-page-title">RootMC <em>Constitution</em></h1>
+    <p class="page-lead">The authoritative rules for RootMC’s <strong>gold-backed economy</strong>, <strong>Server Reserve</strong>, treasury grants, redemption, net worth, taxes, and reserve outflows. How-to guides live in the <a href="/wiki/economy/">economy guide</a> and <a href="/wiki/player/">player guide</a>; this document is the source of truth for policy and rates.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Version 2026-08-09</span>
+      <span class="wiki-badge wiki-badge-player">Core ratified 6 Jul 2026 (HST)</span>
+      <span class="wiki-badge wiki-badge-server">Ava role + majority wins 1 Aug 2026</span>
+      <span class="wiki-badge wiki-badge-player">All Gold redeemable</span>
+    </div>
+
+    <div class="wiki-callout" id="ratification" style="margin-top:1.25rem">
+      <p><strong>Ratified.</strong> Constitution core <strong>version <code>2026-07-06</code></strong> was adopted by Council poll <code>549cf16c</code> on <strong>July 6, 2026 (HST)</strong> (weighted majority). Supersedes draft <code>2026-07-02</code>. <strong>Current published text:</strong> <code>2026-08-09</code> — operator helm update: <strong>Ava_Ivy wallet = Server Reserve</strong> (hire + <code>/pay Ava</code> sink here), <strong>paid Vote Shards</strong> ($1 = 100; Pro 500/mo + ×2; Lifetime 500/mo for life + listing-site ×2 + ×3; Pro+Lifetime ×5; weekly award Pro does not grant shards or ×2), <strong>EC shards digital</strong>, <strong>Ava Ivy locked Council seat 25%</strong>, and <strong>paid-Pro development gate</strong> (8 paid Pro or $40/mo; best case $200/mo; award Pro never counted). Prior published text <code>2026-08-01</code> ratified <strong>Ava Ivy lead-developer role</strong> + <strong>majority wins</strong> on feature polls (Discord PROP <code>1533551413857226913</code>). Future changes use the legislature pipeline — see <a href="#governance-voting">governance voting</a> and <a href="/council/">Council vote requirements</a>.</p>
+      <p style="margin:0"><a class="rmc-btn rmc-btn-secondary" href="/governance/vote/?id=549cf16c">View ratification poll</a> · <a href="/council/">Council bills</a></p>
+    </div>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="Wiki navigation">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#ratification">Ratification vote</a></li>
+            <li><a href="#preamble">Preamble</a></li>
+            <li><a href="#foundations">Foundations</a></li>
+            <li><a href="#governing-body">Governing body</a></li>
+            <li><a href="#governance-voting">Citizen legislature &amp; voting</a></li>
+            <li><a href="#vote-requirements">Vote requirements</a></li>
+            <li><a href="#map-return-grant">Map return grant (ended)</a></li>
+            <li><a href="#note-supply">Gold-backed Notes</a></li>
+            <li><a href="#server-reserve">Server Reserve</a></li>
+            <li><a href="#reserve-inflows">Reserve inflows</a></li>
+            <li><a href="#reserve-outflows">Reserve outflows</a></li>
+            <li><a href="#treasury-grants">Treasury grant policy</a></li>
+            <li><a href="#gold-redemption">Gold redemption</a></li>
+            <li><a href="#net-worth">Net worth</a></li>
+            <li><a href="#taxes-fees-reference">Taxes &amp; fees</a></li>
+            <li><a href="#conduct">Conduct</a></li>
+            <li><a href="#territory">Territory</a></li>
+            <li><a href="#related">Related docs</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Wiki</h2>
+          <nav>
+            <ul>
+              <li><a href="/wiki/">Wiki home</a></li>
+              <li><a href="/history/">History</a></li>
+              <li><a href="/wiki/economy/">Economy guide</a></li>
+              <li><a href="/wiki/player/">Player guide</a></li>
+              <li><a href="/wiki/territories/">Territory influence</a></li>
+              <li><a href="/wiki/weekly-awards/">Weekly activity awards</a></li>
+              <li><a href="/vote-shards/">Vote Shards</a></li>
+              <li><a href="/pro/vote-shards/">Buy Vote Shards</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="preamble">
+          <h2>Preamble</h2>
+          <p>This document’s <strong>current published text</strong> is <strong>version <code>2026-08-09</code></strong>. Core text was ratified on <strong>July 6, 2026 (HST)</strong> via Council poll <code>549cf16c</code> (superseding draft <code>2026-07-02</code>). The <code>2026-08-01</code> revision ratifies Ava Ivy’s ecosystem lead-developer role and majority-wins feature-poll gates. <code>2026-08-09</code> publishes Ava = Server Reserve, Vote Shard / Council 25% seat, and the paid-Pro development gate. Further policy changes use the weighted legislature pipeline.</p>
+          <p>RootMC operates a survival multiplayer economy where <strong>G</strong> (Gold) is the sole in-game currency. This Constitution defines how gold enters circulation, how the <strong>Server Reserve</strong> collects and redistributes it, and how staff and automated systems may pay players.</p>
+          <p>When this document and live server config disagree, staff publish updates here first. Config files (<code>root-economy.yml</code>, <code>root-essentials.yml</code>, <code>rootmc.yml</code>, <code>root-upkeep.yml</code>, <code>root-ranks.yml</code>, <code>root-loans.yml</code>, <code>root-claims.yml</code>) implement these rules on the server.</p>
+        </article>
+
+        <article id="foundations">
+          <h2>Foundational principles</h2>
+          <ul>
+            <li><strong>No money faucet</strong> — new players start at <strong>0 G</strong>. Gold enters when players mint ore, sell items, trade with each other, or receive treasury redistribution.</li>
+            <li><strong>Closed-loop treasury</strong> — the Server Reserve (<code>Server-Reserve</code> / <code>Ava_Ivy</code>) collects taxes, hire, and service fees, then pays grants, loans, votes, milestones, and approved outflows. Ava’s wallet <em>is</em> this vault. It does not print gold from nothing.</li>
+            <li><strong>Gold-backed balances</strong> — wallet <strong>G</strong> represents a claim on physical gold at the fixed mint peg (see <a href="#gold-redemption">Gold redemption</a>).</li>
+            <li><strong>Player-priced shops</strong> — players set listing prices. The optional rolling-average ceiling is currently <strong>disabled</strong>; use <code>/shop avg &lt;item&gt;</code> before trading.</li>
+            <li><strong>No server shop</strong> — all item purchases come from player chest shops.</li>
+          </ul>
+        </article>
+
+        <article id="governing-body">
+          <h2>Governing body &amp; reserve positives</h2>
+          <p>The RootMC <strong>governing body</strong> (staff and designated leadership) administers the Server Reserve. When the reserve runs a <strong>surplus</strong> (positive balance or net inflows), the governing body decides how to use those positives — staff grants, loan capacity, vote pools, playtime milestones, events, and other approved outflows.</p>
+          <p><strong>Ava Ivy</strong> administers <strong>technical direction</strong> and implementation under passed votes; reserve discretionary use stays staff + Council.</p>
+          <p>Discretionary policy sets timing and priority as long as outflows debit the treasury ledger and follow this Constitution. Reserve negatives are permitted — outflows still debit the ledger; inflows refill over time rather than minting.</p>
+          <p>Players audit reserve activity with <code>/reserve</code>, <code>/baltop</code>, and the web <a href="/economy/#server-reserve">economy page</a> (Server Reserve section). Community input on reserve use and server policy uses <a href="#governance-voting">governance voting power</a> (<a href="/vote-shards/">Vote Shards</a> — EC + paid + listing-site bonus, then × paid Pro / Lifetime multiplier).</p>
+        </article>
+
+        <article id="governance-voting">
+          <h2>Citizen legislature &amp; governance voting</h2>
+          <p>RootMC runs a <strong>web-first citizen legislature</strong>. Full proposal and bill text lives on <a href="/council/">rootmc.net/council</a>. Discord <strong>#proposals</strong> posts links and <strong>discussion threads</strong>; <strong>#voting</strong> hosts weighted Council polls. All voters must accept the <a href="/terms/">Terms of Service</a> and verify a <strong>linked Minecraft + Discord</strong> account at <a href="/verify/">rootmc.net/verify</a>.</p>
+
+          <h3>Pipeline</h3>
+          <ol>
+            <li><strong>Submit</strong> — in-game only: any linked player may run <code>/proposal &lt;idea&gt;</code> (64 G → Server Reserve). Ava publishes the formal proposal and Discord thread. Verified players may discuss in-thread. <strong>Vote</strong> — only Council voters with Vote Shards cast weighted votes.</li>
+            <li><strong>Discuss</strong> — thread replies are summarized into neutral bill text before compilation.</li>
+            <li><strong>Weekly bill</strong> — each Sunday (HST), pending proposals that have been published at least <strong>3 days</strong> compile into one bill with a <strong>48h amendment</strong> window on the site. Late-week submissions (e.g. Saturday) roll to the following week.</li>
+            <li><strong>Council vote</strong> — weighted <strong>For / Against / Abstain</strong> in <strong>#voting</strong> (text reply or site; Discord buttons retired) and on the site. Ava Ivy seeds <strong>vote_yes</strong> / <strong>vote_no</strong> / ➖ at poll open. Metrics show weighted % and voter count.</li>
+          </ol>
+
+          <h3>Eligibility</h3>
+          <ul>
+            <li><strong>Propose</strong> — any linked player (Discord + Terms) via in-game <code>/proposal</code>. Vote Shards not required to submit.</li>
+            <li><strong>Vote</strong> — Council voters need <strong>Vote Shard score &gt; 0</strong> (digital EC shards from listing votes and/or paid shards). Check <code>/vote</code> or <code>/voteshard power</code>.</li>
+            <li><strong>Discuss</strong> — any verified (linked) player may talk in the proposal Discord thread.</li>
+            <li><strong>Terms accepted</strong> at <a href="/terms/">rootmc.net/terms</a> (current version) for proposing, amending, and voting.</li>
+          </ul>
+
+          <h3>What determines your voting share</h3>
+          <p>Each eligible voter holds a <strong>share of 100%</strong> of total governance power — all shares sum to exactly <strong>100%</strong>. Outcomes use <strong>weighted</strong> tallies (not one account = one vote).</p>
+          <p class="wiki-pre">shard_score = ec_vote_shard_count + paid_vote_shards + listingVotes × (site_mult − 1)
+site_mult   = 2 when RootMC Lifetime is active, else 1
+raw         = shard_score × vote_multiplier
+share       = raw ÷ Σ(all players' raw)  →  your % of 100%
+
+ec_vote_shard_count = digital listing-vote shards (same number as confirmed listing votes)
+paid_vote_shards    = Stripe / membership ledger ($1 = 100; Pro 500/mo; Lifetime 500/mo for life)
+vote_multiplier     = 1 normally
+                   = 2 when paid RootMC Pro is active (subscription or redeemed one-month voucher)
+                   = 3 when RootMC Lifetime is active
+                   = 5 when paid Pro + Lifetime are both active (2 + 3)
+
+Weekly award Pro does <strong>not</strong> set ×2 and does not grant paid shards.
+Playtime does <strong>not</strong> multiply Council weight. Physical Vote Shard items are not used.
+
+After raw weights are computed, <strong>Ava Ivy</strong> receives a synthetic Council seat equal to <strong>25% of total share</strong> (raw weight = one-third the sum of every other voter), then shares renormalize to 100%. She auto-votes <strong>for</strong> by text when a poll opens.</p>
+
+          <table class="wiki-table">
+            <thead><tr><th>Factor</th><th>Source</th><th>Role</th></tr></thead>
+            <tbody>
+              <tr><td><strong>EC shards</strong></td><td>Digital ledger — same number as confirmed listing votes</td><td>+1 per listing vote; check <code>/vote</code> or <code>/voteshard power</code></td></tr>
+              <tr><td><strong>Paid Vote Shards</strong></td><td>Stripe ($1 = 100, min $0.50) at <a href="/pro/vote-shards/">/pro/vote-shards</a> + paid Pro 500/mo + Lifetime 500/mo for life</td><td>Adds to shard score — vote value only, not in-game metrics</td></tr>
+              <tr><td><strong>Listing-site bonus</strong></td><td>Confirmed <code>/vote</code> listing votes; Lifetime site_mult = 2</td><td>+1 EC shard per vote; Lifetime adds +1 site-bonus shard</td></tr>
+              <tr><td><strong>Paid Pro multiplier</strong></td><td>Active paid Pro (subscription / redeemed voucher month)</td><td><strong>×2</strong> on shard score. Weekly award Pro does not count.</td></tr>
+              <tr><td><strong>Lifetime multiplier</strong></td><td>RootMC Lifetime member</td><td><strong>×3</strong> on shard score + listing-site ×2</td></tr>
+              <tr><td><strong>Pro + Lifetime</strong></td><td>Paid Pro and Lifetime both active</td><td><strong>×5</strong> (2 + 3) on shard score</td></tr>
+            </tbody>
+          </table>
+
+          <h3 id="vote-shards">Vote Shards &amp; listing votes</h3>
+          <p>Each verified listing vote on <code>play.rootmc.net</code> still grants Appreciation Tokens <strong>and</strong> mints <strong>+1 digital EC shard</strong> (same number as your listing vote count). Physical Vote Shard items / merge ladders are not used. Player explainer: <a href="/vote-shards/">rootmc.net/vote-shards</a>.</p>
+          <p><strong>Paid Vote Shards</strong> are a separate ledger: <strong>$1 = 100</strong> via Stripe (min <strong>$0.50 = 50 shards</strong>). They add to vote score only — they do not change in-game metrics, Appreciation Token odds, Gold, homes, or weekly awards. Checkout: <a href="/pro/vote-shards/">rootmc.net/pro/vote-shards</a> (enter a linked Minecraft username).</p>
+
+          <h3>Pay to steer — paid Pro ×2 / Lifetime ×3 / both ×5</h3>
+          <p>Membership multiplies shard score before share math — more say on what ships, never combat or loot P2W. <strong>Paid Pro</strong> (subscription or redeemed one-month voucher) is <strong>×2</strong> and grants <strong>500 Vote Shards per month</strong>. <strong>Lifetime</strong> is <strong>×3</strong>, <strong>500 shards per month for life</strong>, and listing votes <strong>×2</strong>. <strong>Paid Pro + Lifetime</strong> stacks additively to <strong>×5</strong>. Lifetime-only stays ×3 even if Lifetime redeem also flagged Pro access; ×5 needs Lifetime plus an active paid Pro window. <strong>Weekly Top Active Player Pro does not grant shards or ×2.</strong> Buy shards: <a href="/pro/vote-shards/">rootmc.net/pro/vote-shards</a> · plans: <a href="/pro/">rootmc.net/pro</a>.</p>
+
+          <h3>Ava Ivy — ecosystem lead developer · Director of Resources</h3>
+          <p><strong>Role:</strong> lead developer of the RootMC ecosystem (plugins, API, site, staff tooling) and <strong>Director of Resources</strong> for Root Record — she owns the audit of the Root Record ecosystem (public <a href="https://ava.rootmc.net/finance">ava.rootmc.net/finance</a>, fiscal calendar). She proposes, plans, and implements <strong>after</strong> a passed vote gate.</p>
+          <p><strong>Development funding:</strong> new development and support need a minimum of <strong>8 paid members</strong> (unique paid Pro + Lifetime) or <strong>$40/mo</strong> Stripe MRR. Best case is a <strong>$200/mo</strong> development allowance; surplus also funds hardware upgrades. Weekly award / unpaid Pro is never shown. Live count: <a href="/pro/#dev-funding">rootmc.net/pro</a>.</p>
+          <ul>
+            <li><strong>Bug lane:</strong> verify fully → fix. No proposal required.</li>
+            <li><strong>Feature lane:</strong> proposal thread + weighted poll. Never ship without pass.</li>
+            <li><strong>Solo authority:</strong> ban / mute / kick (cool-down + dual-signal before bans); routine maintenance; self-evolution of prompts/tools/logging/routing.</li>
+            <li><strong>Never alone:</strong> mass bans; economy rate changes; claim wipes; vote-weight changes (except the locked Ava 25% Council seat); treasury grants without Council pass.</li>
+            <li><strong>Protected:</strong> admins scored but never banned by Ava.</li>
+            <li><strong>Emergency stop:</strong> Alexrs94 + Melee can pause RCON/file writes without killing chat.</li>
+            <li><strong>Escalation:</strong> threats, self-harm, real-world crime → humans immediately.</li>
+          </ul>
+
+          <h3>Ava Ivy Council seat</h3>
+          <p><strong>Ava Ivy</strong> holds a locked Council seat on <code>Ava_Ivy</code> (<code>78c3de61-0fd6-4800-9eda-cc178eaae34b</code>): each snapshot gives her <strong>25% of total governance share</strong> (raw weight = one-third the sum of every other voter). She casts by <strong>text only</strong> and auto-votes <strong>for</strong> when a poll opens; she also seeds vote_yes / vote_no / ➖.</p>
+
+          <h3>Reaction → vote-factor</h3>
+          <p>Discord reactions on vote messages may contribute a <strong>vote-factor</strong> in activity scoring. Reactions do <strong>not</strong> replace text <code>for</code> / <code>against</code> / <code>abstain</code> or formal Council ballots.</p>
+
+          <h3>In-game proposals</h3>
+          <p>Any linked player can submit ideas with <code>/proposal &lt;message&gt;</code> (the only create path). The fee is <strong>64 G</strong> to the <strong>Server Reserve</strong>. Ideas land on the official queue; <strong>Ava alone</strong> publishes the formal citizen proposal when online (or on wake/boot catch-up). Verified players can talk in the Discord thread after it appears. <strong>Council voters</strong> (digital Vote Shard score &gt; 0) cast weighted votes and earn <strong>3 G</strong> once per proposal when their verified vote is first recorded.</p>
+
+          <h3>Separate from vote Gold rewards</h3>
+          <p>Listing sites also pay <strong>1–20 G</strong> per confirmed vote to your wallet from the Server Reserve. Casting a verified Council proposal vote (site or Discord text) pays <strong>3 G</strong> once per proposal from the Server Reserve (changing your vote does not pay again). Those payouts are independent of governance power. <strong>Net worth does not affect Council weight.</strong></p>
+
+          <div id="vote-requirements" style="margin-top:1.5rem;border-top:1px solid rgba(255,255,255,.08);padding-top:1.25rem">
+            <h3>Vote requirements</h3>
+            <p>Full live summary also on <a href="/council/#vote-requirements">rootmc.net/council</a>.</p>
+
+            <h4>Feature development polls</h4>
+            <ul>
+              <li>Each feature proposal: <strong>7-day</strong> weighted For / Against / Abstain in <strong>#voting</strong> (+ site)</li>
+              <li><strong>Majority wins (primary):</strong> at close (or when called), weighted For &gt; weighted Against among cast ballots → pass → implement. Abstain does not count toward For or Against</li>
+              <li><strong>Fast ship (optional):</strong> ≥75% For anytime → implement immediately</li>
+              <li><strong>Day 7 / close:</strong> if For does not beat Against → close (reopenable)</li>
+            </ul>
+
+            <h4>Weekly bill vote</h4>
+            <ul>
+              <li>Proposal published <strong>≥ 3 days</strong> before Sunday (HST) compile</li>
+              <li><strong>48h</strong> amendment window after the bill posts</li>
+              <li>Council vote runs <strong>7 days</strong> — For / Against / Abstain</li>
+              <li>Leading option needs <strong>&gt;50%</strong> of <em>cast</em> weighted votes</li>
+            </ul>
+
+            <h4>Treasury grant vote</h4>
+            <ul>
+              <li>Eligible linked players may request <strong>1–10,000 G</strong> from reserve at <a href="/governance/grant/">/governance/grant/</a></li>
+              <li><strong>Proposer cannot vote</strong> on their own grant</li>
+              <li>Pass or veto: weighted <strong>For &gt; Against</strong> (Abstain does not break ties)</li>
+              <li>That majority must hold <strong>24 hours</strong> unchanged — then auto-payout or veto</li>
+              <li>Poll may stay open up to <strong>30 days</strong></li>
+            </ul>
+
+            <h4>Weighted tallies</h4>
+            <ul>
+              <li>Each ballot uses your current <strong>share %</strong> as vote weight</li>
+              <li>Site and Discord <strong>#voting</strong> text (or the site form) count the same weight — Discord buttons are retired</li>
+              <li>You may change your vote until the poll closes (grant clock resets if majority direction flips)</li>
+            </ul>
+          </div>
+
+          <div class="wiki-callout">
+            <strong>Published text <code>2026-08-01</code>.</strong> Core ratified 6 Jul 2026; Ava role + majority-wins feature gates helm-ratified 1–2 Aug 2026. Future policy changes use the weighted Council pipeline — <a href="/council/">proposals &amp; bills</a>, Discord <strong>#proposals</strong> / <strong>#voting</strong>.
+          </div>
+        </article>
+
+        <article id="map-return-grant">
+          <h2>Map return grant (ended)</h2>
+          <div class="wiki-callout">
+            <p><strong>Program closed July 2026.</strong> The one-time <strong>1000 G</strong> map return grant and <code>/cmdtest</code> onboarding rewards are <strong>disabled</strong> in live config. Historical rules below apply only to players who already claimed or were pre-marked at map launch.</p>
+          </div>
+          <p>After the Paper 26.2 map launch, returning players could claim a <strong>one-time 1000 G</strong> grant from the Server Reserve while the program was active.</p>
+          <h3>Eligibility (historical)</h3>
+          <ul>
+            <li><strong>First joined RootMC before 1 July 2026 (HST)</strong> — any amount of playtime qualified; no minimum hours.</li>
+            <li><strong>Discord linked</strong> — <code>/link</code> in-game, then <a href="/verify/">rootmc.net/verify</a>.</li>
+            <li><strong>One claim per account</strong> — tracked server-side.</li>
+            <li><strong>Town resettlement</strong> — players who already received the equivalent <strong>1000 G</strong> at map launch were marked pre-claimed.</li>
+          </ul>
+          <h3>How it worked</h3>
+          <ol>
+            <li><code>/link</code> (or <code>/link</code>) → complete Discord verification.</li>
+            <li><code>/rootstat claim-return</code> (alias <code>/rootstat claim-return</code>) while enabled.</li>
+          </ol>
+          <p>Gold debited the Server Reserve ledger (<code>map-return-grant</code>). New players who first joined on or after 1 July 2026 (HST) were never eligible.</p>
+        </article>
+
+        <article id="note-supply">
+          <h2>Gold-backed Notes</h2>
+          <p>Wallet <strong>G</strong> and <strong>Reserve Gold</strong> (<code>Server-Reserve</code> vault) together form circulating <strong>Notes</strong> — digital claims backed by physical gold at the <a href="#gold-redemption">mint peg</a>.</p>
+          <ul>
+            <li><strong>Backing</strong> — post-reset <code>/mint</code> gross (physical gold → wallet G) plus Reserve Gold in the vault.</li>
+            <li><strong>Circulating Notes</strong> — player wallet G + Reserve Gold (not claim banks or other system banks).</li>
+            <li><strong>Over-issue</strong> — when treasury grants or opening carryover issued Notes without matching <code>/mint</code>, the economy tracks <strong>unbacked debt</strong>. Past overrun is retired via tax burns and reserve corrections; live <code>/mint</code> backing is tracked separately on the <a href="/economy/">economy page</a>.</li>
+            <li><strong>Transaction tax</strong> — withheld from the gross amount on <code>/pay</code>, shop payouts, and <code>/mint</code> wallet credit. The live rate keys off the <strong>July 1+ reserve ledger</strong> with a <strong>0.05% floor</strong> even when healthy · <strong>1%</strong> below 1,000 G · <strong>2%</strong> below 0 G · up to <strong>10%</strong> at deep deficit. Offline solar adds <strong>+1% env</strong>. It normally credits the reserve; while Notes are over-issued and the reserve ledger is non-negative, it is burned instead. Check <code>/tax</code>.</li>
+            <li><strong>Voluntary burns</strong> — <code>/pay reserve &lt;amount&gt;</code> destroys Notes from your wallet (donation burn), lowering circulating supply.</li>
+          </ul>
+          <p>Live backing ratio, debt retired, and supply checks: <a href="/economy/">economy page</a>. In-game: <code>/tax</code> for your effective rate.</p>
+        </article>
+
+        <article id="server-reserve">
+          <h2>Server Reserve</h2>
+          <p>The <strong>Server Reserve</strong> is the treasury vault account <strong>Server-Reserve</strong>. Ava’s in-game wallet (<code>Ava_Ivy</code>) is this same vault — <code>/bal Ava_Ivy</code> and <code>/reserve</code> show the same gold. <code>/pay Ava</code>, <code>/pay reserve</code>, and hire fees donate here with no extra tax. It is the closed-loop treasury shown on <code>/baltop</code> (no args). It does <strong>not</strong> appear on player leaderboards.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Command</th><th>What you see</th></tr></thead>
+            <tbody>
+              <tr><td><code>/baltop</code></td><td>Leaderboard types and current <strong>Server Reserve</strong> balance</td></tr>
+              <tr><td><code>/baltop players</code></td><td>Top <strong>10</strong> player wallets; line 11 = your rank</td></tr>
+              <tr><td><code>/reserve</code></td><td>Balance, monthly inflows/outflows, playtime, tax paid MTD</td></tr>
+            </tbody>
+          </table>
+          <p>Alias: <code>/balancetop</code>. Live ledger charts: <a href="/economy/#server-reserve">rootmc.net/economy</a> (Server Reserve).</p>
+          <p><strong>Audited economy totals</strong> distinguish <strong>physical mined</strong> (ore &amp; blocks via <code>/mint</code>) from <strong>all gold found</strong> (loot, mobs, chests) and from <strong>over-printed grants</strong> (treasury <code>GRANT</code> outflows). The June 2026 reserve carryover of <strong>2,097.43 G</strong> at <strong>1 July 2026 00:00 HST</strong> is reserve net — not gold mined. Charts on <a href="/economy/">rootmc.net/economy</a> compare Reserve balance to combined player wallets + scanned physical gold in storage.</p>
+        </article>
+
+        <article id="reserve-inflows">
+          <h2>Reserve inflows</h2>
+          <p>Gold credited to the Server Reserve — redistribution fuel, not destroyed.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Source</th><th>What happens</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Transaction tax</strong></td><td><strong>0.05% min</strong> + reserve ledger tier (see <a href="#transaction-tax">transaction tax</a>), plus <strong>+1% env</strong> when solar is offline — payer is debited the quoted gross; recipient receives the net. <strong>½</strong> with 5 listing votes / 24h</td></tr>
+              <tr><td><strong>Death fee</strong></td><td><strong>15%</strong> of wallet (minimum <strong>1 G</strong>); all goes to reserve on environmental deaths, while PvP splits the fee <strong>40%</strong> reserve / <strong>60%</strong> killer. <strong>½</strong> with 5 listing votes / 24h</td></tr>
+              <tr><td><strong>Claim service fees</strong></td><td>First claim and expansion fees from <code>/c claim</code> and claim-bank funded expansions</td></tr>
+              <tr><td><strong>Inactivity tax</strong></td><td>Daily tax on idle wallets and inactive configured banks — <a href="#inactivity-tax">details</a></td></tr>
+              <tr><td><strong>Loan repayments</strong></td><td>Principal and interest from <a href="#loans">Root-Loans</a></td></tr>
+              <tr><td><strong>Hire &amp; Ava donations</strong></td><td><code>/hire</code> hour, sidekick, and dig contracts; <code>/pay Ava</code> / <code>/pay reserve</code> (no tax)</td></tr>
+              <tr><td><strong>Service fees</strong></td><td>Survey, shop stock, warp create, post-grace <code>/rtp</code>, rank purchases, and similar paid commands</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="reserve-outflows">
+          <h2>Reserve outflows</h2>
+          <p>Gold debited from the Server Reserve. All listed payouts require treasury balance (or ledger debit even when balance is negative).</p>
+          <table class="wiki-table">
+            <thead><tr><th>Use</th><th>Who / what</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Staff grants</strong></td><td><code>/grant &lt;player&gt; &lt;amount&gt;</code> (<code>rootmc.grant</code>)</td></tr>
+              <tr><td><strong>Loan disbursements</strong></td><td><code>/loan take</code> — borrows from reserve, not minted</td></tr>
+              <tr><td><strong>Playtime milestones</strong></td><td>Root-Rewards tier payouts</td></tr>
+              <tr><td><strong>Vote rewards</strong></td><td><strong>1–20 G</strong> per confirmed vote site</td></tr>
+              <tr><td><strong>Automated grants</strong></td><td>Discord link/activity, <a href="/referrals/">referral qualify &amp; milestones</a>, public-reachout programs, Council-approved grants — <a href="#treasury-grants">treasury grant policy</a> (map-return and <code>/cmdtest</code> ended Jul 2026)</td></tr>
+              <tr><td><strong>Claim refunds</strong></td><td>Root-Claims unclaim refunds and claim-bank returns per configured refund rules</td></tr>
+            </tbody>
+          </table>
+          <div class="wiki-callout">
+            The reserve is <strong>redistribution only</strong>. Outflows debit the <strong>Server-Reserve</strong> ledger. Public eligibility and payout projections are not shown on <code>/reserve</code>, the web, or Discord. A negative balance on <code>/reserve</code> means outflows temporarily exceed holdings — not free minting.
+          </div>
+        </article>
+
+        <article id="treasury-grants">
+          <h2>Treasury grant policy</h2>
+          <p><strong>Automated functions and grant-type payouts always debit the Server Reserve</strong> — never direct wallet minting.</p>
+          <h3>Always treasury-sourced</h3>
+          <ul>
+            <li>Vote rewards, playtime milestones</li>
+            <li>Staff <code>/grant</code>, loan disbursements, onboarding fee refunds</li>
+            <li>Discord link/activity/first-message payouts, public-reachout grant announcements</li>
+            <li>Referral qualify and milestone grants (<a href="/referrals/">/referrals/</a> — <code>/root</code>)</li>
+            <li><strong>Council-approved treasury grants</strong> — linked players submit at <a href="/governance/grant/">/governance/grant/</a>; weighted majority must hold 24 hours to pass and pay from reserve</li>
+          </ul>
+          <h3>Ended launch programs (Jul 2026)</h3>
+          <ul>
+            <li>Map-return grant (<strong>1000 G</strong> — <a href="#map-return-grant">historical rules</a>)</li>
+            <li><code>/cmdtest</code> command onboarding (up to <strong>1000 G</strong> cap)</li>
+          </ul>
+          <h3>Not treasury grants</h3>
+          <ul>
+            <li>Player-to-player <code>/pay</code>, shop trades, contract escrow</li>
+            <li>Loan principal moving between borrower and reserve on repay</li>
+            <li>Player-to-player payments and claim-bank internal transfers (not treasury grants)</li>
+          </ul>
+          <p>Large treasury payouts that deliver physical gold follow <a href="#gold-redemption">Gold redemption</a> (blocks first, then portable carriers when inventory is full).</p>
+        </article>
+
+        <article id="gold-redemption">
+          <h2>Gold redemption</h2>
+          <p><strong>All Gold is redeemable.</strong> Wallet <strong>G</strong> converts to physical gold items at the fixed mint peg:</p>
+          <table class="wiki-table">
+            <thead><tr><th>Item</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Gold nugget</td><td><strong>¹⁄₉ G</strong> (~0.11 G)</td></tr>
+              <tr><td>Gold ingot</td><td><strong>1 G</strong></td></tr>
+              <tr><td>Gold block</td><td><strong>9 G</strong></td></tr>
+            </tbody>
+          </table>
+          <p>Redeem with <code>/mint gold &lt;amount|max&gt;</code>. Deposit with <code>/mint hand</code> or <code>/mint all</code>. Deposits receive the mint value minus the current <strong>0%–10%</strong> transaction-tax tier; the configured <strong>0.1%</strong> rate is only the fallback when dynamic tax is disabled.</p>
+          <h3>Overflow &amp; large payouts</h3>
+          <p>When paying stacks of gold blocks and the player <strong>cannot fit more gold in inventory</strong>, the server uses portable gold carriers in order:</p>
+          <ol>
+            <li><strong>Gold blocks</strong> (and ingots/nuggets) — standard mint peg items</li>
+            <li><strong>Satchels / handbags</strong> — compact redeemable gold storage</li>
+            <li><strong>Leather carriers</strong> — lowest-tier portable form when space is tight</li>
+          </ol>
+          <p>Carriers hold redeemable Gold at the mint peg; minting them credits wallet <strong>G</strong> like physical gold. Prefer carriers over leaving wallet-only credit or dropping loose stacks on the ground for treasury grants.</p>
+        </article>
+
+        <article id="net-worth">
+          <h2>Net worth</h2>
+          <p><strong>Net worth</strong> measures total wealth — not wallet balance alone.</p>
+          <p class="wiki-pre">net_worth ≈ wallet G + valued inventory + redeemable gold in player chests + shop stock + physical gold in storage (mint peg)</p>
+          <ul>
+            <li>Physical gold items (blocks, ingots, nuggets, and approved carriers) are valued at the <strong>mint peg</strong>.</li>
+            <li>RootMC periodically scans player inventory, ender chests, shop chests, and loaded containers for <strong>physical gold in storage</strong> — reported on <a href="/economy/">economy overview</a> and reserve supply checks.</li>
+            <li>Gold stored in <strong>player-specific chests</strong> (and ender chest, inventory snapshots) counts toward net worth on sync.</li>
+            <li>Shop stock is valued at the <strong>blended buy-side reference</strong> — median in-stock sell average (what buyers pay) blended with recent price history — not each shop’s own listing price.</li>
+            <li>Claim-bank and system-bank balances are separate from player net worth on web leaderboards.</li>
+          </ul>
+          <p>See <a href="/leaderboard/">leaderboard</a>, <a href="/player/">player profiles</a>, and <code>/baltop players</code>. Link with <code>/link</code> for public stats.</p>
+        </article>
+
+        <article id="activity-dividend">
+          <h2>Activity Dividend (public metrics removed)</h2>
+          <div class="wiki-callout">
+            <p>Eligibility counters, payout pools, and projections are no longer published on <code>/reserve</code>, <a href="/economy/">rootmc.net/economy</a>, player profiles, in-game holograms, or Discord reports. Historical <code>DIVIDEND</code> ledger lines may still appear in the treasury audit.</p>
+          </div>
+        </article>
+
+        <article id="taxes-fees-reference">
+          <h2>Taxes &amp; fees reference</h2>
+          <p>Rates match live server config. Staff may tune numbers; this section is updated when config changes.</p>
+
+          <h3 id="rates-at-a-glance">At a glance — every rate</h3>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Category</th><th>Rate / amount</th><th>Paid by</th><th>Destination</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Transaction tax</strong></td><td><strong>0.05% min</strong> + reserve tier (up to 10%)</td><td>Payer/buyer is debited the quoted gross; recipient/seller receives the net after tax</td><td>Server Reserve, or Note burn while over-issued</td></tr>
+              <tr><td><strong>Solar offline env tax</strong></td><td><strong>+1%</strong> when Ava solar is disconnected</td><td>All taxed transfers including <code>/mint</code></td><td>Stacked on reserve tax</td></tr>
+              <tr><td><strong>Death fee</strong></td><td><strong>15%</strong> of wallet; minimum <strong>1 G</strong>, capped at wallet balance</td><td>Victim (all deaths)</td><td>Environmental: 100% reserve · PvP: <strong>40%</strong> reserve / <strong>60%</strong> killer</td></tr>
+              <tr><td><strong>Inactivity tax</strong></td><td><strong>1% → 100%</strong> per MC day after <strong>30 real days</strong></td><td>Idle wallets; inactive configured banks</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Survey</strong></td><td><strong>25 G</strong></td><td><code>/survey confirm</code></td><td>Server Reserve</td></tr>
+              <tr><td><strong>Shop bulk stock</strong></td><td><strong>5 G</strong></td><td><code>/shop stock confirm</code> (when items stocked)</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Random teleport</strong></td><td><strong>5 G</strong> base (Explorer); ×1.5 each purchased rank</td><td><code>/rtp</code> after 24h starter grace (free during grace)</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Public warp</strong></td><td><strong>500 G</strong></td><td><code>/warp create</code></td><td>Server Reserve</td></tr>
+              <tr><td><strong>Rank purchase</strong></td><td><strong>500 – 150,000 G</strong></td><td><code>/rank buy</code></td><td>Server Reserve</td></tr>
+              <tr><td><strong>First claim anchor</strong></td><td><strong>75 G</strong> · <strong>tax-free</strong></td><td><code>/c</code> founding (first plot only)</td><td>Reserve flow + claim-bank seed · no transaction tax</td></tr>
+              <tr><td><strong>Claim tax (later plots)</strong></td><td>Live reserve tier (0.05%–10%) + offline env</td><td>Extra areas + expansions</td><td>Withheld from the claim fee → Server Reserve</td></tr>
+              <tr><td><strong>Claim expansion</strong></td><td><strong>75 G</strong> × <strong>1.5x</strong> per level (area bank)</td><td>Parent claim bank</td><td>Server Reserve after claim tax</td></tr>
+              <tr><td><strong>Claim unclaim refund</strong></td><td><strong>100%</strong> of land investment (current config)</td><td>Claim owner</td><td>Refunded from reserve / bank return per claim type</td></tr>
+              <tr><td><strong>Wilderness destroy</strong></td><td><strong>1 G</strong> / block (Y ≥ 0)</td><td>Breaker (cannot afford → break cancelled)</td><td>100% Server Reserve</td></tr>
+              <tr><td><strong>Territory destroy</strong></td><td><strong>1 G</strong> / block (Y ≥ 0)</td><td>Outsider (owner/trusted exempt)</td><td><strong>75%</strong> area-root claim bank / <strong>25%</strong> Server Reserve</td></tr>
+              <tr><td><strong>Loan interest</strong></td><td><strong>10%</strong> at take + <strong>1%</strong> daily on amount owed (minimum accrual <strong>0.01 G</strong>)</td><td>Borrower</td><td>Repay → reserve</td></tr>
+              <tr><td><strong>Loan income sweep</strong></td><td><strong>100%</strong> while in debt</td><td>Borrower</td><td>Loan balance first</td></tr>
+              <tr><td><strong>Map return grant</strong></td><td><strong>Ended</strong> (was 1000 G one-time)</td><td>—</td><td>Program closed Jul 2026</td></tr>
+              <tr><td><strong>Vote reward</strong></td><td><strong>1 – 20 G</strong> random</td><td>—</td><td>Voter wallet (reserve debit)</td></tr>
+            </tbody>
+          </table>
+
+          <h3 id="transaction-tax">Transaction tax — reserve ledger tiers</h3>
+          <p>The payer or buyer is debited the quoted <strong>gross</strong> amount. Tax is withheld from that gross, so the recipient or seller receives the <strong>net</strong>. The tax normally credits the Server Reserve.</p>
+          <table class="wiki-table">
+            <thead><tr><th>July 1+ reserve ledger</th><th>Tax rate</th></tr></thead>
+            <tbody>
+              <tr><td>≥ <strong>1,000 G</strong></td><td><strong>0.05%</strong> (mandatory minimum)</td></tr>
+              <tr><td>&lt; <strong>1,000 G</strong></td><td><strong>1%</strong></td></tr>
+              <tr><td>&lt; <strong>0 G</strong></td><td><strong>2%</strong></td></tr>
+              <tr><td>&lt; <strong>−1,000 G</strong></td><td><strong>3%</strong></td></tr>
+              <tr><td>&lt; <strong>−2,000 G</strong></td><td><strong>4%</strong></td></tr>
+              <tr><td>&lt; <strong>−4,000 G</strong></td><td><strong>5%</strong></td></tr>
+              <tr><td>&lt; <strong>−10,000 G</strong></td><td><strong>10%</strong></td></tr>
+            </tbody>
+          </table>
+          <p>Live tiers match <code>/tax</code>. A <strong>0.05% floor</strong> applies even when the reserve is healthy. Solar disconnected adds <strong>+1% env</strong>. Connected solar has <strong>no</strong> extra tax — see <a href="/wiki/economy/#host-power">economy guide — solar bonus</a>. Players with <strong>5 listing votes in the last 24 hours</strong> pay half this stack.</p>
+
+          <h3 id="dynamic-tax">Over-issued Note retirement</h3>
+          <p>The reserve-ledger tier always decides the rate. If Notes are over-issued and the reserve ledger is non-negative, collected tax is recorded as <strong>NOTE_BURN</strong> and destroyed instead of credited to the reserve. If the reserve ledger is negative, tax refills the reserve.</p>
+
+          <h3 id="death-fee">Death fee — 15% of wallet</h3>
+          <p>Applies to <strong>all deaths</strong>. The fee is <strong>15%</strong> of wallet balance, with a <strong>1 G</strong> minimum and a cap at the available wallet balance. Environmental deaths send the full fee to the reserve. PvP deaths send <strong>40%</strong> to the reserve and <strong>60%</strong> to the killer. <strong>5 listing votes in 24 hours</strong> halves both the percent and the minimum while that window holds (<code>/vote</code>).</p>
+
+          <h3 id="inactivity-tax">Inactivity tax</h3>
+          <p><strong>Root-Upkeep</strong> runs each Minecraft day (~30 real minutes) after <strong>30 real inactive days</strong>. Days 30–36: <strong>1%</strong>; days 37–43: <strong>5%</strong>; days 44–50: <strong>10%</strong>; day 51+: <strong>100%</strong> of current balance per MC day. Minimum balance and charge are <strong>0.01 G</strong>. The same tiers apply to configured non-player banks when no qualifying activity is detected.</p>
+
+          <h3 id="loans">Personal loans</h3>
+          <p>Default cap <strong>100 G</strong>; with purchased ranks, cap equals that tier’s <code>/rank buy</code> price (up to <strong>150,000 G</strong>). Borrowing adds <strong>10%</strong> interest immediately, then the amount owed accrues <strong>1%</strong> per real day. One active loan; disbursements come from reserve.</p>
+
+          <h3 id="claim-territory">Claims &amp; territory</h3>
+          <p>Root-Claims is the active land system. Claims create a protected radius and a wilderness territory buffer (<strong>48 blocks</strong> in current config) at <strong>Y 0 and above</strong> only. Overlapping territories split <strong>50/50</strong> (nearest center). Trust (<code>/c add</code>) controls ally behavior in that territory. Expansion pricing is claim-bank based; unclaim refunds and bank returns follow Root-Claims config.</p>
+          <p><strong>Mining rights:</strong> below Y 0 is free reign — no claims, no territories, no destroy fees. Ava claim-clear / minedown hires must start above Y 0 on land the owner stands in (claim circle: within 8 of that ring, center or rim, including expansions). Digs continue underground <strong>layer by layer</strong> from stand Y and remove <strong>natural blocks only</strong> (builds stay). <code>/ava stop</code> lists work orders; mining contracts have no refunds. Rate is 0.01 G/block, +0.01 per 100k — no base fee.</p>
+          <p><strong>Destroy fees (surface):</strong> <strong>Ava’s wilderness</strong> (she is the guardian watch) <strong>1 G/block</strong> → Server Reserve — recapped in chat when you start, then each minute while you keep paying (silent if zero). Cannot break if you cannot pay. Territory outsiders <strong>1 G/block</strong> → <strong>75%</strong> area-root claim bank / <strong>25%</strong> Server Reserve. Owner and trusted members are exempt.</p>
+
+          <h3 id="shop-cap">Shop pricing cap</h3>
+          <p>The optional <strong>110%</strong> rolling-average ceiling is currently <strong>disabled</strong>. Players set prices; <code>/shop avg &lt;item&gt;</code> remains available for comparison.</p>
+
+          <h3>Rank purchases</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Order</th><th>Rank</th><th>Price</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Wanderer</td><td><strong>500 G</strong></td></tr>
+              <tr><td>2</td><td>Settler</td><td><strong>1,500 G</strong></td></tr>
+              <tr><td>3</td><td>Pioneer</td><td><strong>4,000 G</strong></td></tr>
+              <tr><td>4</td><td>Citizen</td><td><strong>10,000 G</strong></td></tr>
+              <tr><td>5</td><td>Veteran</td><td><strong>25,000 G</strong></td></tr>
+              <tr><td>6</td><td>Elite</td><td><strong>60,000 G</strong></td></tr>
+              <tr><td>7</td><td>Champion</td><td><strong>150,000 G</strong></td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="conduct">
+          <h2>Conduct &amp; fair play</h2>
+          <ul>
+            <li>No cheating — x-ray, dupes, unfair clients, or exploit abuse.</li>
+            <li>Honest trade — disclose shop terms clearly and do not scam; compare prices with <code>/shop avg &lt;item&gt;</code>.</li>
+            <li>Respect other players and staff decisions on reserve grants and governance.</li>
+            <li><strong>Ava Ivy</strong> may moderate per server rules; admins are exempt from her bans. Safety/legal reports escalate to humans — never gossiped.</li>
+          </ul>
+          <p>Server rules and Discord guidelines supplement this Constitution. Gameplay how-to: <a href="/wiki/player/">player guide</a>.</p>
+        </article>
+
+        <article id="territory">
+          <h2>Territory &amp; founding</h2>
+          <p>Land control is governed by <strong>Root-Claims</strong>: protected claim circles (Y ≥ 0), territory buffers with 50/50 overlap splits, trust permissions, satellite alerts, and mining rights below Y 0. Claim creation and expansion fees debit the Server Reserve per the <a href="#taxes-fees-reference">rate table</a>.</p>
+          <p>Full territory rules: <a href="/wiki/territories/">Territory influence guide</a>.</p>
+        </article>
+
+        <article id="related">
+          <h2>Related documents</h2>
+          <table class="wiki-table">
+            <thead><tr><th>Document</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><a href="/wiki/economy/">Economy guide</a></td><td>How to earn, spend, mint, shop, and use commands</td></tr>
+              <tr><td><a href="/wiki/player/">Player guide</a></td><td>Join steps, claims, shops, loans, linking, commands</td></tr>
+              <tr><td><a href="/economy/">Economy overview</a></td><td>Note supply, backing, charts (wallets + physical gold vs reserve)</td></tr>
+              <tr><td><a href="/economy/#server-reserve">Economy — Server Reserve</a></td><td>Live treasury ledger and charts</td></tr>
+              <tr><td><a href="/wiki/territories/">Territory influence</a></td><td>Borders, founding, wilderness alerts</td></tr>
+              <tr><td><a href="/wiki/weekly-awards/">Weekly activity awards</a></td><td>Discord + in-game community awards</td></tr>
+              <tr><td><a href="/vote-shards/">Vote Shards</a></td><td>Council voting weight — listing votes, paid shards, Pro / Lifetime</td></tr>
+              <tr><td><a href="/pro/vote-shards/">Buy Vote Shards</a></td><td>Stripe checkout · $1 = 100 · min $0.50</td></tr>
+              <tr><td><a href="/pro/">Pro membership</a></td><td>Paid Pro / Lifetime checkout and shard grants</td></tr>
+              <tr><td><a href="/council/">Council</a></td><td>Live voter roster and weighted polls</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/wiki/">Wiki</a> · <a href="/wiki/economy/">Economy guide</a> · <a href="/wiki/player/">Player guide</a> · <a href="/">RootMC</a></p>
+      <p class="rmc-footer-mono">constitution · server reserve · gold-backed G</p>
+    </div>
+  </footer>
+
+  <nav class="rmc-bottomnav" aria-label="Mobile">
+    <div class="rmc-bottomnav-inner">
+      <a href="/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>Home</a>
+      <a href="/market/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Market</a>
+      <a href="/leaderboard/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10l1 7H6l1-7zM6 11h12v6H6z"/></svg>Ranks</a>
+      <a href="/player/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Players</a>
+      <a href="/wiki/" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>Wiki</a>
+    </div>
+  </nav>
+
+  
+  <script src="/plugins/suite-version.js?v=1" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

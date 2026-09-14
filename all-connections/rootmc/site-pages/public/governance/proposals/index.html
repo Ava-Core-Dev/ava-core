@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proposals — RootMC Governance</title>
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark">R</span>RootMC</a>
+      <nav class="rmc-nav"><a href="/council/">Council</a><a href="/governance/submit/">Submit</a></nav>
+    </div>
+  </header>
+  <main class="container" style="padding-bottom:3rem;">
+    <p class="wiki-breadcrumb"><a href="/council/">Council</a> · Proposals</p>
+    <h1>Citizen <span class="gold">proposals</span></h1>
+    <ul id="list" class="gov-list" style="list-style:none;padding:0;"></ul>
+  </main>
+  <script src="/governance/governance.js"></script>
+  <script>
+    (async function () {
+      const G = window.RootMcGovernance;
+      const { data } = await G.govFetch("proposals?status=pending,included,retracted", { method: "GET" });
+      const list = G.el("list");
+      const items = (data && data.proposals) || [];
+      if (!items.length) {
+        list.innerHTML = '<li class="rmc-muted">No proposals yet.</li>';
+        return;
+      }
+      list.innerHTML = items.map(function (p) {
+        return '<li class="rmc-card" style="margin-bottom:.75rem;padding:1rem;">' +
+          '<a href="/governance/proposal/?id=' + encodeURIComponent(p.id) + '"><strong>' + G.esc(p.title) + '</strong></a>' +
+          '<div class="rmc-muted" style="font-size:.85rem;margin-top:.35rem;">' +
+          G.categoryLabel(p.category) + ' · ' + G.esc(p.status) + ' · week ' + G.esc(p.week_key) +
+          (p.minecraft_username ? ' · ' + G.esc(p.minecraft_username) : '') +
+          '</div></li>';
+      }).join("");
+    })();
+  </script>
+</body>
+</html>

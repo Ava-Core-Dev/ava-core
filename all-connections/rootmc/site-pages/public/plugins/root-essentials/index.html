@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root-Essentials install guide — RootMC Plugins</title>
+  <meta name="description" content="Homes, TP, spawn, banners, potions, QoL — Gold fees debit Root-Economy treasury. YEAR.MONTH.BUILD via Root-Core.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/root-essentials/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="root-essentials" data-bstats-url="https://bstats.org/plugin/bukkit/Root-Essentials/32899">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span> RootMC <span class="rmc-brand-tag">Network</span></a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/plugins/">Plugins</a> / Root-Essentials</p>
+    <h1 class="wiki-page-title">Root-Essentials</h1>
+    <p class="page-lead">In-house EssentialsX replacement for RootMC — homes, teleport, spawn, banners, potions, and paid QoL commands. Gold economy moved to <a href="/plugins/root-economy/">Root-Economy</a> (Vault + treasury SPI).</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge wiki-badge-player">Operators</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a id="guide-bstats-link" href="https://bstats.org/plugin/bukkit/Root-Essentials/32899" rel="noopener noreferrer" target="_blank">bStats metrics →</a>
+      <a href="/wiki/versioning/">Versioning →</a>
+      <a href="/wiki/economy/">Economy guide →</a>
+    </p>
+
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">What it includes</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85;margin:0">
+        <li><strong>QoL / travel</strong> — homes, TP, spawn, warps, RTP, kits, nick/hat, feed/heal/repair (fees → Server Reserve via Root-Economy)</li>
+        <li><strong>Spawn / banners / potions</strong> — absorbed modules stay here</li>
+        <li><strong>Economy</strong> — owned by <a href="/plugins/root-economy/">Root-Economy</a> (<code>/bal</code>, shops, bonds, loans, tax)</li>
+      </ul>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Install + auto-update</h2>
+      <ol class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li>Install <a href="/plugins/root-core/">Root-Core</a>, <a href="/plugins/root-perms/">Root-Perms</a>, then <a href="/plugins/root-economy/">Root-Economy</a>.</li>
+        <li>Download from the <a href="/plugins/">catalog</a> or let Core auto-update from <a href="/plugins/manifest.json">manifest.json</a>.</li>
+        <li>Optional: keep Vault.jar if other plugins need Vault Economy — Root-Economy registers it.</li>
+        <li>Gold wallets live on this host. Live RootMC is singular (<code>play.rootmc.net</code>).</li>
+      </ol>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Configs (<code>plugins/RootMC/</code>)</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85;margin:0">
+        <li><code>root-essentials.yml</code> — QoL, fees, teleport, cross-server, kits</li>
+        <li><code>root-spawn.yml</code>, <code>root-banner.yml</code>, <code>root-potions.yml</code></li>
+        <li>Economy YAML lives under <a href="/plugins/root-economy/">Root-Economy</a> (<code>root-economy.yml</code>, bonds/loans/shops/upkeep)</li>
+      </ul>
+      <p class="rmc-muted" style="margin:0.75rem 0 0">Player economy docs: <a href="/wiki/economy/">wiki/economy</a> · Constitution: <a href="/wiki/constitution/">wiki/constitution</a>.</p>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Useful commands</h2>
+      <p class="rmc-muted" style="margin:0;line-height:1.85"><code>/home</code> <code>/spawn</code> <code>/rtp</code> <code>/banner</code> <code>/potions</code> <code>/feed</code> <code>/heal</code> <code>/repair</code> — economy commands on <a href="/plugins/root-economy/">Root-Economy</a>; full list on the <a href="/wiki/player/#commands">player guide</a>.</p>
+    </section>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Catalog</a> · <a href="/wiki/plugins/">Suite wiki</a> · <a href="/wiki/versioning/">Versioning</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">Root-Essentials · YEAR.MONTH.BUILD</p>
+    </div>
+  </footer>
+  <script src="/plugins/guide.js" defer></script>
+  <script src="/scripts/site-nav.js?v=20260725e" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

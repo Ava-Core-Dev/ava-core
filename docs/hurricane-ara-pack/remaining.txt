@@ -1,0 +1,138 @@
+with_gusts_higher_after|with gusts higher.
+near_the_center_after|near the center.
+in_the_eastern_semicircle_after|in the eastern semicircle.
+in_the_western_semicircle_after|in the western semicircle.
+in_the_northern_semicircle_after|in the northern semicircle.
+in_the_southern_semicircle_after|in the southern semicircle.
+and_remains_stationary_after|and remains stationary.
+and_is_drifting_after|and is drifting.
+under_current_steering_after|under current steering.
+with_little_forward_speed_after|with little forward speed.
+and_is_expected_to_turn_after|and is expected to turn.
+away_from_land_after|away from land.
+toward_open_ocean_after|toward open ocean.
+and_poses_no_threat_after|and poses no threat.
+at_the_present_time_after|at the present time.
+based_on_available_data_after|based on available data.
+pending_further_updates_after|pending further updates.
+from_official_sources_after|from official sources.
+for_mariners_and_coastal_areas_after|for mariners and coastal areas.
+along_exposed_shorelines_after|along exposed shorelines.
+in_mountainous_terrain_after|in mountainous terrain.
+and_local_statements_follow_after|and local statements follow.
+check_latest_nws_honolulu_after|check latest NWS Honolulu.
+this_concludes_the_desk_after|This concludes the desk.
+returning_to_regular_programming_after|Returning to regular programming.
+more_details_as_they_become_available_after|More details as they become available.
+the_situation_remains_fluid_after|The situation remains fluid.
+continue_to_monitor_after|Continue to monitor.
+no_immediate_action_required_after|No immediate action required.
+prepare_as_advised_locally_after|Prepare as advised locally.
+stay_informed_through_official_channels_after|Stay informed through official channels.
+that_is_the_latest_from_the_desk_after|That is the latest from the desk.
+end_of_update_after|End of update.
+hawaiian_islands_remain_clear_after|Hawaiian islands remain clear.
+no_watches_or_warnings_issued_after|No watches or warnings issued.
+conditions_favorable_for_development_after|Conditions favorable for development.
+conditions_unfavorable_for_development_after|Conditions unfavorable for development.
+shear_is_limiting_intensity_after|Shear is limiting intensity.
+warm_waters_support_development_after|Warm waters support development.
+dry_air_is_intruding_after|Dry air is intruding.
+and_is_expected_to_dissipate_after|and is expected to dissipate.
+and_is_expected_to_intensify_after|and is expected to intensify.
+over_the_next_few_days_after|over the next few days.
+within_the_next_forty_eight_hours_after|within the next forty eight hours.
+beyond_day_five_after|beyond day five.
+confidence_is_low_after|Confidence is low.
+confidence_is_moderate_after|Confidence is moderate.
+confidence_is_high_after|Confidence is high.
+models_are_in_agreement_after|Models are in agreement.
+models_show_divergence_after|Models show divergence.
+the_track_remains_uncertain_after|The track remains uncertain.
+intensity_forecast_is_uncertain_after|Intensity forecast is uncertain.
+and_will_be_updated_shortly_after|and will be updated shortly.
+please_stand_by_for_further_information_after|Please stand by for further information.
+this_is_ava_ivy_reporting_after|This is Ava Ivy reporting.
+from_the_pacific_root_server_after|from the Pacific Root Server.
+root_record_radio_signoff_after|Root Record Radio.
+class_super_typhoon|super typhoon
+class_cyclone|cyclone
+class_severe_tropical_storm|severe tropical storm
+class_severe_tropical_cyclone|severe tropical cyclone
+class_post_tropical|post tropical
+class_remnant_low|remnant low
+class_invest|invest
+class_tropical_disturbance|tropical disturbance
+compass_north|north
+compass_northeast|northeast
+compass_east|east
+compass_southeast|southeast
+compass_south|south
+compass_southwest|southwest
+compass_west|west
+compass_northwest|northwest
+island_honolulu|Honolulu
+island_hilo|Hilo
+island_lihue|Līhuʻe
+island_kona|Kona
+island_kauai|Kauaʻi
+island_oahu|Oʻahu
+island_maui|Maui
+island_hawaii_island|Hawaiʻi Island
+basin_north_atlantic|North Atlantic
+basin_eastern_north_pacific|Eastern North Pacific
+basin_central_pacific|Central Pacific
+basin_western_pacific|western Pacific
+basin_north_indian_ocean|North Indian Ocean
+basin_south_indian_ocean|South Indian Ocean
+basin_south_pacific|South Pacific
+basin_south_atlantic|South Atlantic
+unit_knots|knots
+unit_millibars|millibars
+unit_nautical_miles|nautical miles
+unit_miles|miles
+unit_category|category
+connector_is|is
+connector_from|from
+connector_at|at
+connector_about|about
+connector_and|and
+connector_former|former
+hazard_tropical_storm_watch|tropical storm watch
+hazard_tropical_storm_warning|tropical storm warning
+hazard_hurricane_watch|hurricane watch
+hazard_hurricane_warning|hurricane warning
+hazard_flash_flood_watch|flash flood watch
+hazard_flash_flood_warning|flash flood warning
+hazard_high_surf_advisory|high surf advisory
+hazard_wind_advisory|wind advisory
+class_subtropical_storm|subtropical storm
+class_subtropical_depression|subtropical depression
+class_extratropical|extratropical
+compass_north_northeast|north northeast
+compass_east_northeast|east northeast
+compass_east_southeast|east southeast
+compass_south_southeast|south southeast
+compass_south_southwest|south southwest
+compass_west_southwest|west southwest
+compass_west_northwest|west northwest
+compass_north_northwest|north northwest
+island_kahului|Kahului
+island_lahaina|Lahaina
+island_waikiki|Waikīkī
+island_pearl_harbor|Pearl Harbor
+basin_bay_of_bengal|Bay of Bengal
+basin_arabian_sea|Arabian Sea
+basin_australian_region|Australian region
+unit_kilometers|kilometers
+unit_millibars_of_mercury|millibars
+connector_near|near
+connector_toward|toward
+connector_away|away
+connector_parallel|parallel
+hazard_coastal_flood_watch|coastal flood watch
+hazard_coastal_flood_warning|coastal flood warning
+hazard_special_marine_warning|special marine warning
+hazard_high_wind_warning|high wind warning
+hazard_gale_warning|gale warning
+hazard_storm_warning|storm warning

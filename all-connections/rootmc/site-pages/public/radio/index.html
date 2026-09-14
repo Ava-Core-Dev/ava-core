@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RootMC Radio</title>
+  <link rel="stylesheet" href="/styles/site.css"/>
+  <script src="/scripts/site-nav.js" defer></script>
+  <style>
+    :root { --ink:#e8efe9; --muted:#8a9a8e; --ring:#f0a83c; --bg:#0a0f10; --ok:#7d9a6a; --bad:#b87a6a; }
+    body { margin:0; background:radial-gradient(900px 500px at 50% 0%,#142018 0%,var(--bg) 55%); color:var(--ink); font-family:system-ui,sans-serif; }
+    .wrap { max-width:32rem; margin:0 auto; padding:2rem 1.25rem 3rem; display:flex; flex-direction:column; gap:1rem; }
+    .brand { letter-spacing:.18em; text-transform:uppercase; font-size:.72rem; color:var(--muted); }
+    #title { font-family:Georgia,serif; font-size:clamp(1.35rem,3.5vw,1.85rem); margin:0; line-height:1.25; }
+    #desc { color:var(--muted); font-size:.95rem; line-height:1.45; margin:0; min-height:2.8em; }
+    #status { opacity:.75; font-size:.85rem; }
+    audio { width:100%; }
+    .votes { display:flex; gap:.65rem; flex-wrap:wrap; align-items:center; }
+    .votes button { appearance:none; border:1px solid rgba(240,168,60,.35); background:rgba(255,255,255,.04); color:var(--ink); padding:.55rem 1rem; border-radius:6px; cursor:pointer; }
+    .votes button.on-like { border-color:var(--ok); color:var(--ok); }
+    .votes button.on-dislike { border-color:var(--bad); color:var(--bad); }
+    .counts { font-size:.8rem; color:var(--muted); }
+    .steer { margin-top:.35rem; padding:1rem; border-left:3px solid rgba(240,168,60,.45); background:rgba(255,255,255,.03); font-size:.88rem; line-height:1.5; color:var(--muted); }
+    .steer strong { color:var(--ink); font-weight:600; }
+    a { color:var(--ring); }
+  </style>
+</head>
+<body>
+  <header class="rmc-top">
+    <a class="rmc-brand" href="/">RootMC</a>
+    <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+  </header>
+  <div class="wrap">
+    <div class="brand">RootMC Radio</div>
+    <p id="status">Connecting…</p>
+    <h1 id="title">Now playing</h1>
+    <p id="desc"></p>
+    <audio id="player" controls preload="none"></audio>
+    <div class="votes" id="votes" hidden>
+      <button type="button" id="btn-like">Like</button>
+      <button type="button" id="btn-dislike">Dislike</button>
+      <span class="counts" id="counts"></span>
+    </div>
+    <div class="steer">
+      <strong>Your vote steers the station.</strong>
+      Likes make a song play more often and push its sound into what we pick and make next.
+      Dislikes cut how often it returns and tell us what to ease off — for music already on the board and new tracks still to come.
+    </div>
+    <p><a href="/">Home</a> · Live from RootMC · same board as Root Record Radio</p>
+  </div>
+<script>
+const ORIGIN = "https://origin.avaivy.cloud";
+const player = document.getElementById("player");
+const status = document.getElementById("status");
+const titleEl = document.getElementById("title");
+const descEl = document.getElementById("desc");
+const votes = document.getElementById("votes");
+const counts = document.getElementById("counts");
+const btnLike = document.getElementById("btn-like");
+const btnDislike = document.getElementById("btn-dislike");
+let currentId = null;
+let myVote = null;
+
+function voterId() {
+  try {
+    let v = localStorage.getItem("rr_radio_voter");
+    if (!v) {
+      v = (crypto.randomUUID && crypto.randomUUID()) || ("v" + Math.random().toString(36).slice(2));
+      localStorage.setItem("rr_radio_voter", v);
+    }
+    return v;
+  } catch (e) { return "anon"; }
+}
+
+function paintMeta(j) {
+  titleEl.textContent = j.title || j.name || "Now playing";
+  descEl.textContent = j.description || "";
+  currentId = j.id || null;
+  if (currentId) {
+    votes.hidden = false;
+    counts.textContent = (j.likes || 0) + " likes · " + (j.dislikes || 0) + " dislikes";
+  } else votes.hidden = true;
+  btnLike.classList.toggle("on-like", myVote === "like");
+  btnDislike.classList.toggle("on-dislike", myVote === "dislike");
+}
+
+function playSrc(src, meta) {
+  if (!src) return;
+  const abs = src.startsWith("http") ? src : (ORIGIN + src);
+  const next = abs + (abs.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now();
+  if (player.getAttribute("data-base") !== abs) {
+    player.setAttribute("data-base", abs);
+    player.src = next;
+    player.play().catch(() => {});
+  }
+  paintMeta(meta || {});
+  status.textContent = "On air";
+}
+
+async function refreshNow() {
+  try {
+    const j = await fetch(ORIGIN + "/api/radio/now").then((r) => r.json());
+    if (!j.on_air) { status.textContent = "Off air"; votes.hidden = true; return; }
+    playSrc(j.live || j.src, j);
+  } catch (e) {
+    status.textContent = "Reconnecting…";
+  }
+}
+
+async function sendVote(vote) {
+  if (!currentId) return;
+  myVote = vote;
+  btnLike.classList.toggle("on-like", vote === "like");
+  btnDislike.classList.toggle("on-dislike", vote === "dislike");
+  try {
+    const r = await fetch(ORIGIN + "/api/radio/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: currentId, vote, voter: voterId(), site: "rootmc.net" }),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      counts.textContent = (j.likes || 0) + " likes · " + (j.dislikes || 0) + " dislikes";
+      status.textContent = vote === "like" ? "Noted — this will play more." : "Noted — we will ease off this one.";
+    }
+  } catch (e) {
+    status.textContent = "Could not save vote — try again.";
+  }
+}
+
+btnLike.addEventListener("click", () => sendVote("like"));
+btnDislike.addEventListener("click", () => sendVote("dislike"));
+refreshNow();
+try {
+  const es = new EventSource(ORIGIN + "/radio/events");
+  es.addEventListener("play", (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      myVote = null;
+      playSrc(data.live || data.src, data);
+    } catch (err) {}
+  });
+} catch (e) {}
+setInterval(refreshNow, 45000);
+</script>
+</body>
+</html>

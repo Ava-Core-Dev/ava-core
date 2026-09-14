@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper 26.2 Map Reset — RootMC Wiki</title>
+  <meta name="description" content="RootMC Paper 26.2 fresh-map launch report — founding, economy merge, June 2026 reserve snapshot, treasury settlement, and post-reset ledger era (1 July 2026 HST).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/map-26-2/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / <a href="/wiki/">Wiki</a> / Paper 26.2 map</p>
+    <p class="market-badge">History · economy merge</p>
+    <h1 class="wiki-page-title">Paper <em>26.2</em> map reset</h1>
+    <p class="page-lead">On <strong>1 July 2026 (HST)</strong>, RootMC launched a fresh overworld on <strong>Paper 26.2</strong> while preserving organisations, banks, player balances, mcMMO, and Discord links. This page documents the founding, what reset, and how the <strong>Server Reserve</strong> economy merged into the new map era. Live land today is <strong>Root-Claims</strong> on <code>play.rootmc.net</code>.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Launch 1 Jul 2026 HST</span>
+      <span class="wiki-badge wiki-badge-player">Fresh geography</span>
+      <span class="wiki-badge">Economy carried</span>
+      <span class="wiki-badge wiki-badge-dev">Audited merge</span>
+    </div>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="Wiki navigation">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#summary">Executive summary</a></li>
+            <li><a href="#founding">Founding &amp; platform</a></li>
+            <li><a href="#kept">What we kept</a></li>
+            <li><a href="#reset">What reset</a></li>
+            <li><a href="#land">Land &amp; territories</a></li>
+            <li><a href="#returning">Returning players</a></li>
+            <li><a href="#economy-merge">Economy merge</a></li>
+            <li><a href="#june-close">June 2026 reserve close</a></li>
+            <li><a href="#dividend">June treasury settlement</a></li>
+            <li><a href="#true-reserve">True reserve picture</a></li>
+            <li><a href="#gold-supply">Gold mined vs over-printed</a></li>
+            <li><a href="#gold-mined">Gold mined (/mint)</a></li>
+            <li><a href="#ledger-era">Post-reset ledger era</a></li>
+            <li><a href="#timeline">Timeline</a></li>
+            <li><a href="#related">Related</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Wiki</h2>
+          <nav>
+            <ul>
+              <li><a href="/wiki/">Wiki home</a></li>
+              <li><a href="/history/">History</a></li>
+              <li><a href="/wiki/constitution/">Constitution</a></li>
+              <li><a href="/wiki/economy/">Economy guide</a></li>
+              <li><a href="/economy/#server-reserve">Server Reserve dashboard</a></li>
+              <li><a href="/wiki/player/">Player guide</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="summary">
+          <h2>Executive summary</h2>
+          <p>RootMC upgraded to <strong>Paper 26.2</strong> and regenerated the live overworld (<code>world</code>) so the server could run current Minecraft builds, a clean BlueMap tile set, and refreshed spawn protection on new coordinates. The launch was a <strong>fresh map</strong>, not a wipe of the player economy: Vault balances, land banks, loans, ranks, and cloud stats continued.</p>
+          <p>The <strong>economy merge</strong> at the HST month boundary ties the old-map reserve to audited totals on the <a href="/economy/#server-reserve">Reserve dashboard</a>:</p>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Metric</th><th>Amount (G)</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Old-map reserve</strong></td>
+                <td><strong>2,097.43</strong></td>
+                <td>Server Reserve ledger net at <strong>1 Jul 2026 00:00 HST</strong> — reserve carryover (not gold mined)</td>
+              </tr>
+              <tr>
+                <td><strong>June dividend returned</strong></td>
+                <td><strong>1,048.72</strong></td>
+                <td>June 2026 treasury payout at the July boundary</td>
+              </tr>
+              <tr>
+                <td><strong>True reserve opening</strong></td>
+                <td><strong>1,049.23</strong></td>
+                <td>Reserve remaining in the closed loop after the June dividend return (Jul 4 vault reconciliation +0.52 G)</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="founding">
+          <h2>Founding &amp; platform</h2>
+          <ul>
+            <li><strong>Game:</strong> <code>play.rootmc.net</code> · Paper <strong>26.2</strong></li>
+            <li><strong>Live world:</strong> <code>world</code> (new seed / fresh terrain from 1 Jul 2026)</li>
+            <li><strong>Launch window:</strong> fresh-map go-live aligned with the <strong>July 2026 HST calendar month</strong> and reserve ledger era</li>
+          </ul>
+          <p>Staff remapped Root-Spawn protection (outer ring, chamber, well, lava vents) on the new platform. Land orgs and resident lists were never deleted; plots had to be reclaimed on the new geography.</p>
+        </article>
+
+        <article id="kept">
+          <h2>What we kept</h2>
+          <ul>
+            <li><strong>Player wallets</strong> (Vault / MySQL)</li>
+            <li><strong>Land organisations</strong> — names, residents, ranks (then Towny rows; live land is Root-Claims)</li>
+            <li><strong>Land banks</strong> carried in MySQL</li>
+            <li><strong>Personal loans</strong>, shop listings, and priced-item history (cloud sync)</li>
+            <li><strong>mcMMO</strong> progression</li>
+            <li><strong>Discord</strong> channels and linked accounts</li>
+            <li><strong>Server Reserve</strong> closed-loop policy — taxes, land fees, vote rewards</li>
+          </ul>
+        </article>
+
+        <article id="reset">
+          <h2>What reset</h2>
+          <ul>
+            <li><strong>All claimed plots</strong>, homeblocks, and spawn points on the old geography</li>
+            <li><strong>Player homes</strong> tied to the previous world</li>
+            <li><strong>Overworld terrain</strong> — new map; old <code>world-old</code> archived for staff reference only</li>
+            <li><strong>BlueMap tiles</strong> for the live map (re-rendered on <code>world</code>)</li>
+          </ul>
+          <p>Player inventories were <strong>not</strong> copied by default — everyone started fresh gear on the new map unless staff restored specific builds or items manually.</p>
+        </article>
+
+        <article id="land">
+          <h2>Land &amp; territories</h2>
+          <p>At the July 2026 reset the server still used Towny land: a script cleared claims and spawn coordinates while keeping org rows and banks. That Towny experiment is <strong>not</strong> current topology. Live RootMC is singular <code>play.rootmc.net</code> with <strong>Root-Claims</strong> and +48 territory buffers.</p>
+          <ul>
+            <li>Claim upkeep is inactivity-based — see the <a href="/wiki/constitution/">Constitution</a></li>
+            <li><strong>Territory buffers</strong> (Root-Territories, +48) apply around Root-Claims — see the <a href="/wiki/territories/">territories guide</a></li>
+          </ul>
+        </article>
+
+        <article id="returning">
+          <h2>Returning players</h2>
+          <p>Players active before the reset could claim a one-time <strong>map return grant</strong> while the program was open (now <strong>ended July 2026</strong>):</p>
+          <ul>
+            <li>Was <strong>1,000 G</strong> via <code>/rootmc claim-return</code> after <a href="/verify/">linking</a></li>
+            <li>Eligible if joined before <strong>2026-07-01</strong> or with a resident/land record from the old map</li>
+          </ul>
+          <p>Staff moved select builds from the old map where feasible. Reclaiming land on the new world was the owner’s job.</p>
+        </article>
+
+        <article id="economy-merge">
+          <h2>Economy merge</h2>
+          <p>The merge boundary is <strong>1 July 2026 00:00 HST</strong> — the instant the July HST calendar month begins and the post-reset reserve ledger era starts.</p>
+          <div class="wiki-callout">
+            <p><strong>Why a merge?</strong> June 2026 closed with a positive reserve net from land founding fees, transaction taxes, vote rewards, and staff grants. That pool belonged to the <em>old map</em> economy. At the boundary we:</p>
+            <ol>
+              <li>Snapshot the <strong>June reserve balance</strong> as reserve carryover (not gold mined)</li>
+              <li>Settle the <strong>June treasury payout</strong> at the boundary (<strong>1,048.72 G</strong> returned)</li>
+              <li>Open the <strong>July ledger era</strong> on the fresh map with the <strong>true reserve opening</strong> (what stayed in the closed loop)</li>
+            </ol>
+          </div>
+          <p>Live ledger rows from July 2026 onward appear on the <a href="/economy/#server-reserve">Reserve dashboard</a>. June detail is preserved in this audited report and in staff change logs — not re-synced row-by-row into D1.</p>
+        </article>
+
+        <article id="june-close">
+          <h2>June 2026 reserve close</h2>
+          <p>At the June 2026 HST month-end boundary, the Server Reserve ledger net was <strong>2,097.43 G</strong>. That figure is the audited <strong>old-map reserve carryover</strong> — separate from physical gold mined via <code>/mint</code>.</p>
+          <p>June 2026 reserve activity (full month):</p>
+          <ul>
+            <li><strong>Inflow:</strong> 6,992.43 G — mostly land founding, claims, and service fees</li>
+            <li><strong>Outflow:</strong> 4,895.00 G — staff grants and vote rewards</li>
+            <li><strong>Net:</strong> 2,097.43 G</li>
+          </ul>
+          <p>June land-fee breakdown (MTD, then Towny): new towns 2,800 G · new nations 2,000 G · claims 2,192.43 G.</p>
+        </article>
+
+        <article id="dividend">
+          <h2>June treasury settlement</h2>
+          <p>At the July boundary, <strong>1,048.72 G</strong> was returned from the June reserve pool (ledger <code>DIVIDEND</code> rows stamped <strong>2026-07-01 00:00 HST</strong>, <code>month=2026-06</code>).</p>
+          <p>This return reduces the reserve to the <strong>true opening</strong> for the new map era.</p>
+        </article>
+
+        <article id="true-reserve">
+          <h2>True reserve picture</h2>
+          <p>After the June dividend, the closed-loop reserve opening for July 2026 was:</p>
+          <p><code>2,097.43 − 1,048.72 = 1,048.71 G</code> (<strong>true reserve opening</strong>)</p>
+          <p>The <a href="/economy/#server-reserve">Reserve dashboard</a> shows:</p>
+          <ul>
+            <li><strong>Old-map reserve (Jun end)</strong> — 2,097.43 G</li>
+            <li><strong>June dividend returned</strong> — 1,048.72 G</li>
+            <li><strong>True reserve opening</strong> — 1,049.23 G (vault-aligned Jul 4; audited carryover was 1,048.71 G)</li>
+            <li><strong>True reserve balance</strong> — opening plus post-reset ledger activity (June dividend rows netted out of the July-era net)</li>
+            <li><strong>July ledger balance</strong> — sum of inflows and outflows recorded from 1 Jul 2026 onward</li>
+          </ul>
+        </article>
+
+        <article id="gold-supply">
+          <h2>Gold mined vs over-printed</h2>
+          <p>RootMC distinguishes two ways wallet <strong>G</strong> enters the economy:</p>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Term</th><th>Meaning</th><th>Ledger</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Gold mined</strong></td>
+                <td>Physical gold items converted via <code>/mint</code> (mine → smelt → mint)</td>
+                <td><code>TAX</code> rows with <code>mint:gross=…</code></td>
+              </tr>
+              <tr>
+                <td><strong>Over-printed (grants)</strong></td>
+                <td>Treasury <code>/grant</code> and automated grant programs — wallet G without mining</td>
+                <td><code>GRANT</code> outflows from the Server Reserve</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>These are <strong>not</strong> the same as reserve carryover (<strong>2,097.43 G</strong> at the July boundary) — that figure is closed-loop reserve net from land fees, taxes, grants, and votes on the old map.</p>
+        </article>
+
+        <article id="gold-mined">
+          <h2>Gold mined (/mint)</h2>
+          <p><strong>Gold mined</strong> on audited reports is post-reset <code>/mint</code> ledger gross only:</p>
+          <p><code>Sum of mint:gross from 1 Jul 2026 onward</code></p>
+          <p>That includes gold routed straight to loan repayment at mint time. Paying loans later does not reduce the mined tally.</p>
+          <h3>Over-printed grants (audited)</h3>
+          <ul>
+            <li><strong>Old map (June 2026):</strong> <strong>4,400 G</strong> staff/treasury GRANT outflows</li>
+            <li><strong>Post-reset:</strong> sum of <code>GRANT</code> rows in the July+ ledger (live on the Reserve dashboard)</li>
+            <li><strong>Total over-printed:</strong> old-map audited + post-reset ledger</li>
+          </ul>
+        </article>
+
+        <article id="ledger-era">
+          <h2>Post-reset ledger era</h2>
+          <p>From <strong>1 July 2026</strong>, the cloud reserve ledger tracks only movements on the fresh map. Typical July inflows: transaction tax, land founding, death fees. Outflows: vote rewards, staff grants, and loan disbursements.</p>
+          <p>Vault sync (<code>Server-Reserve</code> / <code>Ava_Ivy</code>) may lag ledger backfills; the Reserve page is <strong>ledger-authoritative</strong> for public totals.</p>
+        </article>
+
+        <article id="timeline">
+          <h2>Timeline</h2>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>When (HST)</th><th>Event</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Jun 2026</td><td>First full reserve ledger month on original map — net +2,097.43 G</td></tr>
+              <tr><td>1 Jul 2026 00:00</td><td>HST month boundary · Paper 26.2 fresh <code>world</code> live</td></tr>
+              <tr><td>1 Jul 2026 00:00</td><td>June treasury payout — 1,048.72 G returned</td></tr>
+              <tr><td>1 Jul 2026</td><td>True reserve opening — 1,048.71 G · post-reset ledger era begins</td></tr>
+              <tr><td>6 Jul 2026</td><td>Constitution <code>2026-07-06</code> ratified (Council poll <code>549cf16c</code>)</td></tr>
+              <tr><td>2 Jul 2026</td><td>Constitution draft <code>2026-07-02</code> declared · retention pack deploy</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="related">
+          <h2>Related</h2>
+          <ul>
+            <li><a href="/history/">RootMC History</a> — modern era &amp; name archaeology</li>
+            <li><a href="/economy/#server-reserve">Server Reserve dashboard</a> — live ledger and merge tiles</li>
+            <li><a href="/wiki/constitution/">RootMC Constitution</a> — reserve policy</li>
+            <li><a href="/wiki/economy/">Economy guide</a> — how to earn and spend G</li>
+            <li><a href="/wiki/claims/">Claims guide</a> — live Root-Claims land</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-inner">
+      <p>© RootMC · <a href="/wiki/">Wiki</a> · <a href="/terms/">Terms</a></p>
+    </div>
+  </footer>
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

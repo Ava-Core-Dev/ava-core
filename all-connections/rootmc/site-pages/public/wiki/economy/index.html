@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Economy Guide — RootMC Wiki</title>
+  <meta name="description" content="RootMC economy guide — how Gold moves through player wallets, claim banks, the Server Reserve, taxes, fees, rewards, claims, loans, bonds, shops, and minting.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/economy/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / <a href="/wiki/">Wiki</a> / Economy</p>
+    <p class="market-badge">Economy</p>
+    <h1 class="wiki-page-title">RootMC <em>economy</em></h1>
+    <p class="page-lead">RootMC runs a <strong>closed, gold-backed player economy</strong>. You earn <strong>G</strong> by playing, minting physical gold, trading, and running shops. <strong>Rules and rates:</strong> <a href="/wiki/constitution/">RootMC Constitution</a>. This page is the practical how-to guide.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Closed loop</span>
+      <span class="wiki-badge wiki-badge-player">Gold-backed G</span>
+      <span class="wiki-badge">Reserve-tier transaction tax</span>
+    </div>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="Wiki navigation">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="/wiki/constitution/">Constitution (rules)</a></li>
+            <li><a href="#money-flow">Where Gold moves</a></li>
+            <li><a href="#what-is-g">What is G?</a></li>
+            <li><a href="#earning">Earning G</a></li>
+            <li><a href="#spending">Spending G</a></li>
+            <li><a href="#treasury">Server Reserve treasury</a></li>
+            <li><a href="#server-reserve">Server Reserve &amp; /reserve</a></li>
+            <li><a href="#taxes-fees-reference">Taxes &amp; fees reference</a></li>
+            <li><a href="#taxes">Transaction tax</a></li>
+            <li><a href="#host-power">Solar bonus</a></li>
+            <li><a href="#death">Death fee recycling</a></li>
+            <li><a href="#votes">Vote rewards</a></li>
+            <li><a href="#playtime-milestones">Playtime milestones</a></li>
+            <li><a href="#service-fees">Service fees</a></li>
+            <li><a href="#shops">Player shops &amp; market</a></li>
+            <li><a href="#claims">Claims &amp; land costs</a></li>
+            <li><a href="#inactivity-tax">Inactivity tax</a></li>
+            <li><a href="#loans">Personal loans</a></li>
+            <li><a href="#net-worth">Net worth &amp; tracking</a></li>
+            <li><a href="#discord-web">Discord &amp; web tools</a></li>
+            <li><a href="#commands">Commands</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Wiki</h2>
+          <nav>
+            <ul>
+              <li><a href="/wiki/">Wiki home</a></li>
+              <li><a href="/wiki/constitution/">Constitution</a></li>
+              <li><a href="/wiki/player/">Player guide</a></li>
+              <li><a href="/wiki/territories/">Territory influence</a></li>
+              <li><a href="/wiki/weekly-awards/">Weekly activity awards</a></li>
+              <li><a href="/referrals/">Referrals (/root)</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="overview">
+          <h2>Overview</h2>
+          <p>RootMC’s economy is closed-loop: new players start at <strong>0 G</strong>, earn through play and trade, and every automated grant is paid from the <strong>Server Reserve</strong> (<code>Server-Reserve</code>). Authoritative rates and grant policy: <a href="/wiki/constitution/">Constitution</a>.</p>
+          <p>RootMC’s economy is built on <strong>Root-Economy</strong> (Vault balances in MySQL), player chest shops, <strong>Root-Claims</strong> (land and claim-bank costs), and personal/town loans. <strong>Root-Essentials</strong> keeps QoL commands and sinks fees into the treasury SPI. The <strong>RootMC</strong> plugin syncs balances, shops, treasury data, and playtime to the cloud for the <a href="/market/">stock market</a>, <a href="/leaderboard/">leaderboards</a>, and your <a href="/player/">public stats page</a>.</p>
+          <p>Design principles:</p>
+          <ul>
+            <li><strong>No money faucet</strong> — starting balance is <strong>0 G</strong>. New gold enters when players mint ore, sell items, or receive transfers from other players.</li>
+            <li><strong>Closed-loop treasury</strong> — taxes, fees, loan repayments, and death fees flow into the <strong>Server Reserve</strong>; grants, loans, votes, milestones, bond payments, and refunds flow out.</li>
+            <li><strong>Onboarding from the reserve</strong> — playtime milestone rewards pay to your wallet but debit the <strong>Server Reserve</strong> (same pool as loans and votes).</li>
+            <li><strong>Player-priced shops</strong> — the optional rolling-average price ceiling is currently <strong>disabled</strong>. Use <code>/shop avg &lt;item&gt;</code> to compare prices.</li>
+          </ul>
+          <div class="wiki-callout">
+            <strong><a href="/wiki/constitution/">RootMC Constitution</a></strong> is the authoritative source for all rules, reserve policy, taxes, and rates. Live totals and charts: <a href="/economy/">economy page</a>. Daily AI economy briefs post in Discord at midnight HST. This guide explains how to play the economy.
+          </div>
+        </article>
+
+        <article id="money-flow">
+          <h2>Where Gold moves</h2>
+          <p>RootMC has four spendable account groups. Other records track obligations or queued payments but are not extra wallets.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Account or record</th><th>Purpose</th><th>Main movement</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Player wallet</strong></td><td>Your spendable G</td><td>Minting, trade, rewards, fees, loans</td></tr>
+              <tr><td><strong>Claim bank</strong></td><td>Per-claim expansion and territory economy</td><td>Seeded on first claim, pays expansions, receives territory fees and bank returns</td></tr>
+              <tr><td><strong>Server Reserve</strong> (<code>Server-Reserve</code> / <code>Ava_Ivy</code>)</td><td>Closed-loop treasury — Ava’s wallet is this vault</td><td>Collects server fees (including hire); funds grants, rewards, loans, bonds, and refunds</td></tr>
+              <tr><td><strong>Loan / bond / contract records</strong></td><td>Track debt, bonded principal, or escrow</td><td>Movement still occurs between the wallets above</td></tr>
+              <tr><td><strong>Pending web/Discord transfer</strong></td><td>Queues an approved payment</td><td>Applied in-game, then marked complete</td></tr>
+            </tbody>
+          </table>
+          <p class="wiki-pre">Player ↔ Player: /pay, shops, contracts
+Player or bank → Reserve: taxes, fees, hire, rank and claim charges, loan repayment, bonds · /pay Ava_Ivy = /pay reserve
+Reserve → Player or bank: grants, votes, milestones, loans, bond payments, unclaim refunds</p>
+          <p>Every treasury movement is recorded in the reserve ledger. Mint backing is physical gold only at the fixed peg of <strong>9 G/block</strong>, <strong>1 G/ingot</strong>, and <strong>¹⁄₉ G/nugget</strong>. Raw gold is not mintable — smelt it first. Server Reserve on <code>/reserve</code> is mint backing minus circulating Notes (negative when over-issued).</p>
+        </article>
+
+        <article id="what-is-g">
+          <h2>What is G?</h2>
+          <p><strong>G</strong> is your spendable balance — shown in chat, shops, claims, and on the web as gold. It is stored in the server economy database (not items in your inventory until you mint or buy).</p>
+          <h3>Physical gold → balance (minting)</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Item</th><th>Value when minted</th></tr></thead>
+            <tbody>
+              <tr><td>Gold nugget</td><td><strong>¹⁄₉ G</strong> each (~0.11 G)</td></tr>
+              <tr><td>Gold ingot</td><td><strong>1 G</strong> each</td></tr>
+              <tr><td>Gold block</td><td><strong>9 G</strong> each</td></tr>
+            </tbody>
+          </table>
+          <p>Use <code>/mint hand</code> (held stack) or <code>/mint all</code> (all gold items in inventory). Minting <strong>consumes</strong> the items and credits your balance.</p>
+          <p><code>/sell hand</code>, <code>/sell all</code>, and <code>/sell blocks</code> sell non-gold items using live shop averages when available, otherwise the server worth table (e.g. diamond, iron, cobblestone defaults in config).</p>
+        </article>
+
+        <article id="earning">
+          <h2>Earning G</h2>
+          <ul>
+            <li><strong>Mine &amp; mint</strong> — gold ore → wallet Notes (site multipliers) and mint backing. Smelt leftover raw, then <code>/mint hand|all</code>. Redeem Notes with <code>/mint gold</code>.</li>
+            <li><strong>Sell items</strong> — <code>/sell</code> commands price against market averages or the worth table.</li>
+            <li><strong>Player shops</strong> — stock a rootmc-shops chest; buyers pay your balance when they purchase. See <a href="#shops">Player shops</a>.</li>
+            <li><strong>Services &amp; trade</strong> — <code>/pay</code>, player contracts (<code>/contract</code>), barter, jobs. Other players are the source of funds.</li>
+            <li><strong>Playtime milestones</strong> — small gold grants at logged playtime tiers; paid to your wallet from the Server Reserve (see <a href="#playtime-milestones">below</a>).</li>
+            <li><strong>Vote sites</strong> — <code>/vote</code> links; <strong>1–20 G</strong> per confirmed vote plus Appreciation Tokens and <a href="/vote-shards/">Vote Shard</a> weight (<a href="#votes">Vote rewards</a>). Extra shards: <a href="/pro/vote-shards/">buy</a>.</li>
+            <li><strong>Daily /bonus</strong> — Appreciation Token streak (Day 1–5) also pays <strong>5–25 G</strong> from the Server Reserve; see <a href="/thanks/">Appreciation Tokens</a>.</li>
+            <li><strong>PvP</strong> — in player-vs-player kills, you may receive a share of the victim’s death fee (see <a href="#death">Death fee recycling</a>).</li>
+          </ul>
+          <p>Votes pay <strong>you</strong> directly from the Server Reserve. Taxes, death fees, and loan repayments refill the reserve over time.</p>
+        </article>
+
+        <article id="spending">
+          <h2>Spending G</h2>
+          <ul>
+            <li><strong>Player shops</strong> — right-click a shop chest or <code>/buy &lt;item&gt; [qty]</code> (quote + confirm; cheapest in-stock listing, up to 2304).</li>
+            <li><strong>Service fees</strong> — <code>/survey</code>, <code>/shop stock</code>, <code>/warp create</code>, <code>/rank buy</code> (see <a href="#service-fees">Service fees</a>).</li>
+            <li><strong>Claims</strong> — founding areas, expanding circles, claim-bank deposits. See <a href="#claims">Claims &amp; land costs</a>.</li>
+            <li><strong>Pay players</strong> — <code>/pay &lt;player&gt; &lt;amount&gt;</code> (you send the full amount; the recipient receives it minus the live <a href="#taxes">transaction tax</a> tier).</li>
+            <li><strong>Loan repayment</strong> — while in debt, incoming income pays the loan first (<a href="#loans">Root-Loans</a>).</li>
+            <li><strong>Contracts</strong> — escrow held until work is approved (<code>/contract offer</code>).</li>
+          </ul>
+          <p>There is <strong>no NPC server shop</strong> — all item purchases come from other players’ listings.</p>
+        </article>
+
+        <article id="treasury">
+          <h2>Server Reserve treasury</h2>
+          <p class="rmc-muted" style="margin-top:0">Full reserve rules: <a href="/wiki/constitution/#server-reserve">Constitution — Server Reserve</a> · <a href="/wiki/constitution/#reserve-inflows">inflows</a> · <a href="/wiki/constitution/#reserve-outflows">outflows</a></p>
+          <p>RootMC maintains a hidden server treasury account (<strong>Server-Reserve</strong> / <code>Ava_Ivy</code>) that collects gold from economic activity. Ava’s <code>/bal</code> <em>is</em> this vault — <code>/pay Ava</code> and hire fees land here. It is the <strong>Server Reserve</strong> — shown on <code>/baltop</code> (no args) and in full on <code>/reserve</code>. It does <strong>not</strong> appear on player wallet leaderboards. Staff can audit the ledger; players see summary stats in-game with <code>/reserve</code> and on their <a href="/player/">public profile</a> after linking.</p>
+          <h3>Money in (treasury inflows)</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Source</th><th>What happens</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Transaction tax</strong></td><td><strong>0.05% min</strong> + reserve ledger tier (up to 10%), plus <strong>+1% env</strong> when solar is offline → Server Reserve</td></tr>
+              <tr><td><strong>Death fee</strong></td><td><strong>15%</strong> of wallet on all deaths; environmental deaths send all to reserve, PvP sends <strong>40%</strong> to reserve and <strong>60%</strong> to the killer</td></tr>
+              <tr><td><strong>Claim sinks</strong></td><td>Founding extra areas, expansions, and Ava hire fees routed to the Server Reserve</td></tr>
+              <tr><td><strong>Hire &amp; Ava fees</strong></td><td><code>/hire</code> hour, sidekick, and dig contracts + <code>/pay Ava</code> / <code>/pay reserve</code> donations (no tax) → Server Reserve</td></tr>
+              <tr><td><strong>Inactivity tax</strong></td><td>Daily tax on idle player wallets and inactive claim banks — <a href="#inactivity-tax">see below</a></td></tr>
+              <tr><td><strong>Loan repayments</strong></td><td>Principal and interest from <a href="#loans">Root-Loans</a> repayments → reserve</td></tr>
+              <tr><td><strong>Service fees</strong></td><td><a href="#service-fees">Survey</a>, <a href="#shops">shop stocking</a>, <a href="#service-fees">rank purchases</a>, warp registration, and similar paid commands → reserve</td></tr>
+            </tbody>
+          </table>
+          <h3>Money out (treasury outflows)</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Use</th><th>Who</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Staff grants</strong></td><td><code>/grant &lt;player&gt; &lt;amount&gt;</code> (permission <code>rootmc.grant</code>) for events, compensation, etc.</td></tr>
+              <tr><td><strong>Loan disbursements</strong></td><td><code>/loan take</code> borrows G from the reserve (not minted)</td></tr>
+              <tr><td><strong>Playtime milestones</strong></td><td>Root-Rewards tier payouts (wallet credit, reserve debit)</td></tr>
+              <tr><td><strong>Vote rewards</strong></td><td><strong>1–20 G</strong> per listing site → voter wallet (reserve debit)</td></tr>
+              <tr><td><strong>Discord rewards</strong></td><td>Link <strong>100 G</strong> once · first message <strong>20 G</strong> once · activity <strong>5 G</strong> per 12-hour cooldown</td></tr>
+              <tr><td><strong>App check-in</strong></td><td>Seven-day streak: <strong>10, 15, 20, 25, 35, 50, 100 G</strong></td></tr>
+              <tr><td><strong>Questionnaire</strong></td><td><strong>50 G</strong> after 1 hour playtime and successful completion</td></tr>
+              <tr><td><strong>Bonds &amp; refunds</strong></td><td>Bond coupons/redemptions and claim unclaim refunds debit the reserve</td></tr>
+            </tbody>
+          </table>
+          <div class="wiki-callout">
+            The treasury is <strong>redistribution only</strong> — it does not create gold from nothing. Outflows debit <strong>Server-Reserve</strong> from the reserve ledger. See <a href="/wiki/constitution/#note-supply">Gold-backed Notes</a> for backing and dynamic tax.
+          </div>
+        </article>
+
+        <article id="server-reserve">
+          <h2>Server Reserve &amp; <code>/reserve</code></h2>
+          <p>The in-game <strong>Server Reserve</strong> is the same closed-loop treasury as <code>Ava_Ivy</code> / <code>Server-Reserve</code>. Use these commands anytime:</p>
+          <table class="wiki-table">
+            <thead><tr><th>Command</th><th>What you see</th></tr></thead>
+            <tbody>
+              <tr><td><code>/baltop</code></td><td>Leaderboard types and current <strong>Server Reserve</strong> balance</td></tr>
+              <tr><td><code>/baltop players</code></td><td>Top <strong>10</strong> player wallets (names only); line 11 = your rank and balance</td></tr>
+              <tr><td><code>/reserve</code></td><td>Reserve balance, this month’s inflows/outflows, post-reset ledger net, and your playtime / tax paid MTD</td></tr>
+            </tbody>
+          </table>
+          <p>Alias: <code>/balancetop</code> works the same as <code>/baltop</code>.</p>
+          <p><code>/reserve</code> shows server-wide ledger breakdown and your month-to-date playtime and transaction tax. Full charts: <a href="/economy/#server-reserve">economy page</a> (gold backing, wallets + physical gold, reserve ledger).</p>
+        </article>
+
+        <article id="taxes-fees-reference">
+          <h2>Taxes &amp; fees reference</h2>
+          <p>RootMC uses a <strong>closed-loop</strong> economy: most charges move gold into the <strong>Server Reserve</strong> for redistribution. <strong>Authoritative rate sheet:</strong> <a href="/wiki/constitution/#taxes-fees-reference">Constitution — Taxes &amp; fees</a>. Summary below for quick reference while playing.</p>
+
+          <h3>At a glance — every rate</h3>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Category</th><th>Rate / amount</th><th>Paid by</th><th>Destination</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Transaction tax</strong></td><td><strong>0.05% min</strong> + reserve tier (up to 10%)</td><td>Payer/buyer pays the quoted gross; recipient/seller gets the net</td><td>Reserve, or Note burn while over-issued</td></tr>
+              <tr><td><strong>First claim plot</strong></td><td><strong>75 G</strong> · <strong>tax-free</strong></td><td><code>/c</code> founding (first plot only)</td><td>Reserve + claim-bank seed</td></tr>
+              <tr><td><strong>Claim tax (later plots)</strong></td><td>Live reserve tier on extra areas + expansions</td><td>Claim bank / wallet</td><td>Withheld from fee → Reserve. First plot is tax-free</td></tr>
+              <tr><td><strong>Wilderness destroy</strong></td><td><strong>1 G</strong> / block (Y ≥ 0)</td><td>Breaker (cancel if broke)</td><td>100% Server Reserve</td></tr>
+              <tr><td><strong>Territory destroy</strong></td><td><strong>1 G</strong> / block (Y ≥ 0)</td><td>Outsider (trusted exempt)</td><td>75% claim bank / 25% Reserve</td></tr>
+              <tr><td><strong>Solar offline env tax</strong></td><td><strong>+1%</strong> when Ava solar is disconnected</td><td>All taxed transfers including <code>/mint</code></td><td>Stacked on reserve tax · gold/skills stay 1.00×</td></tr>
+              <tr><td><strong>Death fee</strong></td><td><strong>15%</strong> of wallet; minimum <strong>1 G</strong></td><td>Victim (all deaths)</td><td>Environmental: reserve · PvP: <strong>40%</strong> reserve / <strong>60%</strong> killer</td></tr>
+              <tr><td><strong>Inactivity tax</strong></td><td><strong>1% → 100%</strong> per MC day after <strong>30 real days</strong></td><td>Idle wallets; inactive claim banks</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Survey</strong></td><td><strong>25 G</strong> flat</td><td><code>/survey confirm</code></td><td>Server Reserve</td></tr>
+              <tr><td><strong>Shop bulk stock</strong></td><td><strong>5 G</strong> flat</td><td><code>/shop stock confirm</code> (only if items stocked)</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Public warp</strong></td><td><strong>500 G</strong> flat</td><td><code>/warp create</code></td><td>Server Reserve</td></tr>
+              <tr><td><strong>Rank purchase</strong></td><td><strong>500 – 150,000 G</strong> per tier</td><td><code>/rank buy</code></td><td>Server Reserve</td></tr>
+              <tr><td><strong>2nd / 3rd claim area</strong></td><td><strong>1,000 G</strong> / <strong>10,000 G</strong></td><td>Owner wallet</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Claim expansion</strong></td><td>Paid from claim bank (live reserve tax withheld)</td><td>Claim bank</td><td>Reserve + area growth</td></tr>
+              <tr><td><strong>Ava hire (claim / minedown)</strong></td><td><strong>0.01 G</strong>/block starting, +0.01 per 100k blocks, doubling each use</td><td>Hirer wallet</td><td>Server Reserve</td></tr>
+              <tr><td><strong>Loan interest</strong></td><td><strong>10%</strong> at take + <strong>1%</strong> daily on amount owed</td><td>Borrower</td><td>Owed balance (repay → reserve)</td></tr>
+              <tr><td><strong>Loan borrow limit</strong></td><td><strong>100 G</strong> default · matches <code>/rank buy</code> tier price (up to <strong>150,000 G</strong>)</td><td>Borrower</td><td>Max principal per <code>/loan take</code></td></tr>
+              <tr><td><strong>Loan income sweep</strong></td><td><strong>100%</strong> of incoming gold while in debt</td><td>Borrower</td><td>Loan balance first</td></tr>
+              <tr><td><strong>Vote reward</strong></td><td><strong>1 – 20 G</strong> random per site</td><td>—</td><td>Voter wallet (reserve debit)</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Percentage taxes &amp; withholdings</h3>
+          <h4>Transaction tax — reserve ledger tiers</h4>
+          <p>The payer or buyer is debited the quoted <strong>gross</strong>. Tax is withheld from that amount, and the recipient or seller receives the <strong>net</strong>. Tax normally credits the reserve; while Notes are over-issued and the reserve ledger is non-negative, it is burned instead.</p>
+          <table class="wiki-table">
+            <thead><tr><th>July 1+ reserve ledger</th><th>Rate</th><th>Example (100 G transfer)</th></tr></thead>
+            <tbody>
+              <tr><td>≥ <strong>1,000 G</strong></td><td><strong>0.05%</strong> min</td><td>Recipient gets <strong>99.95 G</strong>; reserve <strong>0.05 G</strong></td></tr>
+              <tr><td>&lt; <strong>1,000 G</strong></td><td><strong>1%</strong></td><td>Recipient gets <strong>99 G</strong>; reserve <strong>1 G</strong></td></tr>
+              <tr><td>&lt; <strong>0 G</strong> (current era)</td><td><strong>2%</strong></td><td>Recipient gets <strong>98 G</strong>; reserve <strong>2 G</strong></td></tr>
+              <tr><td>&lt; <strong>−1,000 G</strong></td><td><strong>3%</strong></td><td>Recipient gets <strong>97 G</strong>; reserve <strong>3 G</strong></td></tr>
+              <tr><td>&lt; <strong>−2,000 G</strong></td><td><strong>4%</strong></td><td>Recipient gets <strong>96 G</strong>; reserve <strong>4 G</strong></td></tr>
+              <tr><td>&lt; <strong>−4,000 G</strong></td><td><strong>5%</strong></td><td>Recipient gets <strong>95 G</strong>; reserve <strong>5 G</strong></td></tr>
+              <tr><td>&lt; <strong>−10,000 G</strong></td><td><strong>10%</strong></td><td>Recipient gets <strong>90 G</strong>; reserve <strong>10 G</strong></td></tr>
+            </tbody>
+          </table>
+          <p>Live rate: <code>/tax</code> in-game or <a href="https://ava.rootmc.net/economy">Ava economy board</a>. Base config <code>transaction-tax-rate: 0.001</code> applies only when dynamic tax is off. Wallet <code>/mint</code> backing is separate from reserve-ledger tiers. A <strong>0.05% floor</strong> always applies. Offline solar adds <strong>+1% env</strong> (<a href="#host-power">solar bonus</a>). First claim plot is tax-free; later plots and expansions use this reserve tax. <strong>5 listing votes in 24 hours</strong> halves your tax (and death loss) while that window holds — <code>/vote</code>.</p>
+          <p>You are never charged tax twice on the same transfer. If you have an active loan, income sweeps apply to your <em>net</em> receipt after tax where configured. Details: <a href="#taxes">Transaction tax</a>, <a href="#loans">Personal loans</a>.</p>
+
+          <h4>Death fee — 15% of wallet</h4>
+          <p>The fee applies to <strong>all deaths</strong>, has a <strong>1 G</strong> minimum, and never exceeds the wallet balance. With <strong>5 listing votes in the last 24 hours</strong>, both the percent and the minimum are halved (7.5% / 0.5 G) until the rolling window drops below 5.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Split</th><th>Share</th><th>On 1,000 G victim</th></tr></thead>
+            <tbody>
+              <tr><td>Total fee</td><td><strong>15%</strong></td><td><strong>150 G</strong></td></tr>
+              <tr><td>→ Server Reserve (PvP)</td><td><strong>40%</strong> of fee</td><td><strong>60 G</strong></td></tr>
+              <tr><td>→ Killer (PvP)</td><td><strong>60%</strong> of fee</td><td><strong>90 G</strong></td></tr>
+            </tbody>
+          </table>
+          <p>On mob, fall, lava, and other environmental deaths, the entire <strong>150 G</strong> example fee goes to the reserve.</p>
+
+          <h4>Inactivity tax — daily % after grace</h4>
+          <p><strong>Root-Upkeep</strong> runs each <strong>Minecraft day</strong> (~30 real minutes; rollover at <strong>:15</strong> and <strong>:45</strong> HST) after <strong>30 real days</strong> without login. Minimum balance and charge are <strong>0.01 G</strong>.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Days idle (after grace)</th><th>Daily rate</th><th>On 10,000 G wallet</th></tr></thead>
+            <tbody>
+              <tr><td>0–29 (grace)</td><td><strong>0%</strong></td><td><strong>0 G</strong></td></tr>
+              <tr><td>30–36</td><td><strong>1%</strong></td><td><strong>100 G</strong>/MC day</td></tr>
+              <tr><td>37–43</td><td><strong>5%</strong></td><td><strong>500 G</strong>/MC day</td></tr>
+              <tr><td>44–50</td><td><strong>10%</strong></td><td><strong>1,000 G</strong>/MC day</td></tr>
+              <tr><td>51+</td><td><strong>100%</strong></td><td>Remaining wallet balance</td></tr>
+            </tbody>
+          </table>
+          <p>Same rate tiers apply to <strong>claim banks</strong> when no trusted member has logged in within the grace window. One active member resets the claim clock. Full rules: <a href="#inactivity-tax">Inactivity tax</a>.</p>
+
+          <h4>Loan interest &amp; income sweep</h4>
+          <table class="wiki-table">
+            <thead><tr><th>Charge</th><th>Rate</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>Interest on borrow</td><td><strong>10%</strong></td><td>Borrow <strong>100 G</strong> → owe <strong>110 G</strong></td></tr>
+              <tr><td>Daily loan tax</td><td><strong>1%</strong> of amount owed</td><td>Accrues at midnight HST; minimum <strong>0.01 G</strong></td></tr>
+              <tr><td>Income sweep while in debt</td><td><strong>100%</strong></td><td>Shop sales, mint, <code>/pay</code> received, etc. pay loan first</td></tr>
+              <tr><td>Gold ore while in debt</td><td>Swept to loan</td><td>Smelting/mining ore can auto-apply to balance owed</td></tr>
+            </tbody>
+          </table>
+          <p>Limits: <strong>100 G</strong> with no purchased player rank; otherwise equals your highest <code>/rank buy</code> tier price (staff/donor groups ignored). <strong>3</strong> takes per 24h. Details: <a href="#loans">Personal loans</a>.</p>
+
+          <h3>Flat service fees (Server Reserve)</h3>
+          <p>From <code>root-essentials.yml</code> <code>fees.*</code> and <code>root-ranks.yml</code>. Most commands show <strong>[Confirm]</strong> before charging.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Command</th><th>Fee</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>/survey confirm</code></td><td><strong>25 G</strong></td><td>Chunk biome / slime / structure report</td></tr>
+              <tr><td><code>/shop stock confirm</code></td><td><strong>5 G</strong></td><td>Only when items actually move into sell chests</td></tr>
+              <tr><td><code>/warp create &lt;name&gt;</code></td><td><strong>500 G</strong></td><td>Register a public warp at your location</td></tr>
+            </tbody>
+          </table>
+
+          <h4>Rank purchases (<code>/rank buy</code>)</h4>
+          <p>Buy Root-Perms player ranks <strong>one tier at a time</strong>, in order. Gold sinks to Server Reserve on success.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Order</th><th>Rank</th><th>Price</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Wanderer</td><td><strong>500 G</strong></td></tr>
+              <tr><td>2</td><td>Settler</td><td><strong>1,500 G</strong></td></tr>
+              <tr><td>3</td><td>Pioneer</td><td><strong>4,000 G</strong></td></tr>
+              <tr><td>4</td><td>Citizen</td><td><strong>10,000 G</strong></td></tr>
+              <tr><td>5</td><td>Veteran</td><td><strong>25,000 G</strong></td></tr>
+              <tr><td>6</td><td>Elite</td><td><strong>60,000 G</strong></td></tr>
+              <tr><td>7</td><td>Champion</td><td><strong>150,000 G</strong></td></tr>
+            </tbody>
+          </table>
+          <p>List prices: <code>/ranks</code> or <code>/rank</code>. More: <a href="#service-fees">Service fees</a>, <a href="/wiki/player/#ranks">Player guide — ranks</a>.</p>
+
+          <h3>Claims &amp; land costs</h3>
+          <p>RootMC uses <strong>Root-Claims</strong> only. There are no towns, nations, or mayor taxes. Your first circular plot is <strong>tax-free</strong>. Extra areas and expansions pay from the claim bank; the live reserve tax is withheld into the <strong>Server Reserve</strong>.</p>
+
+          <h4>Founding &amp; expansions</h4>
+          <table class="wiki-table">
+            <thead><tr><th>Action</th><th>Cost</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>First claim / area</td><td><strong>75 G</strong> · <strong>tax-free</strong></td><td><code>/c new</code> · <code>/c claim</code></td></tr>
+              <tr><td>2nd area</td><td><strong>1,000 G</strong></td><td>Wallet → Server Reserve</td></tr>
+              <tr><td>3rd area</td><td><strong>10,000 G</strong></td><td>Wallet → Server Reserve</td></tr>
+              <tr><td>Expansion</td><td>Paid from claim bank</td><td>Live <code>/tax</code> reserve tier withheld</td></tr>
+              <tr><td>Unclaim refund</td><td>Per <code>root-claims.yml</code></td><td>Debits Server Reserve when refunded</td></tr>
+            </tbody>
+          </table>
+          <p>Full land rules: <a href="/wiki/claims/">Claims &amp; areas</a> · territory buffers: <a href="/wiki/territories/">Territories</a>.</p>
+
+          <h3>Shop price guidance</h3>
+          <p>The optional <strong>110%</strong> rolling-average ceiling is currently <strong>disabled</strong>. Players set prices; use <code>/shop avg &lt;item&gt;</code> to compare the market.</p>
+
+          <h3>What is not taxed by the server</h3>
+          <ul>
+            <li><strong>First claim plot</strong> — founding the first circle is tax-free</li>
+            <li><strong>Playtime milestones</strong> and <strong>vote rewards</strong> — these pay out <em>from</em> the reserve, not into it</li>
+            <li><strong>Staff grants</strong> — treasury outflow, not player tax</li>
+            <li><strong>Creating a shop</strong> — free; only trades and bulk stock incur fees</li>
+            <li><strong>Mining below Y 0</strong> — free-reign underworld; no claim or wilderness destroy fees</li>
+          </ul>
+
+          <div class="wiki-callout">
+            <strong>Quick check in-game:</strong> <code>/reserve</code> shows your month-to-date transaction tax. <code>/loan info</code> shows sweep status. Claim costs appear in <code>/c</code> confirm prompts before you pay.
+          </div>
+        </article>
+
+        <article id="host-power">
+          <h2>Solar bonus (gold + skills)</h2>
+          <p>Live Ava / EcoFlow feed changes gold ore Notes and skills XP with the <strong>same</strong> multiplier. In-game: <code>/gold</code>, <code>/tax</code>, <code>/mint</code>. Join chat shows Ava’s live line.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Condition</th><th>Gold + skills</th><th>Tax overlay</th></tr></thead>
+            <tbody>
+              <tr><td>Solar disconnected</td><td><strong>1.00×</strong></td><td><strong>+1%</strong> env tax on all transfers</td></tr>
+              <tr><td>Solar connected</td><td><strong>1 + 1% + 1%/10% bank + 1%/100 W</strong></td><td>None (reserve tax still applies)</td></tr>
+              <tr><td>Example: 50% bank + 500 W</td><td><strong>1.11×</strong> (11%)</td><td>None</td></tr>
+            </tbody>
+          </table>
+          <p>Connected solar has <strong>no extra tax</strong> — only the reserve floor/tier (and offline +1% env). Site taxes still apply to <strong>mine drops</strong>:</p>
+          <table class="wiki-table">
+            <thead><tr><th>Site</th><th>Rule</th></tr></thead>
+            <tbody>
+              <tr><td>Y <strong>−20 to 20</strong></td><td><strong>+1%</strong> environmental damage tax</td></tr>
+              <tr><td>Mesa / badlands</td><td><strong>50%</strong> mine tax</td></tr>
+              <tr><td>Nether</td><td><strong>25%</strong> mine tax</td></tr>
+              <tr><td>Deepslate gold ore</td><td><strong>1.5×</strong> found valuation (and drop yield)</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="taxes">
+          <h2>Transaction tax (reserve ledger tiers)</h2>
+          <p>Every taxed transfer has a <strong>0.05% minimum</strong>, then the reserve tier (backing − circulating Notes) if higher, then <strong>+1% env</strong> when solar is offline. It applies to:</p>
+          <ul>
+            <li><code>/pay &lt;player&gt; &lt;amount&gt;</code></li>
+            <li>Player shop purchases (<code>/buy</code> and chest clicks)</li>
+            <li>Player shop sales to buy-shops (<code>/sell</code>)</li>
+            <li><code>/mint</code> wallet credit</li>
+          </ul>
+          <p>The payer or buyer always pays the <strong>quoted amount only</strong>. Tax is withheld from the <strong>receiver’s</strong> side and credited to the Server Reserve. Loan income sweeps still apply to the <em>net</em> amount you receive where configured.</p>
+          <p>Example at the current tier (reserve below 0 G, <strong>2%</strong>): you buy from a shop for <strong>100 G</strong> — you pay <strong>100 G</strong>; the seller receives <strong>98 G</strong> and the reserve gets <strong>2 G</strong>. With the vote perk active that tax is halved. Check <code>/tax</code> for today's rate.</p>
+        </article>
+
+        <article id="death">
+          <h2>Death fee recycling</h2>
+          <p>RootMC uses a <strong>custom death fee</strong> on every death. There is no separate land-plugin death charge.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Rule</th><th>Value</th></tr></thead>
+            <tbody>
+              <tr><td>Applies when</td><td><strong>Every death</strong> (PvP and environmental)</td></tr>
+              <tr><td>Fee size</td><td><strong>15%</strong> of wallet; minimum <strong>1 G</strong>, capped at available balance. <strong>½</strong> with 5 votes / 24h</td></tr>
+              <tr><td>Environmental / mob death</td><td><strong>100%</strong> of fee → Server Reserve</td></tr>
+              <tr><td>PvP treasury share</td><td><strong>40%</strong> of fee → Server Reserve</td></tr>
+              <tr><td>PvP killer share</td><td><strong>60%</strong> of fee → killer’s balance</td></tr>
+            </tbody>
+          </table>
+          <p>Example: victim has <strong>1,000 G</strong> → fee <strong>150 G</strong>. Environmental death: reserve receives <strong>150 G</strong>. PvP: reserve receives <strong>60 G</strong>, killer receives <strong>90 G</strong>.</p>
+        </article>
+
+        <article id="votes">
+          <h2>Vote rewards</h2>
+          <p>Run <code>/vote</code> in-game for links to listing sites. When a site confirms your vote (via Votifier), the server rolls <strong>1–20 G</strong> and pays it to <strong>your wallet</strong> from the <strong>Server Reserve</strong> (not minted).</p>
+          <p>The same confirmed vote also grants <strong>Appreciation Tokens</strong> and <strong>+1 digital EC shard</strong> (same number as your listing vote count). Lifetime listing sites count ×2. Paid shards ($1 = 100, min $0.50) are separate — vote value only, not Gold. Buy: <a href="/pro/vote-shards/">rootmc.net/pro/vote-shards</a>. Explainer: <a href="/vote-shards/">Vote Shards</a>.</p>
+          <p><strong>Streak perk:</strong> <strong>5 confirmed listing votes in the last 24 hours</strong> halves your transaction tax and death-loss until that rolling window drops below 5. <code>/vote</code> and <code>/tax</code> show progress. Hitting 5 broadcasts in-game and Discord.</p>
+          <p>Chat message: <em>“…paid from the Server Reserve.”</em> Each listing site enforces its own cooldown; RootMC does not add an extra plugin cooldown.</p>
+          <p>Vote sites include Minecraft-MP, MinecraftServers.org, Planet Minecraft, MineRank, TopMinecraftServers, and others (see <code>/vote</code> output).</p>
+        </article>
+
+        <article id="playtime-milestones">
+          <h2>Playtime milestones (direct gold)</h2>
+          <p><strong>Root-Rewards</strong> grants small amounts of gold to your wallet at playtime tiers. Each payout is debited from the <strong>Server Reserve</strong> (logged like staff grants) — not minted.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Tier</th><th>Playtime</th><th>Reward</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>15 minutes</td><td><strong>1 G</strong></td></tr>
+              <tr><td>2</td><td>1 hour</td><td><strong>2 G</strong></td></tr>
+              <tr><td>3+</td><td>Each tier doubles time &amp; gold</td><td>4 G @ 2h, 8 G @ 4h, … up to tier 18</td></tr>
+            </tbody>
+          </table>
+          <p>Check progress with <code>/rewards</code> (aliases: <code>/playtimerewards</code>, <code>/playrewards</code>).</p>
+        </article>
+
+        <article id="service-fees">
+          <h2>Service fees (paid commands)</h2>
+          <p>Some convenience commands charge a flat fee from your wallet. Fees credit the <strong>Server Reserve</strong> (same treasury as transaction tax). Most use a <strong>[Confirm]</strong> / <strong>[Cancel]</strong> step before gold is taken. <strong>Full rate sheet:</strong> <a href="#taxes-fees-reference">Taxes &amp; fees reference</a>.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Command</th><th>Fee</th><th>What you get</th></tr></thead>
+            <tbody>
+              <tr><td><code>/survey confirm</code></td><td><strong>25 G</strong></td><td>One-shot chunk report (slime chunk, biomes, structures) — <a href="/wiki/player/#survey">player guide</a></td></tr>
+              <tr><td><code>/shop stock confirm</code></td><td><strong>5 G</strong></td><td>Move matching items from inventory into your sell-shop chests — fee applies only when items are stocked — <a href="/wiki/player/#shop-stock">player guide</a></td></tr>
+              <tr><td><code>/warp create &lt;name&gt;</code></td><td><strong>500 G</strong></td><td>Register a public warp at your location (unique name)</td></tr>
+              <tr><td><code>/rank buy</code></td><td><strong>500 – 150,000 G</strong></td><td>Buy the next Root-Perms player rank in order — see <a href="#taxes-fees-reference">rank price table</a></td></tr>
+            </tbody>
+          </table>
+          <p>Shop buys and sells use quote + confirm at the <strong>listed trade price</strong> — no extra tax on top for the customer. The live <strong>transaction tax tier</strong> is deducted from the receiver’s payout automatically (separate from flat service fees like <code>/shop stock</code>).</p>
+        </article>
+
+        <article id="shops">
+          <h2>Player shops &amp; market</h2>
+          <p><strong>Root-ChestShops</strong> holds stock in chest shops and optional <strong>virtual bins</strong> (<code>/item</code> deposit/withdraw, My Storage GUI). <strong>Root-Market</strong> (<code>/market</code>) is the in-game browser — categories, live buy/sell quotes from player shops, trending sell multi — not a separate warehouse. Listings also sync to the <a href="/market/">web stock market</a> every ~<strong>5 minutes</strong> when at least one player is online.</p>
+          <h3>Quick reference</h3>
+          <ul>
+            <li><strong>Create</strong> — chest/barrel + hold item + <code>/shop create</code> or <code>/shop create &lt;price&gt;</code> (optional price sets total G in one step; otherwise type price in chat).</li>
+            <li><strong>Buy</strong> — right-click a sell-shop sign (<strong>that shop only</strong>) or <code>/buy &lt;item&gt; [amount]</code> (equal split across same-price listings; confirm before charge).</li>
+            <li><strong>Sell to buy shops</strong> — <code>/sell &lt;item&gt; [amount]</code> (equal split at the best price; sign click = that buy shop only).</li>
+            <li><strong>Bulk stock</strong> — <code>/shop stock</code> → confirm <strong>5 G</strong> merchant fee (only charged when items are actually stocked).</li>
+            <li><strong>Price comparison</strong> — use <code>/shop avg &lt;item&gt;</code>; the optional 110% ceiling is currently disabled.</li>
+            <li><strong>Appreciation Tokens</strong> — list as <code>APPRECIATION_TOKEN</code> (not plain sunflower). Hold a token + <code>/shop create</code>. Right-clicking a token on a shop sign/chest buys/sells — it does not redeem.</li>
+          </ul>
+          <p>Full step-by-step with sign colors, buy shops, and legacy QuickShop notes: <a href="/wiki/player/#shops-ingame">Opening a player shop</a> in the player guide.</p>
+          <h3>Fair split at the same price</h3>
+          <p><code>/buy</code> and <code>/sell</code> use the <strong>lowest</strong> (or <strong>highest</strong> for sell-to-buy-shop) in-stock price tier. Every shop at that exact price shares the order <strong>equally</strong> — 64 items across 4 shops is 16 each. One item among ties goes to a <strong>random</strong> shop. <strong>Right-clicking a shop sign</strong> always trades with <strong>that shop only</strong>. Five or more shops in one quote show a summary line (<em>“Buying 64 IRON_INGOT from 5 players”</em>) instead of listing every owner.</p>
+          <p>Shop trades: the customer pays the listed price; the live transaction tax tier is withheld from the seller’s or seller-side payout to the treasury.</p>
+        </article>
+
+        <article id="claims">
+          <span id="towny"></span>
+          <h2>Claims &amp; land costs</h2>
+          <p>Land on live RootMC is <strong>Root-Claims</strong> only — personal circles, claim banks, and territory buffers. There are no towns, nations, or mayor-set taxes. <strong>Root-Upkeep</strong> still taxes idle wallets and inactive claim banks. <strong>All land rates:</strong> <a href="#taxes-fees-reference">Taxes &amp; fees reference</a>.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Cost</th><th>Amount</th></tr></thead>
+            <tbody>
+              <tr><td>First claim / area</td><td><strong>75 G</strong> · tax-free</td></tr>
+              <tr><td>2nd area</td><td><strong>1,000 G</strong> → Server Reserve</td></tr>
+              <tr><td>3rd area</td><td><strong>10,000 G</strong> → Server Reserve</td></tr>
+              <tr><td>Expansion</td><td>Claim bank + live reserve tax withheld</td></tr>
+              <tr><td>Wilderness destroy (Y ≥ 0)</td><td><strong>1 G</strong>/block → Server Reserve</td></tr>
+              <tr><td>Territory destroy (outsider, Y ≥ 0)</td><td><strong>1 G</strong>/block · 75% claim bank / 25% Reserve</td></tr>
+              <tr><td>Mining below Y 0</td><td><strong>Free</strong> (no claims, no destroy fees)</td></tr>
+            </tbody>
+          </table>
+          <p>Commands and territory rules: <a href="/wiki/player/#claims">Player guide — claims</a>, <a href="/wiki/claims/">Claims &amp; areas</a>, and <a href="/wiki/territories/">Territory buffers</a>.</p>
+        </article>
+
+        <article id="inactivity-tax">
+          <h2>Inactivity tax (Root-Upkeep)</h2>
+          <p><strong>Root-Upkeep</strong> runs once per <strong>Minecraft day</strong> (~30 real minutes). It debits a small percentage from idle balances into the <strong>Server Reserve</strong> — the same closed-loop treasury as transaction tax and claim sinks. Each charge is broadcast server-wide in chat.</p>
+          <h3>Who gets taxed</h3>
+          <table class="wiki-table">
+            <thead><tr><th>Target</th><th>When tax applies</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Player wallet</strong></td><td>You have not logged in for <strong>≥ 30 real days</strong></td></tr>
+              <tr><td><strong>Claim bank</strong></td><td><strong>No</strong> owner or trusted member has logged in within <strong>30 real days</strong></td></tr>
+            </tbody>
+          </table>
+          <p>If <strong>any</strong> trusted member of a claim has been active within the grace window, that claim bank is skipped — one active member keeps the area alive.</p>
+          <h3>Tax rate by idle week</h3>
+          <p>After the 30-day grace period, the rate applied each MC day scales sharply with total idle time:</p>
+          <table class="wiki-table">
+            <thead><tr><th>Idle week</th><th>Daily rate (% of current balance)</th></tr></thead>
+            <tbody>
+              <tr><td>Days 30–36</td><td><strong>1%</strong></td></tr>
+              <tr><td>Days 37–43</td><td><strong>5%</strong></td></tr>
+              <tr><td>Days 44–50</td><td><strong>10%</strong></td></tr>
+              <tr><td>Day 51+</td><td><strong>100%</strong></td></tr>
+            </tbody>
+          </table>
+          <p>Minimum balance and minimum tax are <strong>0.01 G</strong>. Logging back in resets your personal idle clock. For claims, any trusted-member login resets the claim clock.</p>
+          <div class="wiki-callout">
+            Inactivity tax is <strong>not</strong> minting — gold moves from idle wallets and banks into the Server Reserve for redistribution (loans, votes, grants). Stay active or check in occasionally to avoid slow balance erosion on abandoned accounts.
+          </div>
+        </article>
+
+        <article id="loans">
+          <h2>Personal loans</h2>
+          <p><strong>Root-Loans</strong> offers optional credit after a community vote — borrow <strong>G</strong> for startup costs (e.g. a second claim area) when you are short on gold.</p>
+          <ul>
+            <li>Default borrow limit <strong>100 G</strong>; with purchased ranks, cap equals that tier’s <code>/rank buy</code> price (up to <strong>150,000 G</strong> at Champion). Staff use the same rule — only player-track ranks count.</li>
+            <li><strong>10% interest</strong> at borrow, then <strong>1% daily</strong> on the amount still owed (minimum accrual <strong>0.01 G</strong>)</li>
+            <li>While in debt, <strong>100% of incoming gold</strong> pays the loan first (including mint/sell/shop income)</li>
+            <li>Disbursements draw from the <strong>Server Reserve</strong> — if the pool is empty, <code>/loan take</code> fails until inflows return</li>
+          </ul>
+          <p>Full rules, commands, and gold-ore behavior while in debt: <a href="/wiki/player/#loans">Personal loans</a> in the player guide.</p>
+        </article>
+
+        <article id="net-worth">
+          <h2>Net worth &amp; tracking</h2>
+          <p><strong>Net worth</strong> ≈ Vault balance + valued inventory + redeemable gold in player chests + shop stock + <strong>physical gold in storage</strong> at the mint peg (see <a href="/wiki/constitution/#net-worth">Constitution — Net worth</a>). Sync exports <strong>all player wallets</strong> from MySQL — claim banks are not counted as player balance on web leaderboards.</p>
+          <p>Shop stock counts <strong>quantity in your sell chests</strong>, valued at the same <strong>blended buy-side reference</strong> used on <a href="/market/">stock market charts</a> — median in-stock sell average blended with recent history — <em>not</em> your individual listing prices.</p>
+          <ul>
+            <li><a href="/economy/">Economy overview</a> — note supply, backing, reserve vs wallets + physical gold charts</li>
+            <li><a href="/leaderboard/">Leaderboard</a> — richest player balances and net worth ranks (web)</li>
+            <li><a href="/player/">Player search</a> — per-player balance breakdown, McMMO, playtime</li>
+            <li><code>/baltop players</code> — in-game top player wallets (Server Reserve is shown on <code>/baltop</code> with no args)</li>
+            <li><code>/reserve</code> — Server Reserve balance and full treasury stats</li>
+          </ul>
+          <p>Link with <code>/link</code> so the web and Discord tools know your UUID.</p>
+        </article>
+
+        <article id="discord-web">
+          <h2>Discord &amp; web tools</h2>
+          <table class="wiki-table">
+            <thead><tr><th>Tool</th><th>Economy features</th></tr></thead>
+            <tbody>
+              <tr><td><a href="/economy/">Economy overview</a></td><td>Note supply, backing %, mint &amp; gold-found leaderboards, reserve chart</td></tr>
+              <tr><td><a href="/economy/#server-reserve">Economy — Server Reserve</a></td><td>Ledger charts, month picker, glossary</td></tr>
+              <tr><td><a href="/market/">Stock market</a></td><td>Live listings, filters, price history charts</td></tr>
+              <tr><td><a href="/leaderboard/">Leaderboards</a></td><td>Net worth, balances, playtime</td></tr>
+              <tr><td><a href="/player/">Player profiles</a></td><td>Net worth, playtime, McMMO</td></tr>
+              <tr><td>RootMC Discord</td><td><code>/balance</code>, <code>/pay</code>, <code>/value</code> / <code>/worth</code> with charts (linked accounts)</td></tr>
+              <tr><td>RootMC Android app</td><td>Market browser, vault claims after <code>/vault</code></td></tr>
+            </tbody>
+          </table>
+          <p>Economy data typically refreshes every <strong>~5 minutes</strong> or when staff run <code>/rootstat sync</code>.</p>
+        </article>
+
+        <article id="commands">
+          <h2>Commands</h2>
+          <h3>Balances &amp; transfers</h3>
+          <pre class="wiki-pre">/balance · /bal              — your G balance
+/pay reserve &lt;amount&gt;       — voluntary donation; burns Notes from circulation
+/pay &lt;player&gt; &lt;amount&gt;       — send G (live reserve-ledger tax tier — /tax)
+/paytoggle                   — opt out of receiving payments
+/baltop                      — leaderboard help + Server Reserve balance
+/baltop players              — top 10 wallets; line 11 = your rank &amp; balance
+/reserve                     — treasury stats (balance, inflows/outflows)
+/gold                        — live solar gold/skills multiplier
+/tax                         — reserve tax + 0.05% floor + offline env + vote perk
+/mint hand · /mint all         — gold items → G (live tax withheld)
+/mint gold &lt;amount|max&gt;      — Notes → nugget/ingot/block (peg, no mine bonus)
+/sell hand · /sell all · /sell blocks — sell priced items
+/worth [item]                — price lookup</pre>
+          <h3>Shops</h3>
+          <pre class="wiki-pre">/buy &lt;item&gt; [qty]            — quote cheapest shop; confirm to pay
+/sell &lt;item&gt; [qty]           — quote best buy shop; confirm to sell
+/shop create [price]         — start a shop (look at chest; optional price sets total G)
+/shop stock                  — preview bulk stock; confirm (5 G merchant fee)
+/shop avg &lt;item&gt;             — rolling average + cap hint
+/survey                      — chunk report quote; confirm (25 G)</pre>
+          <p class="rmc-muted" style="margin-top:0.35rem"><code>/shop</code> aliases: <code>/rootshops</code>, <code>/rshops</code> · also <code>edittype</code>, <code>editprice</code>, <code>remove</code>, <code>cancel</code>, <code>stock confirm|cancel</code></p>
+          <h3>Rewards &amp; staff</h3>
+          <pre class="wiki-pre">/vote                         — vote site links (1–20 G to your wallet from reserve)
+/rewards                      — playtime milestone progress
+/bonus                        — daily Appreciation streak (tokens + 5–25 G from reserve)
+/thanks                       — Appreciation Token supply stats
+/rank list · /rank buy        — view or buy next player rank (gold → reserve)
+/grant &lt;player&gt; &lt;amt&gt; [why]  — staff treasury payout (rootmc.grant)</pre>
+          <p>Full command tables (claims, contracts, RootMC link, loans): <a href="/wiki/player/#commands">Player guide — all commands</a>. Tokens: <a href="/thanks/">Appreciation guide</a>.</p>
+        </article>
+
+        <article id="faq">
+          <h2>FAQ</h2>
+          <h3>Does the server give free starter money?</h3>
+          <p>No lump-sum grant. You start at <strong>0 G</strong> and earn via minting, selling, milestones, votes, and trade.</p>
+          <h3>Why didn’t I get gold from voting?</h3>
+          <p>Vote gold lands in <strong>your wallet</strong> when the listing confirms via Votifier. It is debited from the Server Reserve, not minted. If it is missing, confirm the listing accepted the vote and that your Minecraft name matches.</p>
+          <h3>Can the Server Reserve go negative?</h3>
+          <p>Yes. Grants, milestones, and vote rewards debit the reserve ledger even when inflows lag. A negative balance on <code>/reserve</code> means outflows exceeded inflows — not that the server printed free gold. Taxes, claim charges, loan repayments, bond issues, donations, and service fees refill it over time.</p>
+          <h3>Do I pay tax when someone pays me?</h3>
+          <p>The sender or buyer is debited the quoted <strong>gross</strong>. Tax is withheld from that gross, so the recipient or seller receives the <strong>net</strong>. There is no second charge after receipt.</p>
+          <h3>Why was I charged on death?</h3>
+          <p><strong>All deaths</strong> charge <strong>15%</strong> of wallet balance (minimum <strong>1 G</strong>, capped at the wallet). Environmental deaths send the full fee to reserve; PvP splits it <strong>40%</strong> reserve / <strong>60%</strong> killer.</p>
+          <h3>Can I compare claim tax rates before I settle?</h3>
+          <p>Claim tax on extra plots follows the live server reserve tier — the same rate for everyone. Compare land on the web (<a href="/wiki/claims/">claims guide</a>) or ask in Discord.</p>
+          <h3>What is inactivity tax?</h3>
+          <p>After <strong>30 real days</strong> without logging in, your wallet is charged <strong>1%</strong> per MC day, rising to <strong>5%</strong>, <strong>10%</strong>, then <strong>100%</strong> as inactivity continues. Claim banks are protected when any trusted member is active within the grace window. See <a href="#inactivity-tax">Inactivity tax</a>.</p>
+          <h3>Where do claim founding fees go?</h3>
+          <p>Your first plot is free. Extra areas and expansions debit wallets or claim banks and credit the Server Reserve — they are not destroyed. See <a href="/wiki/claims/">Claims &amp; areas</a>.</p>
+          <h3>Where can I see every tax and fee rate?</h3>
+          <p>The <a href="/wiki/constitution/#taxes-fees-reference">Constitution — Taxes &amp; fees</a> lists all percentage taxes, flat fees, claim costs, loan charges, and exemptions. This guide summarizes gameplay.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/wiki/">Wiki</a> · <a href="/wiki/constitution/">Constitution</a> · <a href="/wiki/player/">Player guide</a> · <a href="/">RootMC</a></p>
+      <p class="rmc-footer-mono">economy guide · <a href="/wiki/constitution/" style="color:inherit">constitution</a></p>
+    </div>
+  </footer>
+
+  <nav class="rmc-bottomnav" aria-label="Mobile">
+    <div class="rmc-bottomnav-inner">
+      <a href="/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>Home</a>
+      <a href="/market/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Market</a>
+      <a href="/leaderboard/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10l1 7H6l1-7zM6 11h12v6H6z"/></svg>Ranks</a>
+      <a href="/player/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Players</a>
+      <a href="/wiki/" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>Wiki</a>
+    </div>
+  </nav>
+
+  
+  <script src="/plugins/suite-version.js?v=1" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

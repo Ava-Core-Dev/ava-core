@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Host health — RootMC</title>
+  <meta name="description" content="Live CPU, RAM, and online-time tracking for the RootMC game server, dev workstation, and dev laptop.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/health/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container verify-main">
+    <header class="verify-hero">
+      <p class="market-badge">Live · minute rollups · HST days</p>
+      <h1>Host <span style="background:linear-gradient(135deg,var(--rmc-gold-bright),var(--rmc-copper));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">health</span></h1>
+      <p class="rmc-muted" id="health-subtitle">Loading averages from D1…</p>
+      <p class="rmc-muted health-ops-note">
+        Off-grid ops: the <strong>dev laptop</strong> handles marketing, light edits, and evaluations on battery.
+        Full builds and deploys run on the <strong>dev workstation</strong> when solar can support the external drive.
+      </p>
+      <p id="health-error" class="market-error" hidden></p>
+    </header>
+
+    <div id="health-grid" class="market-summary" style="margin-bottom:2rem"></div>
+
+    <section class="rmc-card market-chart-card" id="health-charts" hidden>
+      <h2>CPU &amp; RAM — last 60 minutes</h2>
+      <p class="rmc-muted">Per-minute averages across all hosts (comparison).</p>
+      <div class="reserve-charts">
+        <div class="reserve-chart-panel">
+          <h3>CPU usage</h3>
+          <div class="economy-chart-wrap"><canvas id="health-cpu-chart" height="220"></canvas></div>
+        </div>
+        <div class="reserve-chart-panel">
+          <h3>RAM usage</h3>
+          <div class="economy-chart-wrap"><canvas id="health-ram-chart" height="220"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rmc-card market-chart-card" id="health-uptime" hidden>
+      <h2>Online time tracking</h2>
+      <p class="rmc-muted">HST calendar days · merged dev time = laptop ∪ workstation (any dev activity).</p>
+      <div class="reserve-charts">
+        <div class="reserve-chart-panel">
+          <h3>Dev activity (merged)</h3>
+          <div class="economy-chart-wrap"><canvas id="health-dev-uptime-chart" height="200"></canvas></div>
+        </div>
+        <div class="reserve-chart-panel">
+          <h3>All hosts — daily online</h3>
+          <div class="economy-chart-wrap"><canvas id="health-all-uptime-chart" height="200"></canvas></div>
+        </div>
+      </div>
+      <div id="health-timeline" class="health-timeline"></div>
+    </section>
+
+    <section class="rmc-card" id="health-recent" hidden>
+      <h2>Last 60 minutes (table)</h2>
+      <p class="rmc-muted">Per-minute averages (CPU, RAM, disk). Server rows include TPS.</p>
+      <div id="health-recent-body"></div>
+    </section>
+  </main>
+
+  <script src="/js/health.js?v=20260710b" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

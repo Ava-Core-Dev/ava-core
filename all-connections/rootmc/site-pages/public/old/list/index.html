@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Economy lists — RootMC</title>
+  <meta name="description" content="RootMC precomputed economy totals — entry types, Towny intake, supply, and pools by Claims, Towny, Official, and Global.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/list/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <style>
+    .list-page .list-wrap { max-width: 52rem; padding-bottom: 3rem; }
+    .list-page .list-hero h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); margin: 0.35rem 0; }
+    .list-page .list-scope { margin: 1.75rem 0; }
+    .list-page .list-scope h2 { margin: 0 0 0.35rem; font-size: 1.25rem; }
+    .list-page .list-collection-start {
+      margin: 0 0 0.9rem;
+      font-size: 0.9rem;
+      color: #a89878;
+    }
+    .list-page .list-group { margin: 0 0 1.25rem; }
+    .list-page .list-group h3 { margin: 0 0 0.35rem; font-size: 0.95rem; color: #c9b27a; font-weight: 600; }
+    .list-page .list-lines { margin: 0; padding: 0; list-style: none; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 0.85rem; line-height: 1.55; }
+    .list-page .list-lines li { display: flex; gap: 0.5rem; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0.2rem 0; }
+    .list-page .list-lines .lbl { color: #a1afa8; }
+    .list-page .list-lines .val { color: #f5b942; white-space: nowrap; }
+  </style>
+</head>
+<body class="list-page" data-economy-page="list">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container list-wrap">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> · <a href="/economy/">Economy</a> · Lists</p>
+    <div class="economy-subnav" data-economy-nav hidden aria-label="Economy sections"></div>
+
+    <header class="list-hero">
+      <p class="market-badge">Precomputed snapshots</p>
+      <h1><span class="gold">Economy</span> lists</h1>
+      <p id="list-subtitle" class="rmc-muted">Loading…</p>
+      <p class="rmc-muted">Totals are refreshed periodically on each official host and mirrored to the API. This page does not re-sum the ledger.</p>
+    </header>
+
+    <p id="list-error" class="market-error" hidden></p>
+    <div id="list-root"></div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-inner">
+      <p>RootMC · <a href="https://rootmc.net">rootmc.net</a> · play.rootmc.net</p>
+    </div>
+  </footer>
+
+  <script src="/scripts/economy-nav.js" defer></script>
+  <script src="/list/list.js?v=20260722b" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+  <script src="/scripts/generation-switch.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

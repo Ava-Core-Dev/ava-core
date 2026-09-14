@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RootMC Plugins — Same stack as the official servers</title>
+  <meta name="description" content="Every RootMC plugin runs on live RootMC (play.rootmc.net). Catalog jars update on the web the moment they are deployed — install Core, grab a product key, run.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body class="plugins-page">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">Network</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container plugins-main">
+    <header class="plugins-hero">
+      <p class="plugins-hero-brand">RootMC</p>
+      <h1>A modern Paper server,<br><span class="plugins-hero-accent">ready in minutes</span></h1>
+      <p class="plugins-hero-lead">Every plugin here runs on live RootMC (<code>play.rootmc.net</code>). Suite line is <strong data-live-suite-version>…</strong> from <a href="/plugins/manifest.json">manifest.json</a>. Root-Core self-updates every catalog jar from that file — you download the live stack, not a fork.</p>
+      <p class="plugins-hero-paper">RootMC is designed for <strong>Paper</strong>. Grab the latest build: <a href="https://papermc.io/downloads/paper" rel="noopener noreferrer" target="_blank">Paper downloads</a>.</p>
+      <div class="plugins-hero-cta">
+        <a class="rmc-btn rmc-btn-primary" href="/plugins/root-core/">Start with Root-Core</a>
+        <a class="rmc-btn rmc-btn-secondary" href="/developer/keys/">Get a product key</a>
+        <a class="plugins-hero-link" href="/wiki/plugins/">Suite wiki →</a>
+      </div>
+    </header>
+
+    <section class="plugins-pitch" aria-labelledby="plugins-cover-heading">
+      <h2 id="plugins-cover-heading" class="plugins-section-title">What RootMC includes</h2>
+      <p class="plugins-section-lead">The same first-party stack on live production — one <code>plugins/RootMC/</code> folder, one product key, one update channel. Public downloads stay locked to <a href="/plugins/manifest.json">manifest.json</a>.</p>
+      <ul class="plugins-cover-list">
+        <li><strong>Gold economy</strong> — wallets, shops, bonds, loans, mint, treasury, Vault bridge</li>
+        <li><strong>Permissions &amp; ranks</strong> — Root-Perms groups/tracks plus purchasable ranks and vote rewards</li>
+        <li><strong>Land</strong> — Root-Claims personal areas and +48 territory buffers</li>
+        <li><strong>Time, play &amp; skills</strong> — day clock, playtime, AFK, new-player road, Root-Skills XP/talents</li>
+        <li><strong>Ops</strong> — admin tools, graceful restart, announcer, mapping helpers</li>
+        <li><strong>Sync &amp; web</strong> — account link, stats heartbeat, item census, live site APIs</li>
+        <li><strong>Auto-update</strong> — Root-Core polls <a href="/plugins/manifest.json">manifest.json</a> and keeps jars current</li>
+      </ul>
+    </section>
+
+    <section class="plugins-intro" aria-labelledby="plugins-minutes-heading">
+      <h2 id="plugins-minutes-heading" class="plugins-intro-title">From empty Paper to live in five steps</h2>
+      <ol class="plugins-order">
+        <li><strong>Paper 26.x</strong> — host you control, outbound HTTPS to <code>api.rootmc.net</code></li>
+        <li><strong>Root-Core</strong> — free <a href="/developer/keys/">product key</a>, set <code>server-name</code> + <code>product-key</code> in <code>root-core.yml</code></li>
+        <li><strong>Drop the suite</strong> — Times, Perms, Essentials, Play, Ops, Territories, Root-Claims, RootMC</li>
+        <li><strong>Start once</strong> — Core binds cloud id, creates shared configs, registers My Servers</li>
+        <li><strong>Stay current</strong> — <code>/rootcore update</code> or wait for the scheduled pull from the CDN</li>
+      </ol>
+      <p class="plugins-intro-note">Live RootMC land is <strong>Root-Claims</strong> only. <a href="/plugins/rootmc-official/">RootMC-Official</a> is legacy/optional network progression — not a live Towny↔Claims pair.</p>
+    </section>
+
+    <section aria-labelledby="plugins-catalog-heading">
+      <h2 id="plugins-catalog-heading" class="plugins-section-title">Download catalog</h2>
+      <p class="plugins-section-lead">Official-server builds only. Versions come from the live <a href="/plugins/manifest.json">manifest</a> and refresh when a jar is published. Each entry has an install guide. Root-Core <code>/rootcore update</code> (or the 6h poll) downloads every newer file and can install missing <code>updater.ensure</code> plugins.</p>
+      <div id="plugins-catalog" class="plugins-catalog" aria-live="polite">
+        <p class="rmc-muted plugins-catalog-loading">Loading catalog…</p>
+      </div>
+    </section>
+
+    <p class="plugins-footer-note">
+      Full operator guide: <a href="/wiki/plugins/">wiki/plugins</a>.
+      Versioning: <a href="/wiki/versioning/">YEAR.MONTH.BUILD</a>.
+      Update &amp; license APIs: <a href="/wiki/plugins/api/">wiki/plugins/api</a>.
+      Manifest: <a href="/plugins/manifest.json">manifest.json</a>.
+      Keys &amp; My Servers: <a href="/developer/">developer portal</a>.
+    </p>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/">RootMC home</a> · <a href="/wiki/">Wiki</a> · <a href="/developer/">Developers</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">RootMC suite · Paper 26.x · public CDN</p>
+    </div>
+  </footer>
+
+  <script src="/plugins/plugins.js?v=11" defer></script>
+  <script src="/plugins/suite-version.js?v=1" defer></script>
+  <script src="/scripts/site-nav.js?v=20260723q" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

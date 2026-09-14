@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Council vote — RootMC Governance</title>
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>
+    .vote-bar { display:flex; gap:.5rem; flex-wrap:wrap; margin:1rem 0; }
+    .vote-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.75rem; margin:1rem 0; }
+    .vote-stat { text-align:center; padding:.75rem; background:rgba(255,255,255,.04); border-radius:8px; }
+    .gov-prose { white-space:pre-wrap; line-height:1.65; }
+  </style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark">R</span>RootMC</a>
+      <nav class="rmc-nav"><a href="/council/">Council</a></nav>
+    </div>
+  </header>
+  <main class="container" style="padding-bottom:3rem;max-width:760px;">
+    <p class="wiki-breadcrumb"><a href="/council/">Council</a> · Vote</p>
+    <div id="gov-me"></div>
+    <article id="content" class="rmc-card"><p class="rmc-muted">Loading…</p></article>
+  </main>
+  <script src="/governance/governance.js"></script>
+  <script>
+    (async function () {
+      const G = window.RootMcGovernance;
+      const id = G.queryParam("id");
+      const box = G.el("content");
+      if (!id) { box.innerHTML = "<p>Missing poll id.</p>"; return; }
+
+      const me = await G.loadMe();
+      G.renderStatusBanner(me, G.el("gov-me"));
+
+      const { data } = await G.govFetch("votes/" + encodeURIComponent(id), { method: "GET" });
+      if (!data || !data.poll) { box.innerHTML = "<p>Poll not found.</p>"; return; }
+      const p = data.poll;
+      document.title = p.title + " — RootMC Vote";
+
+      function voteButtons() {
+        if (!p.open) return "";
+        if (p.is_creator) {
+          return "<p class=\"rmc-muted\">You submitted this grant request and cannot vote on it.</p>";
+        }
+        if (!me || !me.linked || !me.eligible || !me.terms_accepted) {
+          return "<p class=\"rmc-muted\">" +
+            (!me || !me.signed_in
+              ? "<button type=\"button\" class=\"rmc-btn rmc-btn-primary\" data-discord-signin>Sign in with Discord</button> to vote here"
+              : "Accept <a href=\"/terms/\">terms</a> and meet eligibility to vote here") +
+            " — or use Discord #voting buttons.</p>";
+        }
+        const cur = p.my_vote ? " (your vote: " + p.my_vote + ")" : "";
+        return "<div class=\"vote-bar\">" +
+          "<button type=\"button\" class=\"rmc-btn rmc-btn-primary\" data-v=\"for\">For</button>" +
+          "<button type=\"button\" class=\"rmc-btn rmc-btn-secondary\" data-v=\"against\">Against</button>" +
+          "<button type=\"button\" class=\"rmc-btn rmc-btn-ghost\" data-v=\"abstain\">Abstain</button>" +
+          "</div><p class=\"rmc-muted\">Weighted by your governance %." + cur + "</p>" +
+          "<p id=\"vote-status\" class=\"verify-status\" role=\"status\" hidden></p>";
+      }
+
+      const isGrant = p.kind === "grant";
+      const grantHeader =
+        isGrant && p.grant_amount
+          ? "<p class=\"rmc-muted\"><strong>" +
+            G.esc(String(p.grant_amount)) +
+            " G</strong> → <strong>" +
+            G.esc(p.grant_recipient_username || "?") +
+            "</strong> from treasury</p>"
+          : "";
+      const majorityNote =
+        isGrant && p.open
+          ? p.majority_direction && p.majority_since
+            ? "<p class=\"rmc-muted\">Weighted majority <strong>" +
+              G.esc(p.majority_direction) +
+              "</strong> since " +
+              G.fmtDate(p.majority_since) +
+              " — holds 24h to resolve</p>"
+            : "<p class=\"rmc-muted\">Resolves when a weighted majority holds for 24 hours</p>"
+          : "<p class=\"rmc-muted\">Closes " + G.fmtDate(p.closes_at) + "</p>";
+
+      box.innerHTML =
+        "<p class=\"market-badge\">" +
+        (isGrant ? "Treasury grant vote" : "Council vote") +
+        " · " +
+        (p.open ? "open" : G.esc(p.status)) +
+        "</p>" +
+        "<h1 style=\"margin-top:0\">" + G.esc(p.title) + "</h1>" +
+        grantHeader +
+        (p.bill_summary ? "<p class=\"rmc-muted\">" + G.esc(p.bill_summary) + "</p>" : "") +
+        (p.bill_url ? "<p><a href=\"" + G.esc(p.bill_url) + "\">Full bill on site</a></p>" : "") +
+        majorityNote +
+        "<div class=\"vote-stats\">" +
+        "<div class=\"vote-stat\"><div class=\"gold\">" + G.fmtPct(p.weighted_for_pct) + "</div>For</div>" +
+        "<div class=\"vote-stat\"><div>" + G.fmtPct(p.weighted_against_pct) + "</div>Against</div>" +
+        "<div class=\"vote-stat\"><div>" + G.fmtPct(p.weighted_abstain_pct) + "</div>Abstain</div>" +
+        "</div>" +
+        "<p class=\"rmc-muted\">" + (p.voter_count || 0) + " linked voters</p>" +
+        voteButtons() +
+        "<div class=\"gov-prose\" style=\"margin-top:1.5rem;\">" + G.esc(p.description) + "</div>";
+
+      G.bindDiscordSignInButtons(box);
+
+      box.querySelectorAll("[data-v]").forEach(function (btn) {
+        btn.addEventListener("click", async function () {
+          const st = G.el("vote-status");
+          st.hidden = false;
+          st.textContent = "Recording vote…";
+          const res = await G.govFetch("votes/" + encodeURIComponent(id), {
+            method: "POST",
+            body: JSON.stringify({ vote: btn.getAttribute("data-v") }),
+          });
+          if (res.ok && res.data.ok) {
+            st.className = "verify-status verify-status-info";
+            st.textContent = res.data.detail || "Vote recorded.";
+            setTimeout(function () { location.reload(); }, 800);
+          } else {
+            st.className = "verify-status verify-status-err";
+            st.textContent = (res.data && res.data.detail) || "Vote failed.";
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

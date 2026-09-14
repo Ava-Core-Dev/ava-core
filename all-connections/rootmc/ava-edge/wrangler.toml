@@ -1,0 +1,16 @@
+name = "rootmc-ava-edge"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+account_id = "f3372b30093435bacc35b69972abeb2e"
+
+[[routes]]
+pattern = "ava.rootmc.net"
+custom_domain = true
+
+[[kv_namespaces]]
+binding = "AVA_CACHE"
+id = "40d15a83b3dc4bab9e6ad9cfd82db66d"
+
+[vars]
+AVA_ORIGIN = "https://ava-origin.rootmc.net"
+ROOTMC_API_BASE = "https://api.rootmc.info"

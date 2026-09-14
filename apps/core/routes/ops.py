@@ -149,6 +149,38 @@ async def ops_page(request: Request):
     )
 
 
+@router.post("/api/ops/idle-stop")
+async def ops_idle_stop(request: Request):
+    """Launch the canonical full local ecosystem stop routine and return first."""
+    if not _local(request):
+        return _deny()
+    stop_script = CORE / "scripts" / "idle-stop.sh"
+    if not stop_script.is_file():
+        return JSONResponse(
+            {"ok": False, "detail": "idle-stop script missing"}, status_code=500
+        )
+    log_path = config.DATA_DIR / "logs" / "idle-stop.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    handle = log_path.open("ab")
+    try:
+        subprocess.Popen(
+            ["bash", str(stop_script)],
+            cwd=str(CORE),
+            stdin=subprocess.DEVNULL,
+            stdout=handle,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            close_fds=True,
+        )
+    finally:
+        handle.close()
+    return {
+        "ok": True,
+        "scheduled": True,
+        "detail": "Full Ava ecosystem stop started; this desk will go offline.",
+    }
+
+
 @router.get("/api/ops/ollama")
 async def ops_ollama(request: Request):
     if not _local(request):

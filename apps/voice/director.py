@@ -78,14 +78,14 @@ def _ffplay_cmd() -> list[str] | None:
 
 
 def _find_audio_player() -> list[str] | None:
-    """Return command prefix for the best available headless MP3 player."""
+    """Return command prefix for the best available headless audio player."""
+    ffplay = _ffplay_cmd()
+    if ffplay:
+        return ffplay
     if shutil.which("mpg123"):
         return ["mpg123", "-q"]
     if shutil.which("mpv"):
         return ["mpv", "--no-video", "--really-quiet", "--no-terminal"]
-    ffplay = _ffplay_cmd()
-    if ffplay:
-        return ffplay
     if shutil.which("cvlc"):
         return ["cvlc", "--play-and-exit", "--quiet"]
     # Windows: WPF MediaPlayer via PowerShell (no extra install).
@@ -279,7 +279,7 @@ def music_dir() -> Path:
 
         return Path(config.ASSETS_DIR) / "music"
     except Exception:
-        return Path.home() / "ava" / "Media" / "public" / "audio" / "music"
+        return Path.home() / "Ava-Core" / "Media" / "public" / "audio" / "music"
 
 
 def list_music_tracks(root: Path | None = None) -> list[Path]:
@@ -480,7 +480,7 @@ def _music_wanted_path() -> Path:
 
         return Path(config.DATA_DIR) / "state" / "music-bed-wanted.txt"
     except Exception:
-        return Path.home() / "ava" / "data" / "state" / "music-bed-wanted.txt"
+        return Path.home() / "Ava-Core" / "data" / "state" / "music-bed-wanted.txt"
 
 
 def _music_bed_lock_path() -> Path:
@@ -489,7 +489,7 @@ def _music_bed_lock_path() -> Path:
 
         return Path(config.DATA_DIR) / "state" / "music-bed.lock"
     except Exception:
-        return Path.home() / "ava" / "data" / "state" / "music-bed.lock"
+        return Path.home() / "Ava-Core" / "data" / "state" / "music-bed.lock"
 
 
 def _acquire_music_bed_lock():
@@ -1223,8 +1223,9 @@ class StreamDirector:
                 if not self._music_enabled or not self._running:
                     return
                 was_held = False
-                # Operator pause only — voice duck must not stall the playlist.
-                while self._music_operator_hold:
+                # A held bed must pause the playlist instead of spinning through
+                # every track after the platform player is stopped.
+                while self._music_bed_held():
                     was_held = True
                     continue_existing = False
                     await asyncio.sleep(0.1)
@@ -2146,6 +2147,14 @@ def ensure_running() -> asyncio.Task:
 def music_bed_autostart_enabled() -> bool:
     """Env-only gate: AVA_MUSIC_BED=1 forces autostart regardless of wanted file."""
     raw = (os.getenv("AVA_MUSIC_BED") or "0").strip().lower()
+    return raw not in ("0", "false", "off", "no", "")
+
+
+def music_bed_startup_allowed() -> bool:
+    """Allow background music at Core startup only when explicitly enabled."""
+    if os.name == "nt":
+        return True
+    raw = (os.getenv("AVA_MUSIC_ENABLED") or "0").strip().lower()
     return raw not in ("0", "false", "off", "no", "")
 
 

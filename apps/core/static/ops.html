@@ -15,6 +15,7 @@
     textarea { min-height: 8rem; }
     button { margin-top:.75rem; margin-right:.4rem; background:#06b6d4; color:#0a0e14; border:0; border-radius:999px; padding:.5rem 1rem; font-weight:700; cursor:pointer; }
     button.secondary { background:#1f2937; color:#e5e7eb; }
+    button.danger { background:#dc2626; color:#fff; border:2px solid #f87171; box-shadow:0 0 0 3px rgba(220,38,38,.2); }
     pre { white-space:pre-wrap; background:#0a0e14; padding:.75rem; border-radius:8px; font-size:.8rem; }
     a { color:#22d3ee; }
     ul { padding-left: 1.2rem; }
@@ -23,6 +24,13 @@
 <body>
   <h1>Ava desk</h1>
   <p class="muted">This page only works on the Ava machine (<code>127.0.0.1</code>). No Cursor required. Local Ava (Ollama) can rewrite words.</p>
+
+  <section>
+    <h2>0a. Full desk stop</h2>
+    <p class="muted">Stops Ava Core, voice, Ollama, music players, OBS, pollers, local edge, Cloudflare, and services on the desk ports.</p>
+    <button type="button" class="danger" id="idle-stop">STOP EVERYTHING AVA RUNS</button>
+    <p id="idle-stop-state" class="muted"></p>
+  </section>
 
   <section>
     <h2>0. GitHub auto-push (Emergent safety)</h2>
@@ -264,6 +272,20 @@
       refreshGhPush();
     };
     document.getElementById("gh-push-refresh").onclick = () => refreshGhPush();
+
+    document.getElementById("idle-stop").onclick = async () => {
+      const ok = window.confirm("Stop every Ava-managed process, helper, audio player, and desk service now?");
+      if (!ok) return;
+      const state = document.getElementById("idle-stop-state");
+      state.textContent = "Stopping the Ava ecosystem…";
+      try {
+        const response = await fetch("/api/ops/idle-stop", { method: "POST" });
+        const result = await response.json();
+        state.textContent = result.detail || "Stop started.";
+      } catch (error) {
+        state.textContent = "Stop requested; the desk may already be offline.";
+      }
+    };
 
     async function refreshAdsense() {
       const el = document.getElementById("adsense-state");

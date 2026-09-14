@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root-Ava-Core install guide — RootMC Plugins</title>
+  <meta name="description" content="Root-Ava-Core — Ava companion on Paper. Self-installs from the RootMC plugin manifest via Root-Core.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/root-ava-core/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="root-ava-core">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span> RootMC <span class="rmc-brand-tag">Network</span></a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/plugins/">Plugins</a> / Root-Ava-Core</p>
+    <h1 class="wiki-page-title">Root-Ava-Core</h1>
+    <p class="page-lead">Ava’s Paper companion — in-game chat, solar/host status, hire hour/sidekick/dig, and operator hooks. Start with <code>/ava help</code> for a short how-to. Paid work orders <strong>resume after disconnect or restart</strong>. Hire fees sink to the <strong>Server Reserve</strong> (Ava’s <code>/bal</code> <em>is</em> that vault). Root-Core <strong>ensure</strong>-installs this jar from <a href="/plugins/manifest.json">manifest.json</a> even when <code>only-installed: true</code>.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge wiki-badge-player">Ava</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a href="/wiki/plugins/api/">Updater &amp; manifest →</a>
+    </p>
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">In-game</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li><code>/ava help</code> — how to hire (stand in claim → pick a job)</li>
+        <li><code>/ava hire hour|sidekick|mine|teardown</code> — start immediately (also <code>/ava hour</code>, <code>/ava minedown</code>, …). Dig jobs stand at the work blocks (do not follow). Sidekick still follows.</li>
+        <li><code>/ava hire</code> — <strong>your land only</strong> (own claim or territory). Not trusted, not others, not wilderness</li>
+        <li><code>/ava hire claim</code> / <code>/ava hire minedown</code> — quote, then click <strong>[Confirm]</strong>. Claim clear: <strong>full claim circle</strong> (center or rim, including your expansions) from stand Y, <strong>two rows at a time</strong> top down (rescans the pair for grass/skips before going down). <strong>Natural blocks only</strong> — player builds are left standing. Quote shows ores at Y -59, ETA, and builds skipped. Stop via <code>/ava stop</code> · <strong>no refunds</strong>. No base fee: <strong>0.01 G/block</strong>, +0.01 per 100k. Dig max 480/min; skips the floor under players</li>
+        <li><code>/ava stop</code> — work-order list with red <strong>[Stop]</strong>. <code>/ava hire status</code> for ETA. Paid jobs resume after disconnect or restart</li>
+        <li>Right-click Ava (body or Ava_Ivy) — menu: free bread + your current hire job / quote</li>
+        <li><code>/ava gift</code> · <code>/ava work</code> · <code>/ava eco</code> — chests, own-claim work, Server Reserve</li>
+      </ul>
+    </section>
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">Self-install</h2>
+      <ol class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li>Install <a href="/plugins/root-core/">Root-Core</a> and keep <code>updater.enabled: true</code>.</li>
+        <li>Leave <code>updater.ensure</code> including <code>root-ava-core</code> (default), or set <code>only-installed: false</code> to pull the full catalog.</li>
+        <li>Run <code>/rootcore update</code> or wait for the scheduled poll. Restart Paper to load the new jar.</li>
+      </ol>
+    </section>
+  </main>
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Catalog</a> · <a href="/wiki/plugins/">Suite wiki</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">Root-Ava-Core · YEAR.MONTH.BUILD</p>
+    </div>
+  </footer>
+  <script src="/plugins/guide.js" defer></script>
+  <script src="/scripts/site-nav.js?v=20260808a" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

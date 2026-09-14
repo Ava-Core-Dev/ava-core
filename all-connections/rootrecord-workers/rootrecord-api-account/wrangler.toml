@@ -1,0 +1,170 @@
+# Per-app API Worker (full copy of `rootrecord-primary` source). Same D1 + R2 bindings. Cron subset for Account Hub; see `[triggers]` + `WORKER_SHARD`.
+# Secrets: JWT_SECRET (set by deploy.ps1 from credentials.env, optional Web/main/.env, and/or gitignored .deploy-* files).
+#
+# Cloudflare account: set CLOUDFLARE_ACCOUNT_ID in repo-root credentials.env (loaded by deploy.ps1), or run `wrangler login`.
+# New D1 in a new account: `npx wrangler d1 create root-record` → paste database_id here and in credentials.env (D1_DATABASE_ID) and rootrecord-license/wrangler.toml.
+name = "rootrecord-api-account"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+# Solana web3 + SPL use Buffer in some paths; required for treasury→custodial txs in this Worker.
+compatibility_flags = ["nodejs_compat"]
+
+# Account-wide Cloudflare limit: 5 cron triggers — `17 9` Stripe reconcile runs inside `* * * * *` at 09:17 UTC.
+[triggers]
+crons = ["* * * * *", "45 8 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "root-record"
+database_id = "0b49c598-1f91-4a09-84a8-6ba8241c6df3"
+
+[[r2_buckets]]
+binding = "VOLCANO_PHOTOS"
+bucket_name = "rootrecord-volcano-photos"
+
+[[send_email]]
+name = "EMAIL"
+
+[vars]
+WORKER_SHARD = "account"
+SITE_URL = "https://rootrecord.cloud"
+# Outbound mail (account verification/recovery): prefer Zoho/Resend for user inboxes; Cloudflare Email Sending only reaches verified Email Routing destinations.
+EMAIL_FROM = "RootRecord <root@rootrecord.info>"
+DISCORD_CLIENT_ID = "1500289560343740566"
+# Root Economy bot (separate Discord application)
+DISCORD_ECONOMY_CLIENT_ID = "1513252482229338324"
+DISCORD_ECONOMY_PUBLIC_KEY = "46d0a100a886776b944bb67e666827363419ab91058b9e31c2eff7ca5f1d4815"
+# Discord Interactions `POST /v1/discord/interactions` — Global Updater verify_key (hex, public).
+# Slash commands require Discord Developer Portal → this application → General Information → Interactions Endpoint URL (not the separate Webhooks/Events page).
+DISCORD_PUBLIC_KEY = "7c708f3b7e1712bb90017ced01ec2d96304063d97c2faf6f18ef8da935c2da15"
+# Discord guild + role for auto-assigning @Verified on successful link.
+# Fill these with your server ID + the role ID (Discord developer mode → Copy ID).
+DISCORD_GUILD_ID = "1497039564345442406"
+# `/send active`: max days since `discord_user_activity.last_message_at` (integer string; clamped 1–90 in code, default 14).
+DISCORD_ACTIVE_LOOKBACK_DAYS = "14"
+DISCORD_VERIFIED_ROLE_ID = "1504042901963804742"
+# strip-roles / ops: members with this role are not role-stripped (discord-guild-ops.mjs).
+DISCORD_DEVELOPER_ROLE_ID = "1497040541559558175"
+DISCORD_LIFETIME_MEMBER_ROLE_ID = "1504043473408360558"
+DISCORD_MONTHLY_MEMBER_ROLE_ID = "1497040710665244782"
+DISCORD_KILAUEA_REPORT_CHANNEL_ID = "1545283785803960393"
+DISCORD_KILAUEA_AI_ARCHIVE_CHANNEL_ID = "1545283818146242642"
+# Bot posts here when a member completes RootRecord↔Discord link (content pings only that user via allowed_mentions).
+DISCORD_VERIFIED_CHAT_CHANNEL_ID = "1497039565461000214"
+# Partnership signup endpoint posts Grok reports here.
+DISCORD_PARTNERSHIP_REPORT_CHANNEL_ID = "1499489364147835090"
+# Welcome channel (readable by @everyone; used by discord-guild-ops.mjs). Dev mode → Copy ID.
+DISCORD_WELCOME_CHANNEL_ID = "1497160346358644767"
+# AccuWeather: API key is a Worker **Secret** (`deploy.ps1` from repo-root `credentials.env` → `wrangler secret put ACCUWEATHER_API_KEY`), not [vars] (avoids Secret + var name clash in dashboard).
+# Optional language locale for responses (default in code: en-us)
+ACCUWEATHER_LANGUAGE = "en-us"
+# Dashboard D1 cache: seconds before refetching upstream weather for same/nearby grid.
+WEATHER_DATA_TTL_SEC = "900"
+# Reuse cached weather across users when requested coordinates are within this radius.
+# Lower value = fresher/more precise but more upstream API calls.
+ACCUWEATHER_REUSE_RADIUS_MILES = "25"
+# Stripe Checkout: create a Product + recurring Price in Dashboard → copy Price id (`price_...`).
+# Also run: wrangler secret put STRIPE_SECRET_KEY  (use `sk_live_...` or `sk_test_...` from credentials.env via deploy.ps1)
+# Stripe webhooks live on license: https://rootrecord-license.rootrecord.workers.dev/v1/billing/webhook
+# Recurring monthly subscription (Stripe Dashboard → Product “Monthly”; matches site billing).
+STRIPE_PRICE_ID = "price_1TQIpzIaRpbMiAov5g5iTPh9"
+# Annual Visiting Hawaiʻi sponsored listing ($100/year). Create in Stripe Dashboard, then set:
+# STRIPE_VISITING_HAWAII_SPONSORED_PRICE_ID = "price_..."
+# Stripe Pricing Table (same ids as rootrecord-website Pages Billing; optional here for parity / future use).
+STRIPE_PRICING_TABLE_ID = "prctbl_1TQJ0kIaRpbMiAovAUe3X3QJ"
+STRIPE_PUBLISHABLE_KEY = "pk_live_51T3sezIaRpbMiAov6SUJgKLGR1igmRGOYg1rY1hKJPAWxLXDgJR7kRNSBSM8sJ2Wat1zuC56iE4TCTyPfqmEfTT600cR21LwYA"
+
+# RRTT SPL (Solana mainnet): custodial balance cache + treasury→custodial cron.
+# Treasury **private key is never in this file** — set on the Worker only:
+#   wrangler secret put RRTT_TREASURY_SECRET_KEY_B58
+# ROOTS minting + automated treasury Raydium LP + Discord developer feed: Worker `rootrecord-solana-tx` (plain var, no trailing slash):
+ROOTRECORD_SOLANA_TX_URL = "https://rootrecord-solana-tx.rootrecord.workers.dev"
+ROOTRECORD_API_KILAUEA_URL = "https://rootrecord-api-kilauea.rootrecord.workers.dev"
+RRTT_MINT_BASE58 = "6KfGKe13ASrV5WHvChbapQXxxEFRNqwpwrdEVsX6RQMT"
+RRTT_DECIMALS = "9"
+# Max wait for custodial balance Solana RPC on `/auth/me` + `/earn/summary` (see custodial-onchain-cache.ts).
+CUSTODIAL_RPC_REFRESH_BUDGET_MS = "10000"
+# Native apps: GET /api/mobile/version-policy?app_id=… — bump when old builds must update.
+MIN_APP_VERSION_WEATHER = "1.0.16"
+MIN_APP_VERSION_BM = "1.0.0"
+PLAY_STORE_URL_WEATHER = "https://play.google.com/store/apps/details?id=com.rootrecord.weathermanager"
+PLAY_STORE_URL_BM = "https://play.google.com/store/apps/details?id=com.rootrecord.businessmanager"
+MIN_APP_VERSION_TOKEN_MANAGER = "0.1.0"
+MIN_APP_VERSION_ACCOUNT_HUB = "0.1.1"
+PLAY_STORE_URL_TOKEN_MANAGER = "https://play.google.com/store/apps/details?id=com.rootrecord.tokenmanager"
+PLAY_STORE_URL_ACCOUNT_HUB = "https://play.google.com/store/apps/details?id=com.rootrecord.accounthub"
+# Developer feed (Settings → messages in mobile apps): GET /api/mobile/developer-messages?app_id=…
+# Publish (ops): POST https://api.rootrecord.info/api/internal/developer-messages
+#   Header: X-RR-Push-Admin-Key: <same as push-broadcast>
+#   JSON: { "title": "…", "body": "…", "app_scope": "all" | "weather" | "bm" | "token_manager" | "account_hub" }
+#
+# Discord announcements → D1 `developer_messages` (shared D1; single writer on this Worker). Set secret on this Worker:
+#   wrangler secret put DISCORD_BOT_TOKEN
+# (same bot token as previously on api-weather). Bot needs View Channel + Read Message History + Message Content intent.
+# Optional: set DISCORD_GUILD_ID here to skip resolving guild from the announcements channel (same guild only).
+#
+# Root Record Global Updater (multi-server product updates via `/root` slash commands):
+#   node scripts/discord-register-root-updater-commands.mjs   # global /root channel|categories|help
+# Root Economy bot (separate Discord application):
+#   wrangler secret put DISCORD_ECONOMY_BOT_TOKEN
+#   node scripts/discord-register-root-economy-commands.mjs
+#   POST /v1/discord/economy/interactions
+#   node scripts/discord-broadcast-update.mjs --category blocknotes --file …   # ops fan-out
+#   POST /api/internal/discord-updates-broadcast  { category, content, embeds? }  X-RR-Push-Admin-Key
+# Migration: 0075_root_updates_discord_guild_config.sql
+# Primary Global Updater / version-release channel (this guild only — not multi-server fan-out):
+DISCORD_ANNOUNCEMENTS_CHANNEL_ID = "1512245745166581821"
+DISCORD_GLOBAL_RELEASES_CHANNEL_ID = "1512245745166581821"
+DISCORD_ROOTS_BUY_CHANNEL_ID = "1505853241915736154"
+# Internal custodial wallet encryption (AES-256-GCM). deploy.ps1 uploads INTERNAL_WALLET_ENC_KEY_B64
+# Failsafe: application code never DELETEs `internal_solana_wallets` (encrypted keys) — even on DELETE /v1/me / inactive purge.
+# (from credentials.env, or .deploy-internal-wallet-key, or auto-generated like JWT_SECRET).
+# Manual: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))" | wrangler secret put INTERNAL_WALLET_ENC_KEY_B64
+# Optional Discord channel for Solana tooling events (internal wallet provision, etc.):
+#   wrangler secret put DISCORD_WEBHOOK_SOLANA_TOOLS
+# In-app feedback (Business Manager, Account Hub, Weather mobile → POST /api/feedback):
+#   wrangler secret put DISCORD_FEEDBACK_WEBHOOK_URL
+#   (paste full https://discord.com/api/webhooks/... URL — never commit it to git)
+# Next.js Solana Tools site POST /api/solana-site/log → Worker (must match site env SOLANA_SITE_LOG_SECRET):
+#   wrangler secret put SOLANA_SITE_LOG_SECRET
+# New-mint Discord embed (Next proxies POST /api/solana-site/token-discord-notify with same Bearer):
+#   wrangler secret put DISCORD_TOKEN_CREATE_WEBHOOK_URL
+#
+# Observability: every request logs one JSON line (`msg: http_request`, path redacted, status, ms, colo, ray).
+# 5xx and very slow requests (≥25s) are also written to D1 `worker_http_error_events` (apply migration 0029).
+# Pruned daily (cron 45 8 * * *). Operator read: GET /api/internal/recent-http-errors?limit=50 (X-RR-Push-Admin-Key).
+# In Cloudflare Dashboard enable Workers Logs + optional Logpush to your SIEM for retention beyond the console.
+#
+# Legacy D1 tables from older Solana-site flows may exist (`ecosystem_otc_fulfillments`); migrations 0012+0013.
+#
+# When the Solana Tools hostname proxies /api/* here first, forward Next-only routes to Vercel:
+#   wrangler secret put SOLANA_TOOLS_API_FORWARD_URL
+#   Value: https://<project>.vercel.app   (no trailing slash)
+
+# One-time / ops: provision custodial wallets for all `license_accounts` missing `internal_solana_wallets`
+# (POST /api/internal/provision-custodial-wallets-missing, same X-RR-Push-Admin-Key as push-broadcast).
+# Run treasury SOL top-up + RRTT payout cron immediately (same as 07:00 UTC schedule):
+#   POST https://api.rootrecord.info/api/internal/run-rrtt-custodial-cron  (header X-RR-Push-Admin-Key: …)
+# Treasury checks (proxied to `ROOTRECORD_SOLANA_TX_URL`; schedules: SOL :00 UTC, RRTT/RRESERVE :10 UTC, both from `*/5`):
+#   POST https://api.rootrecord.info/api/internal/mint-roots
+#   POST https://api.rootrecord.info/api/internal/run-treasury-liquidity-check
+#   POST https://api.rootrecord.info/api/internal/run-treasury-sol-lp-check
+#   Header: X-RR-Push-Admin-Key (same as push-broadcast). Or call the solana-tx Worker `/api/internal/...` directly.
+# Optional SPL top-up when LP withdraw is not enough: `wrangler secret put TREASURY_MAINTENANCE_SOURCE_SECRET_KEY_B58`
+#   (Phantom-style base58 secret; pubkey must differ from treasury).
+#   powershell -NoProfile -File ./provision-custodial-backfill.ps1
+#   (defaults to https://api.rootrecord.online unless ROOTRECORD_ACCOUNT_API / ROOTRECORD_PRIMARY_API is set in credentials.env)
+#
+# All-device FCM broadcast (POST /api/internal/push-broadcast):
+#   wrangler secret put RR_PUSH_ADMIN_SECRET
+# Wallet admin on Solana Tools (`/admin/wallet-admin`): set a dedicated proxy secret (recommended):
+#   wrangler secret put WALLET_ADMIN_PROXY_SECRET
+# Same value on Vercel as WALLET_ADMIN_PROXY_SECRET. Fallback: reuse RR_PUSH_ADMIN_SECRET on Vercel + Worker.
+#   wrangler secret put FCM_SERVICE_ACCOUNT_JSON
+# (paste your Firebase service account JSON — one secret; optional split vars still supported)
+#
+# Email change (POST /api/me/email/request):
+#   Dashboard → Email Sending → onboard rootrecord.info (SPF/DKIM/DMARC on cf-bounce.*).
+#   Binding [[send_email]] name EMAIL is in this file; default from [vars] EMAIL_FROM.
+#   Optional Resend fallback: wrangler secret put RESEND_API_KEY / RESEND_FROM
+

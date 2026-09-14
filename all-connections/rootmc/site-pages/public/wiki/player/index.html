@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Guide — RootMC Wiki</title>
+  <meta name="description" content="How to join RootMC, use the G economy, personal loans, Root-Claims, open shops, bulk stock, chunk survey, link your account, and view stats on the web.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/player/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+    <main class="container rmc-section">
+        <p class="wiki-breadcrumb"><a href="/">Home</a> / <a href="/wiki/">Wiki</a> / Player</p>
+        <h1 class="wiki-page-title">Player guide</h1>
+        <p class="page-lead">Everything you need on <strong>RootMC</strong> — economy, towns, shops, linking, and web tools on RootMC.</p>
+        <div class="wiki-badge-row">
+          <span class="wiki-badge wiki-badge-player">Player perspective</span>
+          <span class="wiki-badge wiki-badge-server">play.rootmc.net</span>
+        </div>
+
+        <div class="wiki-shell" style="margin-top:1.5rem">
+          <aside class="wiki-sidebar" aria-label="Wiki navigation">
+            <h2>On this page</h2>
+            <nav>
+              <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#join">Join the server</a></li>
+                <li><a href="#first-steps">First steps</a></li>
+                <li><a href="#economy">Economy (G)</a></li>
+                <li><a href="#loans">Personal loans</a></li>
+                <li><a href="#claims">Claims &amp; land</a></li>
+                <li><a href="/wiki/claims/">Claims &amp; areas</a></li>
+                <li><a href="/wiki/territories/">Territory buffers</a></li>
+                <li><a href="#linking">Link your account</a></li>
+                <li><a href="#governance">Community governance</a></li>
+                <li><a href="#seasons">Season arcs</a></li>
+                <li><a href="#contracts">Player contracts</a></li>
+                <li><a href="#stats">Your public stats</a></li>
+                <li><a href="#weekly-awards">Weekly activity awards</a></li>
+                <li><a href="#mcmmo">McMMO on the web</a></li>
+                <li><a href="#shops">Stock market (web)</a></li>
+                <li><a href="#shops-ingame">Opening a shop</a></li>
+                <li><a href="#shop-stock">Bulk shop stock</a></li>
+                <li><a href="#survey">Chunk survey</a></li>
+                <li><a href="#ingame-capture">In-game notes &amp; waypoints</a></li>
+                <li><a href="#vault-stock">Vault &amp; stock market</a></li>
+                <li><a href="#map">Live map</a></li>
+                <li><a href="#rootmc-app">RootMC Android app</a></li>
+                <li><a href="#commands">All commands</a></li>
+                <li><a href="#web-tools">Web tools</a></li>
+                <li><a href="#faq">FAQ</a></li>
+              </ul>
+            </nav>
+            <div class="wiki-switch">
+              <h2>Wiki</h2>
+              <nav>
+                <ul>
+                  <li><a href="/wiki/">Wiki home</a></li>
+                  <li><a href="/wiki/constitution/">Constitution</a></li>
+                  <li><a href="/wiki/economy/">Economy guide</a></li>
+                  <li><a href="/wiki/claims/">Claims &amp; areas</a></li>
+                  <li><a href="/wiki/territories/">Territory influence</a></li>
+                  <li><a href="/wiki/weekly-awards/">Weekly activity awards</a></li>
+                </ul>
+              </nav>
+            </div>
+          </aside>
+
+          <div class="wiki-content">
+            <article id="overview">
+              <h2>Overview</h2>
+              <p><strong>RootMC</strong> is a public survival multiplayer server on live <code>play.rootmc.net</code>. Economy, claims, and skills run on <strong>Root-Economy</strong>, <strong>Root-Claims</strong>, and <strong>Root-Skills</strong>. The <strong>RootMC</strong> plugin links accounts and syncs stats. Chest shops are <strong>Root-ChestShops</strong>. Suite jars self-update from <a href="/plugins/manifest.json">manifest.json</a> via Root-Core.</p>
+              <p>When you play here you get:</p>
+              <ul>
+                <li><strong>Gold-backed economy</strong> — balance in <strong>G</strong>; rules in the <a href="/wiki/constitution/">Constitution</a>; how-to in the <a href="/wiki/economy/">economy guide</a>.</li>
+                <li><strong>Personal loans</strong> — borrow <strong>G</strong> for startup costs (e.g. a second claim area); repay via income sweep or manually.</li>
+                <li><strong>Root-Claims</strong> — personal circles, claim banks, and territory buffers; <a href="/wiki/territories/">territory guide</a>.</li>
+                <li><strong>mcMMO</strong> — slower, long-term skill progression mirrored to the web after you link.</li>
+                <li><strong>Player shops</strong> — <strong>rootmc-shops</strong> chest shops; bulk stock with <code>/shop stock</code> (merchant fee).</li>
+                <li><strong>Chunk survey</strong> — pay a surveyor (<code>/survey</code>) for a one-shot slime-chunk and biome report.</li>
+                <li><strong>Account linking</strong> — tie Minecraft to Discord (and optionally email) for stats, web tools, and RootMC app sync.</li>
+                <li><strong>In-game capture</strong> — <code>/waypoint</code> and <code>/note</code> sync to the app.</li>
+                <li><strong>Root Shops</strong> — live prices, listings, net worth, stock market, and offline buy → in-game vault.</li>
+              </ul>
+              <div class="wiki-callout">
+                World <em>RootMC</em> · connect at <strong>play.rootmc.net</strong> (Java Edition). Join <a href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">RootMC Discord</a> for announcements and support.
+              </div>
+            </article>
+
+            <article id="join">
+              <h2>Join the server</h2>
+              <ol>
+                <li>Launch <strong>Minecraft Java Edition</strong> on a compatible version (currently <strong>26.2</strong>).</li>
+                <li>Join <strong>play.rootmc.net</strong> (or ask in <a href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">RootMC Discord</a> if the address changes).</li>
+                <li>Open <strong>Multiplayer</strong> → <strong>Add Server</strong> → enter the announced address and any name you like (e.g. RootMC).</li>
+                <li>Join and play. No mod pack is required for linking or stats — vanilla client is fine.</li>
+              </ol>
+              <p>If you cannot connect, check that your game version matches the server and that your firewall allows outbound connections to port <code>25565</code>. Ask in <a href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">RootMC Discord</a> if the server is down for maintenance.</p>
+            </article>
+
+            <article id="first-steps">
+              <h2>First steps checklist</h2>
+              <ol>
+                <li>Spawn in, set a home, and play normally — nothing special is required on day one.</li>
+                <li>Run <code>/link</code> when you want your character linked to Discord and the website.</li>
+                <li>Complete verification at <a href="/verify/">rootmc.net/verify</a> — enter your code and link with Discord.</li>
+                <li>Run <code>/rootstat status</code> to confirm linking and copy your public stats URL.</li>
+                <li>Optional: install the <strong>RootMC</strong> Android app and sign in with the same linked account.</li>
+                <li>Mine and <code>/sell</code> ore — gold ingots are worth about <strong>1 G</strong> each.</li>
+                <li>Optional: need <strong>400 G</strong> to found a town? See <a href="#loans">personal loans</a>.</li>
+                <li>Optional: browse the <a href="/market/">stock market</a> for live prices before you list items.</li>
+              </ol>
+            </article>
+
+            <article id="economy">
+              <h2>Economy (G)</h2>
+              <p>RootMC uses <strong>Root-Economy</strong> + <strong>Vault</strong>. Your balance shows as <strong>G</strong> everywhere. New players start at <strong>0 G</strong> — mine gold, <code>/mint</code>, sell items, run shops, vote for rewards, or hit playtime milestones.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Topic</th><th>Summary</th></tr></thead>
+                <tbody>
+                  <tr><td>Minting</td><td>Gold nugget / ingot / block → <code>/mint hand</code> or <code>/mint all</code></td></tr>
+                  <tr><td>Transaction tax</td><td><strong>0% – 10%</strong> by reserve tier — payer sends the quoted gross; recipient gets the net after tax</td></tr>
+                  <tr><td>Votes</td><td><strong>1–20 G</strong> per vote site → your wallet (from Server Reserve)</td></tr>
+                  <tr><td>Death fee</td><td><strong>15%</strong> of wallet (minimum <strong>1 G</strong>) on all deaths; PvP splits <strong>40%</strong> reserve / <strong>60%</strong> killer. <strong>½</strong> with 5 listing votes / 24h</td></tr>
+                  <tr><td>Playtime milestones</td><td><code>/rewards</code> — tier gold to wallet (debited from Server Reserve)</td></tr>
+                  <tr><td>Service fees</td><td><code>/survey</code> <strong>25 G</strong>, <code>/shop stock</code> <strong>5 G</strong> (when items stocked), <code>/warp create</code> <strong>500 G</strong>, <code>/rtp</code> after grace (basic <strong>5 G</strong>, ×1.5 per rank), <code>/rank buy</code> → reserve</td></tr>
+                  <tr><td>Inactivity tax</td><td>After <strong>30 real days</strong> idle — <strong>1% → 100%</strong> per MC day; group banks are protected by any active member</td></tr>
+                  <tr><td>Leaderboards</td><td><code>/baltop players|towns|nations</code> · <code>/reserve</code> for Server Reserve</td></tr>
+                  <tr><td>Found a town</td><td><strong>400 G</strong> — or <a href="#loans">borrow</a> up to your loan limit</td></tr>
+                </tbody>
+              </table>
+              <p>The complete reference — earning, spending, shops, claim costs, loans, commands, and FAQ — lives in the dedicated guide:</p>
+              <p><a class="rmc-btn rmc-btn-primary" href="/wiki/economy/" style="display:inline-flex;margin-top:0.5rem">Open economy guide →</a></p>
+            </article>
+
+            <article id="loans">
+              <h2>Personal loans (Root-Loans)</h2>
+              <p>After a <strong>community vote in favor</strong>, RootMC runs <strong>Root-Loans</strong> — optional personal borrowing in <strong>G</strong>. One active loan per player. Useful for startup costs (e.g. <strong>400 G</strong> to found a town) when you are short on gold.</p>
+              <h3>How borrowing works</h3>
+              <ul>
+                <li><code>/loan take &lt;amount&gt;</code> — borrow up to your current limit. Cash lands in your Vault balance immediately.</li>
+                <li><strong>10% interest</strong> — you owe principal + 10% (borrow <strong>50 G</strong> → owe <strong>55 G</strong>).</li>
+                <li><strong>1% daily loan tax</strong> — the amount still owed accrues 1% at midnight HST (minimum <strong>0.01 G</strong>).</li>
+                <li><strong>One loan at a time</strong> — pay off before taking another.</li>
+                <li><strong>3 borrows per rolling 24 hours</strong> — after the third, wait until the oldest borrow ages out.</li>
+              </ul>
+              <h3>Credit limit</h3>
+              <p>Your borrow cap matches your <strong>highest purchased player rank</strong> (<code>/rank buy</code>). Staff and donor groups do <strong>not</strong> raise your loan limit — only the player track in <code>root-ranks.yml</code> counts.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Player rank</th><th>Borrow limit</th></tr></thead>
+                <tbody>
+                  <tr><td>No purchased rank (default)</td><td><strong>100 G</strong></td></tr>
+                  <tr><td>Wanderer</td><td><strong>500 G</strong></td></tr>
+                  <tr><td>Settler</td><td><strong>1,500 G</strong></td></tr>
+                  <tr><td>Pioneer</td><td><strong>4,000 G</strong></td></tr>
+                  <tr><td>Citizen</td><td><strong>10,000 G</strong></td></tr>
+                  <tr><td>Veteran</td><td><strong>25,000 G</strong></td></tr>
+                  <tr><td>Elite</td><td><strong>60,000 G</strong></td></tr>
+                  <tr><td>Champion</td><td><strong>150,000 G</strong></td></tr>
+                </tbody>
+              </table>
+              <p>Limit is set by your current rank — it does <strong>not</strong> grow after payoffs. Buy the next rank with <code>/rank buy</code> to raise your cap. Interest rate stays <strong>10%</strong> on each borrow.</p>
+              <p>Run <code>/loan info</code> anytime for amount owed, your limit, and how many borrows you have used in the last 24 hours.</p>
+              <h3>Repayment</h3>
+              <p>While you owe money, <strong>100% of incoming gold income</strong> is applied to the loan first — whatever is left goes to your wallet. This includes:</p>
+              <ul>
+                <li><code>/sell</code> and <code>/mint</code></li>
+                <li>Shop sales and player payments received</li>
+                <li>Playtime milestone rewards (from Server Reserve)</li>
+                <li>Other Vault deposits routed through Root-Essentials</li>
+              </ul>
+              <p><strong>Gold ore while in debt:</strong> breaking gold ore (overworld, deepslate, or nether) does not drop gold items — the gold value is applied straight to your loan. Non-gold drops from the block still drop normally.</p>
+              <p><strong>Manual repay:</strong> <code>/loan repay</code> pays the full remaining balance from your wallet. <code>/loan repay &lt;amount&gt;</code> pays a partial amount.</p>
+              <div class="wiki-callout">
+                Loans are closed-economy credit — cash comes from the <strong>Server Reserve</strong> (<code>Server-Reserve</code> / <code>Ava_Ivy</code>), not freshly minted gold. If the reserve is empty, <code>/loan take</code> may fail until inflows (taxes, votes, repayments) refill it. Buy higher ranks to unlock larger borrow limits.
+              </div>
+              <h3>Commands</h3>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Who</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/loan take &lt;amount&gt;</code></td><td>Everyone</td><td>Borrow G (within your limit + rate limits)</td></tr>
+                  <tr><td><code>/loan info</code></td><td>Everyone</td><td>Owed balance, limit, 24h borrow count</td></tr>
+                  <tr><td><code>/loan repay [amount]</code></td><td>Everyone</td><td>Pay from wallet; omit amount to pay in full</td></tr>
+                  <tr><td><code>/loan list</code></td><td>Operator</td><td>List all active loans on the server</td></tr>
+                  <tr><td><code>/rootloans reload</code></td><td>Operator</td><td>Reload <code>plugins/RootRecord/root-loans.yml</code></td></tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article id="claims">
+              <h2>Claims &amp; land (Root-Claims)</h2>
+              <p>RootMC uses <strong>Root-Claims</strong> for land control. Your first claim is a circular anchor claim and is <strong>tax-free</strong>. Expansions snap to claim edges, are paid from your claim bank, and use the live reserve tax. <strong>Root-Upkeep</strong> still applies inactivity rules from the <a href="/wiki/constitution/#inactivity-tax">Constitution</a>. <strong>Claim ASAP</strong> with <code>/c new</code> / <code>/c claim</code>, or ask someone to <code>/c add</code> you — wilderness breaks cost Gold.</p>
+              <p>Your claim also has a wilderness <strong>territory buffer</strong> outside the protected circle. Entering shows <em>Entering USERNAME’s territory — Fees Apply</em>. Overlapping territories split 50/50 (nearest center). Allies you trust skip destroy fees; outsiders pay <strong>1 G/block</strong> (75% claim bank / 25% Server Reserve). Unclaimed surface is <strong>Ava’s wilderness</strong> — she is the guardian watch. <strong>1 G/block</strong> → Server Reserve; chat recap when you start, then each minute while you keep paying. No balance means you cannot break. <strong>Mining rights:</strong> below Y 0 is free reign (no claims).</p>
+              <h3>Basics</h3>
+              <ul>
+                <li><code>/c</code> or <code>/claim</code> — preview + place a claim anchor.</li>
+                <li><code>/c confirm</code> — confirm claim or unclaim actions.</li>
+                <li><code>/c add &lt;player&gt;</code> — trust a friend in your claim/territory.</li>
+                <li><code>/c bank</code> — view claim-bank funds for expansions and territory economy.</li>
+                <li><code>/c info</code> — inspect owner, radius, territory buffer, and bank status.</li>
+                <li><code>/c unclaim</code> / <code>/c unclaim all</code> — remove claims with configured refunds.</li>
+              </ul>
+              <h3>What to expect</h3>
+              <table class="wiki-table">
+                <thead><tr><th>Rule of thumb</th><th>Value</th></tr></thead>
+                <tbody>
+                  <tr><td>First claim / area</td><td><strong>Free</strong> (0 G founding)</td></tr>
+                  <tr><td>First area bank seed</td><td>0 G</td></tr>
+                  <tr><td>2nd / 3rd area</td><td>1000 G / 10000 G (wallet → reserve)</td></tr>
+                  <tr><td>Expansion cost</td><td>Paid from area bank (see <a href="/wiki/claims/">claims guide</a>)</td></tr>
+                  <tr><td>Territory buffer</td><td>Config in root-claims.yml</td></tr>
+                  <tr><td>Unclaim refund</td><td>Per root-claims.yml</td></tr>
+                  <tr><td>Closed economy</td><td>No free wallet Gold from founding — earn via play</td></tr>
+                </tbody>
+              </table>
+              <p>BlueMap now renders <strong>two rings</strong> per owner: claim area and outer territory ring.</p>
+            </article>
+
+            <article id="linking">
+              <h2>Link your account</h2>
+              <p>Linking proves you own the Minecraft account. Run <code>/link</code> in-game for a short code, then finish on the website. The server picks up the result within a few minutes.</p>
+              <h3>Step by step</h3>
+              <ol>
+                <li>In-game, run <code>/link</code>.</li>
+                <li>Chat shows a verification code and URL (expires in about <strong>15 minutes</strong>).</li>
+                <li>On your phone or PC, open <a href="/verify/">rootmc.net/verify</a>.</li>
+                <li>Enter the code and choose <strong>Link with Discord</strong> (recommended).</li>
+                <li>Back in-game, run <code>/rootstat status</code> — you should see linked status and your public stats link.</li>
+              </ol>
+              <div class="wiki-callout wiki-callout-warn">
+                One linked Minecraft UUID per Discord account. If you already linked, <code>/link</code> tells you instead of issuing a new code.
+              </div>
+              <h3>Why link?</h3>
+              <ul>
+                <li>Public stats page with McMMO snapshot.</li>
+                <li>Linked-player role and in-game nickname on RootMC Discord.</li>
+                <li>RootMC app sync (when signed in with the same link).</li>
+                <li>In-game waypoints and notes appear in the app after sync.</li>
+                <li>Your shop signs can attribute listings to your username on Root Shops.</li>
+              </ul>
+            </article>
+
+            <article id="governance">
+              <h2>Community governance</h2>
+              <p>RootMC runs <strong>citizen governance</strong> on <a href="/council/">rootmc.net/council</a> — proposals, weekly bills, treasury grants, and weighted Council votes. Link Minecraft + Discord at <a href="/verify/">/verify/</a> and accept the <a href="/terms/">Terms of Service</a> to participate.</p>
+              <h3>What you can do</h3>
+              <ul>
+                <li><strong>Citizen proposals</strong> — submit policy ideas that compile into the weekly bill (Sunday HST).</li>
+                <li><strong>Treasury grant requests</strong> — any linked player can request Gold from the reserve at <a href="/governance/grant/">/governance/grant/</a>. Council voters decide; a weighted majority must hold for <strong>24 hours</strong> to pass or veto. Proposers cannot vote on their own grant.</li>
+                <li><strong>Council votes</strong> — weighted by governance % (playtime × listing vote points). Vote on the site or in Discord <strong>#voting</strong>.</li>
+              </ul>
+              <p>Discord <code>/proposals</code> and <code>/vote</code> post links — full text and voting live on the site. Constitution: <a href="/wiki/constitution/#governance-voting">governance voting</a>. Vote weight explainer: <a href="/vote-shards/">Vote Shards</a>. Buy extra weight: <a href="/pro/vote-shards/">/pro/vote-shards</a> ($1 = 100, min $0.50).</p>
+            </article>
+
+            <article id="seasons">
+              <h2>Season arcs</h2>
+              <p>RootMC can run **community-approved season arcs** — themed periods with extra rotating in-game tips. Staff opens a vote with <code>/proposal create</code> and sets <strong>kind: Season arc</strong>, plus an optional <strong>theme</strong> and custom <strong>lines</strong> (pipe-separated, e.g. <code>&amp;6Trade week|&amp;7Visit player shops</code>).</p>
+              <h3>What happens when a season vote passes</h3>
+              <ol>
+                <li>The new season is stored on RootMC cloud and announced in Discord <strong>#general</strong>.</li>
+                <li><strong>Root-Announcer</strong> pulls season lines from <code>GET /api/rootmc/season</code> every few minutes and merges them with the normal tip rotation.</li>
+                <li>Only one season is active at a time — a new passed vote replaces the previous arc.</li>
+              </ol>
+              <p>Check the active season on the web via the server config API or ask staff with <code>/proposal status</code> on the vote that created it.</p>
+            </article>
+
+            <article id="contracts">
+              <h2>Player contracts (escrow)</h2>
+              <p>Hire another player with <strong>Gold held in escrow</strong> until you approve the work — no trust trades required.</p>
+              <ol>
+                <li><code>/contract offer &lt;player&gt; &lt;amount&gt; &lt;terms...&gt;</code> — pulls <strong>G</strong> from your balance into escrow; worker must be online.</li>
+                <li>Worker runs <code>/contract accept &lt;id&gt;</code>.</li>
+                <li>When satisfied, client runs <code>/contract complete &lt;id&gt;</code> — releases Gold to the worker.</li>
+                <li>Client can <code>/contract cancel &lt;id&gt;</code> before completion for a full refund.</li>
+              </ol>
+              <p><code>/contract list</code> shows your open offers and active jobs. Limits: <strong>1–10,000 G</strong> per contract (configurable), max <strong>5 open</strong> per player.</p>
+            </article>
+
+            <article id="stats">
+              <h2>Your public stats page</h2>
+              <p>After linking, <code>/rootstat status</code> prints a URL like:</p>
+              <p class="wiki-pre">https://rootmc.net/player/?uuid=&lt;your-minecraft-uuid&gt;</p>
+              <p>Or search by username at <a href="/player/">rootmc.net/player</a>.</p>
+              <p>Anyone with the link can view:</p>
+              <ul>
+                <li>Minecraft username and UUID</li>
+                <li>Whether the account is linked</li>
+                <li>McMMO skill levels (updated when the server syncs)</li>
+                <li>Net worth breakdown (balance, inventory, shop stock)</li>
+                <li>Monthly HST playtime and tax paid MTD (same summary as <code>/reserve</code> in-game)</li>
+                <li>Shared worlds on your profile (if you use the app)</li>
+              </ul>
+              <p>Stats refresh on a schedule (about every <strong>5 minutes</strong>) and when operators run <code>/rootstat sync</code>. They are not real-time tick-by-tick. Balance leaderboards and net worth use the full player wallet export (claim banks are excluded from player totals).</p>
+            </article>
+
+            <article id="weekly-awards">
+              <h2>Weekly activity awards</h2>
+              <p>Every <strong>Sunday 08:00 HST</strong>, RootMC posts weekly leaders in Discord and on the <a href="/">home page</a>:</p>
+              <ul>
+                <li><strong>Top Participator</strong> (top 5) — Discord message blocks, votes (5 pts each), reactions; judged by Root-AI.</li>
+                <li><strong>Top Active Player</strong> (top 3) — weekly in-game playtime for linked accounts; <code>[Top Active Player]</code> prefix; <strong>#1 only</strong> gets one week of <strong>Pro</strong>.</li>
+              </ul>
+              <p>Full rules, examples, and FAQ: <a href="/wiki/weekly-awards/">Weekly activity awards guide</a>.</p>
+            </article>
+
+            <article id="mcmmo">
+              <h2>McMMO on the web</h2>
+              <p>RootMC runs <strong>Root-Skills</strong> (not mcMMO) for mining, woodcutting, combat, and the rest. Solar input adds <strong>+0.01× XP per 100 W</strong> — the action bar shows a ☀ bonus when it is active.</p>
+              <p>RootMC reads mcMMO&rsquo;s MySQL tables (no extra install). Skill levels on your public stats page mirror in-game data after the next sync (~5 minutes) or when staff run <code>/rootstat sync</code>. Link first or stats stay empty on the web.</p>
+              <p>In-game placeholders when your account is linked:</p>
+              <table class="wiki-table">
+                <thead><tr><th>Placeholder</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr><td><code>%rootmc_verified%</code></td><td><code>true</code> or <code>false</code></td></tr>
+                  <tr><td><code>%rootmc_account_id%</code></td><td>Linked account id</td></tr>
+                  <tr><td><code>%rootmc_email%</code></td><td>Linked email (if synced)</td></tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article id="shops">
+              <h2>Stock market (web)</h2>
+              <p>The <a href="/market/">stock market</a> is the public web view of aggregated player shop data on RootMC. RootMC collects listings from <strong>rootmc-shops</strong> first, then QuickShop (during cutover), ChestShop if present, then <strong>sign shops</strong> in loaded chunks.</p>
+              <p>On the market page you can:</p>
+              <ul>
+                <li><strong>Search &amp; filter</strong> — by item, price range, stock, and shop count</li>
+                <li><strong>Sort</strong> — quantity, price, name, buy demand, and more</li>
+                <li><strong>Price charts</strong> — per-item history with hourly/daily/weekly views</li>
+              </ul>
+              <p>In-game, run <code>/rootstat shops</code> to print the market share URL.</p>
+            </article>
+
+            <article id="shops-ingame">
+              <h2>Opening a player shop (rootmc-shops)</h2>
+              <h3>Create a sell shop</h3>
+              <ol>
+                <li>Place a <strong>chest</strong> or <strong>barrel</strong> (leave room on the side you face for an auto-placed shop sign).</li>
+                <li>Hold the item you sell in your hand — stack size sets how many sell per purchase.</li>
+                <li>Look at the container and run <code>/shop create</code> or <code>/shop create &lt;price&gt;</code> to set the total G in one step.</li>
+                <li>Or type the <strong>total price for one purchase</strong> in chat after <code>/shop create</code> (<code>cancel</code> to abort). Nothing is taken from your hand.</li>
+                <li>Put stock in the container after the shop is created.</li>
+              </ol>
+              <h3>Create a buy shop</h3>
+              <ol>
+                <li>Same as a sell shop, but hold the item you want to buy and run <code>/shop create</code> on an empty chest or barrel.</li>
+                <li>After creation, use <code>/shop edittype</code> (look at sign) to switch between sell and buy if needed.</li>
+                <li>Fund your balance — buy shops pay players from your wallet when they sell in.</li>
+              </ol>
+              <h3>Shop signs</h3>
+              <p>Sell shops use <strong>oak</strong> signs (green item name, gold price). Buy shops use <strong>crimson</strong> signs (aqua item name, red BUY label). Pending price entry uses a birch sign.</p>
+              <h3>Buy from a shop</h3>
+              <ul>
+                <li><strong>Right-click</strong> a listed sell-shop sign — buys from <strong>that shop only</strong> (100% to that owner).</li>
+                <li><code>/buy &lt;ITEM&gt; [amount]</code> — quotes the cheapest in-stock price server-wide (up to 2304). When several shops list the <strong>same item at the same price</strong>, the order is split <strong>equally</strong> across them (e.g. 64 ingots across 4 shops → 16 each). A <strong>single-item</strong> order picks one shop at random among ties. Quotes with <strong>more than four</strong> shops show <em>“Buying 64 IRON_INGOT from 5 players”</em> instead of listing every name. Confirm before gold is taken.</li>
+                <li><code>/sell &lt;ITEM&gt; [amount]</code> — same fair split for buy shops at the best matching price; sign click sells to <strong>that buy shop only</strong>.</li>
+                <li><code>/buy cancel</code> · <code>/sell cancel</code> — abort a pending quote.</li>
+              </ul>
+              <h3>Manage your shop</h3>
+              <ul>
+                <li><code>/shop editprice</code> · <code>/shop editqty</code> · <code>/shop edittype</code> — look at your shop sign, then type the new value in chat (or toggle buy/sell).</li>
+                <li><code>/shop remove</code> — look at your shop chest and remove the listing.</li>
+                <li><code>/shop cancel</code> — abort a pending price entry.</li>
+                <li><code>/shop avg &lt;ITEM&gt;</code> — show rolling average for an item.</li>
+              </ul>
+              <div class="wiki-callout">
+                <strong>rootmc-shops</strong> listings sync to the <a href="/market/">stock market</a> on the economy heartbeat (~5 min) when at least one player is online — no chunk scan needed. Legacy QuickShop or raw sign shops only appear if their chunk was loaded during a world scan.
+              </div>
+            </article>
+
+            <article id="shop-stock">
+              <h2>Bulk stock your sell shops</h2>
+              <p>Restocking many chest shops by hand is slow. <code>/shop stock</code> hires an NPC merchant to move matching items from your inventory into your <strong>existing sell shops</strong> — only shops you already created, with room in the chest.</p>
+              <h3>How it works</h3>
+              <ol>
+                <li>Carry the items you want to list (same item keys as your shop listings).</li>
+                <li>Run <code>/shop stock</code>.</li>
+                <li>Chat shows a preview (item × quantity per shop) and the merchant fee — currently <strong>5 G</strong>.</li>
+                <li>Click <strong>[Confirm]</strong> or run <code>/shop stock confirm</code> to pay and stock. <code>/shop stock cancel</code> aborts.</li>
+              </ol>
+              <p>The fee is debited from your wallet and credited to the <strong>Server Reserve</strong> (same closed-loop treasury as taxes and votes). If nothing can be stocked (no matching inventory, full chests, or broken shop blocks), you are not charged.</p>
+              <div class="wiki-callout wiki-callout-warn">
+                Shops must be on land you can build on (your claim or trusted area). The command only touches <strong>sell</strong> shops you own — it does not create new listings.
+              </div>
+            </article>
+
+            <article id="survey">
+              <h2>Chunk survey (<code>/survey</code>)</h2>
+              <p>Planning a slime farm or checking biome mix? Hire an in-game surveyor to scan the chunk you are standing in. The report is shown <strong>once in chat</strong> — screenshot with <strong>F2</strong> if you want to keep it.</p>
+              <h3>What you get</h3>
+              <ul>
+                <li>World, seed, chunk coordinates, and block region</li>
+                <li><strong>Slime chunk</strong> yes/no (vanilla overworld roll)</li>
+                <li>Biome at your feet and chunk center, sampled biome variety</li>
+                <li>Surface Y, light level, inhabited time, entity counts</li>
+                <li>Registered structures in the chunk (when the server API exposes them)</li>
+              </ul>
+              <h3>Cost &amp; confirmation</h3>
+              <p>Survey fee is <strong>25 G</strong> (configurable). Run <code>/survey</code> — if you can afford it, chat shows the fee and chunk coords, then <strong>[Confirm]</strong> / <strong>[Cancel]</strong>. Confirm with <code>/survey confirm</code> or cancel with <code>/survey cancel</code>. The fee goes to the Server Reserve after a successful survey.</p>
+            </article>
+
+            <article id="shops-legacy">
+              <h2>Legacy shop formats</h2>
+              <h3>QuickShop (legacy / cutover)</h3>
+              <p>During migration, existing <strong>QuickShop-Hikari</strong> shops may still appear on the market until recreated with rootmc-shops. New spawn shops should use rootmc-shops only.</p>
+              <h3>Sign shops (fallback scan)</h3>
+              <p>If you use raw signs instead, Root Shops still discovers them when the format matches:</p>
+              <table class="wiki-table">
+                <thead><tr><th>Line</th><th>Content</th></tr></thead>
+                <tbody>
+                  <tr><td>Line 1 (recommended)</td><td>Your Minecraft name <code>Steve</code> or <code>@Steve</code> — attributes the listing to you on the web</td></tr>
+                  <tr><td>Any line</td><td>Item in brackets, e.g. <code>[DIAMOND]</code> or <code>[Oak Log]</code> — normalized to a material name</td></tr>
+                  <tr><td>Any line</td><td>Price number, e.g. <code>12.5</code> or <code>100</code></td></tr>
+                  <tr><td>Optional</td><td>Word <code>buy</code> on a line marks a buy shop; otherwise treated as sell</td></tr>
+                </tbody>
+              </table>
+              <p>Example sign:</p>
+              <pre class="wiki-pre">@Alex
+[DIAMOND]
+Sell 50 each
+50</pre>
+              <h3>Price comparison</h3>
+              <p>Players currently set their own shop prices; the optional 110% rolling-average ceiling is disabled. Use <code>/shop avg &lt;item&gt;</code> to compare the current market.</p>
+            </article>
+
+            <article id="ingame-capture">
+              <h2>In-game notes &amp; waypoints</h2>
+              <p>After linking, save locations and quick notes in-game — they sync to the <strong>RootMC</strong> app on the next few minutes or when you refresh the RootMC tab.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/waypoint [label]</code></td><td>Save your position (alias: <code>wp</code>)</td></tr>
+                  <tr><td><code>/note &lt;text&gt;</code></td><td>Save a note at your location</td></tr>
+                  <tr><td><code>/waypoints</code></td><td>Reminder that recent waypoints sync to the app</td></tr>
+                  <tr><td><code>/notes</code></td><td>Reminder that recent notes sync to the app</td></tr>
+                </tbody>
+              </table>
+              <p>Imported waypoints show a <strong>Recorded in-game</strong> badge in the app.</p>
+            </article>
+
+            <article id="vault-stock">
+              <h2>Vault &amp; stock market (app)</h2>
+              <p>From the <strong>RootMC</strong> Android app (linked account):</p>
+              <ul>
+                <li><strong>Stock market</strong> — rolling shop averages; buy offline from listings.</li>
+                <li><strong>Vault</strong> — pending app purchases queue here until claimed in-game.</li>
+              </ul>
+              <p>In-game claim: <code>/vault</code> (must be linked). Items deliver to your inventory or drop at your feet if full.</p>
+            </article>
+
+            <article id="map">
+              <h2>Live map</h2>
+              <p>Claim and territory rings render in-game with <code>/c lines</code>. Land rules: <a href="/wiki/claims/">Claims &amp; areas</a> and <a href="/wiki/territories/">Territory buffers</a>.</p>
+            </article>
+
+            <article id="rootmc-app">
+              <h2>RootMC Android app</h2>
+              <p>The <strong>RootMC</strong> Android app (Google Play) is the mobile companion — coordinates, worlds, stats, shops, stock market, and vault. Not required to play, but pairs with a linked account:</p>
+              <ul>
+                <li>RootMC tab — stats, map, shops, stock market, vault</li>
+                <li>Cloud backup of notes and worlds when signed in</li>
+                <li>In-game waypoints/notes import with source badge</li>
+              </ul>
+              <p>Use the <strong>same linked account</strong> you verified with <code>/link</code>.</p>
+            </article>
+
+            <article id="commands">
+              <h2>All commands</h2>
+              <p>Complete reference for RootMC custom plugins plus common third-party commands on this server. Aliases are listed in parentheses.</p>
+
+              <h3 id="cmd-rootmc-direct">RootMC — direct commands</h3>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Permission</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/link</code></td><td>Everyone</td><td>Start account link — opens <a href="/verify/">/verify</a></td></tr>
+                  <tr><td><code>/waypoint [label]</code></td><td><code>rootmc.waypoint</code></td><td>Save waypoint; syncs to app (alias <code>wp</code>)</td></tr>
+                  <tr><td><code>/note &lt;text&gt;</code></td><td><code>rootmc.note</code></td><td>Save location note; syncs to app</td></tr>
+                  <tr><td><code>/waypoints</code></td><td>Linked players</td><td>Sync reminder for waypoints</td></tr>
+                  <tr><td><code>/notes</code></td><td>Linked players</td><td>Sync reminder for notes</td></tr>
+                  <tr><td><code>/vault</code></td><td><code>rootmc.vault</code></td><td>Claim pending app / vault purchases</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-rootmc-sync">Account &amp; sync — <code>/rootstat</code> (<code>/bn</code>, <code>/rootmcapp</code>)</h3>
+              <p>Legacy aliases: <code>/rootstat</code>, <code>/rrlink</code>.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Permission</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/link</code></td><td><code>rootstat.link</code></td><td>Start verification; opens <a href="/verify/">/verify</a></td></tr>
+                  <tr><td><code>/rootstat status</code></td><td><code>rootstat.status</code></td><td>Link status + public stats URL</td></tr>
+                  <tr><td><code>/rootstat shops</code></td><td>Everyone</td><td>Print stock market share URL for this server</td></tr>
+                  <tr><td><code>/rootstat sync</code></td><td>Operator (<code>rootstat.sync</code>)</td><td>Force cloud sync (links, McMMO, economy)</td></tr>
+                  <tr><td><code>/grant &lt;player&gt; &lt;amount&gt;</code></td><td>Operator (<code>rootmc.grant</code>)</td><td>Pay G from Server Reserve treasury</td></tr>
+                  <tr><td><code>/rootstat reload</code></td><td>Operator (<code>rootstat.reload</code>, <code>rootmc.reload</code>)</td><td>Reload plugin config + restart sync tasks</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-shops">Shops — <code>/buy</code>, <code>/shop</code></h3>
+              <p class="rmc-muted" style="margin-top:0">Aliases: <code>/rootshops</code>, <code>/rshops</code></p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Permission</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/buy &lt;item&gt; [amount]</code></td><td>Everyone</td><td>Quote cheapest listing, then confirm before gold is taken (<code>/buy cancel</code>)</td></tr>
+                  <tr><td><code>/shop create [price]</code></td><td><code>rootshops.create</code></td><td>Hold item, look at chest/barrel — optional price sets total G immediately, or type price in chat</td></tr>
+                  <tr><td><code>/shop stock</code></td><td>Shop owner</td><td>Preview + confirm — pay <strong>5 G</strong> merchant fee to stock sell shops from inventory</td></tr>
+                  <tr><td><code>/shop stock confirm</code> · <code>cancel</code></td><td>Shop owner</td><td>Complete or abort bulk stocking</td></tr>
+                  <tr><td><code>/sell &lt;item&gt; [amount]</code></td><td>Everyone</td><td>Quote best buy shop, then confirm before items leave inventory</td></tr>
+                  <tr><td><code>/shop edittype</code></td><td>Shop owner</td><td>Toggle sell vs buy shop (look at sign)</td></tr>
+                  <tr><td><code>/shop editprice</code> · <code>/shop editqty</code></td><td>Shop owner</td><td>Change price or per-sale quantity (look at sign)</td></tr>
+                  <tr><td><code>/shop remove</code></td><td>Shop owner</td><td>Remove shop on target chest (alias <code>delete</code>)</td></tr>
+                  <tr><td><code>/shop cancel</code></td><td>Shop owner</td><td>Abort pending price entry</td></tr>
+                  <tr><td><code>/shop avg &lt;item&gt;</code></td><td>Everyone</td><td>Show rolling average for item</td></tr>
+                  <tr><td><code>/shop reload</code></td><td>Operator (<code>rootshops.admin</code>)</td><td>Reload rootmc-shops config + shop store</td></tr>
+                  <tr><td><em>Right-click shop chest</em></td><td>Everyone</td><td>Buy one stack at listed price</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-essentials">Root-Essentials (EssentialsX replacement)</h3>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/balance</code> · <code>/bal</code></td><td>Check your <strong>G</strong> balance</td></tr>
+                  <tr><td><code>/pay &lt;player&gt; &lt;amount&gt;</code></td><td>Send gold (live transaction tax — <code>/tax</code>)</td></tr>
+                  <tr><td><code>/gold</code></td><td>Live solar gold/skills multiplier</td></tr>
+                  <tr><td><code>/tax</code></td><td>Reserve tax + 0.05% floor + offline env</td></tr>
+                  <tr><td><code>/pay reserve &lt;amount&gt;</code></td><td>Voluntary donation — burns Notes from your wallet</td></tr>
+                  <tr><td><code>/paytoggle</code></td><td>Opt out of receiving payments</td></tr>
+                  <tr><td><code>/baltop</code> · <code>/balancetop</code></td><td>Leaderboard help + Server Reserve balance</td></tr>
+                  <tr><td><code>/baltop players</code> · <code>towns</code> · <code>nations</code></td><td>Top 10 balances; line 11 = your rank and balance</td></tr>
+                  <tr><td><code>/reserve</code></td><td>Server Reserve stats, monthly treasury income, your playtime and tax MTD</td></tr>
+                  <tr><td><code>/mint hand</code> · <code>/mint all</code></td><td>Gold items → G (live tax withheld)</td></tr>
+                  <tr><td><code>/mint gold &lt;amount|max&gt;</code></td><td>Notes → nugget/ingot/block at peg</td></tr>
+                  <tr><td><code>/sell hand</code> · <code>/sell all</code> · <code>/sell blocks</code></td><td>Sell items (worth map + shop averages)</td></tr>
+                  <tr><td><code>/spawn</code></td><td>Teleport to server spawn</td></tr>
+                  <tr><td><code>/rtp</code></td><td>Random wilderness teleport — <strong>free</strong> during 24h starter grace; after that costs Gold by rank (Explorer/basic <strong>5 G</strong>, ×1.5 each purchased rank → Server Reserve)</td></tr>
+                  <tr><td><code>/home</code> · <code>/sethome</code> · <code>/delhome</code> · <code>/renamehome</code></td><td>Home teleport / set / remove / rename</td></tr>
+                  <tr><td><code>/tpa</code> · <code>/tpahere</code> · <code>/tpaccept</code> · <code>/tpdeny</code></td><td>Player teleports</td></tr>
+                  <tr><td><code>/msg</code> · <code>/reply</code> · <code>/r</code></td><td>Private messages</td></tr>
+                  <tr><td><code>/mail</code> · <code>/mail send</code> · <code>/mail read</code> · <code>/mail clear</code></td><td>Offline mail</td></tr>
+                  <tr><td><code>/kit starter</code></td><td>One-time starter kit</td></tr>
+                  <tr><td><code>/worth</code> · <code>/near</code> · <code>/afk</code> · <code>/ping</code> · <code>/getpos</code></td><td>Utility commands</td></tr>
+                  <tr><td><code>/nick</code> · <code>/hat</code></td><td>Donor cosmetics (Pro+)</td></tr>
+                  <tr><td><code>/warp</code> · <code>/warps</code></td><td>Server warps</td></tr>
+                  <tr><td><code>/warp create &lt;name&gt;</code></td><td>Register a public warp at your location (<strong>500 G</strong> fee → Server Reserve)</td></tr>
+                  <tr><td><code>/survey</code> · <code>confirm</code> · <code>cancel</code></td><td>Chunk survey report (<strong>25 G</strong>; confirm before charge)</td></tr>
+                  <tr><td><code>/trash</code> · <code>/disposal</code></td><td>Void unwanted items</td></tr>
+                </tbody>
+              </table>
+              <p>No pay-to-win survival shortcuts: <code>/heal</code>, <code>/feed</code>, <code>/repair</code>, and portable <code>/workbench</code> are disabled for players. Staff (admin): <code>/setwarp</code>, <code>/delwarp</code>, <code>/time</code>, <code>/weather</code>, <code>/kick</code>, <code>/ban</code>, <code>/mute</code>, <code>/vanish</code>, <code>/tp</code>, <code>/heal</code> &amp; <code>/feed</code> on others, <code>/broadcast</code>. Owners in <code>ops.json</code> may grant <code>essentials.fly</code>, <code>essentials.gamemode</code>, <code>essentials.god</code> separately.</p>
+
+              <h3 id="cmd-loans">Root-Loans — <code>/loan</code></h3>
+              <p>See <a href="#loans">Personal loans</a> for full rules. Summary:</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Permission</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/loan take &lt;amount&gt;</code></td><td><code>rootloans.use</code></td><td>Borrow G (10% interest; one active loan)</td></tr>
+                  <tr><td><code>/loan info</code></td><td><code>rootloans.use</code></td><td>Owed balance, credit limit, 24h take count</td></tr>
+                  <tr><td><code>/loan repay [amount]</code></td><td><code>rootloans.use</code></td><td>Manual repayment from wallet</td></tr>
+                  <tr><td><code>/loan list</code></td><td>Operator (<code>rootloans.list</code>)</td><td>All active server loans</td></tr>
+                  <tr><td><code>/rootloans reload</code></td><td>Operator (<code>rootloans.reload</code>)</td><td>Reload loan config</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-rewards">Root-Rewards — <code>/vote</code>, <code>/rewards</code></h3>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/vote</code></td><td>Vote site links — <strong>1–20 G</strong>, Appreciation Tokens, <a href="/vote-shards/">Vote Shard</a> weight, and the <strong>5 votes / 24h → ½ tax + ½ death</strong> perk</td></tr>
+                  <tr><td><code>/rewards</code></td><td>Playtime milestone progress (direct wallet gold)</td></tr>
+                  <tr><td><code>/rootrewards reload</code></td><td>Operator — reload rewards config</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-appreciation">Root-Appreciation — <code>/thanks</code>, <code>/bonus</code></h3>
+              <p>Player guide: <a href="/thanks/">Appreciation Tokens</a> (redeem odds + tutorial). Tokens trade in shops as <code>APPRECIATION_TOKEN</code>.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/thanks</code></td><td>Global + personal Appreciation Token issued/redeemed/supply stats</td></tr>
+                  <tr><td><code>/bonus</code></td><td>Daily streak — Day 1–5: 1–5 tokens + 5–25 G from Server Reserve</td></tr>
+                  <tr><td><code>/thanks redeem [n]</code></td><td>Redeem token(s) for a weighted catalog prize (or right-click a token)</td></tr>
+                  <tr><td><code>/thanks give &lt;player&gt; &lt;n&gt;</code></td><td>Console only — issue tokens</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-territories">Root-Territories — <code>/territories</code></h3>
+              <p>Aliases: <code>/territory</code>, <code>/border</code>. Full rules: <a href="/wiki/territories/">Territory influence guide</a>.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/territories</code></td><td>Where you stand — zones, allegiance, wilderness alert status</td></tr>
+                  <tr><td><code>/territories notifications [on|off|status]</code></td><td>Toggle border enter/exit chat messages</td></tr>
+                  <tr><td><code>/rootterritories reload</code></td><td>Operator — rebuild zones and BlueMap markers</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-announcer">Root-Announcer — <code>/announcer</code></h3>
+              <p>Aliases: <code>/announcements</code>, <code>/toggleannouncer</code>. Rotating server tips in chat — no bracket prefix.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/announcer [on|off|status]</code></td><td>Toggle rotating announcements for yourself</td></tr>
+                  <tr><td><code>/rootannouncer reload|list|now</code></td><td>Operator — manage announcement rotation</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-ranks">Root-Ranks — <code>/rank</code></h3>
+              <p>Aliases: <code>/ranks</code>, <code>/rankup</code>. Buy Root-Perms player ranks one tier at a time — gold sinks to Server Reserve on success. Full table: <a href="/wiki/constitution/#taxes-fees-reference">Constitution — rank prices</a>.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/rank list</code></td><td>All ranks and prices</td></tr>
+                  <tr><td><code>/rank buy</code></td><td>Purchase the next rank in order (<strong>500 G</strong> → <strong>150,000 G</strong>)</td></tr>
+                  <tr><td><code>/rank info</code></td><td>Your current rank and next tier cost</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-claims">Root-Claims (land)</h3>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/c</code> · <code>/claim</code></td><td>Claims dashboard / preview anchor</td></tr>
+                  <tr><td><code>/c new [name]</code></td><td>Found a new area (first plot tax-free)</td></tr>
+                  <tr><td><code>/c claim</code></td><td>Expand current area (rim; paid from claim bank)</td></tr>
+                  <tr><td><code>/c bank</code> · <code>deposit</code></td><td>View / fund area bank</td></tr>
+                  <tr><td><code>/c add &lt;player&gt;</code></td><td>Trust a friend (skip territory fees)</td></tr>
+                  <tr><td><code>/c lines</code></td><td>Outline claim and territory rings</td></tr>
+                  <tr><td><code>/c unclaim</code></td><td>Remove a circle (configured refund)</td></tr>
+                </tbody>
+              </table>
+
+              <h3 id="cmd-mcmmo">mcMMO (skills)</h3>
+              <table class="wiki-table">
+                <thead><tr><th>Command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/mcstats</code> · <code>/stats</code></td><td>Your skill levels and XP</td></tr>
+                  <tr><td><code>/mctop [skill]</code></td><td>Server skill leaderboard</td></tr>
+                  <tr><td><code>/inspect</code></td><td>Inspect another player&rsquo;s mcMMO stats</td></tr>
+                  <tr><td><code>/mcability</code></td><td>Toggle super-ability mode (when unlocked)</td></tr>
+                  <tr><td><code>/party create|join|leave|invite</code></td><td>mcMMO party for shared XP</td></tr>
+                  <tr><td><code>/mccooldown</code></td><td>Check ability cooldowns</td></tr>
+                </tbody>
+              </table>
+              <p>Linked accounts mirror mcMMO to the web after sync — see <a href="#stats">public stats</a>.</p>
+
+              <h3 id="cmd-cmdtest">Command testing — <code>/cmdtest</code> (ended)</h3>
+              <p>The <strong>/cmdtest</strong> onboarding program (up to <strong>1000 G</strong> for testing commands once each) was <strong>disabled July 2026</strong>. The command may still exist for staff debugging but no longer pays from the Server Reserve.</p>
+
+              <h3 id="cmd-discord">RootMC Discord bot (slash commands)</h3>
+              <p>On the <a href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">RootMC Discord</a> server (ID <code>1516108585740800042</code>). Help others find the community: <a href="https://disboard.org/server/bump/1516108585740800042" target="_blank" rel="noopener noreferrer">bump on Disboard</a> (every 2 hours) or <a href="https://disboard.org/review/create/1516108585740800042" target="_blank" rel="noopener noreferrer">leave a Disboard review</a> — separate from <code>/vote</code> Minecraft listings.</p>
+              <table class="wiki-table">
+                <thead><tr><th>Slash command</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td><code>/help</code></td><td>RootMC and app links</td></tr>
+                  <tr><td><code>/server</code></td><td>Server address, server status and links</td></tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article id="web-tools">
+              <h2>Web tools</h2>
+              <table class="wiki-table">
+                <thead><tr><th>URL</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr><td><a href="/wiki/constitution/">/wiki/constitution/</a></td><td>Rules, reserve, taxes, grants, redemption — authoritative</td></tr>
+                  <tr><td><a href="/economy/">/economy/</a></td><td>Economy overview — note supply, backing, charts</td></tr>
+                  <tr><td><a href="/economy/#server-reserve">/economy/</a></td><td>Gold backing, Server Reserve ledger &amp; charts</td></tr>
+                  <tr><td><a href="/wiki/economy/">/wiki/economy/</a></td><td>Economy how-to — mint, shops, commands</td></tr>
+                  <tr><td><a href="/wiki/claims/">/wiki/claims/</a></td><td>Claims &amp; areas — personal land, levels, costs, /spawn</td></tr>
+                  <tr><td><a href="/wiki/territories/">/wiki/territories/</a></td><td>Territory buffers — enter/exit, destroy fees, 50/50 borders</td></tr>
+                  <tr><td><a href="/verify/">/verify/</a></td><td>Complete <code>/link</code></td></tr>
+                  <tr><td><a href="/market/">/market/</a></td><td>Stock market — prices, filters, charts</td></tr>
+                  <tr><td><a href="/leaderboard/">/leaderboard/</a></td><td>Net worth, balances, playtime, McMMO</td></tr>
+                  <tr><td><a href="/player/">/player/</a></td><td>Search players — stats and net worth</td></tr>
+                  <tr><td><a href="https://disboard.org/server/bump/1516108585740800042" target="_blank" rel="noopener noreferrer">Disboard bump</a></td><td>Boost the Discord listing on disboard.org (every 2h; no in-game G)</td></tr>
+                  <tr><td><a href="https://disboard.org/review/create/1516108585740800042" target="_blank" rel="noopener noreferrer">Disboard review</a></td><td>Rate RootMC on disboard.org so new players can discover the server</td></tr>
+                  <tr><td><a href="/wiki/player/#commands">Command reference</a></td><td>Full in-game command list</td></tr>
+                </tbody>
+              </table>
+            </article>
+
+            <article id="faq">
+              <h2>FAQ</h2>
+              <h3>Do I need to link an account to play?</h3>
+              <p>No. Linking is optional but unlocks Discord perks, web stats, RootMC app sync, and vault/stock market.</p>
+              <h3>How often does the website update?</h3>
+              <p>Typically every 5 minutes from scheduled sync, plus when staff run <code>/rootstat sync</code>.</p>
+              <h3>Why isn&rsquo;t my shop on the website?</h3>
+              <p>First confirm you used <strong>rootmc-shops</strong>: hold the item, look at the chest or barrel, run <code>/shop create</code> or <code>/shop create &lt;price&gt;</code>, then stock the container (sell shops) or leave empty space (buy shops).</p>
+              <p>Listings push to the <a href="/market/">stock market</a> on the economy sync (~5 min) when <strong>at least one player is online</strong> (joining triggers a sync). Staff can run <code>/rootstat sync</code> to push sooner. Legacy QuickShop or sign-only shops need their chunk loaded during a scan — new shops should use rootmc-shops.</p>
+              <h3>Why are my mcMMO stats empty on the web?</h3>
+              <p>Link with <code>/link</code> first, then wait for sync. mcMMO must be writing to MySQL (default on RootMC).</p>
+              <h3>How hard is mcMMO here?</h3>
+              <p>Slower than default — plan for long-term progression. Grinding one skill all day hits diminished returns.</p>
+              <h3>How does the Server Reserve work?</h3>
+              <p>See the <a href="/wiki/constitution/#server-reserve">Constitution — Server Reserve</a> and run <code>/reserve</code> in-game for balance, monthly inflows/outflows, and your playtime/tax summary. Public dividend eligibility and payout projections are no longer shown.</p>
+              <h3>How do personal loans work?</h3>
+              <p>Run <code>/loan take &lt;amount&gt;</code> up to your rank-based limit (default <strong>100 G</strong>; up to <strong>150,000 G</strong> at Champion). You owe principal + <strong>10% interest</strong>, then <strong>1% daily</strong> on the remaining debt. Cash is drawn from the Server Reserve — not minted. While in debt, incoming gold pays the loan first. See <a href="#loans">Personal loans</a>.</p>
+              <h3>How does bulk shop stocking work?</h3>
+              <p>Run <code>/shop stock</code> with matching items in your inventory. You pay a <strong>5 G</strong> merchant fee (confirm first); the server moves items into your existing sell-shop chests that have room. See <a href="#shop-stock">Bulk shop stock</a>.</p>
+              <h3>What does <code>/survey</code> do?</h3>
+              <p>Pays <strong>25 G</strong> (after confirm) for a one-time chunk report — slime chunk, biomes, structures, and more. Screenshot with F2 if you want to keep it. See <a href="#survey">Chunk survey</a>.</p>
+              <h3>Is my inventory public?</h3>
+              <p>Only economy totals (balances, item totals for leaderboard math) go to the cloud — not a full chest-by-chest map. Listings only include sign data you place in the world.</p>
+              <h3>Where are all tax and fee rates listed?</h3>
+              <p>See the <a href="/wiki/constitution/#taxes-fees-reference">Constitution — Taxes &amp; fees</a> — transaction tax, death fee, inactivity tiers, service fees, claim costs, and loans.</p>
+              <h3>How does inactivity tax work?</h3>
+              <p>After <strong>30 real days</strong> without logging in, your wallet is charged <strong>1%</strong> per Minecraft day, rising to <strong>5%</strong>, <strong>10%</strong>, then <strong>100%</strong> as inactivity continues. Claim banks are taxed only when <strong>no</strong> trusted member has logged in within the same grace window. See the <a href="/wiki/constitution/#inactivity-tax">Constitution — inactivity tax</a>.</p>
+              <h3>What is territory influence?</h3>
+              <p>An outer ring around town and nation plots — border particles, wilderness alerts, and rules for founding towns and joining nations. See <a href="/wiki/territories/">Territory influence</a> or <code>/territories</code> in-game.</p>
+              <h3>Who do I contact for help?</h3>
+              <p><a href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">RootMC Discord</a> — dedicated Minecraft server community (guild ID <code>1516108585740800042</code>).</p>
+            </article>
+          </div>
+        </div>
+    </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/wiki/">Wiki</a> · <a href="/">RootMC</a></p>
+      <p class="rmc-footer-mono">player guide · <a href="/wiki/constitution/" style="color:inherit">constitution</a> · <a href="/wiki/economy/" style="color:inherit">economy</a> · <a href="/wiki/territories/" style="color:inherit">territories</a></p>
+    </div>
+  </footer>
+
+  <nav class="rmc-bottomnav" aria-label="Mobile">
+    <div class="rmc-bottomnav-inner">
+      <a href="/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>Home</a>
+      <a href="/market/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Market</a>
+      <a href="/leaderboard/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10l1 7H6l1-7zM6 11h12v6H6z"/></svg>Ranks</a>
+      <a href="/player/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Players</a>
+      <a href="/wiki/" aria-current="page"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>Wiki</a>
+    </div>
+  </nav>
+
+  
+  <script src="/plugins/suite-version.js?v=1" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

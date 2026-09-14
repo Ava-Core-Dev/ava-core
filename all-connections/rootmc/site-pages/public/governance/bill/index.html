@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly bill — RootMC Governance</title>
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <style>.gov-prose{white-space:pre-wrap;line-height:1.65;}</style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark">R</span>RootMC</a>
+      <nav class="rmc-nav"><a href="/council/">Council</a><a href="/governance/bills/">Bills</a></nav>
+    </div>
+  </header>
+  <main class="container" style="padding-bottom:3rem;max-width:760px;">
+    <p class="wiki-breadcrumb"><a href="/council/">Council</a> · <a href="/governance/bills/">Bills</a> · Detail</p>
+    <div id="gov-me"></div>
+    <article id="content" class="rmc-card"><p class="rmc-muted">Loading…</p></article>
+    <section id="amend-panel" class="rmc-card" hidden style="margin-top:1rem;">
+      <h2 style="margin-top:0">Submit amendment</h2>
+      <form id="form-amend" class="verify-form">
+        <label class="verify-field"><span>Amendment text</span><textarea name="text" rows="5" maxlength="2000" required></textarea></label>
+        <label class="verify-field"><span>Related proposal id (optional)</span><input name="item_id" maxlength="8"></label>
+        <button type="submit" class="rmc-btn rmc-btn-primary">Submit amendment</button>
+        <p id="amend-status" class="verify-status" role="status" hidden></p>
+      </form>
+    </section>
+    <section id="amendments" class="rmc-card" hidden style="margin-top:1rem;"></section>
+  </main>
+  <script src="/governance/governance.js"></script>
+  <script>
+    (async function () {
+      const G = window.RootMcGovernance;
+      const id = G.queryParam("id");
+      const box = G.el("content");
+      if (!id) { box.innerHTML = "<p>Missing bill id.</p>"; return; }
+
+      const me = await G.loadMe();
+      G.renderStatusBanner(me, G.el("gov-me"));
+
+      const { data } = await G.govFetch("bills/" + encodeURIComponent(id), { method: "GET" });
+      if (!data || !data.bill) { box.innerHTML = "<p>Bill not found.</p>"; return; }
+      const b = data.bill;
+      document.title = b.title + " — RootMC";
+
+      let voteLink = "";
+      if (b.proposal_id) {
+        voteLink = '<p><a class="rmc-btn rmc-btn-primary" href="/governance/vote/?id=' +
+          encodeURIComponent(b.proposal_id) + '">Open Council vote</a></p>';
+      }
+
+      box.innerHTML =
+        "<p class=\"market-badge\">" + G.esc(b.status) + " · week " + G.esc(b.week_key) + "</p>" +
+        "<h1 style=\"margin-top:0\">" + G.esc(b.title) + "</h1>" +
+        "<p class=\"rmc-muted\">" + (b.item_count || 0) + " proposals" +
+        (b.amendment_period_ends_at ? " · amendments until " + G.fmtDate(b.amendment_period_ends_at) : "") +
+        (b.vote_closes_at ? " · vote closes " + G.fmtDate(b.vote_closes_at) : "") + "</p>" +
+        voteLink +
+        "<div class=\"gov-prose\">" + G.esc(b.description) + "</div>";
+
+      const amendments = data.amendments || [];
+      if (amendments.length) {
+        const sec = G.el("amendments");
+        sec.hidden = false;
+        sec.innerHTML = "<h2 style=\"margin-top:0\">Amendments</h2><ul>" +
+          amendments.map(function (a) {
+            return "<li><strong>" + G.esc(a.minecraft_username || "—") + "</strong> " +
+              (a.item_id ? "(re: " + G.esc(a.item_id) + ") " : "") +
+              G.esc(a.amendment_text) + "</li>";
+          }).join("") + "</ul>";
+      }
+
+      const canAmend = b.status === "amendments" && b.amendment_period_ends_at &&
+        Date.parse(b.amendment_period_ends_at) > Date.now() &&
+        me && me.linked && me.eligible && me.terms_accepted;
+
+      if (canAmend) {
+        G.el("amend-panel").hidden = false;
+        G.el("form-amend").addEventListener("submit", async function (ev) {
+          ev.preventDefault();
+          const fd = new FormData(ev.target);
+          const st = G.el("amend-status");
+          st.hidden = false;
+          st.textContent = "Submitting…";
+          const res = await G.govFetch("bills/" + encodeURIComponent(id) + "/amendments", {
+            method: "POST",
+            body: JSON.stringify({
+              text: fd.get("text"),
+              item_id: fd.get("item_id") || undefined,
+            }),
+          });
+          if (res.ok && res.data.ok) {
+            st.className = "verify-status verify-status-info";
+            st.textContent = "Amendment saved. Reloading…";
+            location.reload();
+          } else {
+            st.className = "verify-status verify-status-err";
+            st.textContent = (res.data && res.data.detail) || "Failed.";
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

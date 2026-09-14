@@ -1,0 +1,17 @@
+# Optional separate Worker for user-data D1. Auth lives on rootrecord-primary only.
+name = "rr-weather-manager-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[vars]
+# Used to validate Bearer for POST /api/me/push-token (same host is fine if /api/auth/me exists there).
+PRIMARY_API_BASE = "https://api.rootrecord.info"
+
+# Secrets (do not commit): wrangler secret put RR_PUSH_ADMIN_SECRET
+#   wrangler secret put FCM_PROJECT_ID
+#   wrangler secret put FCM_CLIENT_EMAIL
+#   wrangler secret put FCM_PRIVATE_KEY   # PEM; paste with literal \n for newlines
+
+[[d1_databases]]
+binding = "USER_DATA_DB"
+database_id = "fe8e52fe-d7d2-464e-9f7e-a6e6fa26efb8"

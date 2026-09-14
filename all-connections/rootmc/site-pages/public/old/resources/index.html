@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resources — RootMC</title>
+  <meta name="description" content="Live world item census on RootMC — totals scanned from inventories and loaded containers via /info.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/resources/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <style>
+    .resource-chart-card {
+      margin: 1rem 0 1.5rem;
+      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 14px;
+      background: rgba(17, 27, 28, .72);
+    }
+    .resource-chart-card h2 {
+      margin: 0 0 .25rem;
+      font-size: 1rem;
+    }
+    .resource-chart-card p {
+      margin: 0 0 .75rem;
+      font-size: .78rem;
+    }
+    .resource-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: .75rem;
+    }
+    .resource-control {
+      display: grid;
+      gap: .3rem;
+      color: #9eaaa5;
+      font-size: .75rem;
+    }
+    .resource-control select {
+      min-width: 190px;
+      padding: .55rem .7rem;
+      color: #e3e9e6;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 7px;
+      background: #101819;
+    }
+    .resource-history-stage {
+      position: relative;
+      height: 340px;
+    }
+    .resource-item-button {
+      padding: 0;
+      color: #d6ad55;
+      border: 0;
+      background: none;
+      font: inherit;
+      cursor: pointer;
+    }
+    .resource-item-button:hover,
+    .resource-item-button:focus-visible {
+      color: #f1ce7d;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body class="market-page">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container market-wrap">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> · Resources</p>
+    <p class="market-badge">Live census · Root-ItemInfo</p>
+    <h1><span class="gold">Resources</span></h1>
+    <p class="rmc-muted market-hero-lead">
+      Running count of items seen in online inventories, ender chests, and loaded containers.
+      In-game: <code>/info &lt;item&gt;</code> or <code>/info gold</code>. Unloaded chunks are not included yet.
+    </p>
+    <p id="res-meta" class="rmc-muted">Loading…</p>
+    <p id="res-error" class="market-error" hidden></p>
+
+    <div class="market-summary" id="res-summary" hidden>
+      <div class="market-summary-cell">
+        <div class="market-summary-label">Distinct items</div>
+        <div class="market-summary-value" id="res-distinct">—</div>
+      </div>
+      <div class="market-summary-cell">
+        <div class="market-summary-label">Gold stacks (mint peg)</div>
+        <div class="market-summary-value" id="res-gold">—</div>
+      </div>
+      <div class="market-summary-cell">
+        <div class="market-summary-label">Last scan</div>
+        <div class="market-summary-value" id="res-when" style="font-size:1rem">—</div>
+      </div>
+    </div>
+
+    <div class="market-toolbar">
+      <label class="market-search">
+        <span class="visually-hidden">Filter</span>
+        <input id="res-q" type="search" placeholder="Filter item id…" autocomplete="off">
+      </label>
+      <label class="resource-control">
+        Census day (HST)
+        <select id="res-date">
+          <option value="">Latest live scan</option>
+        </select>
+      </label>
+    </div>
+
+    <section class="resource-chart-card" id="res-history" hidden aria-labelledby="res-history-title">
+      <div class="resource-controls">
+        <div>
+          <h2 id="res-history-title">Daily item history</h2>
+          <p class="rmc-muted" id="res-history-meta">Choose an item to graph its daily census count.</p>
+        </div>
+        <label class="resource-control">
+          Item
+          <select id="res-history-item"></select>
+        </label>
+      </div>
+      <div class="resource-history-stage">
+        <canvas id="res-history-chart" aria-label="Daily item census history"></canvas>
+      </div>
+    </section>
+
+    <div class="market-table-wrap">
+      <table class="market-table" id="res-table">
+        <thead>
+          <tr>
+            <th>Item id</th>
+            <th>Count</th>
+            <th>Avg G</th>
+            <th>Mint peg G</th>
+          </tr>
+        </thead>
+        <tbody id="res-body">
+          <tr><td colspan="4" class="rmc-muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container">
+      <p><a href="/">RootMC home</a> · <a href="/market/">Market</a> · <a href="/economy/">Economy</a></p>
+    </div>
+  </footer>
+
+  <script src="/scripts/nav.js" defer></script>
+  <script src="/resources/resources.js?v=20260717b" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+  <script src="/scripts/generation-switch.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — RootMC</title>
+  <meta name="description" content="RootMC Terms of Service — required for governance participation on rootmc.net.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/terms/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <style>
+    .terms-prose h2 { margin-top: 2rem; font-size: 1.15rem; }
+    .terms-prose p, .terms-prose li { line-height: 1.65; color: var(--rmc-text-soft); }
+    .terms-actions { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+    .terms-version { font-family: var(--rmc-mono); font-size: .85rem; }
+  </style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span>RootMC<span class="rmc-brand-tag">SMP</span></a>
+      <nav class="rmc-nav" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/council/">Council</a>
+        <a href="/wiki/">Wiki</a>
+        <a href="/verify/" class="rmc-nav-cta">Link account</a>
+      </nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container" style="padding-bottom: 3rem; max-width: 720px;">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> · <a href="/council/">Council</a> · Terms</p>
+    <p class="market-badge">Terms of Service</p>
+    <h1>RootMC.net <span class="gold">Terms of Service</span></h1>
+    <p class="terms-version rmc-muted" id="terms-version">Version loading…</p>
+
+    <article class="rmc-card terms-prose">
+      <p>These Terms govern your use of <strong>rootmc.net</strong> and participation in RootMC governance features (citizen proposals, weekly bills, amendments, and Council votes). By submitting, amending, or voting you agree to these Terms and the <a href="/wiki/constitution/">RootMC Constitution</a>.</p>
+
+      <h2>1. Eligibility &amp; verification</h2>
+      <ul>
+        <li>Governance actions require a <strong>linked Minecraft account</strong> and <strong>linked Discord account</strong> verified through <a href="/verify/">rootmc.net/verify</a>.</li>
+        <li>Your linked Discord identity is used as online verification for submissions and votes.</li>
+        <li>Voting power is calculated per the Constitution (playtime × listing vote points).</li>
+      </ul>
+
+      <h2>2. Governance participation</h2>
+      <ul>
+        <li>Proposals must be good-faith, on-topic, and categorized correctly (constitution, governance, plugin, or metric).</li>
+        <li>Weekly bills compile pending proposals published at least <strong>3 days</strong> before Sunday compile; amendments are accepted during the published amendment window only.</li>
+        <li>Weighted votes are recorded per linked account; one vote per poll per voter (you may change your vote while the poll is open).</li>
+        <li>Passing votes authorize staff to implement changes within server and platform constraints — not every proposal can be implemented verbatim.</li>
+      </ul>
+
+      <h2>3. Conduct</h2>
+      <ul>
+        <li>No harassment, spam, vote manipulation, or impersonation.</li>
+        <li>Do not submit content that violates Minecraft/Mojang terms, Discord Terms, or applicable law.</li>
+        <li>Staff may retract abusive proposals, close votes, or remove participation privileges for violations.</li>
+      </ul>
+
+      <h2>4. Discord &amp; discussion</h2>
+      <p>Discord channels and threads may announce new proposals and bills with links back to this site. Official text, amendment forms, and vote tallies on rootmc.net are authoritative; Discord is for discussion and notifications.</p>
+
+      <h2>5. Privacy</h2>
+      <p>Governance records store your Minecraft username, Discord user id, vote choice, and calculated vote weight. Public pages show proposal content and aggregated vote percentages — not private account emails.</p>
+
+      <h2>6. Changes</h2>
+      <p>We may update these Terms. The version identifier on this page must be accepted again after material changes before you submit, amend, or vote.</p>
+
+      <h2>7. Disclaimer</h2>
+      <p>RootMC is a community Minecraft server operated as-is. Governance outcomes are community decisions; the service may change, pause, or discontinue features without liability beyond what applicable law requires.</p>
+
+      <div class="terms-actions">
+        <label class="verify-field" style="flex: 1 1 100%;">
+          <input type="checkbox" id="terms-agree"> I agree to the RootMC Terms of Service and Constitution for governance participation.
+        </label>
+        <button type="button" class="rmc-btn rmc-btn-primary" id="btn-accept" disabled>Accept terms</button>
+        <a class="rmc-btn rmc-btn-secondary" href="/council/">Back to Council</a>
+      </div>
+      <p id="terms-status" class="verify-status" role="status" hidden></p>
+    </article>
+  </main>
+
+  <script src="/governance/governance.js"></script>
+  <script>
+    (async function () {
+      const G = window.RootMcGovernance;
+      const { data } = await G.govFetch("terms", { method: "GET" });
+      G.el("terms-version").textContent = "Version " + (data && data.version ? data.version : "2026-07-02");
+
+      const me = await G.loadMe();
+      const status = G.el("terms-status");
+      const agree = G.el("terms-agree");
+      const btn = G.el("btn-accept");
+
+      if (me && me.terms_accepted) {
+        status.hidden = false;
+        status.className = "verify-status verify-status-info";
+        status.textContent = "You have already accepted the current terms.";
+        agree.checked = true;
+        btn.disabled = true;
+        btn.textContent = "Accepted";
+      }
+
+      agree.addEventListener("change", function () {
+        btn.disabled = !agree.checked || (me && me.terms_accepted);
+      });
+
+      btn.addEventListener("click", async function () {
+        if (!G.authToken()) {
+          status.hidden = false;
+          status.className = "verify-status verify-status-err";
+          status.textContent = "Sign in first — use Link account if you only have a Minecraft link code.";
+          return;
+        }
+        if (!me || !me.linked) {
+          status.hidden = false;
+          status.className = "verify-status verify-status-err";
+          status.textContent = "Link Minecraft and Discord at /verify/ before accepting.";
+          return;
+        }
+        status.hidden = false;
+        status.className = "verify-status verify-status-info";
+        status.textContent = "Saving…";
+        const res = await G.acceptTerms();
+        if (res.ok && res.data.ok) {
+          status.className = "verify-status verify-status-info";
+          status.textContent = "Terms accepted. You can submit proposals and vote.";
+          btn.disabled = true;
+          btn.textContent = "Accepted";
+        } else {
+          status.className = "verify-status verify-status-err";
+          status.textContent = (res.data && res.data.detail) || "Could not save acceptance.";
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

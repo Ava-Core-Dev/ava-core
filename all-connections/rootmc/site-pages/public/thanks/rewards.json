@@ -1,0 +1,2231 @@
+{
+  "version": 1,
+  "gamma": 1.2,
+  "weightSum": 1000000,
+  "count": 247,
+  "formula": "(248-rank)^1.2",
+  "rewards": [
+    {
+      "id": "book_binding_curse",
+      "entry": "Enchanted book (Binding Curse)",
+      "rank": 1,
+      "qty": 1,
+      "weight": 8867,
+      "kind": "enchanted_book",
+      "enchant": "binding_curse"
+    },
+    {
+      "id": "book_vanishing_curse",
+      "entry": "Enchanted book (Vanishing Curse)",
+      "rank": 2,
+      "qty": 1,
+      "weight": 8824,
+      "kind": "enchanted_book",
+      "enchant": "vanishing_curse"
+    },
+    {
+      "id": "potion_thick",
+      "entry": "Potion (Thick)",
+      "rank": 3,
+      "qty": 1,
+      "weight": 8781,
+      "kind": "potion",
+      "potion": "thick"
+    },
+    {
+      "id": "potion_awkward",
+      "entry": "Potion (Awkward)",
+      "rank": 4,
+      "qty": 1,
+      "weight": 8738,
+      "kind": "potion",
+      "potion": "awkward"
+    },
+    {
+      "id": "tadpole_spawn_egg",
+      "entry": "Tadpole",
+      "rank": 5,
+      "qty": 1,
+      "weight": 8695,
+      "kind": "material",
+      "material": "TADPOLE_SPAWN_EGG"
+    },
+    {
+      "id": "bat_spawn_egg",
+      "entry": "Bat",
+      "rank": 6,
+      "qty": 1,
+      "weight": 8652,
+      "kind": "material",
+      "material": "BAT_SPAWN_EGG"
+    },
+    {
+      "id": "cod_spawn_egg",
+      "entry": "Cod",
+      "rank": 7,
+      "qty": 1,
+      "weight": 8610,
+      "kind": "material",
+      "material": "COD_SPAWN_EGG"
+    },
+    {
+      "id": "salmon_spawn_egg",
+      "entry": "Salmon",
+      "rank": 8,
+      "qty": 1,
+      "weight": 8567,
+      "kind": "material",
+      "material": "SALMON_SPAWN_EGG"
+    },
+    {
+      "id": "tropical_fish_spawn_egg",
+      "entry": "Tropical fish",
+      "rank": 9,
+      "qty": 1,
+      "weight": 8524,
+      "kind": "material",
+      "material": "TROPICAL_FISH_SPAWN_EGG"
+    },
+    {
+      "id": "glow_squid_spawn_egg",
+      "entry": "Glow squid",
+      "rank": 10,
+      "qty": 1,
+      "weight": 8481,
+      "kind": "material",
+      "material": "GLOW_SQUID_SPAWN_EGG"
+    },
+    {
+      "id": "squid_spawn_egg",
+      "entry": "Squid",
+      "rank": 11,
+      "qty": 1,
+      "weight": 8438,
+      "kind": "material",
+      "material": "SQUID_SPAWN_EGG"
+    },
+    {
+      "id": "potion_strong_poison",
+      "entry": "Potion (Poison II)",
+      "rank": 12,
+      "qty": 1,
+      "weight": 8396,
+      "kind": "potion",
+      "potion": "strong_poison"
+    },
+    {
+      "id": "potion_poison",
+      "entry": "Potion (Poison)",
+      "rank": 13,
+      "qty": 1,
+      "weight": 8353,
+      "kind": "potion",
+      "potion": "poison"
+    },
+    {
+      "id": "potion_long_poison",
+      "entry": "Potion (Poison (long))",
+      "rank": 14,
+      "qty": 1,
+      "weight": 8310,
+      "kind": "potion",
+      "potion": "long_poison"
+    },
+    {
+      "id": "potion_strong_harming",
+      "entry": "Potion (Harming II)",
+      "rank": 15,
+      "qty": 1,
+      "weight": 8268,
+      "kind": "potion",
+      "potion": "strong_harming"
+    },
+    {
+      "id": "potion_harming",
+      "entry": "Potion (Harming)",
+      "rank": 16,
+      "qty": 1,
+      "weight": 8225,
+      "kind": "potion",
+      "potion": "harming"
+    },
+    {
+      "id": "potion_weakness",
+      "entry": "Potion (Weakness)",
+      "rank": 17,
+      "qty": 1,
+      "weight": 8183,
+      "kind": "potion",
+      "potion": "weakness"
+    },
+    {
+      "id": "potion_long_weakness",
+      "entry": "Potion (Weakness (long))",
+      "rank": 18,
+      "qty": 1,
+      "weight": 8140,
+      "kind": "potion",
+      "potion": "long_weakness"
+    },
+    {
+      "id": "potion_strong_slowness",
+      "entry": "Potion (Slowness IV)",
+      "rank": 19,
+      "qty": 1,
+      "weight": 8098,
+      "kind": "potion",
+      "potion": "strong_slowness"
+    },
+    {
+      "id": "potion_slowness",
+      "entry": "Potion (Slowness)",
+      "rank": 20,
+      "qty": 1,
+      "weight": 8055,
+      "kind": "potion",
+      "potion": "slowness"
+    },
+    {
+      "id": "potion_long_slowness",
+      "entry": "Potion (Slowness (long))",
+      "rank": 21,
+      "qty": 1,
+      "weight": 8013,
+      "kind": "potion",
+      "potion": "long_slowness"
+    },
+    {
+      "id": "potion_infested",
+      "entry": "Potion (Infested)",
+      "rank": 22,
+      "qty": 1,
+      "weight": 7971,
+      "kind": "potion",
+      "potion": "infested"
+    },
+    {
+      "id": "potion_oozing",
+      "entry": "Potion (Oozing)",
+      "rank": 23,
+      "qty": 1,
+      "weight": 7928,
+      "kind": "potion",
+      "potion": "oozing"
+    },
+    {
+      "id": "potion_weaving",
+      "entry": "Potion (Weaving)",
+      "rank": 24,
+      "qty": 1,
+      "weight": 7886,
+      "kind": "potion",
+      "potion": "weaving"
+    },
+    {
+      "id": "potion_wind_charged",
+      "entry": "Potion (Wind Charged)",
+      "rank": 25,
+      "qty": 1,
+      "weight": 7844,
+      "kind": "potion",
+      "potion": "wind_charged"
+    },
+    {
+      "id": "book_luck_of_the_sea",
+      "entry": "Enchanted book (Luck of the Sea)",
+      "rank": 26,
+      "qty": 1,
+      "weight": 7802,
+      "kind": "enchanted_book",
+      "enchant": "luck_of_the_sea"
+    },
+    {
+      "id": "book_lure",
+      "entry": "Enchanted book (Lure)",
+      "rank": 27,
+      "qty": 1,
+      "weight": 7759,
+      "kind": "enchanted_book",
+      "enchant": "lure"
+    },
+    {
+      "id": "potion_luck",
+      "entry": "Potion (Luck)",
+      "rank": 28,
+      "qty": 1,
+      "weight": 7717,
+      "kind": "potion",
+      "potion": "luck"
+    },
+    {
+      "id": "free_lotto_ticket",
+      "entry": "Free Lotto Ticket",
+      "rank": 29,
+      "qty": 1,
+      "weight": 7675,
+      "kind": "free_lotto"
+    },
+    {
+      "id": "tipped_thick",
+      "entry": "Tipped Arrow (Thick) x16",
+      "rank": 30,
+      "qty": 16,
+      "weight": 7633,
+      "kind": "tipped_arrow",
+      "potion": "thick"
+    },
+    {
+      "id": "tipped_awkward",
+      "entry": "Tipped Arrow (Awkward) x16",
+      "rank": 31,
+      "qty": 16,
+      "weight": 7591,
+      "kind": "tipped_arrow",
+      "potion": "awkward"
+    },
+    {
+      "id": "tipped_healing",
+      "entry": "Tipped Arrow (Healing) x16",
+      "rank": 32,
+      "qty": 16,
+      "weight": 7549,
+      "kind": "tipped_arrow",
+      "potion": "healing"
+    },
+    {
+      "id": "tipped_strong_healing",
+      "entry": "Tipped Arrow (Healing II) x16",
+      "rank": 33,
+      "qty": 16,
+      "weight": 7507,
+      "kind": "tipped_arrow",
+      "potion": "strong_healing"
+    },
+    {
+      "id": "tipped_regeneration",
+      "entry": "Tipped Arrow (Regeneration) x16",
+      "rank": 34,
+      "qty": 16,
+      "weight": 7465,
+      "kind": "tipped_arrow",
+      "potion": "regeneration"
+    },
+    {
+      "id": "tipped_long_regeneration",
+      "entry": "Tipped Arrow (Regeneration long) x16",
+      "rank": 35,
+      "qty": 16,
+      "weight": 7424,
+      "kind": "tipped_arrow",
+      "potion": "long_regeneration"
+    },
+    {
+      "id": "tipped_strong_regeneration",
+      "entry": "Tipped Arrow (Regeneration II) x16",
+      "rank": 36,
+      "qty": 16,
+      "weight": 7382,
+      "kind": "tipped_arrow",
+      "potion": "strong_regeneration"
+    },
+    {
+      "id": "tipped_strength",
+      "entry": "Tipped Arrow (Strength) x16",
+      "rank": 37,
+      "qty": 16,
+      "weight": 7340,
+      "kind": "tipped_arrow",
+      "potion": "strength"
+    },
+    {
+      "id": "tipped_long_strength",
+      "entry": "Tipped Arrow (Strength long) x16",
+      "rank": 38,
+      "qty": 16,
+      "weight": 7298,
+      "kind": "tipped_arrow",
+      "potion": "long_strength"
+    },
+    {
+      "id": "tipped_strong_strength",
+      "entry": "Tipped Arrow (Strength II) x16",
+      "rank": 39,
+      "qty": 16,
+      "weight": 7257,
+      "kind": "tipped_arrow",
+      "potion": "strong_strength"
+    },
+    {
+      "id": "tipped_swiftness",
+      "entry": "Tipped Arrow (Swiftness) x16",
+      "rank": 40,
+      "qty": 16,
+      "weight": 7215,
+      "kind": "tipped_arrow",
+      "potion": "swiftness"
+    },
+    {
+      "id": "tipped_long_swiftness",
+      "entry": "Tipped Arrow (Swiftness long) x16",
+      "rank": 41,
+      "qty": 16,
+      "weight": 7173,
+      "kind": "tipped_arrow",
+      "potion": "long_swiftness"
+    },
+    {
+      "id": "tipped_strong_swiftness",
+      "entry": "Tipped Arrow (Swiftness II) x16",
+      "rank": 42,
+      "qty": 16,
+      "weight": 7132,
+      "kind": "tipped_arrow",
+      "potion": "strong_swiftness"
+    },
+    {
+      "id": "tipped_leaping",
+      "entry": "Tipped Arrow (Leaping) x16",
+      "rank": 43,
+      "qty": 16,
+      "weight": 7090,
+      "kind": "tipped_arrow",
+      "potion": "leaping"
+    },
+    {
+      "id": "tipped_long_leaping",
+      "entry": "Tipped Arrow (Leaping long) x16",
+      "rank": 44,
+      "qty": 16,
+      "weight": 7049,
+      "kind": "tipped_arrow",
+      "potion": "long_leaping"
+    },
+    {
+      "id": "tipped_strong_leaping",
+      "entry": "Tipped Arrow (Leaping II) x16",
+      "rank": 45,
+      "qty": 16,
+      "weight": 7007,
+      "kind": "tipped_arrow",
+      "potion": "strong_leaping"
+    },
+    {
+      "id": "tipped_fire_resistance",
+      "entry": "Tipped Arrow (Fire Resistance) x16",
+      "rank": 46,
+      "qty": 16,
+      "weight": 6966,
+      "kind": "tipped_arrow",
+      "potion": "fire_resistance"
+    },
+    {
+      "id": "tipped_long_fire_resistance",
+      "entry": "Tipped Arrow (Fire Resistance long) x16",
+      "rank": 47,
+      "qty": 16,
+      "weight": 6925,
+      "kind": "tipped_arrow",
+      "potion": "long_fire_resistance"
+    },
+    {
+      "id": "tipped_night_vision",
+      "entry": "Tipped Arrow (Night Vision) x16",
+      "rank": 48,
+      "qty": 16,
+      "weight": 6883,
+      "kind": "tipped_arrow",
+      "potion": "night_vision"
+    },
+    {
+      "id": "tipped_long_night_vision",
+      "entry": "Tipped Arrow (Night Vision long) x16",
+      "rank": 49,
+      "qty": 16,
+      "weight": 6842,
+      "kind": "tipped_arrow",
+      "potion": "long_night_vision"
+    },
+    {
+      "id": "tipped_water_breathing",
+      "entry": "Tipped Arrow (Water Breathing) x16",
+      "rank": 50,
+      "qty": 16,
+      "weight": 6801,
+      "kind": "tipped_arrow",
+      "potion": "water_breathing"
+    },
+    {
+      "id": "tipped_long_water_breathing",
+      "entry": "Tipped Arrow (Water Breathing long) x16",
+      "rank": 51,
+      "qty": 16,
+      "weight": 6760,
+      "kind": "tipped_arrow",
+      "potion": "long_water_breathing"
+    },
+    {
+      "id": "tipped_invisibility",
+      "entry": "Tipped Arrow (Invisibility) x16",
+      "rank": 52,
+      "qty": 16,
+      "weight": 6718,
+      "kind": "tipped_arrow",
+      "potion": "invisibility"
+    },
+    {
+      "id": "tipped_long_invisibility",
+      "entry": "Tipped Arrow (Invisibility long) x16",
+      "rank": 53,
+      "qty": 16,
+      "weight": 6677,
+      "kind": "tipped_arrow",
+      "potion": "long_invisibility"
+    },
+    {
+      "id": "tipped_slow_falling",
+      "entry": "Tipped Arrow (Slow Falling) x16",
+      "rank": 54,
+      "qty": 16,
+      "weight": 6636,
+      "kind": "tipped_arrow",
+      "potion": "slow_falling"
+    },
+    {
+      "id": "tipped_long_slow_falling",
+      "entry": "Tipped Arrow (Slow Falling long) x16",
+      "rank": 55,
+      "qty": 16,
+      "weight": 6595,
+      "kind": "tipped_arrow",
+      "potion": "long_slow_falling"
+    },
+    {
+      "id": "tipped_luck",
+      "entry": "Tipped Arrow (Luck) x16",
+      "rank": 56,
+      "qty": 16,
+      "weight": 6554,
+      "kind": "tipped_arrow",
+      "potion": "luck"
+    },
+    {
+      "id": "tipped_turtle_master",
+      "entry": "Tipped Arrow (Turtle Master) x16",
+      "rank": 57,
+      "qty": 16,
+      "weight": 6513,
+      "kind": "tipped_arrow",
+      "potion": "turtle_master"
+    },
+    {
+      "id": "tipped_long_turtle_master",
+      "entry": "Tipped Arrow (Turtle Master long) x16",
+      "rank": 58,
+      "qty": 16,
+      "weight": 6472,
+      "kind": "tipped_arrow",
+      "potion": "long_turtle_master"
+    },
+    {
+      "id": "tipped_strong_turtle_master",
+      "entry": "Tipped Arrow (Turtle Master II) x16",
+      "rank": 59,
+      "qty": 16,
+      "weight": 6432,
+      "kind": "tipped_arrow",
+      "potion": "strong_turtle_master"
+    },
+    {
+      "id": "tipped_infested",
+      "entry": "Tipped Arrow (Infested) x16",
+      "rank": 60,
+      "qty": 16,
+      "weight": 6391,
+      "kind": "tipped_arrow",
+      "potion": "infested"
+    },
+    {
+      "id": "tipped_oozing",
+      "entry": "Tipped Arrow (Oozing) x16",
+      "rank": 61,
+      "qty": 16,
+      "weight": 6350,
+      "kind": "tipped_arrow",
+      "potion": "oozing"
+    },
+    {
+      "id": "tipped_weaving",
+      "entry": "Tipped Arrow (Weaving) x16",
+      "rank": 62,
+      "qty": 16,
+      "weight": 6309,
+      "kind": "tipped_arrow",
+      "potion": "weaving"
+    },
+    {
+      "id": "tipped_wind_charged",
+      "entry": "Tipped Arrow (Wind Charged) x16",
+      "rank": 63,
+      "qty": 16,
+      "weight": 6269,
+      "kind": "tipped_arrow",
+      "potion": "wind_charged"
+    },
+    {
+      "id": "arrow",
+      "entry": "Arrow x16",
+      "rank": 64,
+      "qty": 16,
+      "weight": 6228,
+      "kind": "material",
+      "material": "ARROW"
+    },
+    {
+      "id": "spectral_arrow",
+      "entry": "Spectral Arrow x16",
+      "rank": 65,
+      "qty": 16,
+      "weight": 6187,
+      "kind": "material",
+      "material": "SPECTRAL_ARROW"
+    },
+    {
+      "id": "ender_pearl",
+      "entry": "Ender Pearl x16",
+      "rank": 66,
+      "qty": 16,
+      "weight": 6147,
+      "kind": "material",
+      "material": "ENDER_PEARL"
+    },
+    {
+      "id": "tipped_weakness",
+      "entry": "Tipped Arrow (Weakness) x16",
+      "rank": 67,
+      "qty": 16,
+      "weight": 6106,
+      "kind": "tipped_arrow",
+      "potion": "weakness"
+    },
+    {
+      "id": "tipped_long_weakness",
+      "entry": "Tipped Arrow (Weakness long) x16",
+      "rank": 68,
+      "qty": 16,
+      "weight": 6066,
+      "kind": "tipped_arrow",
+      "potion": "long_weakness"
+    },
+    {
+      "id": "tipped_slowness",
+      "entry": "Tipped Arrow (Slowness) x16",
+      "rank": 69,
+      "qty": 16,
+      "weight": 6025,
+      "kind": "tipped_arrow",
+      "potion": "slowness"
+    },
+    {
+      "id": "tipped_long_slowness",
+      "entry": "Tipped Arrow (Slowness long) x16",
+      "rank": 70,
+      "qty": 16,
+      "weight": 5985,
+      "kind": "tipped_arrow",
+      "potion": "long_slowness"
+    },
+    {
+      "id": "tipped_strong_slowness",
+      "entry": "Tipped Arrow (Slowness IV) x16",
+      "rank": 71,
+      "qty": 16,
+      "weight": 5945,
+      "kind": "tipped_arrow",
+      "potion": "strong_slowness"
+    },
+    {
+      "id": "tipped_poison",
+      "entry": "Tipped Arrow (Poison) x16",
+      "rank": 72,
+      "qty": 16,
+      "weight": 5904,
+      "kind": "tipped_arrow",
+      "potion": "poison"
+    },
+    {
+      "id": "tipped_long_poison",
+      "entry": "Tipped Arrow (Poison long) x16",
+      "rank": 73,
+      "qty": 16,
+      "weight": 5864,
+      "kind": "tipped_arrow",
+      "potion": "long_poison"
+    },
+    {
+      "id": "tipped_strong_poison",
+      "entry": "Tipped Arrow (Poison II) x16",
+      "rank": 74,
+      "qty": 16,
+      "weight": 5824,
+      "kind": "tipped_arrow",
+      "potion": "strong_poison"
+    },
+    {
+      "id": "tipped_harming",
+      "entry": "Tipped Arrow (Harming) x16",
+      "rank": 75,
+      "qty": 16,
+      "weight": 5784,
+      "kind": "tipped_arrow",
+      "potion": "harming"
+    },
+    {
+      "id": "tipped_strong_harming",
+      "entry": "Tipped Arrow (Harming II) x16",
+      "rank": 76,
+      "qty": 16,
+      "weight": 5744,
+      "kind": "tipped_arrow",
+      "potion": "strong_harming"
+    },
+    {
+      "id": "chicken_spawn_egg",
+      "entry": "Chicken",
+      "rank": 77,
+      "qty": 1,
+      "weight": 5704,
+      "kind": "material",
+      "material": "CHICKEN_SPAWN_EGG"
+    },
+    {
+      "id": "rabbit_spawn_egg",
+      "entry": "Rabbit",
+      "rank": 78,
+      "qty": 1,
+      "weight": 5664,
+      "kind": "material",
+      "material": "RABBIT_SPAWN_EGG"
+    },
+    {
+      "id": "pig_spawn_egg",
+      "entry": "Pig",
+      "rank": 79,
+      "qty": 1,
+      "weight": 5624,
+      "kind": "material",
+      "material": "PIG_SPAWN_EGG"
+    },
+    {
+      "id": "sheep_spawn_egg",
+      "entry": "Sheep",
+      "rank": 80,
+      "qty": 1,
+      "weight": 5584,
+      "kind": "material",
+      "material": "SHEEP_SPAWN_EGG"
+    },
+    {
+      "id": "cow_spawn_egg",
+      "entry": "Cow",
+      "rank": 81,
+      "qty": 1,
+      "weight": 5544,
+      "kind": "material",
+      "material": "COW_SPAWN_EGG"
+    },
+    {
+      "id": "mooshroom_spawn_egg",
+      "entry": "Mooshroom",
+      "rank": 82,
+      "qty": 1,
+      "weight": 5504,
+      "kind": "material",
+      "material": "MOOSHROOM_SPAWN_EGG"
+    },
+    {
+      "id": "armadillo_spawn_egg",
+      "entry": "Armadillo",
+      "rank": 83,
+      "qty": 1,
+      "weight": 5464,
+      "kind": "material",
+      "material": "ARMADILLO_SPAWN_EGG"
+    },
+    {
+      "id": "sniffer_spawn_egg",
+      "entry": "Sniffer",
+      "rank": 84,
+      "qty": 1,
+      "weight": 5425,
+      "kind": "material",
+      "material": "SNIFFER_SPAWN_EGG"
+    },
+    {
+      "id": "turtle_spawn_egg",
+      "entry": "Turtle",
+      "rank": 85,
+      "qty": 1,
+      "weight": 5385,
+      "kind": "material",
+      "material": "TURTLE_SPAWN_EGG"
+    },
+    {
+      "id": "frog_spawn_egg",
+      "entry": "Frog",
+      "rank": 86,
+      "qty": 1,
+      "weight": 5345,
+      "kind": "material",
+      "material": "FROG_SPAWN_EGG"
+    },
+    {
+      "id": "book_bane_of_arthropods",
+      "entry": "Enchanted book (Bane of Arthropods)",
+      "rank": 87,
+      "qty": 1,
+      "weight": 5306,
+      "kind": "enchanted_book",
+      "enchant": "bane_of_arthropods"
+    },
+    {
+      "id": "cat_spawn_egg",
+      "entry": "Cat",
+      "rank": 88,
+      "qty": 1,
+      "weight": 5266,
+      "kind": "material",
+      "material": "CAT_SPAWN_EGG"
+    },
+    {
+      "id": "ocelot_spawn_egg",
+      "entry": "Ocelot",
+      "rank": 89,
+      "qty": 1,
+      "weight": 5227,
+      "kind": "material",
+      "material": "OCELOT_SPAWN_EGG"
+    },
+    {
+      "id": "parrot_spawn_egg",
+      "entry": "Parrot",
+      "rank": 90,
+      "qty": 1,
+      "weight": 5187,
+      "kind": "material",
+      "material": "PARROT_SPAWN_EGG"
+    },
+    {
+      "id": "fox_spawn_egg",
+      "entry": "Fox",
+      "rank": 91,
+      "qty": 1,
+      "weight": 5148,
+      "kind": "material",
+      "material": "FOX_SPAWN_EGG"
+    },
+    {
+      "id": "allay_spawn_egg",
+      "entry": "Allay",
+      "rank": 92,
+      "qty": 1,
+      "weight": 5109,
+      "kind": "material",
+      "material": "ALLAY_SPAWN_EGG"
+    },
+    {
+      "id": "sulfur_cube_spawn_egg",
+      "entry": "Sulfur cube",
+      "rank": 93,
+      "qty": 1,
+      "weight": 5069,
+      "kind": "material",
+      "material": "SULFUR_CUBE_SPAWN_EGG"
+    },
+    {
+      "id": "snow_golem_spawn_egg",
+      "entry": "Snow golem",
+      "rank": 94,
+      "qty": 1,
+      "weight": 5030,
+      "kind": "material",
+      "material": "SNOW_GOLEM_SPAWN_EGG"
+    },
+    {
+      "id": "copper_golem_spawn_egg",
+      "entry": "Copper golem",
+      "rank": 95,
+      "qty": 1,
+      "weight": 4991,
+      "kind": "material",
+      "material": "COPPER_GOLEM_SPAWN_EGG"
+    },
+    {
+      "id": "sentry_armor_trim_smithing_template",
+      "entry": "Sentry Armor Trim",
+      "rank": 96,
+      "qty": 1,
+      "weight": 4952,
+      "kind": "material",
+      "material": "SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "dune_armor_trim_smithing_template",
+      "entry": "Dune Armor Trim",
+      "rank": 97,
+      "qty": 1,
+      "weight": 4913,
+      "kind": "material",
+      "material": "DUNE_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "coast_armor_trim_smithing_template",
+      "entry": "Coast Armor Trim",
+      "rank": 98,
+      "qty": 1,
+      "weight": 4874,
+      "kind": "material",
+      "material": "COAST_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "wild_armor_trim_smithing_template",
+      "entry": "Wild Armor Trim",
+      "rank": 99,
+      "qty": 1,
+      "weight": 4835,
+      "kind": "material",
+      "material": "WILD_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "wayfinder_armor_trim_smithing_template",
+      "entry": "Wayfinder Armor Trim",
+      "rank": 100,
+      "qty": 1,
+      "weight": 4796,
+      "kind": "material",
+      "material": "WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "raiser_armor_trim_smithing_template",
+      "entry": "Raiser Armor Trim",
+      "rank": 101,
+      "qty": 1,
+      "weight": 4757,
+      "kind": "material",
+      "material": "RAISER_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "shaper_armor_trim_smithing_template",
+      "entry": "Shaper Armor Trim",
+      "rank": 102,
+      "qty": 1,
+      "weight": 4718,
+      "kind": "material",
+      "material": "SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "host_armor_trim_smithing_template",
+      "entry": "Host Armor Trim",
+      "rank": 103,
+      "qty": 1,
+      "weight": 4680,
+      "kind": "material",
+      "material": "HOST_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "snout_armor_trim_smithing_template",
+      "entry": "Snout Armor Trim",
+      "rank": 104,
+      "qty": 1,
+      "weight": 4641,
+      "kind": "material",
+      "material": "SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "rib_armor_trim_smithing_template",
+      "entry": "Rib Armor Trim",
+      "rank": 105,
+      "qty": 1,
+      "weight": 4602,
+      "kind": "material",
+      "material": "RIB_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "tide_armor_trim_smithing_template",
+      "entry": "Tide Armor Trim",
+      "rank": 106,
+      "qty": 1,
+      "weight": 4564,
+      "kind": "material",
+      "material": "TIDE_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "vex_armor_trim_smithing_template",
+      "entry": "Vex Armor Trim",
+      "rank": 107,
+      "qty": 1,
+      "weight": 4525,
+      "kind": "material",
+      "material": "VEX_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "eye_armor_trim_smithing_template",
+      "entry": "Eye Armor Trim",
+      "rank": 108,
+      "qty": 1,
+      "weight": 4487,
+      "kind": "material",
+      "material": "EYE_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "bolt_armor_trim_smithing_template",
+      "entry": "Bolt Armor Trim",
+      "rank": 109,
+      "qty": 1,
+      "weight": 4448,
+      "kind": "material",
+      "material": "BOLT_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "flow_armor_trim_smithing_template",
+      "entry": "Flow Armor Trim",
+      "rank": 110,
+      "qty": 1,
+      "weight": 4410,
+      "kind": "material",
+      "material": "FLOW_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "ward_armor_trim_smithing_template",
+      "entry": "Ward Armor Trim",
+      "rank": 111,
+      "qty": 1,
+      "weight": 4371,
+      "kind": "material",
+      "material": "WARD_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "spire_armor_trim_smithing_template",
+      "entry": "Spire Armor Trim",
+      "rank": 112,
+      "qty": 1,
+      "weight": 4333,
+      "kind": "material",
+      "material": "SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "silence_armor_trim_smithing_template",
+      "entry": "Silence Armor Trim",
+      "rank": 113,
+      "qty": 1,
+      "weight": 4295,
+      "kind": "material",
+      "material": "SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE"
+    },
+    {
+      "id": "book_punch",
+      "entry": "Enchanted book (Punch)",
+      "rank": 114,
+      "qty": 1,
+      "weight": 4257,
+      "kind": "enchanted_book",
+      "enchant": "punch"
+    },
+    {
+      "id": "book_knockback",
+      "entry": "Enchanted book (Knockback)",
+      "rank": 115,
+      "qty": 1,
+      "weight": 4219,
+      "kind": "enchanted_book",
+      "enchant": "knockback"
+    },
+    {
+      "id": "book_aqua_affinity",
+      "entry": "Enchanted book (Aqua Affinity)",
+      "rank": 116,
+      "qty": 1,
+      "weight": 4181,
+      "kind": "enchanted_book",
+      "enchant": "aqua_affinity"
+    },
+    {
+      "id": "potion_night_vision",
+      "entry": "Potion (Night Vision)",
+      "rank": 117,
+      "qty": 1,
+      "weight": 4143,
+      "kind": "potion",
+      "potion": "night_vision"
+    },
+    {
+      "id": "potion_long_night_vision",
+      "entry": "Potion (Night Vision (long))",
+      "rank": 118,
+      "qty": 1,
+      "weight": 4105,
+      "kind": "potion",
+      "potion": "long_night_vision"
+    },
+    {
+      "id": "potion_leaping",
+      "entry": "Potion (Leaping)",
+      "rank": 119,
+      "qty": 1,
+      "weight": 4067,
+      "kind": "potion",
+      "potion": "leaping"
+    },
+    {
+      "id": "potion_long_leaping",
+      "entry": "Potion (Leaping (long))",
+      "rank": 120,
+      "qty": 1,
+      "weight": 4029,
+      "kind": "potion",
+      "potion": "long_leaping"
+    },
+    {
+      "id": "potion_strong_leaping",
+      "entry": "Potion (Leaping II)",
+      "rank": 121,
+      "qty": 1,
+      "weight": 3991,
+      "kind": "potion",
+      "potion": "strong_leaping"
+    },
+    {
+      "id": "potion_water_breathing",
+      "entry": "Potion (Water Breathing)",
+      "rank": 122,
+      "qty": 1,
+      "weight": 3954,
+      "kind": "potion",
+      "potion": "water_breathing"
+    },
+    {
+      "id": "potion_long_water_breathing",
+      "entry": "Potion (Water Breathing (long))",
+      "rank": 123,
+      "qty": 1,
+      "weight": 3916,
+      "kind": "potion",
+      "potion": "long_water_breathing"
+    },
+    {
+      "id": "potion_slow_falling",
+      "entry": "Potion (Slow Falling)",
+      "rank": 124,
+      "qty": 1,
+      "weight": 3879,
+      "kind": "potion",
+      "potion": "slow_falling"
+    },
+    {
+      "id": "potion_long_slow_falling",
+      "entry": "Potion (Slow Falling (long))",
+      "rank": 125,
+      "qty": 1,
+      "weight": 3841,
+      "kind": "potion",
+      "potion": "long_slow_falling"
+    },
+    {
+      "id": "coal",
+      "entry": "Coal x16",
+      "rank": 126,
+      "qty": 16,
+      "weight": 3804,
+      "kind": "material",
+      "material": "COAL"
+    },
+    {
+      "id": "coal_block",
+      "entry": "Coal Block x16",
+      "rank": 127,
+      "qty": 16,
+      "weight": 3766,
+      "kind": "material",
+      "material": "COAL_BLOCK"
+    },
+    {
+      "id": "glowstone",
+      "entry": "Glowstone x8",
+      "rank": 128,
+      "qty": 8,
+      "weight": 3729,
+      "kind": "material",
+      "material": "GLOWSTONE"
+    },
+    {
+      "id": "iron_ingot",
+      "entry": "Iron Ingot x16",
+      "rank": 129,
+      "qty": 16,
+      "weight": 3692,
+      "kind": "material",
+      "material": "IRON_INGOT"
+    },
+    {
+      "id": "iron_block",
+      "entry": "Iron block",
+      "rank": 130,
+      "qty": 1,
+      "weight": 3654,
+      "kind": "material",
+      "material": "IRON_BLOCK"
+    },
+    {
+      "id": "donkey_spawn_egg",
+      "entry": "Donkey",
+      "rank": 131,
+      "qty": 1,
+      "weight": 3617,
+      "kind": "material",
+      "material": "DONKEY_SPAWN_EGG"
+    },
+    {
+      "id": "mule_spawn_egg",
+      "entry": "Mule",
+      "rank": 132,
+      "qty": 1,
+      "weight": 3580,
+      "kind": "material",
+      "material": "MULE_SPAWN_EGG"
+    },
+    {
+      "id": "horse_spawn_egg",
+      "entry": "Horse",
+      "rank": 133,
+      "qty": 1,
+      "weight": 3543,
+      "kind": "material",
+      "material": "HORSE_SPAWN_EGG"
+    },
+    {
+      "id": "camel_spawn_egg",
+      "entry": "Camel",
+      "rank": 134,
+      "qty": 1,
+      "weight": 3506,
+      "kind": "material",
+      "material": "CAMEL_SPAWN_EGG"
+    },
+    {
+      "id": "strider_spawn_egg",
+      "entry": "Strider",
+      "rank": 135,
+      "qty": 1,
+      "weight": 3469,
+      "kind": "material",
+      "material": "STRIDER_SPAWN_EGG"
+    },
+    {
+      "id": "nautilus_spawn_egg",
+      "entry": "Nautilus",
+      "rank": 136,
+      "qty": 1,
+      "weight": 3433,
+      "kind": "material",
+      "material": "NAUTILUS_SPAWN_EGG"
+    },
+    {
+      "id": "skeleton_horse_spawn_egg",
+      "entry": "Skeleton horse",
+      "rank": 137,
+      "qty": 1,
+      "weight": 3396,
+      "kind": "material",
+      "material": "SKELETON_HORSE_SPAWN_EGG"
+    },
+    {
+      "id": "zombie_horse_spawn_egg",
+      "entry": "Zombie horse",
+      "rank": 138,
+      "qty": 1,
+      "weight": 3359,
+      "kind": "material",
+      "material": "ZOMBIE_HORSE_SPAWN_EGG"
+    },
+    {
+      "id": "happy_ghast_spawn_egg",
+      "entry": "Happy ghast",
+      "rank": 139,
+      "qty": 1,
+      "weight": 3323,
+      "kind": "material",
+      "material": "HAPPY_GHAST_SPAWN_EGG"
+    },
+    {
+      "id": "book_frost_walker",
+      "entry": "Enchanted book (Frost Walker)",
+      "rank": 140,
+      "qty": 1,
+      "weight": 3286,
+      "kind": "enchanted_book",
+      "enchant": "frost_walker"
+    },
+    {
+      "id": "book_soul_speed",
+      "entry": "Enchanted book (Soul Speed)",
+      "rank": 141,
+      "qty": 1,
+      "weight": 3250,
+      "kind": "enchanted_book",
+      "enchant": "soul_speed"
+    },
+    {
+      "id": "book_flame",
+      "entry": "Enchanted book (Flame)",
+      "rank": 142,
+      "qty": 1,
+      "weight": 3213,
+      "kind": "enchanted_book",
+      "enchant": "flame"
+    },
+    {
+      "id": "book_fire_aspect",
+      "entry": "Enchanted book (Fire Aspect)",
+      "rank": 143,
+      "qty": 1,
+      "weight": 3177,
+      "kind": "enchanted_book",
+      "enchant": "fire_aspect"
+    },
+    {
+      "id": "llama_spawn_egg",
+      "entry": "Llama",
+      "rank": 144,
+      "qty": 1,
+      "weight": 3140,
+      "kind": "material",
+      "material": "LLAMA_SPAWN_EGG"
+    },
+    {
+      "id": "trader_llama_spawn_egg",
+      "entry": "Trader llama",
+      "rank": 145,
+      "qty": 1,
+      "weight": 3104,
+      "kind": "material",
+      "material": "TRADER_LLAMA_SPAWN_EGG"
+    },
+    {
+      "id": "wandering_trader_spawn_egg",
+      "entry": "Wandering trader",
+      "rank": 146,
+      "qty": 1,
+      "weight": 3068,
+      "kind": "material",
+      "material": "WANDERING_TRADER_SPAWN_EGG"
+    },
+    {
+      "id": "villager_spawn_egg",
+      "entry": "Villager",
+      "rank": 147,
+      "qty": 1,
+      "weight": 3032,
+      "kind": "material",
+      "material": "VILLAGER_SPAWN_EGG"
+    },
+    {
+      "id": "emerald_block",
+      "entry": "Emerald block",
+      "rank": 148,
+      "qty": 1,
+      "weight": 2996,
+      "kind": "material",
+      "material": "EMERALD_BLOCK"
+    },
+    {
+      "id": "book_respiration",
+      "entry": "Enchanted book (Respiration)",
+      "rank": 149,
+      "qty": 1,
+      "weight": 2960,
+      "kind": "enchanted_book",
+      "enchant": "respiration"
+    },
+    {
+      "id": "book_swift_sneak",
+      "entry": "Enchanted book (Swift Sneak)",
+      "rank": 150,
+      "qty": 1,
+      "weight": 2924,
+      "kind": "enchanted_book",
+      "enchant": "swift_sneak"
+    },
+    {
+      "id": "book_depth_strider",
+      "entry": "Enchanted book (Depth Strider)",
+      "rank": 151,
+      "qty": 1,
+      "weight": 2889,
+      "kind": "enchanted_book",
+      "enchant": "depth_strider"
+    },
+    {
+      "id": "book_loyalty",
+      "entry": "Enchanted book (Loyalty)",
+      "rank": 152,
+      "qty": 1,
+      "weight": 2853,
+      "kind": "enchanted_book",
+      "enchant": "loyalty"
+    },
+    {
+      "id": "book_lunge",
+      "entry": "Enchanted book (Lunge)",
+      "rank": 153,
+      "qty": 1,
+      "weight": 2817,
+      "kind": "enchanted_book",
+      "enchant": "lunge"
+    },
+    {
+      "id": "book_channeling",
+      "entry": "Enchanted book (Channeling)",
+      "rank": 154,
+      "qty": 1,
+      "weight": 2782,
+      "kind": "enchanted_book",
+      "enchant": "channeling"
+    },
+    {
+      "id": "potion_swiftness",
+      "entry": "Potion (Swiftness)",
+      "rank": 155,
+      "qty": 1,
+      "weight": 2746,
+      "kind": "potion",
+      "potion": "swiftness"
+    },
+    {
+      "id": "potion_long_swiftness",
+      "entry": "Potion (Swiftness (long))",
+      "rank": 156,
+      "qty": 1,
+      "weight": 2711,
+      "kind": "potion",
+      "potion": "long_swiftness"
+    },
+    {
+      "id": "potion_strong_swiftness",
+      "entry": "Potion (Swiftness II)",
+      "rank": 157,
+      "qty": 1,
+      "weight": 2676,
+      "kind": "potion",
+      "potion": "strong_swiftness"
+    },
+    {
+      "id": "potion_invisibility",
+      "entry": "Potion (Invisibility)",
+      "rank": 158,
+      "qty": 1,
+      "weight": 2640,
+      "kind": "potion",
+      "potion": "invisibility"
+    },
+    {
+      "id": "potion_long_invisibility",
+      "entry": "Potion (Invisibility (long))",
+      "rank": 159,
+      "qty": 1,
+      "weight": 2605,
+      "kind": "potion",
+      "potion": "long_invisibility"
+    },
+    {
+      "id": "potion_turtle_master",
+      "entry": "Potion (Turtle Master)",
+      "rank": 160,
+      "qty": 1,
+      "weight": 2570,
+      "kind": "potion",
+      "potion": "turtle_master"
+    },
+    {
+      "id": "potion_long_turtle_master",
+      "entry": "Potion (Turtle Master (long))",
+      "rank": 161,
+      "qty": 1,
+      "weight": 2535,
+      "kind": "potion",
+      "potion": "long_turtle_master"
+    },
+    {
+      "id": "potion_strong_turtle_master",
+      "entry": "Potion (Turtle Master II)",
+      "rank": 162,
+      "qty": 1,
+      "weight": 2500,
+      "kind": "potion",
+      "potion": "strong_turtle_master"
+    },
+    {
+      "id": "potion_fire_resistance",
+      "entry": "Potion (Fire Resistance)",
+      "rank": 163,
+      "qty": 1,
+      "weight": 2465,
+      "kind": "potion",
+      "potion": "fire_resistance"
+    },
+    {
+      "id": "potion_long_fire_resistance",
+      "entry": "Potion (Fire Resistance (long))",
+      "rank": 164,
+      "qty": 1,
+      "weight": 2430,
+      "kind": "potion",
+      "potion": "long_fire_resistance"
+    },
+    {
+      "id": "potion_healing",
+      "entry": "Potion (Healing)",
+      "rank": 165,
+      "qty": 1,
+      "weight": 2396,
+      "kind": "potion",
+      "potion": "healing"
+    },
+    {
+      "id": "potion_strong_healing",
+      "entry": "Potion (Healing II)",
+      "rank": 166,
+      "qty": 1,
+      "weight": 2361,
+      "kind": "potion",
+      "potion": "strong_healing"
+    },
+    {
+      "id": "potion_regeneration",
+      "entry": "Potion (Regeneration)",
+      "rank": 167,
+      "qty": 1,
+      "weight": 2327,
+      "kind": "potion",
+      "potion": "regeneration"
+    },
+    {
+      "id": "potion_long_regeneration",
+      "entry": "Potion (Regeneration (long))",
+      "rank": 168,
+      "qty": 1,
+      "weight": 2292,
+      "kind": "potion",
+      "potion": "long_regeneration"
+    },
+    {
+      "id": "potion_strong_regeneration",
+      "entry": "Potion (Regeneration II)",
+      "rank": 169,
+      "qty": 1,
+      "weight": 2258,
+      "kind": "potion",
+      "potion": "strong_regeneration"
+    },
+    {
+      "id": "potion_strength",
+      "entry": "Potion (Strength)",
+      "rank": 170,
+      "qty": 1,
+      "weight": 2224,
+      "kind": "potion",
+      "potion": "strength"
+    },
+    {
+      "id": "potion_long_strength",
+      "entry": "Potion (Strength (long))",
+      "rank": 171,
+      "qty": 1,
+      "weight": 2190,
+      "kind": "potion",
+      "potion": "long_strength"
+    },
+    {
+      "id": "potion_strong_strength",
+      "entry": "Potion (Strength II)",
+      "rank": 172,
+      "qty": 1,
+      "weight": 2155,
+      "kind": "potion",
+      "potion": "strong_strength"
+    },
+    {
+      "id": "panda_spawn_egg",
+      "entry": "Panda",
+      "rank": 173,
+      "qty": 1,
+      "weight": 2121,
+      "kind": "material",
+      "material": "PANDA_SPAWN_EGG"
+    },
+    {
+      "id": "goat_spawn_egg",
+      "entry": "Goat",
+      "rank": 174,
+      "qty": 1,
+      "weight": 2088,
+      "kind": "material",
+      "material": "GOAT_SPAWN_EGG"
+    },
+    {
+      "id": "wolf_spawn_egg",
+      "entry": "Wolf",
+      "rank": 175,
+      "qty": 1,
+      "weight": 2054,
+      "kind": "material",
+      "material": "WOLF_SPAWN_EGG"
+    },
+    {
+      "id": "bee_spawn_egg",
+      "entry": "Bee",
+      "rank": 176,
+      "qty": 1,
+      "weight": 2020,
+      "kind": "material",
+      "material": "BEE_SPAWN_EGG"
+    },
+    {
+      "id": "dolphin_spawn_egg",
+      "entry": "Dolphin",
+      "rank": 177,
+      "qty": 1,
+      "weight": 1986,
+      "kind": "material",
+      "material": "DOLPHIN_SPAWN_EGG"
+    },
+    {
+      "id": "axolotl_spawn_egg",
+      "entry": "Axolotl",
+      "rank": 178,
+      "qty": 1,
+      "weight": 1953,
+      "kind": "material",
+      "material": "AXOLOTL_SPAWN_EGG"
+    },
+    {
+      "id": "pufferfish_spawn_egg",
+      "entry": "Pufferfish",
+      "rank": 179,
+      "qty": 1,
+      "weight": 1919,
+      "kind": "material",
+      "material": "PUFFERFISH_SPAWN_EGG"
+    },
+    {
+      "id": "book_projectile_protection",
+      "entry": "Enchanted book (Projectile Protection)",
+      "rank": 180,
+      "qty": 1,
+      "weight": 1886,
+      "kind": "enchanted_book",
+      "enchant": "projectile_protection"
+    },
+    {
+      "id": "book_blast_protection",
+      "entry": "Enchanted book (Blast Protection)",
+      "rank": 181,
+      "qty": 1,
+      "weight": 1853,
+      "kind": "enchanted_book",
+      "enchant": "blast_protection"
+    },
+    {
+      "id": "book_fire_protection",
+      "entry": "Enchanted book (Fire Protection)",
+      "rank": 182,
+      "qty": 1,
+      "weight": 1820,
+      "kind": "enchanted_book",
+      "enchant": "fire_protection"
+    },
+    {
+      "id": "book_wind_burst",
+      "entry": "Enchanted book (Wind Burst)",
+      "rank": 183,
+      "qty": 1,
+      "weight": 1787,
+      "kind": "enchanted_book",
+      "enchant": "wind_burst"
+    },
+    {
+      "id": "book_density",
+      "entry": "Enchanted book (Density)",
+      "rank": 184,
+      "qty": 1,
+      "weight": 1754,
+      "kind": "enchanted_book",
+      "enchant": "density"
+    },
+    {
+      "id": "book_quick_charge",
+      "entry": "Enchanted book (Quick Charge)",
+      "rank": 185,
+      "qty": 1,
+      "weight": 1721,
+      "kind": "enchanted_book",
+      "enchant": "quick_charge"
+    },
+    {
+      "id": "book_multishot",
+      "entry": "Enchanted book (Multishot)",
+      "rank": 186,
+      "qty": 1,
+      "weight": 1688,
+      "kind": "enchanted_book",
+      "enchant": "multishot"
+    },
+    {
+      "id": "book_piercing",
+      "entry": "Enchanted book (Piercing)",
+      "rank": 187,
+      "qty": 1,
+      "weight": 1656,
+      "kind": "enchanted_book",
+      "enchant": "piercing"
+    },
+    {
+      "id": "book_sweeping_edge",
+      "entry": "Enchanted book (Sweeping Edge)",
+      "rank": 188,
+      "qty": 1,
+      "weight": 1623,
+      "kind": "enchanted_book",
+      "enchant": "sweeping_edge"
+    },
+    {
+      "id": "book_impaling",
+      "entry": "Enchanted book (Impaling)",
+      "rank": 189,
+      "qty": 1,
+      "weight": 1591,
+      "kind": "enchanted_book",
+      "enchant": "impaling"
+    },
+    {
+      "id": "endermite_spawn_egg",
+      "entry": "Endermite",
+      "rank": 190,
+      "qty": 1,
+      "weight": 1558,
+      "kind": "material",
+      "material": "ENDERMITE_SPAWN_EGG"
+    },
+    {
+      "id": "zombie_spawn_egg",
+      "entry": "Zombie",
+      "rank": 191,
+      "qty": 1,
+      "weight": 1526,
+      "kind": "material",
+      "material": "ZOMBIE_SPAWN_EGG"
+    },
+    {
+      "id": "zombie_villager_spawn_egg",
+      "entry": "Zombie villager",
+      "rank": 192,
+      "qty": 1,
+      "weight": 1494,
+      "kind": "material",
+      "material": "ZOMBIE_VILLAGER_SPAWN_EGG"
+    },
+    {
+      "id": "husk_spawn_egg",
+      "entry": "Husk",
+      "rank": 193,
+      "qty": 1,
+      "weight": 1462,
+      "kind": "material",
+      "material": "HUSK_SPAWN_EGG"
+    },
+    {
+      "id": "drowned_spawn_egg",
+      "entry": "Drowned",
+      "rank": 194,
+      "qty": 1,
+      "weight": 1430,
+      "kind": "material",
+      "material": "DROWNED_SPAWN_EGG"
+    },
+    {
+      "id": "zombified_piglin_spawn_egg",
+      "entry": "Zombified piglin",
+      "rank": 195,
+      "qty": 1,
+      "weight": 1399,
+      "kind": "material",
+      "material": "ZOMBIFIED_PIGLIN_SPAWN_EGG"
+    },
+    {
+      "id": "spider_spawn_egg",
+      "entry": "Spider",
+      "rank": 196,
+      "qty": 1,
+      "weight": 1367,
+      "kind": "material",
+      "material": "SPIDER_SPAWN_EGG"
+    },
+    {
+      "id": "cave_spider_spawn_egg",
+      "entry": "Cave spider",
+      "rank": 197,
+      "qty": 1,
+      "weight": 1335,
+      "kind": "material",
+      "material": "CAVE_SPIDER_SPAWN_EGG"
+    },
+    {
+      "id": "slime_spawn_egg",
+      "entry": "Slime",
+      "rank": 198,
+      "qty": 1,
+      "weight": 1304,
+      "kind": "material",
+      "material": "SLIME_SPAWN_EGG"
+    },
+    {
+      "id": "magma_cube_spawn_egg",
+      "entry": "Magma cube",
+      "rank": 199,
+      "qty": 1,
+      "weight": 1273,
+      "kind": "material",
+      "material": "MAGMA_CUBE_SPAWN_EGG"
+    },
+    {
+      "id": "book_smite",
+      "entry": "Enchanted book (Smite)",
+      "rank": 200,
+      "qty": 1,
+      "weight": 1242,
+      "kind": "enchanted_book",
+      "enchant": "smite"
+    },
+    {
+      "id": "skeleton_spawn_egg",
+      "entry": "Skeleton",
+      "rank": 201,
+      "qty": 1,
+      "weight": 1211,
+      "kind": "material",
+      "material": "SKELETON_SPAWN_EGG"
+    },
+    {
+      "id": "stray_spawn_egg",
+      "entry": "Stray",
+      "rank": 202,
+      "qty": 1,
+      "weight": 1180,
+      "kind": "material",
+      "material": "STRAY_SPAWN_EGG"
+    },
+    {
+      "id": "bogged_spawn_egg",
+      "entry": "Bogged",
+      "rank": 203,
+      "qty": 1,
+      "weight": 1149,
+      "kind": "material",
+      "material": "BOGGED_SPAWN_EGG"
+    },
+    {
+      "id": "parched_spawn_egg",
+      "entry": "Parched",
+      "rank": 204,
+      "qty": 1,
+      "weight": 1119,
+      "kind": "material",
+      "material": "PARCHED_SPAWN_EGG"
+    },
+    {
+      "id": "phantom_spawn_egg",
+      "entry": "Phantom",
+      "rank": 205,
+      "qty": 1,
+      "weight": 1088,
+      "kind": "material",
+      "material": "PHANTOM_SPAWN_EGG"
+    },
+    {
+      "id": "book_thorns",
+      "entry": "Enchanted book (Thorns)",
+      "rank": 206,
+      "qty": 1,
+      "weight": 1058,
+      "kind": "enchanted_book",
+      "enchant": "thorns"
+    },
+    {
+      "id": "book_riptide",
+      "entry": "Enchanted book (Riptide)",
+      "rank": 207,
+      "qty": 1,
+      "weight": 1028,
+      "kind": "enchanted_book",
+      "enchant": "riptide"
+    },
+    {
+      "id": "book_power",
+      "entry": "Enchanted book (Power)",
+      "rank": 208,
+      "qty": 1,
+      "weight": 998,
+      "kind": "enchanted_book",
+      "enchant": "power"
+    },
+    {
+      "id": "book_breach",
+      "entry": "Enchanted book (Breach)",
+      "rank": 209,
+      "qty": 1,
+      "weight": 968,
+      "kind": "enchanted_book",
+      "enchant": "breach"
+    },
+    {
+      "id": "guardian_spawn_egg",
+      "entry": "Guardian",
+      "rank": 210,
+      "qty": 1,
+      "weight": 938,
+      "kind": "material",
+      "material": "GUARDIAN_SPAWN_EGG"
+    },
+    {
+      "id": "pillager_spawn_egg",
+      "entry": "Pillager",
+      "rank": 211,
+      "qty": 1,
+      "weight": 909,
+      "kind": "material",
+      "material": "PILLAGER_SPAWN_EGG"
+    },
+    {
+      "id": "vindicator_spawn_egg",
+      "entry": "Vindicator",
+      "rank": 212,
+      "qty": 1,
+      "weight": 879,
+      "kind": "material",
+      "material": "VINDICATOR_SPAWN_EGG"
+    },
+    {
+      "id": "witch_spawn_egg",
+      "entry": "Witch",
+      "rank": 213,
+      "qty": 1,
+      "weight": 850,
+      "kind": "material",
+      "material": "WITCH_SPAWN_EGG"
+    },
+    {
+      "id": "vex_spawn_egg",
+      "entry": "Vex",
+      "rank": 214,
+      "qty": 1,
+      "weight": 821,
+      "kind": "material",
+      "material": "VEX_SPAWN_EGG"
+    },
+    {
+      "id": "piglin_spawn_egg",
+      "entry": "Piglin",
+      "rank": 215,
+      "qty": 1,
+      "weight": 792,
+      "kind": "material",
+      "material": "PIGLIN_SPAWN_EGG"
+    },
+    {
+      "id": "blaze_spawn_egg",
+      "entry": "Blaze",
+      "rank": 216,
+      "qty": 1,
+      "weight": 763,
+      "kind": "material",
+      "material": "BLAZE_SPAWN_EGG"
+    },
+    {
+      "id": "wither_skeleton_spawn_egg",
+      "entry": "Wither skeleton",
+      "rank": 217,
+      "qty": 1,
+      "weight": 735,
+      "kind": "material",
+      "material": "WITHER_SKELETON_SPAWN_EGG"
+    },
+    {
+      "id": "book_infinity",
+      "entry": "Enchanted book (Infinity)",
+      "rank": 218,
+      "qty": 1,
+      "weight": 706,
+      "kind": "enchanted_book",
+      "enchant": "infinity"
+    },
+    {
+      "id": "book_silk_touch",
+      "entry": "Enchanted book (Silk Touch)",
+      "rank": 219,
+      "qty": 1,
+      "weight": 678,
+      "kind": "enchanted_book",
+      "enchant": "silk_touch"
+    },
+    {
+      "id": "creeper_spawn_egg",
+      "entry": "Creeper",
+      "rank": 220,
+      "qty": 1,
+      "weight": 650,
+      "kind": "material",
+      "material": "CREEPER_SPAWN_EGG"
+    },
+    {
+      "id": "shulker_spawn_egg",
+      "entry": "Shulker",
+      "rank": 221,
+      "qty": 1,
+      "weight": 623,
+      "kind": "material",
+      "material": "SHULKER_SPAWN_EGG"
+    },
+    {
+      "id": "enderman_spawn_egg",
+      "entry": "Enderman",
+      "rank": 222,
+      "qty": 1,
+      "weight": 595,
+      "kind": "material",
+      "material": "ENDERMAN_SPAWN_EGG"
+    },
+    {
+      "id": "hoglin_spawn_egg",
+      "entry": "Hoglin",
+      "rank": 223,
+      "qty": 1,
+      "weight": 568,
+      "kind": "material",
+      "material": "HOGLIN_SPAWN_EGG"
+    },
+    {
+      "id": "zoglin_spawn_egg",
+      "entry": "Zoglin",
+      "rank": 224,
+      "qty": 1,
+      "weight": 541,
+      "kind": "material",
+      "material": "ZOGLIN_SPAWN_EGG"
+    },
+    {
+      "id": "polar_bear_spawn_egg",
+      "entry": "Polar bear",
+      "rank": 225,
+      "qty": 1,
+      "weight": 514,
+      "kind": "material",
+      "material": "POLAR_BEAR_SPAWN_EGG"
+    },
+    {
+      "id": "book_fortune",
+      "entry": "Enchanted book (Fortune)",
+      "rank": 226,
+      "qty": 1,
+      "weight": 487,
+      "kind": "enchanted_book",
+      "enchant": "fortune"
+    },
+    {
+      "id": "book_looting",
+      "entry": "Enchanted book (Looting)",
+      "rank": 227,
+      "qty": 1,
+      "weight": 460,
+      "kind": "enchanted_book",
+      "enchant": "looting"
+    },
+    {
+      "id": "camel_husk_spawn_egg",
+      "entry": "Camel husk",
+      "rank": 228,
+      "qty": 1,
+      "weight": 434,
+      "kind": "material",
+      "material": "CAMEL_HUSK_SPAWN_EGG"
+    },
+    {
+      "id": "zombie_nautilus_spawn_egg",
+      "entry": "Zombie nautilus",
+      "rank": 229,
+      "qty": 1,
+      "weight": 408,
+      "kind": "material",
+      "material": "ZOMBIE_NAUTILUS_SPAWN_EGG"
+    },
+    {
+      "id": "breeze_spawn_egg",
+      "entry": "Breeze",
+      "rank": 230,
+      "qty": 1,
+      "weight": 383,
+      "kind": "material",
+      "material": "BREEZE_SPAWN_EGG"
+    },
+    {
+      "id": "book_efficiency",
+      "entry": "Enchanted book (Efficiency)",
+      "rank": 231,
+      "qty": 1,
+      "weight": 357,
+      "kind": "enchanted_book",
+      "enchant": "efficiency"
+    },
+    {
+      "id": "book_unbreaking",
+      "entry": "Enchanted book (Unbreaking)",
+      "rank": 232,
+      "qty": 1,
+      "weight": 332,
+      "kind": "enchanted_book",
+      "enchant": "unbreaking"
+    },
+    {
+      "id": "book_feather_falling",
+      "entry": "Enchanted book (Feather Falling)",
+      "rank": 233,
+      "qty": 1,
+      "weight": 308,
+      "kind": "enchanted_book",
+      "enchant": "feather_falling"
+    },
+    {
+      "id": "piglin_brute_spawn_egg",
+      "entry": "Piglin brute",
+      "rank": 234,
+      "qty": 1,
+      "weight": 283,
+      "kind": "material",
+      "material": "PIGLIN_BRUTE_SPAWN_EGG"
+    },
+    {
+      "id": "evoker_spawn_egg",
+      "entry": "Evoker",
+      "rank": 235,
+      "qty": 1,
+      "weight": 259,
+      "kind": "material",
+      "material": "EVOKER_SPAWN_EGG"
+    },
+    {
+      "id": "elder_guardian_spawn_egg",
+      "entry": "Elder guardian",
+      "rank": 236,
+      "qty": 1,
+      "weight": 235,
+      "kind": "material",
+      "material": "ELDER_GUARDIAN_SPAWN_EGG"
+    },
+    {
+      "id": "creaking_spawn_egg",
+      "entry": "Creaking",
+      "rank": 237,
+      "qty": 1,
+      "weight": 212,
+      "kind": "material",
+      "material": "CREAKING_SPAWN_EGG"
+    },
+    {
+      "id": "book_protection",
+      "entry": "Enchanted book (Protection)",
+      "rank": 238,
+      "qty": 1,
+      "weight": 189,
+      "kind": "enchanted_book",
+      "enchant": "protection"
+    },
+    {
+      "id": "book_sharpness",
+      "entry": "Enchanted book (Sharpness)",
+      "rank": 239,
+      "qty": 1,
+      "weight": 167,
+      "kind": "enchanted_book",
+      "enchant": "sharpness"
+    },
+    {
+      "id": "netherite_scrap",
+      "entry": "Netherite Scrap",
+      "rank": 240,
+      "qty": 1,
+      "weight": 145,
+      "kind": "material",
+      "material": "NETHERITE_SCRAP"
+    },
+    {
+      "id": "diamond",
+      "entry": "Diamond x16",
+      "rank": 241,
+      "qty": 16,
+      "weight": 123,
+      "kind": "material",
+      "material": "DIAMOND"
+    },
+    {
+      "id": "netherite_ingot",
+      "entry": "Netherite Ingot",
+      "rank": 242,
+      "qty": 1,
+      "weight": 102,
+      "kind": "material",
+      "material": "NETHERITE_INGOT"
+    },
+    {
+      "id": "diamond_block",
+      "entry": "Diamond block",
+      "rank": 243,
+      "qty": 1,
+      "weight": 82,
+      "kind": "material",
+      "material": "DIAMOND_BLOCK"
+    },
+    {
+      "id": "book_mending",
+      "entry": "Enchanted book (Mending)",
+      "rank": 244,
+      "qty": 1,
+      "weight": 63,
+      "kind": "enchanted_book",
+      "enchant": "mending"
+    },
+    {
+      "id": "iron_golem_spawn_egg",
+      "entry": "Iron golem",
+      "rank": 245,
+      "qty": 1,
+      "weight": 45,
+      "kind": "material",
+      "material": "IRON_GOLEM_SPAWN_EGG"
+    },
+    {
+      "id": "warden_spawn_egg",
+      "entry": "Warden",
+      "rank": 246,
+      "qty": 1,
+      "weight": 27,
+      "kind": "material",
+      "material": "WARDEN_SPAWN_EGG"
+    },
+    {
+      "id": "nether_star",
+      "entry": "Nether Star",
+      "rank": 247,
+      "qty": 1,
+      "weight": 12,
+      "kind": "material",
+      "material": "NETHER_STAR"
+    }
+  ]
+}

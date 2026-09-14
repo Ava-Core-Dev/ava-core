@@ -1,0 +1,11 @@
+# Copy to .dev.vars in this folder for `wrangler dev` (file is gitignored).
+# Use the same JWT_SECRET value you deploy to production if you need local auth to match.
+
+JWT_SECRET=replace-with-long-random-string-at-least-16-chars
+
+# Grok goal plans — GROK_API_BEARER_TOKEN in repo credentials.env (NOT GROK_X_BEARER_TOKEN; that is X/social).
+# GROK_API_BEARER_TOKEN=
+
+# App session → Discord channel 1506162141223194754 via DISCORD_ROOTMC_BOT_TOKEN + DISCORD_APP_SESSION_CHANNEL_ID in wrangler.toml [vars].
+DISCORD_ROOTMC_BOT_TOKEN=
+DISCORD_ROOTMC_WEBHOOK_URL=https://discord.com/api/webhooks/REPLACE_ME/REPLACE_ME

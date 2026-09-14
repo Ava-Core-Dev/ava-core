@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All connected servers — Economy · RootMC</title>
+  <meta name="description" content="Browse economy data for every connected RootMC Paper host.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/economy/all-servers/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body class="economy-page" data-economy-page="all-servers" data-economy-scope="all-servers" data-economy-base="/economy/all-servers/">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container economy-wrap">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> · <a href="/economy/">Economy</a> · All servers</p>
+    <p class="market-badge">Connected hosts</p>
+    <h1><span class="gold">All</span> connected servers</h1>
+    <p id="servers-subtitle" class="rmc-muted economy-sub">Loading…</p>
+    <div class="economy-subnav" data-economy-nav hidden aria-label="Economy sections"></div>
+    <p class="rmc-muted" style="max-width:40rem;margin-bottom:1.25rem">Each row opens that host’s economy view at <code>/economy/all-servers/&lt;server-id&gt;/</code>.</p>
+    <p id="servers-error" class="market-error" hidden></p>
+    <div id="servers-root" class="economy-server-list"></div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-inner">
+      <p class="rmc-muted">RootMC · <a href="/economy/">Economy home</a> · <a href="/developer/servers/">My Servers</a></p>
+    </div>
+  </footer>
+
+  <script src="/scripts/economy-nav.js?v=20260723e" defer></script>
+  <script src="/economy/all-servers/all-servers.js?v=20260723e" defer></script>
+  <script src="/scripts/site-nav.js?v=20260723e" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

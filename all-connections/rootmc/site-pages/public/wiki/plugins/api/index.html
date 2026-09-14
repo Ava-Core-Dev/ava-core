@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin update &amp; APIs — RootMC Wiki</title>
+  <meta name="description" content="RootMC plugin manifest, Root-Core auto-update, license bind/presence, and public data API index.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/wiki/plugins/api/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">Network</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="wiki"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/wiki/">Wiki</a> / <a href="/wiki/plugins/">Plugins</a> / API</p>
+    <h1 class="wiki-page-title">Update &amp; <em>APIs</em></h1>
+    <p class="rmc-lead" style="max-width:44rem">How Root-Core keeps jars current, how license bind works, and where public RootMC HTTP APIs live. No secrets belong in this page — use the developer portal for keys.</p>
+
+    <div class="wiki-shell" style="margin-top:2rem">
+      <aside class="wiki-sidebar" aria-label="Sections">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#manifest">Plugin manifest</a></li>
+            <li><a href="#core-updater">Core updater</a></li>
+            <li><a href="#license">License bind / presence</a></li>
+            <li><a href="#developer">Developer APIs</a></li>
+            <li><a href="#public">Public data APIs</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <p class="rmc-muted" style="margin:0;font-size:0.85rem">Related</p>
+          <ul>
+            <li><a href="/wiki/plugins/">Suite guide</a></li>
+            <li><a href="/wiki/versioning/">Versioning scheme</a></li>
+            <li><a href="/plugins/root-core/">Root-Core install</a></li>
+            <li><a href="/developer/">Developer portal</a></li>
+          </ul>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="manifest">
+          <h2>Plugin manifest</h2>
+          <p><strong>GET</strong> <a href="https://rootmc.net/plugins/manifest.json"><code>https://rootmc.net/plugins/manifest.json</code></a></p>
+          <p>JSON object keyed by plugin id. Each entry:</p>
+          <pre class="wiki-pre">{
+  "root-core": {
+    "version": "1.8.109",
+    "filename": "root-core-1.8.109.jar",
+    "url": "https://rootmc.net/plugins/root-core-1.8.109.jar"
+  }
+}</pre>
+          <p>Example only — live versions are always whatever <a href="/plugins/manifest.json">manifest.json</a> currently lists (today the whole public suite is <strong><code data-live-suite-version>…</code></strong>).</p>
+          <ul>
+            <li><code>version</code> — <a href="/wiki/versioning/">YEAR.MONTH.BUILD</a> compared by Root-Core</li>
+            <li><code>filename</code> — jar name written under <code>plugins/</code></li>
+            <li><code>url</code> — HTTPS download (CDN / Pages)</li>
+          </ul>
+          <p>Human catalog UI: <a href="/plugins/">rootmc.net/plugins</a>.</p>
+        </article>
+
+        <article id="core-updater">
+          <h2>Root-Core updater</h2>
+          <p>Configured in <code>plugins/RootMC/root-core.yml</code>. Manifest URL: <code>updater.manifest-url</code> (blank → <code>site.plugins-manifest</code>). See <a href="/plugins/root-core/#cloudflare">Cloudflare / edge URLs</a>.</p>
+          <pre class="wiki-pre">updater:
+  enabled: true
+  manifest-url: ""
+  interval-hours: 6
+  only-installed: true
+  ensure:
+    - root-ava-core
+    - root-times
+    - root-perms
+    - root-economy
+    - root-essentials
+    - root-claims
+    - root-territories
+    - root-play
+    - root-skills
+    - root-ops
+    - root-appreciation
+    - rootmc
+  restart-after-update: true
+
+site:
+  plugins-manifest: "https://rootmc.net/plugins/manifest.json"</pre>
+          <ul>
+            <li>Polls the manifest on an interval and on <code>/rootcore update</code></li>
+            <li>Downloads newer jars for installed plugins; <code>ensure</code> list is always installed even if missing</li>
+            <li>Set <code>only-installed: false</code> to self-install <strong>every</strong> manifest jar</li>
+            <li>Keeps the currently loaded jar until restart (avoids zip-closed crashes)</li>
+            <li>Prunes older same-plugin jars after the new file is on disk</li>
+            <li>Can schedule Root-Restart / countdown when maintenance rules allow</li>
+          </ul>
+          <p>Full walkthrough: <a href="/plugins/root-core/#updater">Root-Core → Suite updater</a>.</p>
+        </article>
+
+        <article id="license">
+          <h2>License bind &amp; presence</h2>
+          <p>Default base: <code>https://api.rootmc.net</code> via <code>license.api-base</code> (no silent remap to local-edge). Secrets land in <code>cloud.yml</code>.</p>
+          <p>Discord: Paper JDA uses <code>cloud.yml</code> <code>discord.*</code>; Worker posts use wrangler <code>DISCORD_ROOTMC_*</code> channel vars. See <a href="/plugins/root-core/#discord">Root-Core → Discord</a>.</p>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>POST</td>
+                <td><code>/api/rootmc/license/bind</code></td>
+                <td>Root-Core binds product key → server id / secret (fills blank cloud fields)</td>
+              </tr>
+              <tr>
+                <td>POST</td>
+                <td><code>/api/rootmc/license/presence</code></td>
+                <td>Periodic presence so <a href="/developer/servers/">My Servers</a> shows online</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="wiki-callout wiki-callout-warn">
+            Never commit product keys or <code>server-secret</code>. Generate keys only in the <a href="/developer/keys/">developer portal</a>.
+          </div>
+        </article>
+
+        <article id="developer">
+          <h2>Developer portal APIs</h2>
+          <p>Authenticated operator flows (Discord login) for account keys and My Servers live under the developer portal. Overview concepts are in the portal UI and <code>Web Files/rootmc-web/public/developer/README.md</code> in the repo (not public HTML).</p>
+          <ul>
+            <li><a href="/developer/">Portal home</a></li>
+            <li><a href="/developer/keys/">My Keys</a></li>
+            <li><a href="/developer/servers/">My Servers</a></li>
+            <li><a href="/developer/register/">Register</a> / <a href="/developer/login/">Login</a></li>
+          </ul>
+        </article>
+
+        <article id="public">
+          <h2>Public data APIs (index)</h2>
+          <p>Player- and site-facing JSON used by rootmc.net (and linked apps). Explore from the live site; base host <code>https://api.rootmc.net</code> unless noted.</p>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Area</th><th>Examples</th><th>UI</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Economy / treasury</td>
+                <td><code>/api/rootmc/treasury/…</code>, reserve summaries</td>
+                <td><a href="/economy/">/economy/</a>, <a href="/list/">/list/</a></td>
+              </tr>
+              <tr>
+                <td>List totals</td>
+                <td><code>/api/rootmc/list</code></td>
+                <td><a href="/list/">/list/</a></td>
+              </tr>
+              <tr>
+                <td>Players / leaderboards</td>
+                <td>player + leaderboard routes</td>
+                <td><a href="/player/">/player/</a>, <a href="/leaderboard/">/leaderboard/</a></td>
+              </tr>
+              <tr>
+                <td>Market / resources</td>
+                <td>shop &amp; resource endpoints</td>
+                <td><a href="/market/">/market/</a>, <a href="/resources/">/resources/</a></td>
+              </tr>
+              <tr>
+                <td>Times status</td>
+                <td>Root-Times cloud status push targets</td>
+                <td><a href="/time/">/time/</a> (systems) · <a href="/time/old/">/time/old/</a> (live)</td>
+              </tr>
+              <tr>
+                <td>Health</td>
+                <td>public health checks</td>
+                <td><a href="/health/">/health/</a></td>
+              </tr>
+            </tbody>
+          </table>
+          <p>This is an index for operators — not a full OpenAPI dump. Plugin install remains the primary path to run a RootMC-powered Paper host.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/wiki/plugins/">Suite wiki</a> · <a href="/plugins/manifest.json">manifest.json</a> · <a href="/developer/">Developers</a></p>
+      <p class="rmc-footer-mono">update APIs · license · public data</p>
+    </div>
+  </footer>
+  <script src="/plugins/suite-version.js?v=1" defer></script>
+  <script src="/scripts/site-nav.js?v=20260723p" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

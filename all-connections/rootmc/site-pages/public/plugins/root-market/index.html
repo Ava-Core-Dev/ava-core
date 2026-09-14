@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root-Market install guide — RootMC Plugins</title>
+  <meta name="description" content="Root-Market — stock market / listings for the RootMC Gold economy.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/root-market/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="root-market">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span> RootMC <span class="rmc-brand-tag">Network</span></a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/plugins/">Plugins</a> / Root-Market</p>
+    <h1 class="wiki-page-title">Root-Market</h1>
+    <p class="page-lead">In-game <code>/market</code> browser for the RootMC Gold economy — categories, live buy/sell quotes from player chest shops (and virtual listings), trending sell multi. Stock still lives in <a href="/plugins/root-chestshops/">Root-ChestShops</a>; this GUI is the catalog.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge">Needs Root-Core</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a href="/plugins/root-economy/">Root-Economy →</a>
+      <a href="/plugins/root-core/">Root-Core →</a>
+    </p>
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">Install</h2>
+      <ol class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li>Install <a href="/plugins/root-core/">Root-Core</a>, <a href="/plugins/root-economy/">Root-Economy</a>, and <a href="/plugins/root-chestshops/">Root-ChestShops</a>.</li>
+        <li>Drop <code>root-market-*.jar</code> into <code>plugins/</code>; remove older same-plugin jars.</li>
+        <li>Config lands under <code>plugins/RootMC/</code> on first enable (<code>trending.*</code> for spyglass hub).</li>
+        <li>Restart Paper after jar install.</li>
+      </ol>
+    </section>
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Player use</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li><code>/market</code> — browse categories; item lore shows BUY/SELL G/ea and G/stack plus Dynamic Sell Value</li>
+        <li>Hub spyglass — top highest/lowest sell multi vs worth (config <code>trending.*</code>)</li>
+        <li>Buying from virtual listings deposits to the buyer’s item bin</li>
+      </ul>
+    </section>
+  </main>
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Catalog</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">Root-Market · YEAR.MONTH.BUILD</p>
+    </div>
+  </footer>
+  <script src="/scripts/site-nav.js" defer></script>
+  <script src="/plugins/guide.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

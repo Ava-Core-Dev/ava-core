@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit proposal — RootMC Governance</title>
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="canonical" href="https://rootmc.net/governance/submit/">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark">R</span>RootMC</a>
+      <nav class="rmc-nav"><a href="/council/">Council</a><a href="/verify/" class="rmc-nav-cta">Link account</a></nav>
+    </div>
+  </header>
+  <main class="container" style="padding-bottom:3rem;max-width:640px;">
+    <p class="wiki-breadcrumb"><a href="/council/">Council</a> · Submit</p>
+    <h1 style="margin-top:0">In-game only</h1>
+    <p class="rmc-muted">Citizen proposals are created with <strong>/proposal &lt;your idea&gt;</strong> on the Minecraft server (64 G → Server Reserve). Any linked player can propose; Ava publishes the formal proposal and Discord thread — including catch-up from the official queue if she was offline. Council voters (Vote Shards) cast the weighted votes.</p>
+    <ul class="rmc-muted">
+      <li>Link Discord at <a href="/verify/">/verify</a> and accept the <a href="/terms/">Terms</a> — any linked player can propose</li>
+      <li>Join <strong>play.rootmc.net</strong> and run <code>/proposal …</code></li>
+      <li>After Ava publishes: any verified (linked) player can talk in the proposal thread</li>
+      <li>Only voters with Vote Shards in <code>/ec</code> cast votes — +3 G once per proposal when recorded</li>
+    </ul>
+    <p><a class="rmc-btn rmc-btn-primary" href="/council/">Council</a>
+       <a class="rmc-btn rmc-btn-secondary" href="/governance/proposals/">Browse proposals</a></p>
+    <div id="gov-me"></div>
+  </main>
+  <script src="/governance/governance.js"></script>
+  <script>
+    (async function () {
+      const G = window.RootMcGovernance;
+      const me = await G.loadMe();
+      G.renderStatusBanner(me, G.el("gov-me"));
+    })();
+  </script>
+</body>
+</html>

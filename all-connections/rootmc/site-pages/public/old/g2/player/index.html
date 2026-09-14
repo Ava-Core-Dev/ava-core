@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Players — RootMC</title>
+  <meta name="description" content="Search RootMC players by username and view public stats — McMMO skills, playtime, and gold net worth breakdown.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/g2/player/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+            <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container player-main">
+    <header class="player-hero">
+      <p class="market-badge">Player directory</p>
+      <h1>Find a <span style="background:linear-gradient(135deg,var(--rmc-gold-bright),var(--rmc-copper));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">player</span></h1>
+      <p class="rmc-muted" style="font-size: 1.05rem; max-width: 38rem;">Search by Minecraft username. Open a profile to view McMMO skill levels, playtime, and net worth synced from the live server.</p>
+    </header>
+
+    <section class="rmc-card player-search-card">
+      <form id="search-form" class="player-search-form" role="search">
+        <label class="player-search-label" for="search-q">Player name</label>
+        <div class="player-search-row">
+          <input id="search-q" type="search" name="q" placeholder="e.g. Steve" autocomplete="off" minlength="2" maxlength="16">
+          <button type="submit" class="rmc-btn rmc-btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Search
+          </button>
+        </div>
+      </form>
+      <p id="search-status" class="rmc-muted player-search-hint" hidden></p>
+      <ul id="search-results" class="player-results" hidden></ul>
+    </section>
+
+    <p id="page-status" class="player-page-status" role="status" hidden></p>
+
+    <section id="panel-loading" class="rmc-card" hidden>
+      <div class="skeleton-rows" style="padding: 0;">
+        <div class="skeleton-row" style="height: 100px; border-radius: var(--rmc-r-md);"></div>
+        <div class="skeleton-row" style="height: 60px;"></div>
+        <div class="skeleton-row" style="height: 60px;"></div>
+      </div>
+    </section>
+
+    <section id="panel-profile" class="rmc-card player-profile" hidden>
+      <div class="player-profile-head">
+        <img id="avatar" src="/favicon-180.png" alt="" width="96" height="96" class="player-avatar">
+        <div>
+          <h2 id="player-name" style="margin:0">Player</h2>
+          <p id="verified-badge" class="player-badge">—</p>
+          <p class="player-uuid" id="player-uuid"></p>
+        </div>
+      </div>
+      <p id="player-bio" class="rmc-muted" hidden style="margin-top:1rem"></p>
+
+      <div class="player-stat-block">
+        <h3>McMMO</h3>
+        <p id="mcmmo-empty" class="rmc-muted">No skill stats yet.</p>
+        <div id="mcmmo-panel" hidden>
+          <p style="display: flex; align-items: baseline; gap: 0.55rem; margin: 0 0 0.35rem;">
+            <span class="rmc-mono" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--rmc-ink-faint);">Power level</span>
+            <strong id="mcmmo-power" style="font-family: var(--rmc-font-display); font-size: 1.65rem; color: var(--rmc-gold);">—</strong>
+          </p>
+          <p class="rmc-muted" style="margin:0 0 0.65rem;font-size:0.82rem;font-family:var(--rmc-mono);letter-spacing:0.04em;">Updated <span id="mcmmo-synced">—</span></p>
+          <div id="mcmmo-skills" class="player-mcmmo-grid"></div>
+        </div>
+      </div>
+
+      <div class="player-stat-block">
+        <h3>Activity</h3>
+        <p id="playtime-empty" class="rmc-muted">No activity recorded yet.</p>
+        <div id="playtime-panel" hidden>
+          <p style="display: flex; align-items: baseline; gap: 0.55rem; margin: 0 0 0.45rem;">
+            <span class="rmc-mono" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--rmc-ink-faint);">Time played</span>
+            <strong id="playtime-total" style="font-family: var(--rmc-font-display); font-size: 1.5rem; color: var(--rmc-emerald);">—</strong>
+          </p>
+          <p class="rmc-muted" style="font-size:0.88rem;font-family:var(--rmc-mono);letter-spacing:0.02em;">First join: <span id="playtime-first">—</span> · Last login: <span id="playtime-last">—</span></p>
+        </div>
+      </div>
+
+      <div class="player-stat-block">
+        <h3>Net worth</h3>
+        <p id="networth-empty" class="rmc-muted">No economy info yet.</p>
+        <div id="networth-panel" hidden>
+          <p style="display: flex; align-items: baseline; gap: 0.55rem; margin: 0;">
+            <span class="rmc-mono" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--rmc-ink-faint);">Total net worth</span>
+            <strong id="networth-total">—</strong>
+            <span style="color: var(--rmc-gold); font-family: var(--rmc-mono); font-weight: 600; font-size: 1.2rem;">G</span>
+          </p>
+          <p class="rmc-muted" style="margin:0.65rem 0 0;font-size:0.88rem;font-family:var(--rmc-mono);letter-spacing:0.02em;">
+            <span style="color: var(--rmc-gold);">Balance</span> <span id="networth-balance">—</span> ·
+            <span style="color: var(--rmc-sell);">Inventory</span> <span id="networth-inventory">—</span> ·
+            <span style="color: var(--rmc-emerald);">Shop stock</span> <span id="networth-shop-stock">—</span>
+          </p>
+          <p class="rmc-muted" style="margin: 0.45rem 0 0; font-size:0.82rem;font-family:var(--rmc-mono);letter-spacing:0.04em;">Updated <span id="networth-synced">—</span></p>
+        </div>
+      </div>
+
+      <div class="player-stat-block" id="gold-items-block" hidden>
+        <h3>Gold item ledger</h3>
+        <p class="rmc-muted" style="margin:0 0 0.65rem;font-size:0.88rem;">Each gold-related stack — material, quantity, mint peg (G), and how it was obtained.</p>
+        <p id="gold-items-empty" class="rmc-muted" hidden>No tracked gold items yet.</p>
+        <div class="rmc-table-wrap" id="gold-items-table-wrap" hidden>
+          <table class="rmc-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>G</th>
+                <th>How obtained</th>
+              </tr>
+            </thead>
+            <tbody id="gold-items-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="player-stat-block" id="worlds-block" hidden>
+        <h3>Shared worlds</h3>
+        <ul id="world-list" class="player-world-list rmc-muted"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/">RootMC home</a> · <a href="/wiki/player/#stats">About public stats</a></p>
+      <p class="rmc-footer-mono">crafatar avatars · pixel-perfect</p>
+    </div>
+  </footer>
+
+  <nav class="rmc-bottomnav" aria-label="Mobile">
+    <div class="rmc-bottomnav-inner">
+      <a href="/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>
+        Home
+      </a>
+      <a href="/g2/market/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+        Market
+      </a>
+      <a href="/g2/leaderboard/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10l1 7H6l1-7zM6 11h12v6H6z"/></svg>
+        Ranks
+      </a>
+      <a href="/g2/player/" aria-current="page">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+        Players
+      </a>
+      <a href="/wiki/">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>
+        Wiki
+      </a>
+    </div>
+  </nav>
+
+  
+  <script src="/g2/player/player.js" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+  <script src="/scripts/generation-switch.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

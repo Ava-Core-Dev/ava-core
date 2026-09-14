@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gold Backed Bonds - RootMC Economy</title>
+  <meta name="description" content="RootMC Gold Backed Bonds - legit map gold stored via /mint, circulating claims, coupon income, and live holder stats.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/g2/economy/bonds/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+</head>
+<body class="economy-page bonds-page">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container economy-wrap">
+    <p class="wiki-breadcrumb"><a href="/">Home</a>  -  <a href="/g2/economy/">Economy</a>
+        <a href="/g2/daily-report/">Daily report</a>  -  Gold Backed Bonds</p>
+    <div class="economy-subnav" data-economy-nav hidden aria-label="Economy sections"></div>
+    <p class="market-badge">Live  -  synced from game server</p>
+    <h1><span class="gold">Gold Backed Bonds</span></h1>
+    <p id="bonds-subtitle" class="rmc-muted economy-sub">Loading...</p>
+    <p class="rmc-muted bonds-lead">
+      Open <code>/bonds</code> in-game to issue Gold Backed Bond certificates, collect coupon gold, or redeem principal.
+      Every bond is backed by legit gold found on the map and stored via <code>/mint</code> - the same pool that covers all circulating claims.
+      Live stats below sync from the server.
+    </p>
+
+    <section class="rmc-card bonds-about-card" aria-labelledby="bonds-about-title">
+      <h2 id="bonds-about-title">What are Gold Backed Bonds?</h2>
+      <p class="bonds-about-lead">
+        <strong>Gold Backed Bonds</strong> are named paper certificates tied directly to stored map gold in the
+        <a href="/g2/economy/#eco-note-panel">/mint ledger</a> and the
+        <a href="/g2/economy/#server-reserve">Server Reserve</a>. When you issue a bond, wallet Notes debit into the reserve
+        and you receive a certificate you can store (an empty ender chest works well).
+      </p>
+      <div class="bonds-about-grid">
+        <div class="bonds-about-block">
+          <h3>Safe savings for citizens</h3>
+          <p class="rmc-muted">
+            Town and nation banks are for mayors and kings - ordinary citizens cannot deposit into them.
+            Bonds give <strong>every player</strong> a secure way to move surplus Gold out of a hot wallet and into
+            Gold Backed Bond custody, without giving up ownership. Your principal stays yours on paper until you redeem it.
+          </p>
+        </div>
+        <div class="bonds-about-block">
+          <h3>Always redeemable to gold</h3>
+          <p class="rmc-muted">
+            Gold Backed Bonds are not abstract credit. Hold the certificate, open <code>/bonds</code>, and redeem -
+            principal pays out as <strong>physical gold</strong> from stored /mint gold at the same peg as everywhere else on RootMC.
+            Stored gold vs circulating claims is tracked on the <a href="/g2/economy/">economy overview</a>; any surplus stored gold shows as <strong>Missing</strong> (unaccounted until it circulates).
+          </p>
+        </div>
+        <div class="bonds-about-block">
+          <h3>Income from the reserve</h3>
+          <p class="rmc-muted">
+            Each Minecraft day (~30 minutes), bond holders share
+            <strong id="bonds-income-pct-inline">25%</strong> of that day's Server Reserve inflows (taxes, fees, loan repayments, and similar),
+            split pro-rata by outstanding principal. Active holders receive earnings in their
+            <strong>wallet</strong> automatically (registered note owner). After
+            <strong>28 days</strong> without logging in, bond notes are auto-redeemed and inactivity tax applies.
+          </p>
+        </div>
+        <div class="bonds-about-block">
+          <h3>Why it matters</h3>
+          <p class="rmc-muted">
+            Gold Backed Bonds link personal savings to stored map gold and the public treasury: your G helps fund the reserve, you earn when the server earns,
+            and this page shows who holds bonds and how coupons settle. It is the citizen-facing counterpart to town auto-bonds -
+            transparent, redeemable, and synced here on rootmc.net.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <p id="bonds-error" class="market-error" hidden></p>
+
+    <div class="market-summary bonds-summary" aria-label="Bond market totals">
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Avg return / G</span>
+        <span class="market-summary-value gold" id="bonds-avg-yield">...</span>
+        <span class="market-summary-meta" id="bonds-avg-yield-meta">per Minecraft day (settled history)</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Outstanding principal</span>
+        <span class="market-summary-value gold" id="bonds-total-principal">...</span>
+        <span class="market-summary-meta" id="bonds-active-count">active Gold Backed Bonds</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Holders</span>
+        <span class="market-summary-value" id="bonds-holders">...</span>
+        <span class="market-summary-meta">unique accounts</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Uncollected coupons</span>
+        <span class="market-summary-value gold" id="bonds-uncollected">...</span>
+        <span class="market-summary-meta">waiting in /bonds chests</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Lifetime paid out</span>
+        <span class="market-summary-value gold" id="bonds-lifetime">...</span>
+        <span class="market-summary-meta">all holders combined</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Pool last 24h (real)</span>
+        <span class="market-summary-value gold" id="bonds-pool-24h">...</span>
+        <span class="market-summary-meta">25% of reserve inflows settled</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Last MC-day pool</span>
+        <span class="market-summary-value gold" id="bonds-last-pool">...</span>
+        <span class="market-summary-meta" id="bonds-last-day-meta">-</span>
+      </div>
+      <div class="market-summary-cell">
+        <span class="market-summary-label">Current MC day (pending)</span>
+        <span class="market-summary-value gold" id="bonds-pending-pool">...</span>
+        <span class="market-summary-meta" id="bonds-pending-meta">Settles at next in-game sunrise (~30 minutes)</span>
+      </div>
+    </div>
+
+    <section class="rmc-card bonds-chart-card">
+      <h2>Daily Gold Backed Bond pool (Minecraft days)</h2>
+      <p class="rmc-muted">Line shows settled 25% coupon pools per Minecraft day (~30 minutes). Only days with payouts are shown. The dashed point is today&rsquo;s inflow still accumulating.</p>
+      <div class="bonds-chart-wrap">
+        <canvas id="bonds-pool-chart" height="120" aria-label="Bond pool by Minecraft day"></canvas>
+      </div>
+    </section>
+
+    <section class="rmc-card">
+      <div class="bonds-section-head">
+        <h2>Holder accounts</h2>
+        <label class="bonds-search-label">
+          <span class="rmc-muted">Filter</span>
+          <input type="search" id="bonds-player-filter" placeholder="Player name..." autocomplete="off">
+        </label>
+      </div>
+      <div class="market-table-wrap">
+        <table class="market-table bonds-table" id="bonds-players-table">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Bonds</th>
+              <th>Principal</th>
+              <th>Weight</th>
+              <th>Uncollected</th>
+              <th>Earned 24h</th>
+              <th>Lifetime</th>
+            </tr>
+          </thead>
+          <tbody id="bonds-players-body">
+            <tr><td colspan="7" class="rmc-muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rmc-card">
+      <h2>Town &amp; nation banks</h2>
+      <p class="rmc-muted">Active town/nation bank balances participate automatically. Inactive groups earn nothing until a member returns.</p>
+      <div class="market-table-wrap">
+        <table class="market-table bonds-table" id="bonds-governments-table">
+          <thead>
+            <tr>
+              <th>Kind</th>
+              <th>Name</th>
+              <th>Bank balance</th>
+              <th>Weight</th>
+              <th>Lifetime earned</th>
+            </tr>
+          </thead>
+          <tbody id="bonds-governments-body">
+            <tr><td colspan="5" class="rmc-muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rmc-card" id="bonds-detail-panel" hidden>
+      <h2 id="bonds-detail-title">Account detail</h2>
+      <div class="market-summary bonds-detail-summary">
+        <div class="market-summary-cell">
+          <span class="market-summary-label">Principal</span>
+          <span class="market-summary-value gold" id="bonds-detail-principal">-</span>
+        </div>
+        <div class="market-summary-cell">
+          <span class="market-summary-label">Market weight</span>
+          <span class="market-summary-value" id="bonds-detail-weight">-</span>
+        </div>
+        <div class="market-summary-cell">
+          <span class="market-summary-label">Avg / 24h (real)</span>
+          <span class="market-summary-value gold" id="bonds-detail-avg24">-</span>
+        </div>
+        <div class="market-summary-cell">
+          <span class="market-summary-label">Uncollected</span>
+          <span class="market-summary-value gold" id="bonds-detail-uncollected">-</span>
+        </div>
+      </div>
+      <h3>Active certificates</h3>
+      <div class="market-table-wrap">
+        <table class="market-table">
+          <thead>
+            <tr><th>Name</th><th>Principal</th><th>Issued</th></tr>
+          </thead>
+          <tbody id="bonds-detail-bonds"></tbody>
+        </table>
+      </div>
+      <h3>Recent daily payouts</h3>
+      <div class="market-table-wrap">
+        <table class="market-table">
+          <thead>
+            <tr><th>MC day</th><th>Payout</th><th>Weight</th><th>Settled</th></tr>
+          </thead>
+          <tbody id="bonds-detail-payouts"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="rmc-card">
+      <h2>Recent settlements</h2>
+      <div class="market-table-wrap">
+        <table class="market-table">
+          <thead>
+            <tr>
+              <th>MC day</th>
+              <th>Reserve inflow</th>
+              <th>Bond pool (25%)</th>
+              <th>Outstanding</th>
+              <th>Bonds</th>
+              <th>Settled</th>
+            </tr>
+          </thead>
+          <tbody id="bonds-daily-body">
+            <tr><td colspan="6" class="rmc-muted">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-inner">
+      <p>RootMC  -  play.rootmc.net  -  <a href="/wiki/economy/">Economy guide</a></p>
+    </div>
+  </footer>
+
+  
+  <script src="/g2/scripts/economy-nav.js" defer></script>
+  <script src="/g2/economy/bonds/bonds.js" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+  <script src="/scripts/generation-switch.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "rootmc-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RootMC public site — rootmc.net",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "pages:deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy.ps1"
+  }
+}

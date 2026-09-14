@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vote Shards — Council voting weight | RootMC</title>
+  <meta name="description" content="RootMC Vote Shards are Council voting weight only. $1 = 100 shards via Stripe. Paid Pro 500/mo + ×2. Lifetime 500/mo for life + listing-site ×2 + ×3. Not in-game perks, not weekly awards, not P2W.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/vote-shards/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <style>
+    .shard-hero { display: grid; gap: 1.5rem; align-items: center; margin: 1.25rem 0 1.75rem; }
+    @media (min-width: 800px) { .shard-hero { grid-template-columns: minmax(0, 18rem) 1fr; } }
+    .shard-hero img {
+      width: 100%; max-width: 18rem; margin: 0 auto; display: block;
+      border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    }
+    .shard-kicker { letter-spacing: .18em; text-transform: uppercase; font-size: .78rem; color: #c9a227; margin: 0 0 .4rem; }
+  </style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / Vote Shards</p>
+    <div class="wiki-callout" id="bought-thanks" hidden>
+      <p style="margin:0"><strong>Thanks.</strong> Vote Shards credit after Stripe confirms — check <code>/voteshard power</code> or the <a href="/council/">Council roster</a>. Link first if you haven&rsquo;t: <a href="/verify/">rootmc.net/verify</a>.</p>
+    </div>
+    <script>
+      (function () {
+        try {
+          if (new URLSearchParams(location.search).get("bought") === "1") {
+            var el = document.getElementById("bought-thanks");
+            if (el) el.hidden = false;
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <div class="shard-hero">
+      <img src="/images/vote-shards.png" width="687" height="1024" alt="Vote Shards — Council voting weight, Root MC Network">
+      <div>
+        <p class="shard-kicker">Council voting weight</p>
+        <h1 class="wiki-page-title" style="margin-top:0">Vote Shards</h1>
+        <p class="page-lead">Vote Shards are how RootMC steers the legislature — extra say on what ships, never combat or loot power. They do <strong>not</strong> change in-game metrics, Gold, homes, or weekly awards. Pay to steer, not pay to win.</p>
+        <div class="wiki-badge-row">
+          <span class="wiki-badge wiki-badge-player">$1 = 100 shards</span>
+          <span class="wiki-badge">Paid Pro 500 / mo</span>
+          <span class="wiki-badge wiki-badge-server">Lifetime 500/mo + site ×2</span>
+        </div>
+        <p style="margin:1.1rem 0 0; display:flex; flex-wrap:wrap; gap:.65rem;">
+          <a class="rmc-btn rmc-btn-primary" href="/pro/vote-shards/">Buy Vote Shards</a>
+          <a class="rmc-btn rmc-btn-secondary" href="/council/#leaderboard">Shard leaderboard</a>
+          <a class="rmc-btn rmc-btn-ghost" href="/#vote-heading">Listing votes</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="wiki-shell">
+      <aside class="wiki-sidebar" aria-label="On this page">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#what">What they are</a></li>
+            <li><a href="#listing">Listing votes</a></li>
+            <li><a href="#paid">Paid shards</a></li>
+            <li><a href="#membership">Pro &amp; Lifetime</a></li>
+            <li><a href="#formula">Vote weight formula</a></li>
+            <li><a href="#ava">Ava 25% seat</a></li>
+            <li><a href="#not">What they are not</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Related</h2>
+          <nav>
+            <ul>
+              <li><a href="/pro/">Pro membership</a></li>
+              <li><a href="/wiki/constitution/#governance-voting">Constitution</a></li>
+              <li><a href="/council/">Council</a></li>
+              <li><a href="/thanks/">Appreciation Tokens</a></li>
+              <li><a href="/wiki/weekly-awards/">Weekly awards</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="what">
+          <h2>What Vote Shards are</h2>
+          <p>Vote Shards are <strong>Council voting weight</strong> on <code>play.rootmc.net</code>. They add to your share of 100% when the citizen legislature votes on proposals, weekly bills, and treasury grants.</p>
+          <p>There are two kinds that add together:</p>
+          <ul>
+            <li><strong>EC shards</strong> — digital listing-vote weight. Each confirmed listing vote adds <strong>+1</strong>. Same number as your listing vote count — no physical items.</li>
+            <li><strong>Paid shards</strong> — ledger weight from Stripe / membership. Vote value only — no item, no in-game perk.</li>
+          </ul>
+          <p>Check power in-game with <code>/vote</code> or <code>/voteshard power</code>. Live shares: <a href="/council/">rootmc.net/council</a>.</p>
+        </article>
+
+        <article id="listing">
+          <h2>Listing votes</h2>
+          <p>Run <code>/vote</code> (or use the <a href="/#vote-heading">homepage vote cards</a>). Each confirmed listing vote still grants:</p>
+          <ul>
+            <li><strong>1–20 G</strong> to your wallet from the Server Reserve</li>
+            <li><strong>Appreciation Tokens</strong> (redeem / trade — not Council weight)</li>
+            <li><strong>+1 EC shard</strong> on the digital ledger (same number as your listing vote count)</li>
+          </ul>
+          <p><strong>Lifetime</strong> members count listing sites at <strong>×2</strong> — each confirmed vote adds the usual EC shard <em>plus</em> one extra site-bonus shard. Physical Vote Shard items / merge ladders are not used — everything is tracked digitally. Check <code>/vote</code> or <code>/voteshard power</code>.</p>
+        </article>
+
+        <article id="paid">
+          <h2>Paid Vote Shards — $1 = 100</h2>
+          <p>You can buy additional Council weight on Stripe. Rate is fixed: <strong>$1 = 100 Vote Shards</strong> (1¢ = 1 shard). Stripe’s USD minimum charge is <strong>$0.50 = 50 shards</strong> — type any amount at or above that. This is an extra donation path that rewards <strong>voting influence only</strong>.</p>
+          <p>Paid shards:</p>
+          <ul>
+            <li>Add to your vote score alongside EC shards</li>
+            <li>Do <strong>not</strong> change homes, Gold, combat, shops, or any other in-game metric</li>
+            <li>Are <strong>not</strong> weekly-award rewards</li>
+            <li>Require a <a href="/verify/">linked</a> Minecraft + Discord account</li>
+          </ul>
+          <p>Checkout: <a href="/pro/vote-shards/">rootmc.net/pro/vote-shards</a>. Enter the beneficiary’s exact Minecraft username (must already be <a href="/verify/">linked</a>).</p>
+          <p style="margin-top:1rem"><a class="rmc-btn rmc-btn-primary" href="/pro/vote-shards/">Buy Vote Shards</a></p>
+        </article>
+
+        <article id="membership">
+          <h2>Pro &amp; Lifetime shard grants</h2>
+          <div class="rmc-grid" style="margin-top:.75rem">
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">Paid Pro</h3>
+              <p class="rmc-muted" style="font-size:1.2rem;font-weight:600;color:var(--rmc-gold);margin:0 0 .5rem">500 shards / month + ×2</p>
+              <p>Subscription or redeemed one-month voucher. Each paid billing month credits <strong>500</strong> Vote Shards and applies the <strong>×2</strong> Council multiplier.</p>
+              <p><a class="rmc-btn rmc-btn-primary" href="/pro/monthly/">Subscribe — $4.99/mo</a></p>
+            </section>
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">Lifetime</h3>
+              <p class="rmc-muted" style="font-size:1.2rem;font-weight:600;color:var(--rmc-gold);margin:0 0 .5rem">500 shards / month for life + ×3 + site ×2</p>
+              <p>Lifetime credits <strong>500</strong> shards every month for life, Council multiplier <strong>×3</strong>, and listing votes count <strong>×2</strong>.</p>
+              <p><a class="rmc-btn rmc-btn-primary" href="/pro/lifetime/">Buy Lifetime — $75</a></p>
+            </section>
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">Pro + Lifetime</h3>
+              <p class="rmc-muted" style="font-size:1.2rem;font-weight:600;color:var(--rmc-gold);margin:0 0 .5rem">×5 stack</p>
+              <p>Active paid Pro plus Lifetime stacks additively to <strong>×5</strong>. Lifetime-only stays ×3 until a paid Pro window is also active.</p>
+              <p><a class="rmc-btn rmc-btn-secondary" href="/pro/">All plans</a></p>
+            </section>
+          </div>
+          <div class="wiki-callout" style="margin-top:1rem">
+            <p style="margin:0"><strong>Weekly award Pro does not grant Vote Shards or ×2.</strong> #1 Top Active Player still gets one week of app + <code>[Pro]</code> cosmetics. Council weight stays with paid Pro, Lifetime, listing votes, and purchased shards. See <a href="/wiki/weekly-awards/#pro">weekly awards</a>.</p>
+          </div>
+        </article>
+
+        <article id="formula">
+          <h2>Vote weight formula</h2>
+          <p>Each eligible voter holds a share of <strong>100%</strong>. Outcomes use weighted tallies — not one account = one vote.</p>
+          <pre class="wiki-pre">shard_score = EC shards + paid shards + listingVotes × (site_mult − 1)
+site_mult   = 2 if Lifetime, else 1
+raw         = shard_score × vote_multiplier
+share       = raw ÷ Σ(all raw) → % of 100%
+
+vote_multiplier = 1 normally
+               = 2 paid Pro (subscription or redeemed voucher month)
+               = 3 Lifetime
+               = 5 paid Pro + Lifetime
+
+Weekly award Pro does not set ×2.
+Playtime and net worth do not multiply Council weight.
+Ava Ivy holds a locked 25% seat after raw weights, then shares renormalize.</pre>
+          <p>Full policy: <a href="/wiki/constitution/#governance-voting">Constitution — governance voting</a>.</p>
+        </article>
+
+        <article id="ava">
+          <h2>Ava Ivy — locked 25% Council seat</h2>
+          <p><strong>Ava Ivy</strong> always holds <strong>25% of total governance share</strong> after human shard scores are computed (raw weight = one-third the sum of every other voter). That seat is synthetic — she does not mint extra EC shards to reach it. Check <code>/voteshard ava</code> or the <a href="/council/">Council roster</a>.</p>
+        </article>
+
+        <article id="not">
+          <h2>What Vote Shards are not</h2>
+          <ul>
+            <li>Not pay-to-win — no <code>/heal</code>, <code>/feed</code>, <code>/repair</code>, combat, or economy shortcuts</li>
+            <li>Not in-game metrics — paid shards never change homes, Gold, shops, or stats</li>
+            <li>Not Appreciation Tokens — tokens redeem loot; shards only vote</li>
+            <li>Not weekly bonus rewards — Top Active Player Pro is cosmetics + app only</li>
+            <li>Not required to <code>/proposal</code> — any linked player can submit (64 G)</li>
+          </ul>
+        </article>
+
+        <article id="faq">
+          <h2>FAQ</h2>
+          <h3>Do I need listing votes to use paid shards?</h3>
+          <p>No. Paid shards count even if your EC shard count is 0. EC shards and paid shards add together on one digital score.</p>
+          <h3>Why can’t I buy $0.01?</h3>
+          <p>Stripe will not create a Payment Link under <strong>$0.50</strong> USD. The rate is still $1 = 100 shards — checkout lets you type any amount from <strong>$0.50</strong> (50 shards) up.</p>
+          <h3>Does buying shards change my player stats page?</h3>
+          <p>No. Vote score only. In-game metrics stay earned.</p>
+          <h3>How do I check my weight?</h3>
+          <p><code>/vote</code> or <code>/voteshard power</code> in-game, or the <a href="/council/">Council roster</a> after you are linked.</p>
+          <h3>Does Ava get extra Vote Shards?</h3>
+          <p>No. Her Council seat is a locked <strong>25%</strong> share after human weights. Listing EC and paid shards stay with players. <code>/voteshard ava</code> explains it in-game.</p>
+          <h3>Where does the money go?</h3>
+          <p>Membership and shard purchases support RootMC hosting, development, and community tooling. They are separate from closed-loop Gold (G). New development needs <strong>8 paid Pro</strong> or <strong>$40/mo</strong> (best case <strong>$200/mo</strong>; award Pro never counted) — live: <a href="/pro/#dev-funding">rootmc.net/pro</a>. Public finance categories: <a href="https://ava.rootmc.net/finance">ava.rootmc.net/finance</a>.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/">RootMC</a> · <a href="/pro/">Pro</a> · <a href="/council/">Council</a> · <a href="/wiki/constitution/#governance-voting">Constitution</a></p>
+      <p class="rmc-footer-mono">vote shards · $1 = 100 · pay to steer</p>
+    </div>
+  </footer>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root-Economy install guide — RootMC Plugins</title>
+  <meta name="description" content="Gold wallets, claim banks, Vault, treasury, shops, compounding bonds, loans, Server Reserve — YEAR.MONTH.BUILD via Root-Core.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/root-economy/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="root-economy">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span> RootMC <span class="rmc-brand-tag">Network</span></a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/plugins/">Plugins</a> / Root-Economy</p>
+    <h1 class="wiki-page-title">Root-Economy</h1>
+    <p class="page-lead">Owns the RootMC Gold economy — wallets, claim banks, Vault High registration, treasury SPI, shops, compounding bonds, loans, Server Reserve, and MC-day heartbeat. <a href="/plugins/root-essentials/">Root-Essentials</a> stays QoL/travel and debits fees through this plugin.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge wiki-badge-player">Operators</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0;display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a href="/wiki/versioning/">Versioning →</a>
+      <a href="/wiki/economy/">Economy guide →</a>
+    </p>
+
+    <section class="rmc-card verify-card" style="margin-top:1.5rem">
+      <h2 style="margin-top:0">What it includes</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85;margin:0">
+        <li><strong>Vault Economy</strong> — High priority so other plugins see RootMC Gold</li>
+        <li><strong>Wallets</strong> — <code>/bal</code>, <code>/pay</code>, <code>/baltop</code>, <code>/gold</code>, <code>/mint</code>, <code>/reserve</code>, <code>/economy</code>, <code>/tax</code>, <code>/grant</code>. Ava_Ivy <em>is</em> Server-Reserve; <code>/pay Ava</code> = <code>/pay reserve</code> (no tax). Hire and other plugin fees sink here.</li>
+        <li><strong>Claim banks</strong> — area banks on Root-Claims (<code>/c bank</code>); not town or nation banks</li>
+        <li><strong>Shops</strong> — chest shops (<code>/shop</code>, <code>/buy</code>, <code>/sell</code>)</li>
+        <li><strong>Bonds</strong> — park Gold; MC-day yield compounds into principal; <code>/bonds</code></li>
+        <li><strong>Loans</strong> — personal loans from the Server Reserve</li>
+        <li><strong>Upkeep</strong> — inactivity tax only (no town-bank daily tax). Claim tax: first area free; later areas + expansions use reserve tax (<code>/tax</code>)</li>
+        <li><strong>Solar bonus</strong> — disconnected: gold + skills <strong>1.00×</strong> and <strong>+1% env tax</strong>. Connected: <strong>1 + 1% + 1% per 10% battery + 1% per 100 W</strong> on gold and skills (example 50% bank + 500 W → <strong>1.11×</strong>). No CPU tax. Transaction tax always has a <strong>0.05% floor</strong>, then reserve tier. <strong>5 listing votes / 24h</strong> halves that tax and death-loss. Site taxes on mine drops: mesa <strong>50%</strong>, nether <strong>25%</strong>, Y −20–20 <strong>+1%</strong>; deepslate gold <strong>1.5×</strong>. <code>/radar</code> 4-block NESW dash tape + ore pips (1 G/min). Gold ore → Notes + mint backing. Live: <code>/gold</code>, <code>/tax</code>, <code>/mint</code>, <code>/reserve</code>, <code>/vote</code></li>
+      </ul>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Install order</h2>
+      <ol class="rmc-muted" style="padding-left:1.2rem;line-height:1.85">
+        <li><a href="/plugins/root-core/">Root-Core</a> → <a href="/plugins/root-times/">Root-Times</a> → <a href="/plugins/root-perms/">Root-Perms</a></li>
+        <li><strong>Root-Economy</strong> (this jar) — load before other economy consumers</li>
+        <li><a href="/plugins/root-essentials/">Root-Essentials</a> — soft-depends Root-Economy for fee sinks</li>
+        <li><a href="/plugins/root-claims/">Root-Claims</a> — live land + claim banks</li>
+      </ol>
+      <p class="rmc-muted" style="margin:0.75rem 0 0">After upgrade, remove older <code>root-economy-*.jar</code> and retired standalone Bonds/Loans/Shops/Upkeep jars.</p>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Configs (<code>plugins/RootMC/</code>)</h2>
+      <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.85;margin:0">
+        <li><code>root-economy.yml</code> — economy, treasury, heartbeat, messages</li>
+        <li><code>root-bonds.yml</code>, <code>root-loans.yml</code>, <code>rootmc-shops.yml</code>, <code>root-upkeep.yml</code></li>
+        <li>MySQL: <code>database.yml</code> (shared with the suite)</li>
+      </ul>
+      <p class="rmc-muted" style="margin:0.75rem 0 0">Player docs: <a href="/wiki/economy/">wiki/economy</a> · bonds: <a href="/economy/">/economy</a>.</p>
+    </section>
+
+    <section class="rmc-card verify-card" style="margin-top:1rem">
+      <h2 style="margin-top:0">Useful commands</h2>
+      <p class="rmc-muted" style="margin:0;line-height:1.85"><code>/bal</code> <code>/pay</code> <code>/gold</code> <code>/economy</code> <code>/reserve</code> <code>/tax</code> <code>/mint</code> <code>/bonds</code> <code>/loan</code> <code>/shop</code> — see the <a href="/wiki/player/#commands">player guide</a>.</p>
+    </section>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Catalog</a> · <a href="/wiki/plugins/">Suite wiki</a> · <a href="/wiki/versioning/">Versioning</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">Root-Economy · YEAR.MONTH.BUILD</p>
+    </div>
+  </footer>
+  <script src="/plugins/guide.js" defer></script>
+  <script src="/scripts/site-nav.js?v=20260725e" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# RootMC account — BlueMap Worker at map.rootmc.net
+# Deploy: npx wrangler deploy -c wrangler.rootmc.toml
+#
+# Origin: legacy map (R2-backed) until play.rootmc.net:22784 BlueMap is up.
+# Then set BLUEMAP_ORIGIN = "http://play.rootmc.net:22784" and enable R2 hybrid (see BLUEMAP-R2.md).
+name = "rootmc-minecraft-map"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+account_id = "f3372b30093435bacc35b69972abeb2e"
+
+[[r2_buckets]]
+binding = "BLUEMAP_ASSETS"
+bucket_name = "rootmc-bluemap"
+
+[vars]
+# hybrid: R2 tiles when synced; origin fallback for newest renders; live markers via __bluemap-live
+MAP_SERVE_MODE = "hybrid"
+BLUEMAP_ORIGIN = "http://play.rootmc.net:22784"
+MAP_PUBLIC_HOST = "map.rootmc.net"
+BLUEMAP_LIVE_PROXY_PATH = "/__bluemap-live"
+
+[[routes]]
+pattern = "map.rootmc.net"
+custom_domain = true

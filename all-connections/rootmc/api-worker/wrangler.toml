@@ -1,0 +1,144 @@
+# RootMC API — dedicated Cloudflare account (rootmc.net). Not on RootRecord shards.
+#
+# Deploy: powershell -File deploy.ps1  (loads RootMC Workspace\.env)
+# D1:     powershell -File d1-apply-remote.ps1
+#
+# Secrets (deploy.ps1): JWT_SECRET, DISCORD_ROOTMC_BOT_TOKEN, DISCORD_ROOTMC_CLIENT_SECRET,
+#   GROK_API_BEARER_TOKEN, GROK_ROOT_ASK_BEARER_TOKEN (in-game /ask only), DISCORD_ROOTMC_WEBHOOK_URL (optional),
+#   SLACK_FEEDBACK_WEBHOOK_URL (in-game /feedback → Slack #feedback), FCM_SERVICE_ACCOUNT_JSON (shop alerts),
+#   ROOTMC_DEV_WORKSTATION_KEY (dev workstation heartbeat from scripts/dev-workstation-startup.ps1),
+#   ROOTMC_EDGE_SIGNING_KEY (optional HMAC on cacheable public GETs), ROOTMC_TUNNEL_HEALTH_URL (edge preference watchdog),
+#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (from .env STRIPE_WEBHOOK_SECRET_ROOTMC)
+# Stripe webhook: POST https://api.rootmc.info/v1/stripe/webhook
+#
+# Discord OAuth redirect: https://api.rootmc.info/v1/discord/rootmc/callback
+# Developer portal Discord register: POST /api/developer/auth/discord/start → same callback (state prefix register:)
+# Interactions: POST https://api.rootmc.info/v1/discord/rootmc/interactions
+# Developer pages: https://rootmc.net/developer/ (attach developer.rootmc.net to Pages rootmc-web)
+name = "rootmc-api"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "f3372b30093435bacc35b69972abeb2e"
+
+[[d1_databases]]
+# Production primary — Cloudflare-native schema (auth, heartbeats, licenses, Discord, economy mirrors).
+binding = "DB"
+database_name = "rootmc"
+database_id = "6cf71128-67e3-47b2-a802-d6c23d6489e0"
+
+[[d1_databases]]
+# Same physical DB as DB (alias). Legacy MySQL economy pull may target this binding explicitly.
+binding = "LEGACY_DB"
+database_name = "rootmc"
+database_id = "6cf71128-67e3-47b2-a802-d6c23d6489e0"
+
+[[d1_databases]]
+binding = "WEBSTAT_DB"
+database_name = "rootmc-webstat"
+database_id = "e999ab90-08d5-485f-a813-a22aa6aead52"
+
+# Hyperdrive MySQL full-sync mirror only (hub times, root_* tables). Not CF-native auth.
+[[d1_databases]]
+binding = "LIVE_DB"
+database_name = "rootmc-live"
+database_id = "0fae3fc8-f48d-4d6a-b31e-ddff12131d84"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "rootmc-bluemap"
+
+[[routes]]
+pattern = "api.rootmc.net"
+custom_domain = true
+
+[vars]
+WORKER_SHARD = "rootmc"
+SITE_URL = "https://rootmc.net"
+DISCORD_ROOTMC_OAUTH_REDIRECT_URI = "https://api.rootmc.info/v1/discord/rootmc/callback"
+DISCORD_ROOTMC_CLIENT_ID = "1511794429986345020"
+DISCORD_ROOTMC_PUBLIC_KEY = "ca0e363025aefa97cc3906031152395cd0b915efe7283a49aa46fb96360158e3"
+DISCORD_FEEDBACK_CHANNEL_ID = "1516391754625187921"
+DISCORD_APP_SESSION_CHANNEL_ID = "1545278495750361171"
+DISCORD_ROOTMC_AI_ARCHIVE_CHANNEL_ID = "1511922772983545947"
+GROK_API_URL = "https://api.x.ai/v1/chat/completions"
+GROK_MODEL = "grok-3-latest"
+# Secret: GROK_API_BEARER_TOKEN (console.x.ai xai-... key) via deploy.ps1 — NOT GROK_X_* (Twitter/X only).
+# Secret: GROK_ROOT_ASK_BEARER_TOKEN — dedicated key for in-game /ask (xAI console name: root-ask).
+DISCORD_ROOTMC_GUILD_ID = "1516108585740800042"
+DISCORD_ROOTMC_LINKED_ROLE_ID = "1516396491973984256"
+DISCORD_ROOTMC_STAFF_ROLE_ID = "1516121138420252803"
+DISCORD_ROOTMC_MINECRAFT_SYNC_ROLE_ID = "1516467759842857225"
+DISCORD_ROOTMC_GENERAL_CHAT_CHANNEL_ID = "1545284354157187083"
+DISCORD_ROOTMC_HOURLY_SNAPSHOT_CHANNEL_ID = "1539779979280257054"
+DISCORD_ROOTMC_UPDATES_CHANNEL_ID = "1545284423740563528"
+DISCORD_ROOTMC_ADMINS_CHANNEL_ID = "1516121832493678612"
+DISCORD_ROOTMC_INGAME_CHAT_CHANNEL_ID = "1545284399107547179"
+# Legacy Discord #ingame-feedback — delivery moved to Slack #feedback (C0BLMGBVAMD).
+DISCORD_ROOTMC_INGAME_FEEDBACK_CHANNEL_ID = "1516828735536365669"
+SLACK_FEEDBACK_CHANNEL_ID = "C0BLMGBVAMD"
+# Secret: SLACK_FEEDBACK_WEBHOOK_URL (Incoming Webhook for #feedback) via deploy.ps1
+SLACK_SERVER_REPORTS_CHANNEL_ID = "C0BLY49H13M"
+# Secret: SLACK_SERVER_REPORTS_WEBHOOK_URL — copy of Discord AI reports → Slack #server-reports
+DISCORD_ROOTMC_REPORT_TICKETS_CATEGORY_ID = "1517360597686157605"
+DISCORD_ROOTMC_TOWN_CATEGORY_ID = ""
+DISCORD_ROOTMC_NATION_CATEGORY_ID = ""
+# Town/nation private channel categories temporarily removed from Discord guild.
+# Reconcile cron/sync create/delete automation is disabled while these are blank.
+# Deleted Discord channels — leave blank until recreated (avoids 404 spam)
+DISCORD_ROOTMC_TOWN_INFO_CHANNEL_ID = ""
+DISCORD_ROOTMC_NATION_INFO_CHANNEL_ID = ""
+DISCORD_ROOTMC_DAILY_REPORT_CHANNEL_ID = "1539779979280257054"
+DISCORD_ROOTMC_AUTOMATED_REPORTS_CHANNEL_ID = "1539779979280257054"
+# Slack ops home: #automated-reports C0BM6KVFS0L (live board edits still Discord until Slack bot)
+DISCORD_ROOTMC_AI_RAW_ARCHIVE_CHANNEL_ID = "1545283818146242642"
+DISCORD_ROOTMC_ECONOMY_ANNOUNCE_CHANNEL_ID = "1516804780884889621"
+DISCORD_ROOTMC_RULES_CHANNEL_ID = "1516392367869919243"
+DISCORD_ROOTMC_UNVERIFIED_CHANNEL_ID = "1519249871326937138"
+# Operations forum — server updates + appeals (daily AI digest reads posts here).
+DISCORD_ROOTMC_OPERATIONS_FORUM_CHANNEL_ID = "1516143406315737169"
+DISCORD_ROOTMC_APPEALS_FORUM_CHANNEL_ID = "1516143406315737169"
+DISCORD_ROOTMC_CONSTITUTION_CHANNEL_ID = "1522406019152478210"
+DISCORD_ROOTMC_GOVERNANCE_CHANNEL_ID = "1522406451413385317"
+DISCORD_ROOTMC_COUNCIL_VOTERS_ROLE_ID = "1522410660418551910"
+DISCORD_ROOTMC_VOTING_CHANNEL_ID = "1522413185364398090"
+DISCORD_ROOTMC_PROPOSALS_CHANNEL_ID = "1526664180491358419" # #💬proposals💬 forum (discussion threads)
+DISCORD_ROOTMC_BOT_SPAM_CHANNEL_ID = "1516391754625187921"
+DISCORD_ROOTMC_ACTIVE_PARTICIPANT_ROLE_ID = "1518311748627726346" # Discord role name: Top Participator
+DISCORD_ROOTMC_TOP_ACTIVE_PLAYER_ROLE_ID = "1518320460729679922"
+ROOTMC_PAPER_TOKEN_MINT = "Evy78vHFifT3tdR2vCMUeMLMyFS9ex8wHHi8uKYApump"
+ROOTMC_PAPER_REFERENCE_PRICE_USD = "0.00001"
+ROOTMC_PAPER_REFERENCE_G_PER_UNIT = "1"
+ROOTMC_PAPER_TRADE_FEE_PERCENT = "0.5"
+# Shockbyte MySQL table prefix (matches plugins/RootRecord/rootmc.yml mysql.table-prefix).
+ROOTMC_MYSQL_TABLE_PREFIX = "root_"
+STRIPE_ROOTMC_PRODUCT_ID = "prod_UyLfBFLcoBZc1Q"
+STRIPE_ROOTMC_PAYMENT_LINK = "https://buy.stripe.com/dRmcN54cJ4tf5N2gZh5gc08"
+STRIPE_ROOTMC_PAYMENT_LINK_MONTHLY = "https://buy.stripe.com/dRmcN54cJ4tf5N2gZh5gc08"
+STRIPE_ROOTMC_PAYMENT_LINK_ONE_MONTH = "https://buy.stripe.com/dRmaEXbFb8Jvb7meR95gc09"
+STRIPE_ROOTMC_PAYMENT_LINK_LIFETIME = "https://buy.stripe.com/eVq3cvcJf8Jv6R610j5gc0a"
+STRIPE_ROOTMC_PRICE_MONTHLY = "price_1TyOyBIaRpbMiAov6kwVcweA"
+# Legacy Root Record $4.99/mo membership — still live; counts for Ava dev-funding MRR.
+STRIPE_ROOTMC_PRICE_MONTHLY_LEGACY = "price_1TQIpzIaRpbMiAov5g5iTPh9"
+STRIPE_PRICE_ID = "price_1TQIpzIaRpbMiAov5g5iTPh9"
+STRIPE_ROOTMC_PRICE_ONE_MONTH = "price_1TyRBuIaRpbMiAovu99i4TEE"
+STRIPE_ROOTMC_PRICE_LIFETIME = "price_1TyP0GIaRpbMiAovn5JD4N71"
+STRIPE_VOTE_SHARDS_PRODUCT_ID = "prod_V2k0VE9s0TWBgb"
+STRIPE_VOTE_SHARDS_PRICE_ID = "price_1U2edPIaRpbMiAovZSPDBkFH"
+STRIPE_VOTE_SHARDS_PAYMENT_LINK = "https://buy.stripe.com/eVq3cvaB7f7Tcbq10j5gc0c"
+ROOTMC_DEFAULT_SERVER_ID = "rootmc"
+
+# Hyperdrive → Shockbyte MySQL (Towny). Binding name must stay ROOTMC_MYSQL.
+[[hyperdrive]]
+binding = "ROOTMC_MYSQL"
+id = "7b46ebebc7df48349cc14a35b8151537"
+
+# Hyperdrive → Shockbyte MySQL (Claims / gen3).
+[[hyperdrive]]
+binding = "ROOTMC_MYSQL_CLAIMS"
+id = "294650f3bc90417f8c2ea4cf87a73222"
+
+[triggers]
+# Sunday 10:00 HST = 20:00 UTC — Cloudflare weekdays: 1=SUN … 7=SAT (not Unix 0=SUN). Deploy: `0 20 * * 1`.
+# Hourly `0 * * * *` also gates daily AI reports at HST midnight (10:00 UTC).
+crons = []

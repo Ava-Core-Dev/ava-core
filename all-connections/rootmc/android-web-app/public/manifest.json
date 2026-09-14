@@ -1,0 +1,17 @@
+{
+  "short_name": "RootMC",
+  "name": "RootMC Terminal — Minecraft Economy",
+  "description": "Trading-terminal companion for the RootMC Minecraft SMP. Markets, portfolios, daily check-in, and vote rewards.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "categories": ["games", "finance", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

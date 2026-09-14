@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — RootMC</title>
+  <meta name="description" content="RootMC history and timeline: the modern Alexrs94 server era, singular live host + Root-Claims, earlier experiments, and pre-current name archaeology.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/history/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / History</p>
+    <p class="market-badge">Server &amp; brand chronicle</p>
+    <h1 class="wiki-page-title">RootMC <em>History</em></h1>
+    <p class="page-lead">Modern RootMC is a 2026 Java / Paper server program developed by <strong>Alexrs94</strong>, with closed-loop Gold, Discord-integrated operations, and live web tools. Live play is singular <code>play.rootmc.net</code> with <strong>Root-Claims</strong>. RootMC once experimented with Towny; that is not current topology. The name also has older unrelated lineages; this page keeps those histories separate and clearly scoped.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">rootmc.net live since 19 Jun 2026</span>
+      <span class="wiki-badge wiki-badge-player">Singular host · Root-Claims</span>
+      <span class="wiki-badge wiki-badge-dev">Updated 9 Aug 2026</span>
+    </div>
+
+    <div class="wiki-callout" style="margin-top:1.25rem">
+      <p style="margin:0"><strong>Scope note.</strong> Current player-facing operations are singular <code>play.rootmc.net</code> with Root-Claims land. Towny was a past experiment. There is no separate live Claims world and no Towny vs Claims production pair.</p>
+    </div>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="Page navigation">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#modern">Modern era</a></li>
+            <li><a href="#topology">Current live topology</a></li>
+            <li><a href="#timeline">2026 timeline</a></li>
+            <li><a href="#precurrent">Pre-current lineages</a></li>
+            <li><a href="#domains">Domains</a></li>
+            <li><a href="#related">Related</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Wiki</h2>
+          <nav>
+            <ul>
+              <li><a href="/wiki/">Wiki home</a></li>
+              <li><a href="/wiki/constitution/">Constitution</a></li>
+              <li><a href="/wiki/economy/">Economy guide</a></li>
+              <li><a href="/wiki/map-26-2/">Paper 26.2 map reset</a></li>
+              <li><a href="/wiki/player/">Player guide</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="modern">
+          <h2>Modern era (Alexrs94, 2026-)</h2>
+          <p>Development began privately around May 2026. <strong>19 Jun 2026</strong> marks the public brand anchor (<code>rootmc.net</code> registration), and <strong>1 Jul 2026</strong> marks full public open on the fresh map (land was Towny then; live land is Root-Claims).</p>
+          <ul>
+            <li><strong>Server model</strong>: Java / Paper with closed-loop Gold, Root-Claims land, and treasury-led outflows.</li>
+            <li><strong>Public identity</strong>: <code>play.rootmc.net</code> game + <code>rootmc.net</code> web + <code>api.rootmc.net</code> worker API.</li>
+            <li><strong>Ops shape</strong>: plugin changelog discipline, live deploy wrappers, Discord bridge, and audit-friendly economy reporting.</li>
+            <li><strong>Data boundary</strong>: MySQL is authoritative for bulk game/economy reporting; D1 is retained for auth/link/governance and edge contracts.</li>
+          </ul>
+          <p>Modern RootMC is independent from earlier projects that used the same naming. There is no shared runtime code lineage from those older stacks into the current server architecture.</p>
+        </article>
+
+        <article id="topology">
+          <h2>Current live topology</h2>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Surface</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Live production</td><td><strong>Live now</strong> — <code>play.rootmc.net</code> · Root-Claims (primary public play)</td></tr>
+              <tr><td>Towny experiment</td><td>Past only — not current live topology</td></tr>
+              <tr><td>Gen 2 prototype (<code>gen2-27</code>)</td><td>Retired — api2 / rootmc-g2 deleted</td></tr>
+              <tr><td>Website</td><td><code>rootmc.net</code> Pages project with wiki, economy, reserve, market, players, and history surfaces</td></tr>
+              <tr><td>Discord + identity</td><td>Linked-player flows and governance channels active; one-bot bridge strategy retained across generations</td></tr>
+            </tbody>
+          </table>
+          <p>Generation policy is strict: no silent bleed of production credentials, world data, or money state into Gen 2. Cutover is intentional, not gradual by accident.</p>
+        </article>
+
+        <article id="timeline">
+          <h2>2026 timeline (condensed)</h2>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>When</th><th>What changed</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>~May 2026</td><td>Private development starts (Paper + Gold economy foundation; Towny land experiment)</td></tr>
+              <tr><td>19 Jun 2026</td><td><code>rootmc.net</code> registered; modern brand goes public</td></tr>
+              <tr><td>22-26 Jun</td><td>Early live ops period: first towns, spawn work, plugin and API surfaces stabilize</td></tr>
+              <tr><td>27 Jun</td><td>RootMC workspace split and changelog discipline become standard</td></tr>
+              <tr><td>28-30 Jun</td><td>Rewards/loans/tax mechanics tighten; market and reporting reliability improvements</td></tr>
+              <tr><td>1 Jul</td><td>Full public open on fresh map; ledger floor for new era</td></tr>
+              <tr><td>2 Jul</td><td>Launch retention pack + Constitution draft + governance channel rollout</td></tr>
+              <tr><td>5-7 Jul</td><td>Spawn protections, chamber retirement, Constitution ratification, restart reliability fixes</td></tr>
+              <tr><td>9-12 Jul</td><td>Companion and API maturity: /link hardening, bond flow plumbing, host metrics, <code>api2</code> goes live</td></tr>
+              <tr><td>12-19 Jul</td><td>Gen 1/Gen 2 isolation doctrine, Hyperdrive reporting, JDA bridge, Gen 2 virtual shop experiments</td></tr>
+              <tr><td>20-21 Jul</td><td>Handoff path normalization, brand archaeology pass, history split into current vs pre-current records</td></tr>
+            </tbody>
+          </table>
+          <p>For deep release-by-release entries, see Change Logs and plugin-specific files. This page stays as the readable public summary.</p>
+        </article>
+
+        <article id="precurrent">
+          <h2>Pre-current lineages (separate projects)</h2>
+          <p>Three independent histories share parts of the same naming, but they are not the current RootMC server stack:</p>
+
+          <h3>Lineage A (2015): Root3287 RootMC web + plugin effort</h3>
+          <p>A Spigot/PHP community platform concept (site + plugin integration), aiming at <code>rootmc.com</code>. Development activity is visible in 2015, then stalls. This was tooling/product ambition, not the current SMP lineage.</p>
+
+          <h3>Lineage B (2020): RootNetwork / AdvancedCraft Bedrock org</h3>
+          <p>A separate Bedrock Nukkit network era with custom lobby and proxy tooling under AdvancedCraft branding. Different edition, different stack, different team from modern RootMC.</p>
+
+          <h3>Lineage C (name collisions)</h3>
+          <p>Other similarly named projects and public identities exist, including non-Minecraft entities. They should not be merged into RootMC server lore without direct evidence.</p>
+
+          <div class="wiki-callout wiki-callout-warn">
+            <p style="margin:0"><strong>Search-confusion note.</strong> <code>rootmc.online</code> was registered by a third party in April 2026 and may confuse search results. It is not an official RootMC property.</p>
+          </div>
+        </article>
+
+        <article id="domains">
+          <h2>Domain position</h2>
+          <table class="wiki-table">
+            <thead>
+              <tr><th>Domain</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>rootmc.net</code></td><td><strong>Primary official brand</strong> (live website identity and public anchor)</td></tr>
+              <tr><td><code>play.rootmc.net</code></td><td>Primary live gameplay hostname</td></tr>
+              <tr><td><code>api.rootmc.net</code></td><td>Primary API hostname for production stack</td></tr>
+              <tr><td><code>api2.rootmc.net</code></td><td>Retired (live stack uses <code>api.rootmc.net</code>)</td></tr>
+              <tr><td><code>advancedcraft.net</code></td><td>Owned in current era; treated as historical/brand context, not the main join host</td></tr>
+              <tr><td><code>rootmc.com</code></td><td>Aftermarket premium listing; not official RootMC ownership</td></tr>
+              <tr><td><code>rootmc.online</code></td><td>Third-party registration; not official RootMC ownership</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="related">
+          <h2>Related reading</h2>
+          <ul>
+            <li><a href="/wiki/map-26-2/">Paper 26.2 map reset</a> - launch and ledger transition details</li>
+            <li><a href="/wiki/constitution/">Constitution</a> - policy source of truth for economy/governance</li>
+            <li><a href="/wiki/economy/">Economy guide</a> - player mechanics for earning/spending Gold</li>
+            <li><a href="/economy/">Live economy</a> - <a href="/reserve/">Server Reserve</a> - <a href="/market/">Market</a></li>
+            <li><a href="/wiki/">Wiki hub</a> - <a href="/player/">Players</a> - <a href="/wiki/claims/">Claims</a></li>
+          </ul>
+          <p class="rmc-muted" style="margin-bottom:0">This page is maintained as the public-facing timeline layer. Operational granularity remains in workspace changelogs and release records.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/">RootMC</a> · <a href="/wiki/">Wiki</a> · <a href="/history/">History</a> · <a href="https://discord.gg/rFFQYrNaqS">Discord</a></p>
+      <p class="rmc-footer-mono">history · timeline · root-claims · play.rootmc.net</p>
+    </div>
+  </footer>
+
+  <nav class="rmc-bottomnav" aria-label="Mobile">
+    <div class="rmc-bottomnav-inner">
+      <a href="/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>Home</a>
+      <a href="/market/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>Market</a>
+      <a href="/leaderboard/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10l1 7H6l1-7zM6 11h12v6H6z"/></svg>Ranks</a>
+      <a href="/player/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Players</a>
+      <a href="/wiki/"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7M8 15h5"/></svg>Wiki</a>
+    </div>
+  </nav>
+
+  
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

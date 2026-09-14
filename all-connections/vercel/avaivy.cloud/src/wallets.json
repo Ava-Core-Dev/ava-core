@@ -1,0 +1,51 @@
+{
+  "_readme": "Official Ava Core public receive addresses only. Never put a seed or private key in this file. Secrets live in gitignored credentials.env on the host.",
+  "label": "Official Ava Core wallets",
+  "networks": [
+    {
+      "name": "Solana",
+      "address": "3euG8kS4Dwvicq2xDwiwQEoDBipBjwyUQxp9CFo2gwtL"
+    },
+    {
+      "name": "Ethereum",
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5"
+    },
+    {
+      "name": "Bitcoin Taproot",
+      "address": "bc1prvwfa6xj4kxpu4s0h674hsf4wd03cs2qm3qntpvwc4zte9qhpx8q3uq4zy"
+    },
+    {
+      "name": "Bitcoin Native SegWit",
+      "address": "bc1qfje8y2v20hu8u0v30qyadrsxjztd8n4tlm2a4h"
+    },
+    {
+      "name": "Robinhood",
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "note": "Same EVM key as Ethereum"
+    },
+    {
+      "name": "Monad",
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "note": "Same EVM key as Ethereum"
+    },
+    {
+      "name": "Base",
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "note": "Same EVM key as Ethereum"
+    },
+    {
+      "name": "Sui",
+      "address": "0x326803a7d6717291df988548e77db8808afde383e1baa65665eeac8f9b2b882c"
+    },
+    {
+      "name": "Polygon",
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "note": "Same EVM key as Ethereum"
+    },
+    {
+      "name": "HyperEVM",
+      "address": "0x983704ec4a39526b3f574050132b6659bb0474c5",
+      "note": "Same EVM key as Ethereum"
+    }
+  ]
+}

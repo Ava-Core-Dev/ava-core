@@ -1,0 +1,10 @@
+node_modules/
+# Local Discord guild dumps (channel/role IDs); regenerate with scripts/discord-guild-inventory.mjs
+discord-guild-snapshot.local.json
+scripts/discord-guild-snapshot.local.json
+.wrangler/
+.dev.vars
+.env
+.deploy-jwt
+.deploy-internal-wallet-key
+.deploy-solana-site-log-secret

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Council of Voters — RootMC Governance</title>
+  <meta name="description" content="RootMC Council voting power, weighted majorities on open polls, and how governance share is calculated.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/governance/council/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <style>
+    .council-grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 1.5rem 0; }
+    .council-stat { text-align: center; padding: 1rem; background: rgba(255,255,255,.04); border-radius: 10px; }
+    .council-stat strong { display: block; font-size: 1.5rem; color: var(--rmc-gold, #f5b942); }
+    .council-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    .council-table th, .council-table td { padding: .65rem .5rem; border-bottom: 1px solid rgba(255,255,255,.06); text-align: left; vertical-align: middle; }
+    .council-table th { color: var(--rmc-muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+    .share-bar { height: 8px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; min-width: 80px; }
+    .share-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #c9a227, #f5b942); border-radius: 4px; }
+    .majority-card { padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .majority-card:last-child { border-bottom: 0; }
+    .majority-bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,.06); margin: .75rem 0; }
+    .majority-bar-for { background: #5dd39e; }
+    .majority-bar-against { background: #ef5b5b; }
+    .majority-bar-abstain { background: #7eb8da; }
+    .majority-legend { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; font-size: .85rem; color: var(--rmc-muted); }
+    .majority-legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: .35rem; vertical-align: middle; }
+    .majority-legend .lg-for::before { background: #5dd39e; }
+    .majority-legend .lg-against::before { background: #ef5b5b; }
+    .majority-legend .lg-abstain::before { background: #7eb8da; }
+    .policy-formula { font-family: "JetBrains Mono", monospace; font-size: .85rem; background: rgba(0,0,0,.25); padding: .75rem 1rem; border-radius: 8px; margin: .75rem 0; }
+    .site-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+    .site-chip { font-size: .75rem; padding: .2rem .5rem; border-radius: 4px; background: rgba(255,255,255,.06); color: var(--rmc-muted); }
+    .site-chip.on { background: rgba(245,185,66,.15); color: #f5d78e; }
+    .council-note { font-size: .88rem; color: var(--rmc-muted); margin-top: .35rem; }
+  </style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/"><span class="rmc-brand-mark" aria-hidden="true">◈</span>RootMC<span class="rmc-brand-tag">SMP</span></a>
+      <nav class="rmc-nav" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/market/">Market</a>
+        <a href="/leaderboard/">Leaderboard</a>
+        <a href="/governance/" aria-current="page">Governance</a>
+        <a href="/wiki/">Wiki</a>
+        <a href="/governance/council/" class="rmc-nav-cta">Council</a>
+      </nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container" style="padding-bottom: 3rem;">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> · <a href="/governance/">Governance</a> · Council</p>
+    <p class="market-badge">Council of Voters</p>
+    <h1><span class="gold">Voting power &amp; majorities</span></h1>
+    <p class="rmc-muted">Live weighted Council roster and open poll tallies. Outcomes use governance % — not one player = one vote.</p>
+    <div id="gov-me"></div>
+    <p id="council-sync" class="council-note">Loading…</p>
+
+    <div class="council-grid" id="council-stats" hidden>
+      <div class="council-stat"><strong id="stat-eligible">—</strong>Eligible voters</div>
+      <div class="council-stat"><strong id="stat-listing-sites">8</strong>Listing sites</div>
+      <div class="council-stat"><strong id="stat-polls">—</strong>Open polls</div>
+    </div>
+
+    <section class="rmc-card" style="margin-top: 1.5rem;">
+      <h2 style="margin-top:0">Weighted voting majority</h2>
+      <p class="rmc-muted">Each open Council poll shows weighted For / Against / Abstain. A direction needs <strong>&gt;50%</strong> of cast weight to lead. Treasury grants need that majority held <strong>24 hours</strong> to pass or veto.</p>
+      <div id="majority-list"><p class="rmc-muted">Loading polls…</p></div>
+    </section>
+
+    <section class="rmc-card" style="margin-top: 1.5rem;">
+      <h2 style="margin-top:0">Council roster</h2>
+      <p class="rmc-muted">Linked Minecraft + Discord accounts with Vote Shards in <code>/ec</code>. Shares sum to <strong>100%</strong>.</p>
+      <div style="overflow-x:auto;">
+        <table class="council-table" id="council-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Share</th>
+              <th>Bar</th>
+              <th>Total votes</th>
+              <th>Playtime</th>
+              <th>Vote pts</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="7" class="rmc-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="council-note" style="margin:1rem 0 0"><a class="rmc-btn rmc-btn-secondary" href="/council/#leaderboard">Full shard leaderboard &amp; charts</a></p>
+
+    <section class="rmc-card" style="margin-top: 1.5rem;" id="power-section">
+      <h2 style="margin-top:0">How voting power is obtained</h2>
+      <p class="rmc-muted" id="policy-share-note">Loading policy…</p>
+      <div class="policy-formula" id="policy-formula">raw = (EC + paid + listing site bonus) × multiplier (paid Pro ×2 / Lifetime ×3 / both ×5)</div>
+      <div class="council-grid">
+        <div>
+          <h3 style="margin-top:0;font-size:1rem;">EC shards</h3>
+          <p class="rmc-muted" style="margin:0;">Digital listing-vote weight — same number as your confirmed listing votes. No physical items.</p>
+        </div>
+        <div>
+          <h3 style="margin-top:0;font-size:1rem;">Listing votes</h3>
+          <p class="rmc-muted" style="margin:0;" id="policy-vote-points">Each verified listing vote mints <strong>+1 digital EC shard</strong> (same number as your vote count). Lifetime listing sites count ×2. Paid shards ($1=100, min $0.50) add separately. Run <code>/vote</code> in-game. <a href="/vote-shards/">Explainer</a> · <a href="/pro/vote-shards/">Buy</a>.</p>
+        </div>
+      </div>
+      <h3 style="font-size:1rem;margin-top:1.25rem;">Official listing sites</h3>
+      <div class="site-chips" id="listing-sites"></div>
+      <p class="council-note" style="margin-top:1rem;">
+        <a href="/verify/">Link Minecraft + Discord</a> ·
+        <a href="/terms/">Accept terms</a> ·
+        <a id="policy-constitution" href="/wiki/constitution/#governance-voting">Constitution</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="/governance/governance.js"></script>
+  <script>
+    (async function () {
+      const G = window.RootMcGovernance;
+      const me = await G.loadMe();
+      G.renderStatusBanner(me, G.el("gov-me"));
+
+      const { data } = await G.govFetch("council", { method: "GET" });
+      if (!data || !data.ok) {
+        G.el("council-sync").textContent = "Could not load Council data.";
+        G.el("majority-list").innerHTML = "<p class=\"rmc-muted\">Try again later.</p>";
+        return;
+      }
+
+      const policy = data.policy || {};
+      const council = data.council || [];
+      const polls = data.polls || [];
+
+      G.el("council-sync").textContent =
+        "Synced " + G.fmtDate(data.synced_at) + " · " + (data.eligible_count || 0) + " eligible voters";
+      G.el("council-stats").hidden = false;
+      G.el("stat-eligible").textContent = String(data.eligible_count || 0);
+      G.el("stat-listing-sites").textContent = String(policy.listing_site_count || 8);
+      G.el("stat-polls").textContent = String(polls.length);
+
+      if (policy.share_note) G.el("policy-share-note").textContent = policy.share_note;
+      if (policy.formula) G.el("policy-formula").textContent = policy.formula + "\nshare = raw ÷ Σ(all raw) → % of 100%";
+      if (policy.constitution_url) G.el("policy-constitution").href = policy.constitution_url;
+      G.el("policy-vote-points").innerHTML =
+        "Each verified listing vote (all-time) = <strong>1 vote point</strong> (baseline " +
+        (policy.vote_points_baseline || 1) + " when none). Run <code>/vote</code> in-game for Gold rewards + points.";
+
+      const sitesBox = G.el("listing-sites");
+      (policy.listing_sites || []).forEach(function (s) {
+        const chip = document.createElement("span");
+        chip.className = "site-chip";
+        chip.textContent = s.label || s.id;
+        chip.title = s.id;
+        sitesBox.appendChild(chip);
+      });
+
+      function majorityStatus(p) {
+        if (p.sustained_majority && p.sustained_majority.direction) {
+          return "Sustained majority <strong>" + G.esc(p.sustained_majority.direction) +
+            "</strong> since " + G.fmtDate(p.sustained_majority.since) +
+            " — holds " + (policy.grant_majority_hold_hours || 24) + "h to resolve";
+        }
+        const lead = p.leading_majority;
+        if (lead && lead.settled && lead.direction) {
+          return "Leading <strong>" + G.esc(lead.direction) + "</strong> at " + G.fmtPct(lead.pct) +
+            (p.kind === "grant" ? " — must hold 24h for treasury grants" : "");
+        }
+        if ((p.voter_count || 0) === 0) {
+          return "No votes cast yet";
+        }
+        return "No direction above 50% yet — " + (p.voter_count || 0) + " voter(s) cast";
+      }
+
+      const majorityBox = G.el("majority-list");
+      if (!polls.length) {
+        majorityBox.innerHTML = "<p class=\"rmc-muted\">No open Council polls right now. Check <a href=\"/governance/\">Governance</a> for proposals and bills.</p>";
+      } else {
+        majorityBox.innerHTML = polls.map(function (p) {
+          const forPct = Number(p.weighted_for_pct) || 0;
+          const againstPct = Number(p.weighted_against_pct) || 0;
+          const abstainPct = Number(p.weighted_abstain_pct) || 0;
+          const grantLine = p.kind === "grant" && p.grant_amount
+            ? "<p class=\"council-note\"><strong>" + G.esc(String(p.grant_amount)) + " G</strong> → " +
+              G.esc(p.grant_recipient_username || "?") + " from treasury</p>"
+            : "";
+          return (
+            "<article class=\"majority-card\">" +
+            "<h3 style=\"margin:0 0 .35rem;font-size:1.05rem;\"><a href=\"" + G.esc(p.url) + "\">" +
+            G.esc(p.title) + "</a>" +
+            (p.kind === "grant" ? " <span class=\"market-badge\">Grant</span>" : "") +
+            "</h3>" +
+            grantLine +
+            "<p class=\"council-note\">" + majorityStatus(p) + "</p>" +
+            "<div class=\"majority-bar\" role=\"img\" aria-label=\"For " + forPct + "%, Against " + againstPct + "%, Abstain " + abstainPct + "%\">" +
+            "<div class=\"majority-bar-for\" style=\"width:" + forPct + "%\"></div>" +
+            "<div class=\"majority-bar-against\" style=\"width:" + againstPct + "%\"></div>" +
+            "<div class=\"majority-bar-abstain\" style=\"width:" + abstainPct + "%\"></div>" +
+            "</div>" +
+            "<div class=\"majority-legend\">" +
+            "<span class=\"lg-for\">For " + G.fmtPct(forPct) + "</span>" +
+            "<span class=\"lg-against\">Against " + G.fmtPct(againstPct) + "</span>" +
+            "<span class=\"lg-abstain\">Abstain " + G.fmtPct(abstainPct) + "</span>" +
+            "</div>" +
+            (p.kind !== "grant" ? "<p class=\"council-note\">Closes " + G.fmtDate(p.closes_at) + "</p>" : "") +
+            "</article>"
+          );
+        }).join("");
+      }
+
+      const tbody = G.el("council-table").querySelector("tbody");
+      if (!council.length) {
+        tbody.innerHTML = "<tr><td colspan=\"7\" class=\"rmc-muted\">No eligible Council voters yet (need linked account + Vote Shards in /ec).</td></tr>";
+      } else {
+        tbody.innerHTML = council.map(function (row, i) {
+          const pct = Number(row.share_percent) || 0;
+          const sites = (row.sites_voted || []).length;
+          const totalVotes = row.total_votes != null ? row.total_votes : (row.vote_points || 1);
+          return (
+            "<tr>" +
+            "<td>" + (i + 1) + "</td>" +
+            "<td><strong>" + G.esc(row.minecraft_username || "?") + "</strong></td>" +
+            "<td class=\"gold\">" + G.fmtPct(pct) + "</td>" +
+            "<td><div class=\"share-bar\" title=\"" + G.fmtPct(pct) + "\"><span style=\"width:" + Math.min(100, pct) + "%\"></span></div></td>" +
+            "<td>" + totalVotes +
+            (sites ? " <span class=\"council-note\">(" + sites + " sites)</span>" : "") + "</td>" +
+            "<td>" + G.fmtHours(row.playtime_seconds) + "</td>" +
+            "<td>" + (Number(row.vote_points) || 1) + "</td>" +
+            "</tr>"
+          );
+        }).join("");
+      }
+    })();
+  </script>
+</body>
+</html>

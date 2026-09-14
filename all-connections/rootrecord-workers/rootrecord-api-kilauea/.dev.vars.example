@@ -1,0 +1,12 @@
+# Copy to .dev.vars in this folder for `wrangler dev` (file is gitignored).
+# Use the same JWT_SECRET value you deploy to production if you need local auth to match.
+
+JWT_SECRET=replace-with-long-random-string-at-least-16-chars
+
+# AES-256 key for custodial wallet private keys (exactly 32 bytes as standard base64). deploy.ps1 generates/uploads this for production.
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+INTERNAL_WALLET_ENC_KEY_B64=paste-44-char-base64-here
+
+# Optional local overrides (otherwise wrangler.toml [vars] apply):
+# SITE_URL=http://127.0.0.1:8787
+# ACCUWEATHER_API_KEY=   (AccuWeather dev key for real weather in local dev)

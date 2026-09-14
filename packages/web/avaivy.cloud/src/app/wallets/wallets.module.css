@@ -1,0 +1,146 @@
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 1.4rem 4.5rem;
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.wrap h1 {
+  font-size: clamp(2rem, 5vw, 2.7rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.7rem;
+}
+
+.lead {
+  color: var(--text);
+  font-size: 1.05rem;
+  max-width: 42rem;
+  margin-bottom: 2rem;
+}
+
+.explainer {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 2.4rem;
+}
+
+.block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem 1.25rem;
+}
+
+.block h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.45rem;
+}
+
+.block p,
+.block li {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.block ul {
+  margin: 0.35rem 0 0 1.15rem;
+}
+
+.block li + li {
+  margin-top: 0.3rem;
+}
+
+.block a {
+  color: var(--accent2);
+}
+
+.grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.1rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.status {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  color: var(--green);
+}
+
+.qr {
+  align-self: center;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  line-height: 0;
+}
+
+.qr img {
+  width: 180px;
+  height: 180px;
+  display: block;
+}
+
+.addr {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  word-break: break-all;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.copy {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #0f172a;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.copy:hover {
+  border-color: var(--accent2);
+}
+
+.foot {
+  margin-top: 2rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+}

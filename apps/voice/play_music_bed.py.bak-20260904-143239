@@ -1,0 +1,38 @@
+"""One-shot music-bed player for Windows (AVA-CORE).
+
+Argv must include the token AVA_MUSIC_BED so origin kill_stray can find orphans.
+Plays WAV via winsound (sync, full file). Non-WAV is rejected here — bed library
+is WAV-only on this tree; director duration-gate still owns playlist advance.
+"""
+
+from __future__ import annotations
+
+import sys
+
+
+MARKER = "AVA_MUSIC_BED"
+
+
+def main(argv: list[str]) -> int:
+    if MARKER not in argv:
+        print("missing AVA_MUSIC_BED marker", file=sys.stderr)
+        return 2
+    # Last non-marker arg is the audio path (paths may contain spaces as one argv).
+    paths = [a for a in argv[1:] if a != MARKER]
+    if not paths:
+        print("missing audio path", file=sys.stderr)
+        return 2
+    path = paths[-1]
+    suffix = path[path.rfind(".") :].lower() if "." in path else ""
+    if suffix != ".wav":
+        print(f"unsupported bed format: {suffix or '(none)'}", file=sys.stderr)
+        return 3
+    import winsound
+
+    # SND_FILENAME sync — blocks until natural end. No MediaPlayer.
+    winsound.PlaySound(path, winsound.SND_FILENAME)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

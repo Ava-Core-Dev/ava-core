@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root-Times install guide — RootMC Plugins</title>
+  <meta name="description" content="Install Root-Times: Minecraft-day clock, playtime seconds harvest, AFK, join welcome lines, and a local status webpage. Updates via Root-Core suite updater.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/plugins/root-times/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+</head>
+<body data-plugin-id="root-times" data-bstats-url="https://bstats.org/plugin/bukkit/Root-Times/32897">
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">Network</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="operator" data-site-nav-current="plugins"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / <a href="/plugins/">Plugins</a> / Root-Times</p>
+    <h1 class="wiki-page-title">Root-Times install guide</h1>
+    <p class="page-lead">Minecraft-day clock, playtime in seconds, AFK tracking, join welcome lines, and an editable local status page — all under the shared <code>plugins/RootMC/</code> folder.</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-server">Paper 26.x</span>
+      <span class="wiki-badge wiki-badge-player">Operators</span>
+      <span class="wiki-badge" id="guide-version-badge">Loading version…</span>
+    </div>
+    <p style="margin:1rem 0 0">
+      <a class="rmc-nav-cta" id="guide-download-btn" href="/plugins/" style="display:inline-flex;text-decoration:none">Download jar</a>
+      <a id="guide-bstats-link" href="https://bstats.org/plugin/bukkit/Root-Times/32897" rel="noopener noreferrer" target="_blank">bStats metrics →</a>
+      <a href="/plugins/root-core/" style="margin-left:0.85rem">Install Root-Core first →</a>
+    </p>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="Guide sections">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#requirements">Requirements</a></li>
+            <li><a href="#overview">What Root-Times does</a></li>
+            <li><a href="#download">1. Download the jar</a></li>
+            <li><a href="#configure">2. Configure</a></li>
+            <li><a href="#start">3. Start Paper</a></li>
+            <li><a href="#welcome">Join welcome</a></li>
+            <li><a href="#web">Local web UI</a></li>
+            <li><a href="#files">Files created</a></li>
+            <li><a href="#commands">Commands</a></li>
+            <li><a href="#updater">Suite updater</a></li>
+            <li><a href="#mysql">MySQL</a></li>
+            <li><a href="#troubleshoot">Troubleshooting</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <p class="rmc-muted" style="margin:0;font-size:0.85rem">Other guides</p>
+          <ul>
+            <li><a href="/plugins/">Plugin catalog</a></li>
+            <li><a href="/wiki/versioning/">Versioning</a></li>
+            <li><a href="/plugins/root-core/">Root-Core</a></li>
+            <li><a href="/plugins/root-perms/">Root-Perms</a></li>
+            <li><a href="/developer/">Developer portal</a></li>
+          </ul>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <section id="requirements">
+          <h2>Requirements</h2>
+          <ul>
+            <li><strong>Paper</strong> 26.x (or compatible)</li>
+            <li><a href="/plugins/root-core/">Root-Core</a> — shared <code>plugins/RootMC/</code>, product key, and suite auto-updates</li>
+            <li>MySQL for playtime / activity harvest (credentials in <code>plugins/RootMC/database.yml</code>)</li>
+          </ul>
+        </section>
+
+        <section id="overview">
+          <h2>What Root-Times does</h2>
+          <ul>
+            <li>Configures a Minecraft-day clock in any IANA timezone (default UTC) and drives world daylight</li>
+            <li>Tracks <strong>total playtime seconds</strong> (and monthly totals) in MySQL</li>
+            <li>Hourly activity by player timezone; idle AFK detection (AFK time can be excluded from harvest)</li>
+            <li>Two join welcome lines: total playtime + local clock; Minecraft day + ingame ticks</li>
+            <li>Local status page (default <code>http://127.0.0.1:8765/</code>)</li>
+          </ul>
+        </section>
+
+        <section id="download">
+          <h2>1. Download the jar</h2>
+          <ol>
+            <li>Use the download button above or the <a href="/plugins/">plugins catalog</a>.</li>
+            <li>Copy <code>root-times-&lt;version&gt;.jar</code> into your server’s <code>plugins/</code> folder.</li>
+            <li><strong>Delete older</strong> <code>root-times-*.jar</code> files so Paper loads only one Times.</li>
+            <li>Keep <strong>Root-Core</strong> installed — the suite updater refreshes Times from the public manifest.</li>
+          </ol>
+        </section>
+
+        <section id="configure">
+          <h2>2. Configure</h2>
+          <p>On first enable, Times writes <code>plugins/RootMC/root-times.yml</code>. Main sections: <code>minecraft-day</code> (set <code>timezone</code> to any IANA id such as <code>UTC</code> or <code>America/New_York</code>), <code>harvest</code>, <code>afk</code>, <code>welcome</code>, <code>web</code>.</p>
+          <p>Set MySQL once in <code>plugins/RootMC/database.yml</code> (Root-Core creates/repairs this file). Every Root plugin shares it.</p>
+        </section>
+
+        <section id="start">
+          <h2>3. Start Paper</h2>
+          <ol>
+            <li>Start or restart the server.</li>
+            <li>Confirm console lines for Root-Times enable (day sync, web URL when enabled).</li>
+            <li>Run <code>/times status</code> — day id, ticks, MySQL ready, web URL.</li>
+          </ol>
+        </section>
+
+        <section id="welcome">
+          <h2>Join welcome</h2>
+          <p>On every join (short delay), players see:</p>
+          <ol>
+            <li><code>Total Playtime: … - Your Current Time: H:MM AM/PM Timezone</code></li>
+            <li><code>Minecraft day #… - Ingame time: … (phase)</code></li>
+          </ol>
+          <p>Edit templates in <code>welcome.line-playtime</code> and <code>welcome.line-mc-day</code>.</p>
+        </section>
+
+        <section id="web">
+          <h2>Local web UI</h2>
+          <p>Default bind <code>127.0.0.1:8765</code>. Defaults copy once into <code>plugins/RootMC/times/web/</code> and are never overwritten if you edit them. Optional <code>web.token</code> protects <code>/api/*</code>.</p>
+          <p>In-game: <code>/times web</code></p>
+        </section>
+
+        <section id="files">
+          <h2>Files under <code>plugins/RootMC/</code></h2>
+          <table>
+            <thead>
+              <tr><th>File</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>root-times.yml</code></td><td>Day clock, harvest, AFK, welcome, web</td></tr>
+              <tr><td><code>database.yml</code></td><td>Shared MySQL (via Root-Core)</td></tr>
+              <tr><td><code>times/web/</code></td><td>Editable local status page</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="commands">
+          <h2>Commands</h2>
+          <table>
+            <thead>
+              <tr><th>Command</th><th>Action</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>/times</code> / <code>/times status</code></td><td>Day id, ticks, MySQL, Core presence</td></tr>
+              <tr><td><code>/times reload</code></td><td>Reload config and restart subsystems</td></tr>
+              <tr><td><code>/times web</code></td><td>Print local web URL</td></tr>
+              <tr><td><code>/afk</code></td><td>Toggle AFK</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="updater">
+          <h2>Suite updater</h2>
+          <p>Root-Times is listed in the public <a href="/plugins/manifest.json">manifest.json</a>. With <a href="/plugins/root-core/">Root-Core</a> installed and <code>updater.enabled: true</code> (default), Core downloads newer <code>root-times-*.jar</code> builds, prunes older jars, then you <strong>restart Paper</strong> to load them. Configs are never overwritten by the updater.</p>
+          <p>Manual check: <code>/rootcore update</code>.</p>
+        </section>
+
+        <section id="mysql">
+          <h2>MySQL</h2>
+          <p>Playtime is stored as <strong>total seconds</strong> (<code>total_playtime_seconds</code>) plus monthly totals. Activity uses shared timezone/hourly tables. AFK history uses <code>*_times_afk_sessions</code>.</p>
+          <p>Set host, database, username, and password in <code>plugins/RootMC/database.yml</code>. Blank password will warn and MySQL harvest will fail until set.</p>
+        </section>
+
+        <section id="troubleshoot">
+          <h2>Troubleshooting</h2>
+          <table>
+            <thead>
+              <tr><th>Symptom</th><th>What to check</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>MySQL / Communications link failure</td>
+                <td><code>database.yml</code> host and password on the live host; upload the filled file, not a stub</td>
+              </tr>
+              <tr>
+                <td>No playtime on welcome</td>
+                <td>MySQL ready in <code>/times status</code>; play a short session then rejoin</td>
+              </tr>
+              <tr>
+                <td>World time not moving</td>
+                <td><code>minecraft-day.enabled: true</code>; at least one player online</td>
+              </tr>
+              <tr>
+                <td>Updater never upgrades Times</td>
+                <td>Root-Core present; <code>updater.enabled: true</code>; jar on <a href="/plugins/manifest.json">manifest</a>; restart after download</td>
+              </tr>
+              <tr>
+                <td>Two Root-Times jars</td>
+                <td>Delete older <code>root-times-*.jar</code> from <code>plugins/</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/plugins/">Plugin catalog</a> · <a href="/developer/">Developer portal</a> · <a href="/plugins/manifest.json">manifest.json</a></p>
+      <p class="rmc-footer-mono">Root-Times install guide</p>
+    </div>
+  </footer>
+
+  <script src="/js/site.js" defer></script>
+  <script src="/plugins/guide.js" defer></script>
+  <script src="/scripts/site-nav.js" defer></script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

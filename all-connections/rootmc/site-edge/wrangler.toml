@@ -1,0 +1,28 @@
+name = "rootmc-site-edge"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+account_id = "f3372b30093435bacc35b69972abeb2e"
+workers_dev = true
+
+# Apex custom domain on Pages is still pending (CNAME exists, verification lags).
+# Route HTML through this Worker so rootmc.net serves current Pages production.
+[[routes]]
+pattern = "rootmc.net/*"
+zone_name = "rootmc.net"
+
+[[routes]]
+pattern = "www.rootmc.net/*"
+zone_name = "rootmc.net"
+
+[[kv_namespaces]]
+binding = "SITE_CACHE"
+id = "40d15a83b3dc4bab9e6ad9cfd82db66d"
+
+[vars]
+# Live HTML/JS: Pages (rootmc-web). site-origin.rootmc.net tunnel 31a09834 is down
+# and was serving a stale copy. Flip back to https://site-origin.rootmc.net when Ava origin is current.
+SITE_ORIGIN = "https://rootmc-web.pages.dev"
+ROOTMC_API_BASE = "https://api.rootmc.net"
+ROOTMC_API_G2_BASE = "https://api2.rootmc.net"
+ROOTRECORD_API_ACCOUNT_BASE = "https://api.rootrecord.info"
+PAGES_FALLBACK = "https://rootmc-web.pages.dev"

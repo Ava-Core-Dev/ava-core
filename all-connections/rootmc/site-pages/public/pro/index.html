@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RootMC Pro — Donor Membership, Vote Shards &amp; Perks</title>
+  <meta name="description" content="Support RootMC with Pro or Lifetime. Vote Shards ($1=100) are Council weight only. Paid Pro 500 shards/mo + ×2. Lifetime 500/mo for life + listing-site ×2 + ×3. Cosmetics, extra homes, ad-free app — never P2W.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="canonical" href="https://rootmc.net/pro/">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <style>
+    .pro-shard-split { display: grid; gap: 1.25rem; align-items: start; }
+    @media (min-width: 720px) {
+      .pro-shard-split { grid-template-columns: 14rem minmax(0, 1fr); }
+    }
+    .pro-shard-split img { width: 100%; max-width: 14rem; height: auto; border-radius: 12px; display: block; }
+  </style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/">
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">SMP</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-site-nav="player"></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container rmc-section">
+    <p class="wiki-breadcrumb"><a href="/">Home</a> / Pro Membership</p>
+    <h1 class="wiki-page-title">RootMC Pro Membership</h1>
+    <p class="page-lead">Support the server and unlock member perks on the <strong>RootMC app</strong>, <strong>rootmc.net</strong>, and <strong>play.rootmc.net</strong>. No pay-to-win shortcuts — cosmetics, convenience, companion tools, and <strong>pay-to-steer</strong> <a href="/vote-shards/">Vote Shards</a> (paid Pro ×2 / Lifetime ×3 / both ×5).</p>
+    <div class="wiki-badge-row">
+      <span class="wiki-badge wiki-badge-player">In-game: /donor /pro /lifetime</span>
+      <span class="wiki-badge">Linked account required</span>
+      <span class="wiki-badge">Stripe checkout</span>
+      <span class="wiki-badge wiki-badge-server">Vote Shards $1 = 100</span>
+    </div>
+
+    <div class="wiki-shell" style="margin-top:1.5rem">
+      <aside class="wiki-sidebar" aria-label="On this page">
+        <h2>On this page</h2>
+        <nav>
+          <ul>
+            <li><a href="#plans">Choose a plan</a></li>
+            <li><a href="#dev-funding">Ava development</a></li>
+            <li><a href="#vote-shards">Vote Shards</a></li>
+            <li><a href="#perks-app">App &amp; web perks</a></li>
+            <li><a href="#perks-ingame">In-game perks</a></li>
+            <li><a href="#how">How checkout works</a></li>
+            <li><a href="#free">Earn Pro free</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+        </nav>
+        <div class="wiki-switch">
+          <h2>Related</h2>
+          <nav>
+            <ul>
+              <li><a href="/vote-shards/">Vote Shards</a></li>
+              <li><a href="/verify/">Link Minecraft + Discord</a></li>
+              <li><a href="/wiki/weekly-awards/">Weekly awards</a></li>
+              <li><a href="/thanks/">Appreciation tokens</a></li>
+              <li><a href="/wiki/player/">Player guide</a></li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="wiki-content">
+        <article id="plans">
+          <h2>Choose a plan</h2>
+          <p>At Stripe checkout, enter the <strong>Minecraft username</strong> (case-sensitive) for whoever should receive membership — yourself or a gift. That player must already have a <strong>linked</strong> account (<code>/link</code> in-game + <a href="/verify/">web verify</a>).</p>
+
+          <section class="rmc-card verify-card" id="dev-funding" style="margin-top:1.25rem">
+            <h3 style="margin-top:0">Ava development funding</h3>
+            <p class="rmc-muted" id="dev-funding-line" style="margin:0 0 0.5rem">Paid memberships fund Ava’s development runway.</p>
+            <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.75;margin:0">
+              <li><strong>Only paid memberships</strong> count toward development — weekly award / unpaid Pro never does.</li>
+              <li>When the gate is met, new development and support stay available; when it isn’t, new work can stall.</li>
+              <li>Surplus also funds <strong>hardware upgrades</strong> for Ava’s solar host.</li>
+              <li>Recurring Pro is unique people, not duplicate Stripe subscriptions.</li>
+            </ul>
+          </section>
+
+          <div class="rmc-grid" style="margin-top:1.25rem">
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">Monthly Pro</h3>
+              <p class="rmc-muted" style="font-size:1.35rem;font-weight:600;color:var(--rmc-gold);margin:0 0 0.5rem">$4.99 <span style="font-size:0.9rem;font-weight:500;color:var(--rmc-muted-fg)">/ month</span></p>
+              <p>Subscription Pro on the linked account while billing stays active. Syncs automatically — not a tradeable item.</p>
+              <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.75;margin:0.75rem 0">
+                <li>Cancel anytime in Stripe</li>
+                <li><strong>500</strong> Vote Shards each billing month + Council <strong>×2</strong></li>
+                <li>Best for ongoing support</li>
+              </ul>
+              <p style="margin:1rem 0 0">
+                <a class="rmc-btn rmc-btn-primary" href="/pro/monthly/" rel="noopener">Subscribe — $4.99/mo</a>
+              </p>
+            </section>
+
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">One-month voucher</h3>
+              <p class="rmc-muted" style="font-size:1.35rem;font-weight:600;color:var(--rmc-gold);margin:0 0 0.5rem">$4.99 <span style="font-size:0.9rem;font-weight:500;color:var(--rmc-muted-fg)">one-time</span></p>
+              <p>A tradeable Pro voucher lands in that player&rsquo;s <code>/vault</code>. Right-click in-game to redeem <strong>30 days</strong> of Pro.</p>
+              <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.75;margin:0.75rem 0">
+                <li>Gift or resell before redeem</li>
+                <li><strong>500</strong> Appreciation Tokens on redeem</li>
+                <li>Redeemed month: <strong>500</strong> Vote Shards + Council <strong>×2</strong></li>
+              </ul>
+              <p style="margin:1rem 0 0">
+                <a class="rmc-btn rmc-btn-secondary" href="/pro/one-month/" rel="noopener">Buy voucher — $4.99</a>
+              </p>
+            </section>
+
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">Lifetime Pro</h3>
+              <p class="rmc-muted" style="font-size:1.35rem;font-weight:600;color:var(--rmc-gold);margin:0 0 0.5rem">$75 <span style="font-size:0.9rem;font-weight:500;color:var(--rmc-muted-fg)">one-time</span></p>
+              <p>Permanent Lifetime membership voucher to <code>/vault</code>. Redeem once for forever Pro + top-tier in-game extras.</p>
+              <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.75;margin:0.75rem 0">
+                <li><strong>10,000</strong> Appreciation Tokens on redeem</li>
+                <li><strong>500</strong> Vote Shards / month for life + Council <strong>×3</strong> + listing votes <strong>×2</strong></li>
+                <li>Never expires after redeem</li>
+              </ul>
+              <p style="margin:1rem 0 0">
+                <a class="rmc-btn rmc-btn-primary" href="/pro/lifetime/" rel="noopener">Buy Lifetime — $75</a>
+              </p>
+            </section>
+
+            <section class="rmc-card verify-card">
+              <h3 style="margin-top:0">Vote Shards</h3>
+              <p class="rmc-muted" style="font-size:1.35rem;font-weight:600;color:var(--rmc-gold);margin:0 0 0.5rem">$1 = 100 <span style="font-size:0.9rem;font-weight:500;color:var(--rmc-muted-fg)">min $0.50</span></p>
+              <p>Council voting weight only. Type any amount at checkout from <strong>$0.50</strong> (50 shards) up. Does not change in-game metrics.</p>
+              <ul class="rmc-muted" style="padding-left:1.2rem;line-height:1.75;margin:0.75rem 0">
+                <li>1¢ = 1 shard · Stripe USD floor $0.50</li>
+                <li>Enter beneficiary Minecraft username</li>
+                <li>Must already be <a href="/verify/">linked</a></li>
+              </ul>
+              <p style="margin:1rem 0 0">
+                <a class="rmc-btn rmc-btn-primary" href="/pro/vote-shards/" rel="noopener">Buy Vote Shards</a>
+              </p>
+            </section>
+          </div>
+        </article>
+
+        <article id="vote-shards">
+          <h2>Vote Shards — pay to steer</h2>
+          <div class="pro-shard-split" style="margin:.75rem 0 1rem">
+            <p style="margin:0">
+              <a href="/vote-shards/"><img src="/images/vote-shards.png" alt="Vote Shards — Council voting weight" width="343" height="512"></a>
+            </p>
+            <div>
+              <p style="margin-top:0"><strong>Vote Shards</strong> are Council voting weight only. They never change homes, Gold, combat, or shops. Full explainer: <a href="/vote-shards/">rootmc.net/vote-shards</a>.</p>
+              <ul>
+                <li><strong>Buy:</strong> $1 = 100 via Stripe (min $0.50 = 50). <a href="/pro/vote-shards/">Checkout</a>.</li>
+                <li><strong>Listing votes</strong> (<code>/vote</code>): +1 EC shard + tokens + 1–20 G. Lifetime listing sites ×2.</li>
+                <li><strong>Paid Pro:</strong> 500 shards / month + Council ×2.</li>
+                <li><strong>Lifetime:</strong> 500 shards / month for life + Council ×3 + listing ×2. Not a lump sum.</li>
+                <li><strong>Pro + Lifetime:</strong> multiplier stacks to ×5. Monthly shard grants still 500 each if both are active.</li>
+                <li><strong>Weekly award Pro:</strong> cosmetics + app only — no shards, no ×2.</li>
+              </ul>
+            </div>
+          </div>
+          <p>Score: <code>EC + paid + listing bonus</code>, then × Pro/Lifetime multiplier. <a href="/wiki/constitution/#governance-voting">Constitution</a> · <a href="/council/">Council</a>.</p>
+          <p><a class="rmc-btn rmc-btn-primary" href="/pro/vote-shards/">Buy Vote Shards</a> <a class="rmc-btn rmc-btn-secondary" href="/vote-shards/">How shards work</a></p>
+        </article>
+
+        <article id="perks-app">
+          <h2>App &amp; web perks</h2>
+          <p>Pro and Lifetime apply to the <strong>linked RootMC account</strong> (same email you verify in-game). Free accounts still get core stats and linking.</p>
+          <table class="wiki-table">
+            <thead><tr><th>Feature</th><th>Free</th><th>Pro / Lifetime</th></tr></thead>
+            <tbody>
+              <tr><td>RootMC Android app ads</td><td>Banner &amp; interstitial</td><td><strong>Ad-free</strong></td></tr>
+              <tr><td>World AI reports</td><td>1 per day</td><td><strong>100 per month</strong></td></tr>
+              <tr><td>Realm groups you can own</td><td>1</td><td><strong>5</strong></td></tr>
+              <tr><td>Linked stats, market, vault, leaderboards</td><td>Yes</td><td>Yes</td></tr>
+              <tr><td>Notes, waypoints &amp; account sync</td><td>Yes</td><td>Yes</td></tr>
+              <tr><td>Daily server intelligence reports</td><td>Yes</td><td>Yes</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article id="perks-ingame">
+          <h2>In-game perks</h2>
+          <p>Root-Memberships syncs your cloud Pro / Lifetime flag to LuckPerms on join. Weekly award Pro uses the same <code>[Pro]</code> badge but is temporary — see below.</p>
+
+          <h3>Pro (subscription or redeemed month)</h3>
+          <ul>
+            <li><code>[Pro]</code> chat prefix badge</li>
+            <li><code>/nick</code> and <code>/hat</code> cosmetics</li>
+            <li>Colored &amp; formatted chat</li>
+            <li>Colored signs</li>
+            <li>Custom join message</li>
+            <li><strong>5</strong> homes (<code>/sethome</code>) — default players get 3</li>
+            <li>Governance vote weight <strong>×2</strong> + <strong>500 Vote Shards / month</strong> (paid Pro only — not weekly award)</li>
+          </ul>
+
+          <h3>Lifetime (after voucher redeem)</h3>
+          <ul>
+            <li>Everything in Pro, plus:</li>
+            <li><code>[Lifetime]</code> chat prefix badge</li>
+            <li><strong>RGB</strong> chat colors</li>
+            <li><strong>8</strong> homes</li>
+            <li>Governance vote weight <strong>×3</strong> (or <strong>×5</strong> with active paid Pro) + listing votes <strong>×2</strong></li>
+            <li><strong>500 Vote Shards / month for life</strong> (same monthly rate as Pro — not a lump sum; stacks with a paid Pro month if you also subscribe)</li>
+          </ul>
+
+          <p class="rmc-muted">Survival shortcuts like <code>/heal</code>, <code>/feed</code>, and <code>/repair</code> stay disabled for all players — membership is not pay-to-win.</p>
+        </article>
+
+        <article id="how">
+          <h2>How checkout works</h2>
+          <ol>
+            <li><strong>Link first</strong> — on <code>play.rootmc.net</code> run <code>/link</code>, then finish at <a href="/verify/">rootmc.net/verify</a>.</li>
+            <li><strong>Pick a plan</strong> above and complete Stripe checkout. Enter the beneficiary&rsquo;s exact Minecraft username.</li>
+            <li><strong>Subscription</strong> — Pro activates on the linked account within a few minutes while the sub is active.</li>
+            <li><strong>Vouchers</strong> — claim the item from <code>/vault</code>, then right-click to redeem. Trade vouchers freely until redeemed.</li>
+            <li><strong>Check status</strong> — in-game <code>/memberships status</code> or sign into the RootMC app with the same linked account.</li>
+          </ol>
+          <p>Questions? Ask in <a href="https://discord.gg/rFFQYrNaqS" target="_blank" rel="noopener">Discord</a> or run <code>/donor</code>, <code>/pro</code>, or <code>/lifetime</code> in-game for the same checkout links.</p>
+        </article>
+
+        <article id="free">
+          <h2>Earn Pro free</h2>
+          <p>Separate from paid plans: each Sunday the <strong>#1 Top Active Player</strong> (most weekly linked playtime) earns <strong>one week of Pro</strong> on their linked account — app perks plus the in-game <code>[Pro]</code> prefix. Top 3 get the <code>[Top Active Player]</code> prefix without automatic Pro. Weekly award Pro does <strong>not</strong> grant Vote Shards or the ×2 Council multiplier.</p>
+          <p>Paid Pro, voucher months, and Lifetime are never overwritten by the weekly award. Details: <a href="/wiki/weekly-awards/#pro">weekly awards guide</a>.</p>
+        </article>
+
+        <article id="faq">
+          <h2>FAQ</h2>
+          <h3>Can I gift membership to someone else?</h3>
+          <p>Yes — enter their Minecraft username at checkout. One-month and Lifetime vouchers can sit in their vault until they redeem. Subscriptions apply directly to whoever&rsquo;s linked to that username.</p>
+          <h3>What if checkout username doesn&rsquo;t match a linked player?</h3>
+          <p>Delivery waits until that username is linked. Link before buying when possible.</p>
+          <h3>Subscription vs voucher — which should I pick?</h3>
+          <p>Subscribe for hassle-free ongoing Pro. Vouchers are better for gifts, stacking months, or trading before redeem.</p>
+          <h3>Does weekly award Pro stack with paid?</h3>
+          <p>Life members and active paid Pro are untouched. Award Pro only fills a gap when you don&rsquo;t already have paid access. It does not add Vote Shards or ×2.</p>
+          <h3>What are Vote Shards?</h3>
+          <p>Council voting weight only — <strong>$1 = 100</strong>, listing votes mint digital EC shards (same number as your vote count), paid Pro/Lifetime grant extra shards and multipliers. They never change in-game metrics. See <a href="/vote-shards/">rootmc.net/vote-shards</a>.</p>
+          <h3>Where does my money go?</h3>
+          <p>Paid Pro funds <strong>Ava’s development sessions</strong> plus hosting and hardware upgrades. It is separate from in-game Gold (G), which stays earned in the closed-loop economy. Award Pro does not count toward this gate.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-meta">
+      <p><a href="/">RootMC</a> · <a href="/vote-shards/">Vote Shards</a> · <a href="/wiki/">Wiki</a> · <a href="/wiki/weekly-awards/">Weekly awards</a> · <a href="/plugins/root-memberships/">Root-Memberships</a></p>
+      <p class="rmc-footer-mono">/donor · /pro · /lifetime · /vote · /voteshard</p>
+    </div>
+  </footer>
+  <script src="/scripts/site-nav.js?v=20260809s" defer></script>
+  <script>
+    (function () {
+      var el = document.getElementById("dev-funding-line");
+      if (!el) return;
+      fetch("https://api.rootmc.net/api/rootmc/memberships/stats", { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.ok) throw new Error("bad");
+          var ok = d.development_available === true;
+          el.textContent = ok
+            ? "Development sessions are currently funded by paid memberships."
+            : "Development sessions need more paid support before new work can continue.";
+        })
+        .catch(function () {
+          el.textContent = "Paid memberships fund Ava’s development runway.";
+        });
+    })();
+  </script>
+<script src="/scripts/disruption-banner.js" defer></script>
+</body>
+</html>

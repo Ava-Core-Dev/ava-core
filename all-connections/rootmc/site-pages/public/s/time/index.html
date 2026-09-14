@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time — RootMC Server</title>
+  <meta name="description" content="Live Minecraft-day clock, online roster, and activity graphs for this server.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="theme-color" content="#0a0e14">
+  <link rel="stylesheet" href="/styles/rootmc.css?v=20260819ivy">
+  <style>
+    .s-times-day { font-size: 1.35rem; margin: 0.5rem 0; }
+    .s-times-chart { width: 100%; height: 180px; margin: 1rem 0; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); }
+    .s-times-list { padding-left: 1.1rem; }
+    .s-times-list li.afk { opacity: 0.65; }
+    .s-times-stale { color: #f5b942; }
+    .s-times-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 700px) { .s-times-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="rmc-header">
+    <div class="container rmc-header-inner">
+      <a class="rmc-brand" href="/" data-s-brand>
+        <span class="rmc-brand-mark" aria-hidden="true">◈</span>
+        RootMC
+        <span class="rmc-brand-tag">Server</span>
+      </a>
+      <nav class="rmc-nav" aria-label="Main" data-s-nav></nav>
+      <button class="rmc-nav-toggle" type="button" aria-label="Open menu" data-nav-toggle>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="container verify-main">
+    <header class="verify-hero">
+      <p class="market-badge">Times</p>
+      <h1>Minecraft <span style="background:linear-gradient(135deg,var(--rmc-gold-bright),var(--rmc-copper));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">day</span></h1>
+      <p class="rmc-muted" id="s-times-sub">Live day clock and roster from Root-Times on this host.</p>
+    </header>
+
+    <div class="rmc-card verify-card">
+      <p id="s-times-status" class="s-times-day">Loading…</p>
+      <p id="s-times-online" class="rmc-muted">—</p>
+      <p id="s-times-meta" class="rmc-muted" style="font-size:0.85rem"></p>
+    </div>
+
+    <div class="s-times-grid" style="margin-top:1rem">
+      <div class="rmc-card verify-card">
+        <h2 style="margin-top:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--rmc-muted)">Online + AFK (48h)</h2>
+        <canvas id="s-times-chart" class="s-times-chart" width="640" height="180"></canvas>
+        <p class="rmc-muted" id="s-times-peak" style="font-size:0.85rem;margin:0">Peak: —</p>
+      </div>
+      <div class="rmc-card verify-card">
+        <h2 style="margin-top:0;font-size:0.95rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--rmc-muted)">Players</h2>
+        <ul class="s-times-list" id="s-times-players"></ul>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rmc-footer">
+    <div class="container rmc-footer-inner">
+      <p><a href="#" id="s-times-home">← Server home</a></p>
+    </div>
+  </footer>
+
+  <script src="/s/server-api.js"></script>
+  <script src="/s/server-chrome.js"></script>
+  <script src="/s/time/time.js"></script>
+</body>
+</html>
