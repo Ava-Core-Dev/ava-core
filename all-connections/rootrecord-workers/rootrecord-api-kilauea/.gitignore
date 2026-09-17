@@ -1,6 +1,0 @@
-node_modules/
-.wrangler/
-.dev.vars
-.deploy-jwt
-.deploy-internal-wallet-key
-.deploy-solana-site-log-secret

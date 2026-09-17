@@ -1,7 +1,0 @@
-[
-  {"id": "librarian_emerald", "profession": "Librarian", "trade": "Emeralds for Paper", "level": 1},
-  {"id": "farmer_bread", "profession": "Farmer", "trade": "Bread for Emeralds", "level": 1},
-  {"id": "armorer_iron", "profession": "Armorer", "trade": "Iron Armor for Emeralds", "level": 2},
-  {"id": "toolsmith_iron", "profession": "Toolsmith", "trade": "Iron Tools for Emeralds", "level": 2},
-  {"id": "cleric_ender", "profession": "Cleric", "trade": "Ender Pearls for Emeralds", "level": 3}
-]

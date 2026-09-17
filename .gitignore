@@ -64,7 +64,6 @@ apps/desktop/data/
 # These are local symlinks (git sees a symlink as a file — no trailing slash).
 /apps/voice/assets
 /apps/media
-/ava_core/
 
 # OS
 .DS_Store
@@ -76,8 +75,15 @@ Thumbs.db
 # USB / E: junctions (files stay on E:). Slash and no-slash: git may see a junction as a symlink.
 /Media
 /Media/
+/Media.bak-*
+/Media.bak-*/
 /workstations
 /workstations/
+/workstations/**
+!/workstations/
+!/workstations/android/
+!/workstations/android/ava-ops/
+!/workstations/android/ava-ops/**
 /plugins
 /plugins/
 /apps/kilauea-alerts/
@@ -95,12 +101,11 @@ Thumbs.db
 /apps/realm-web/
 
 # GitHub trees that are not the live Windows layout (audio lives on Media → E:)
-# Do not ignore apps/core, apps/desktop, apps/voice, packages/, scripts/, windows/*.py
+# Do not ignore apps/core, apps/desktop, apps/voice, sites/, workers/, windows/*.py
 /audio/
 /Thumbnails/
 /unsorted/
 /web/
-/context/
 
 # NTFS cannot store GitHub cron folders with ':' in the name (00:00 Start, 00:00, …)
 **/*:*/
@@ -123,3 +128,8 @@ ehthumbs.db
 # Desk secrets (AdSense OAuth tokens, etc.) — never commit
 data/secrets/
 **/google-adsense-*.json
+
+# Telegram Council
+apps/council/__pycache__/
+apps/council/**/__pycache__/
+apps/council/runs/

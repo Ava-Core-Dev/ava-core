@@ -23,8 +23,9 @@ Create **two** projects from the same repo (`Ava-Core-Dev/ava-core`, branch `mas
 
 | Project name | Framework | Root Directory | Domain later |
 |---|---|---|---|
-| `avaivy-cloud` | Next.js | `packages/web/avaivy.cloud` | avaivy.cloud |
-| `rootrecord-online` | Next.js | `packages/web/rootrecord.online` | rootrecord.online |
+| `avaivy-cloud` | Next.js | `sites/avaivy-cloud` | avaivy.cloud |
+| `rootrecord-online` | Next.js | `sites/rootrecord-online` | rootrecord.online |
+| `alexrs94-site` | Next.js | `sites/alexrs94-site` | alexrs94.site |
 
 On the import screen:
 
@@ -58,7 +59,7 @@ You almost never need to touch code for this. All the text and links for
 avaivy.cloud live in one file:
 
 ```
-packages/web/avaivy.cloud/src/content.json
+sites/avaivy-cloud/src/content.json
 ```
 
 Change the headline, tagline, nav links, cards, and footer there. It is plain
@@ -71,13 +72,13 @@ JSON, so the only rules are:
 The goals board is the same idea, different file:
 
 ```
-packages/web/avaivy.cloud/src/goals.json
+sites/avaivy-cloud/src/goals.json
 ```
 
 Official receive addresses (public keys only):
 
 ```
-packages/web/avaivy.cloud/src/wallets.json
+sites/avaivy-cloud/src/wallets.json
 ```
 
 Never put a recovery phrase or private key in those files.
@@ -98,13 +99,13 @@ Layout and styling live next to each page:
 
 | What | Where |
 |---|---|
-| Home page structure | `packages/web/avaivy.cloud/src/app/page.tsx` |
-| Home page styling | `packages/web/avaivy.cloud/src/app/page.module.css` |
-| Live watch / embed | `packages/web/avaivy.cloud/src/app/live/page.tsx` |
-| Status page | `packages/web/avaivy.cloud/src/app/status/page.tsx` |
-| Goals board | `packages/web/avaivy.cloud/src/goals.json` |
-| Colors + global styles | `packages/web/avaivy.cloud/src/app/globals.css` |
-| Root Record dashboard | `packages/web/rootrecord.online/src/app/page.tsx` |
+| Home page structure | `sites/avaivy-cloud/src/app/page.tsx` |
+| Home page styling | `sites/avaivy-cloud/src/app/page.module.css` |
+| Live watch / embed | `sites/avaivy-cloud/src/app/live/page.tsx` |
+| Status page | `sites/avaivy-cloud/src/app/status/page.tsx` |
+| Goals board | `sites/avaivy-cloud/src/goals.json` |
+| Colors + global styles | `sites/avaivy-cloud/src/app/globals.css` |
+| Root Record dashboard | `sites/rootrecord-online/src/app/page.tsx` |
 
 `.module.css` files are ordinary CSS. Changing a color or font size there is safe.
 
@@ -131,7 +132,7 @@ export default function About() {
 ```
 
 You can create files directly on GitHub: **Add file → Create new file**, then
-type the full path `packages/web/avaivy.cloud/src/app/about/page.tsx`.
+type the full path `sites/avaivy-cloud/src/app/about/page.tsx`.
 
 ---
 
@@ -172,7 +173,7 @@ to edit:
 | `cloudflared` tunnel | Only way to reach a machine in your house from the internet |
 | Cron fallback Workers | They run scheduled jobs *while the home box is off* |
 
-If you never touch `packages/workers/`, nothing about the public sites breaks.
+If you never touch `workers/`, nothing about the public sites breaks.
 
 ---
 
@@ -230,4 +231,4 @@ What they receive:
 - Severe/extreme NWS alerts
 
 **Changed a file but nothing happened.** Confirm you committed to `master`, and
-that the file is under the project's root directory (`packages/web/<site>/`).
+that the file is under the project's root directory (`sites/<site>/`).
